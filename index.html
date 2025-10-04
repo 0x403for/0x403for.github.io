@@ -1,0 +1,33 @@
+<html>
+<head>
+    <style>
+        html {
+            font-family: sans-serif;
+        }
+        h1 {
+            font-size: 1.8em;
+            margin-bottom: 0;
+        }
+        p {
+            margin: 5px 0;
+        }
+        #testFrame {
+            width: 95vw;
+            height: 350px;
+        }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<h1>WebView XSS via window.open()</h1>
+
+<p>Parent page on https://github.com/BowoHaxor <span id="originOutput"></span></p>
+
+<iframe id="testFrame" src="https://diff-origin.aogarantiza.com/chromiumwebview/window-open-iframe-js.html"></iframe>
+
+<script>
+    document.getElementById('originOutput').innerText = window.location.origin;
+</script>
+
+</body>
+</html>
