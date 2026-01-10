@@ -1,35 +1,55 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <title>Akses Kamera Standar</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Screenshot Website</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #121212; color: white; }
-        video { width: 90%; max-width: 500px; border-radius: 10px; border: 2px solid #ff00ff; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
+        .content { border: 2px solid #333; padding: 20px; background: white; margin-bottom: 20px; }
+        #screenshot-result { margin-top: 20px; border: 5px solid #007bff; max-width: 80%; }
+        h2 { color: #007bff; }
     </style>
 </head>
 <body>
 
-    <h2>Status Kamera: <span id="status">Menunggu Izin...</span></h2>
-    <video id="video" autoplay playsinline></video>
+    <div id="capture-area" class="content">
+        <h1>Selamat Datang di Website Saya</h1>
+        <p>Halaman ini akan otomatis mengambil screenshot dirinya sendiri saat dimuat.</p>
+        <img src="https://via.placeholder.com/150" alt="Placeholder Image">
+    </div>
+
+    <hr>
+    <h3>Hasil Screenshot:</h3>
+    <div id="output"></div>
 
     <script>
-        async function startCamera() {
-            try {
-                // Meminta izin kamera
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const videoElement = document.getElementById('video');
-                videoElement.srcObject = stream;
-                document.getElementById('status').innerText = "Aktif";
+        // Menjalankan fungsi setelah seluruh halaman (termasuk gambar) selesai dimuat
+        window.onload = function() {
+            const captureElement = document.body; // Bagian yang ingin di-screenshot (seluruh body)
+            
+            html2canvas(captureElement).then(canvas => {
+                // Mengubah canvas menjadi URL gambar (PNG)
+                const image = canvas.toDataURL("image/png");
                 
-                // Izin biasanya akan tersimpan otomatis oleh browser untuk domain HTTPS ini
-            } catch (err) {
-                console.error("Gagal akses kamera: ", err);
-                document.getElementById('status').innerText = "Ditolak/Error";
-            }
-        }
+                // Menampilkan gambar di elemen 'output'
+                const imgElement = document.createElement('img');
+                imgElement.src = image;
+                imgElement.id = 'screenshot-result';
+                document.getElementById('output').appendChild(imgElement);
 
-        // Jalankan saat halaman dimuat
-        window.onload = startCamera;
+                console.log("Screenshot berhasil diambil!");
+                
+                // Opsional: Jika ingin otomatis mendownload, hapus komentar di bawah ini:
+                /*
+                let link = document.createElement('a');
+                link.download = 'screenshot-website.png';
+                link.href = image;
+                link.click();
+                */
+            });
+        };
     </script>
 </body>
 </html>
