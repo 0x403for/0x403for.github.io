@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+[14:45, 10/01/2026] 0x403for: <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -96,6 +96,68 @@
                 androidRes.innerText = "Error: " + e.message;
             }
         }
+    </script>
+</body>
+</html>
+[14:54, 10/01/2026] 0x403for: <!DOCTYPE html>
+<html>
+<head>
+    <title>Logic Testing Bridge</title>
+    <style>
+        body { background: #1a1a1a; color: #00ff00; font-family: monospace; padding: 20px; }
+        .log-item { border-bottom: 1px solid #333; padding: 5px 0; }
+        .success { color: #58a6ff; font-weight: bold; }
+        .warning { color: #ffa657; }
+    </style>
+</head>
+<body>
+    <h3>Logic Testing: Sensitive Commands</h3>
+    <div id="test-log">Memulai pengujian logika...</div>
+
+    <script>
+        const logBox = document.getElementById('test-log');
+        function printLog(msg, type = '') {
+            const div = document.createElement('div');
+            div.className = 'log-item ' + type;
+            div.innerText = [${new Date().toLocaleTimeString()}] ${msg};
+            logBox.prepend(div);
+        }
+
+        // Daftar perintah sensitif yang sering digunakan oleh developer
+        const sensitivePayloads = [
+            { action: "getToken", desc: "Mencoba mengambil token sesi" },
+            { action: "getUserInfo", desc: "Mencoba akses data user" },
+            { action: "redirect", url: "https://attacker.com", desc: "Mencoba force redirect" },
+            { action: "closeApp", desc: "Mencoba menutup aplikasi" },
+            { action: "getClipboard", desc: "Mencoba baca clipboard" },
+            { action: "scanQR", desc: "Mencoba buka kamera" }
+        ];
+
+        function runTest() {
+            // Cek apakah ada handler iOS
+            if (window.webkit && window.webkit.messageHandlers) {
+                const handlers = Object.keys(window.webkit.messageHandlers);
+                
+                handlers.forEach(handlerName => {
+                    printLog(Mengetes handler: ${handlerName}, 'success');
+                    
+                    sensitivePayloads.forEach(item => {
+                        try {
+                            printLog(Mengirim: ${item.action} ke ${handlerName}...);
+                            // Mengirim payload ke native
+                            window.webkit.messageHandlers[handlerName].postMessage(item);
+                        } catch (e) {
+                            printLog(Gagal mengirim ${item.action}: ${e.message}, 'warning');
+                        }
+                    });
+                });
+            } else {
+                printLog("Tidak ada handler native (iOS) yang ditemukan.", 'warning');
+            }
+        }
+
+        // Jalankan setelah 3 detik agar bridge siap
+        setTimeout(runTest, 3000);
     </script>
 </body>
 </html>
