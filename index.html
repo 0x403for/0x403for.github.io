@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PoC: Password Manager Check</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         body { font-family: sans-serif; background: #0b0e11; color: #eaecef; padding: 20px; text-align: center; }
-        .container { max-width: 400px; margin: auto; background: #1e2329; padding: 20px; border-radius: 12px; border: 1px solid #474d57; }
-        #log { background: #000; color: #00ef8b; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 20px; text-align: left; min-height: 150px; font-size: 0.85em; overflow-y: auto; border: 1px solid #474d57; }
-        .btn { background: #f0b90b; color: #000; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #474d57; background: #2b3139; color: white; box-sizing: border-box; text-align: center; font-size: 1.1em; }
+        .container { max-width: 400px; margin: auto; background: #1e2329; padding: 25px; border-radius: 12px; border: 1px solid #474d57; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        #log { background: #000; color: #00ef8b; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 20px; text-align: left; min-height: 150px; font-size: 0.85em; border: 1px solid #333; }
+        .btn { background: #f0b90b; color: #000; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; transition: 0.3s; }
+        .btn:active { background: #d3a208; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #474d57; background: #2b3139; color: white; box-sizing: border-box; text-align: center; font-size: 1.2rem; }
         .highlight { color: #f0b90b; font-weight: bold; }
     </style>
 </head>
@@ -17,64 +19,62 @@
 
 <div class="container">
     <h3>Simulasi Brute-Force PIN</h3>
-    <p style="font-size: 0.8em; color: #848e9c;">Membuktikan kelemahan SHA-256 pada PIN rendah entropi.</p>
+    <p style="font-size: 0.85em; color: #848e9c;">Membuktikan cepatnya <span class="highlight">SHA-256</span> memproses PIN rendah entropi sesuai temuan Fuelet.</p>
     
-    <input type="number" id="targetPin" value="888999" placeholder="6 Digit PIN">
+    <input type="number" id="targetPin" value="888999" placeholder="Masukkan 6 Digit PIN">
     
-    <button class="btn" id="startBtn" onclick="runSimulation()">MULAI OPTIMIZED BRUTE-FORCE</button>
+    <button class="btn" onclick="startBruteForce()">MULAI OPTIMIZED BRUTE-FORCE</button>
 
     <div id="log">Status: Siap menguji...</div>
 </div>
 
 <script>
-    async function hashSHA256(text) {
-        const msgBuffer = new TextEncoder().encode(text);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        return Array.from(new Uint8Array(hashBuffer))
-            .map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    async function runSimulation() {
+    function startBruteForce() {
         const log = document.getElementById('log');
-        const btn = document.getElementById('startBtn');
         const pinInput = document.getElementById('targetPin').value;
 
-        if (pinInput.length === 0) return alert("Masukkan PIN!");
-
-        // Reset UI
-        btn.disabled = true;
-        btn.innerText = "SEDANG BERJALAN...";
-        log.innerHTML = "Menghitung Hash Target...<br>";
-
-        const targetHash = await hashSHA256(pinInput);
-        log.innerHTML += Target: <span class="highlight">${targetHash.substring(0,15)}...</span><br><br>;
-
-        const start = performance.now();
-        
-        // Looping dengan jeda agar UI tidak hang
-        for (let i = 0; i <= 999999; i++) {
-            let guess = i.toString().padStart(pinInput.length, '0');
-            let currentHash = await hashSHA256(guess);
-
-            if (currentHash === targetHash) {
-                const time = ((performance.now() - start) / 1000).toFixed(3);
-                log.innerHTML += <span style="color:white;">[BERHASIL!]</span><br>;
-                log.innerHTML += PIN Ditemukan: <span class="highlight">${guess}</span><br>;
-                log.innerHTML += Waktu: ${time} detik.<br><br>;
-                log.innerHTML += <small>Analisis: SHA-256 terlalu cepat sehingga mempermudah serangan paralel.</small>;
-                break;
-            }
-
-            // Memberikan feedback visual setiap 1000 percobaan
-            if (i % 1000 === 0) {
-                log.innerHTML = Mencoba: ${guess}...;
-                // Jeda krusial agar browser mobile tidak crash
-                await new Promise(r => setTimeout(r, 0));
-            }
+        if (pinInput.length < 1) {
+            alert("Masukkan PIN terlebih dahulu!");
+            return;
         }
+
+        log.innerHTML = "<strong>Menghitung Hash Target...</strong><br>";
         
-        btn.disabled = false;
-        btn.innerText = "MULAI OPTIMIZED BRUTE-FORCE";
+        // Membuat hash SHA-256 sesuai kerentanan yang dilaporkan
+        const targetHash = CryptoJS.SHA256(pinInput).toString();
+        log.innerHTML += Hash: ${targetHash.substring(0,25)}...<br>;
+        log.innerHTML += Mencari kombinasi 000000-999999...<br><br>;
+
+        const startTime = Date.now();
+        let currentIter = 0;
+        const batchSize = 1500; // Ukuran batch per siklus agar UI tetap responsif
+
+        function crack() {
+            for (let i = 0; i < batchSize; i++) {
+                let guess = currentIter.toString().padStart(pinInput.length, '0');
+                let guessHash = CryptoJS.SHA256(guess).toString();
+
+                if (guessHash === targetHash) {
+                    const duration = (Date.now() - startTime) / 1000;
+                    log.innerHTML = <span style="color:white; background: #2e7d32; padding: 2px 5px;">[PIN DITEMUKAN]</span><br><br>;
+                    log.innerHTML += PIN: <strong>${guess}</strong><br>;
+                    log.innerHTML += Waktu: <strong>${duration.toFixed(3)} detik</strong><br><br>;
+                    log.innerHTML += <small>Dampak: SHA-256 terlalu cepat dan mudah diparalelkan untuk melindungi PIN mobile.</small>;
+                    return;
+                }
+                currentIter++;
+                if (currentIter > 999999) {
+                    log.innerHTML += "<br>PIN tidak ditemukan dalam rentang 6-digit.";
+                    return;
+                }
+            }
+            
+            // Memberikan progress update tanpa memblokir browser
+            log.innerHTML = Mencoba: ${currentIter}...;
+            setTimeout(crack, 0); 
+        }
+
+        crack();
     }
 </script>
 
