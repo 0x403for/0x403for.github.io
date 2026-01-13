@@ -2,86 +2,79 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PoC: Password Manager Check</title>
     <style>
         body { font-family: sans-serif; background: #0b0e11; color: #eaecef; padding: 20px; text-align: center; }
         .container { max-width: 400px; margin: auto; background: #1e2329; padding: 20px; border-radius: 12px; border: 1px solid #474d57; }
-        #log { background: #000; color: #00ef8b; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 20px; text-align: left; min-height: 120px; font-size: 0.85em; overflow-wrap: break-word; }
+        #log { background: #000; color: #00ef8b; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 20px; text-align: left; min-height: 150px; font-size: 0.85em; overflow-y: auto; border: 1px solid #474d57; }
         .btn { background: #f0b90b; color: #000; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #474d57; background: #2b3139; color: white; box-sizing: border-box; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #474d57; background: #2b3139; color: white; box-sizing: border-box; text-align: center; font-size: 1.1em; }
+        .highlight { color: #f0b90b; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h3>Simulasi Brute-Force PIN</h3>
-    <p style="font-size: 0.8em; color: #848e9c;">Menguji kerentanan hash SHA-256 yang terlalu cepat.</p>
+    <p style="font-size: 0.8em; color: #848e9c;">Membuktikan kelemahan SHA-256 pada PIN rendah entropi.</p>
     
-    <input type="number" id="targetPin" value="888999" placeholder="Masukkan 6 Digit PIN">
+    <input type="number" id="targetPin" value="888999" placeholder="6 Digit PIN">
     
-    <button class="btn" onclick="runSimulation()">MULAI OPTIMIZED BRUTE-FORCE</button>
+    <button class="btn" id="startBtn" onclick="runSimulation()">MULAI OPTIMIZED BRUTE-FORCE</button>
 
-    <div id="log">Status: Menunggu perintah...</div>
+    <div id="log">Status: Siap menguji...</div>
 </div>
 
 <script>
-    // Fungsi hash SHA-256 menggunakan standar Web Crypto API
     async function hashSHA256(text) {
-        try {
-            const msgBuffer = new TextEncoder().encode(text);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            return Array.from(new Uint8Array(hashBuffer))
-                .map(b => b.toString(16).padStart(2, '0')).join('');
-        } catch (e) {
-            return null;
-        }
+        const msgBuffer = new TextEncoder().encode(text);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        return Array.from(new Uint8Array(hashBuffer))
+            .map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
     async function runSimulation() {
         const log = document.getElementById('log');
+        const btn = document.getElementById('startBtn');
         const pinInput = document.getElementById('targetPin').value;
 
-        if (pinInput.length < 4) {
-            alert("Gunakan minimal 4-6 digit PIN untuk simulasi.");
-            return;
-        }
+        if (pinInput.length === 0) return alert("Masukkan PIN!");
 
-        log.innerHTML = "Memulai...<br>";
+        // Reset UI
+        btn.disabled = true;
+        btn.innerText = "SEDANG BERJALAN...";
+        log.innerHTML = "Menghitung Hash Target...<br>";
+
         const targetHash = await hashSHA256(pinInput);
-        
-        if (!targetHash) {
-            log.innerHTML = "Error: Browser dApp ini memblokir Crypto API.";
-            return;
-        }
-
-        log.innerHTML += Target Hash: ${targetHash.substring(0,20)}...<br>;
-        log.innerHTML += Mencari kombinasi...<br>;
+        log.innerHTML += Target: <span class="highlight">${targetHash.substring(0,15)}...</span><br><br>;
 
         const start = performance.now();
-        let found = false;
-
-        // Simulasi brute-force (Optimized)
-        // Kita batasi jangkauan untuk kecepatan di mobile browser
+        
+        // Looping dengan jeda agar UI tidak hang
         for (let i = 0; i <= 999999; i++) {
             let guess = i.toString().padStart(pinInput.length, '0');
             let currentHash = await hashSHA256(guess);
 
             if (currentHash === targetHash) {
                 const time = ((performance.now() - start) / 1000).toFixed(3);
-                log.innerHTML = <span style="color:white;">[HASIL DITEMUKAN]</span><br>;
-                log.innerHTML += PIN: <strong>${guess}</strong><br>;
-                log.innerHTML += Waktu: ${time} detik<br>;
-                log.innerHTML += <br><small>Kesimpulan: Karena SHA-256 terlalu cepat, PIN ${pinInput.length} digit mudah ditembus.</small>;
-                found = true;
+                log.innerHTML += <span style="color:white;">[BERHASIL!]</span><br>;
+                log.innerHTML += PIN Ditemukan: <span class="highlight">${guess}</span><br>;
+                log.innerHTML += Waktu: ${time} detik.<br><br>;
+                log.innerHTML += <small>Analisis: SHA-256 terlalu cepat sehingga mempermudah serangan paralel.</small>;
                 break;
             }
 
-            // Update log berkala agar UI tidak freeze
-            if (i % 200 === 0 && i > 0) {
-                // Memberi nafas pada main thread browser mobile
-                await new Promise(r => setTimeout(r, 0)); 
+            // Memberikan feedback visual setiap 1000 percobaan
+            if (i % 1000 === 0) {
+                log.innerHTML = Mencoba: ${guess}...;
+                // Jeda krusial agar browser mobile tidak crash
+                await new Promise(r => setTimeout(r, 0));
             }
         }
+        
+        btn.disabled = false;
+        btn.innerText = "MULAI OPTIMIZED BRUTE-FORCE";
     }
 </script>
 
