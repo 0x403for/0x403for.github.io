@@ -1,67 +1,85 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Optimizer Password Manager Check - PoC</title>
+    <meta charset="UTF-8">
+    <title>PoC: Password Manager Check</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0b0e11; color: #eaecef; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: #1e2329; padding: 25px; border-radius: 12px; border: 1px solid #474d57; }
-        .result-box { background: #000; color: #00ef8b; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 20px; min-height: 100px; border: 1px solid #00ef8b; }
-        .btn { background: #f0b90b; color: #000; border: none; padding: 12px 20px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        .status { color: #848e9c; font-size: 0.9em; margin-bottom: 10px; }
+        body { font-family: sans-serif; background: #0b0e11; color: #eaecef; padding: 20px; text-align: center; }
+        .container { max-width: 400px; margin: auto; background: #1e2329; padding: 20px; border-radius: 12px; border: 1px solid #474d57; }
+        #log { background: #000; color: #00ef8b; padding: 15px; border-radius: 8px; font-family: monospace; margin-top: 20px; text-align: left; min-height: 120px; font-size: 0.85em; overflow-wrap: break-word; }
+        .btn { background: #f0b90b; color: #000; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #474d57; background: #2b3139; color: white; box-sizing: border-box; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>PoC: Password Manager Check</h2>
-    <p class="status">Sesuai temuan: SHA-256 sangat cepat & mudah diparalelkan.</p>
+    <h3>Simulasi Brute-Force PIN</h3>
+    <p style="font-size: 0.8em; color: #848e9c;">Menguji kerentanan hash SHA-256 yang terlalu cepat.</p>
     
-    <label>Simulasi PIN yang Tersimpan (Contoh: 888999):</label>
-    <input type="text" id="targetPin" value="888999" style="width: 100%; padding: 8px; margin: 10px 0; border-radius: 4px; border: 1px solid #474d57; background: #2b3139; color: white;">
+    <input type="number" id="targetPin" value="888999" placeholder="Masukkan 6 Digit PIN">
     
-    <button class="btn" onclick="startAttack()">MULAI OPTIMIZED BRUTE-FORCE</button>
+    <button class="btn" onclick="runSimulation()">MULAI OPTIMIZED BRUTE-FORCE</button>
 
-    <div id="log" class="result-box">Menunggu perintah...</div>
+    <div id="log">Status: Menunggu perintah...</div>
 </div>
 
 <script>
-    // Fungsi hash SHA-256 yang meniru implementasi di Fuelet Wallet
+    // Fungsi hash SHA-256 menggunakan standar Web Crypto API
     async function hashSHA256(text) {
-        const msgBuffer = new TextEncoder().encode(text);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        try {
+            const msgBuffer = new TextEncoder().encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            return Array.from(new Uint8Array(hashBuffer))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (e) {
+            return null;
+        }
     }
 
-    async function startAttack() {
+    async function runSimulation() {
         const log = document.getElementById('log');
-        const targetPin = document.getElementById('targetPin').value;
-        
-        if(targetPin.length !== 6 || isNaN(targetPin)) {
-            alert("Masukkan 6 digit angka untuk simulasi PIN.");
+        const pinInput = document.getElementById('targetPin').value;
+
+        if (pinInput.length < 4) {
+            alert("Gunakan minimal 4-6 digit PIN untuk simulasi.");
             return;
         }
 
-        const targetHash = await hashSHA256(targetPin);
-        log.innerHTML = [!] Menyerang Hash: ${targetHash}<br>[...] Melakukan brute-force 000000-999999<br>;
+        log.innerHTML = "Memulai...<br>";
+        const targetHash = await hashSHA256(pinInput);
+        
+        if (!targetHash) {
+            log.innerHTML = "Error: Browser dApp ini memblokir Crypto API.";
+            return;
+        }
+
+        log.innerHTML += Target Hash: ${targetHash.substring(0,20)}...<br>;
+        log.innerHTML += Mencari kombinasi...<br>;
 
         const start = performance.now();
+        let found = false;
 
-        // Simulasi looping yang sangat cepat (Optimized)
+        // Simulasi brute-force (Optimized)
+        // Kita batasi jangkauan untuk kecepatan di mobile browser
         for (let i = 0; i <= 999999; i++) {
-            let guess = i.toString().padStart(6, '0');
+            let guess = i.toString().padStart(pinInput.length, '0');
             let currentHash = await hashSHA256(guess);
 
             if (currentHash === targetHash) {
                 const time = ((performance.now() - start) / 1000).toFixed(3);
-                log.innerHTML += <br>[✅] PIN DITEMUKAN: <strong>${guess}</strong>;
-                log.innerHTML += <br>[⌛] Waktu: ${time} detik;
-                log.innerHTML += <br>[⚠️] Dampak: SHA-256 gagal melindungi PIN entropi rendah.;
-                return;
+                log.innerHTML = <span style="color:white;">[HASIL DITEMUKAN]</span><br>;
+                log.innerHTML += PIN: <strong>${guess}</strong><br>;
+                log.innerHTML += Waktu: ${time} detik<br>;
+                log.innerHTML += <br><small>Kesimpulan: Karena SHA-256 terlalu cepat, PIN ${pinInput.length} digit mudah ditembus.</small>;
+                found = true;
+                break;
             }
 
-            if (i % 100000 === 0 && i !== 0) {
-                log.innerHTML += [.] Mencoba ${i} kombinasi...<br>;
+            // Update log berkala agar UI tidak freeze
+            if (i % 200 === 0 && i > 0) {
+                // Memberi nafas pada main thread browser mobile
+                await new Promise(r => setTimeout(r, 0)); 
             }
         }
     }
