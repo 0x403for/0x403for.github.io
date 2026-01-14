@@ -2,75 +2,49 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Validasi QR Reclaim - Perbaikan Bug</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoC 1inch Wallet</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        .container { max-width: 600px; margin: auto; }
-        .input-group { margin-bottom: 15px; }
-        input { width: 100%; padding: 10px; margin-top: 5px; }
-        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; }
-        .result { margin-top: 20px; padding: 15px; border-radius: 5px; }
-        .valid { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .invalid { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        code { background: #eee; padding: 2px 5px; }
+        /* Mengatur tampilan agar bersih dan putih seperti di gambar */
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Gaya teks "Click Here" agar tebal dan minimalis */
+        .click-text {
+            font-size: 32px;
+            font-weight: 800;
+            color: #000000;
+            text-decoration: none;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .click-text:active {
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Validator URL Reclaim (Fixed)</h2>
-    <p>Gunakan alat ini untuk menguji perbedaan antara Regex lama vs Regex yang sudah diperbaiki.</p>
+    <a href="https://rclm.link.evil-domain.com" class="click-text">
+        Click Here
+    </a>
 
-    <div class="input-group">
-        <label>Masukkan URL dari Kode QR:</label>
-        <input type="text" id="urlInput" placeholder="Contoh: https://rclm.link.evil.com/test">
-    </div>
-
-    <button onclick="testValidation()">Uji Validasi</button>
-
-    <div id="resultOutput" class="result" style="display:none;"></div>
-
-    <hr>
-    <h3>Penjelasan Perbaikan:</h3>
-    <p>Regex yang aman: <code>/^https:\/\/rclm\.link(\/|$)/</code></p>
-    <ul>
-        <li><code>^</code> : Mulai dari awal string.</li>
-        <li><code>\.link</code> : Mencari domain .link secara spesifik.</li>
-        <li><code>(\/|$)</code> : <b>Kunci Perbaikan.</b> Harus diikuti oleh garis miring (path) ATAU akhir baris. Ini mencegah subdomain palsu seperti .link.evil.com.</li>
-    </ul>
-</div>
-
-<script>
-    function testValidation() {
-        const data = document.getElementById('urlInput').value;
-        const resultDiv = document.getElementById('resultOutput');
-        
-        // Regex LAMA (Rentan)
-        const OLD_REGEX = /^https:\/\/rclm\.link/;
-        // Regex BARU (Aman)
-        const FIXED_REGEX = /^https:\/\/rclm\.link(\/|$)/;
-
-        const isOldValid = OLD_REGEX.test(data);
-        const isFixedValid = FIXED_REGEX.test(data);
-
-        resultDiv.style.display = 'block';
-        
-        if (isOldValid && !isFixedValid) {
-            resultDiv.className = 'result invalid';
-            resultDiv.innerHTML = `<strong>Bahaya detected!</strong><br>
-                                   Regex Lama: <span style="color:red">VALID</span> (Bocor)<br>
-                                   Regex Baru: <span style="color:green">INVALID</span> (Aman)`;
-        } else if (isFixedValid) {
-            resultDiv.className = 'result valid';
-            resultDiv.innerHTML = `<strong>URL Sah.</strong><br>
-                                   Tautan ini berasal dari rclm.link yang asli.`;
-        } else {
-            resultDiv.className = 'result invalid';
-            resultDiv.innerHTML = `<strong>URL Tidak Dikenali.</strong><br>
-                                   Bukan format Reclaim yang sah.`;
-        }
-    }
-</script>
-
+    <script>
+        // Opsional: Menambahkan log untuk memastikan dApp browser terdeteksi
+        window.addEventListener('load', () => {
+            if (window.ethereum && window.ethereum.isOneInch) {
+                console.log("Terdeteksi: Membuka dari 1inch Wallet Browser");
+            }
+        });
+    </script>
 </body>
 </html>
