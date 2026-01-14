@@ -3,50 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC: Isolated Iframe for Unsafe NFT</title>
+    <title>PoC: Uji Isolasi Iframe NFT</title>
     <style>
         body { font-family: sans-serif; background: #0b0e11; color: white; padding: 20px; text-align: center; }
-        .nft-container { border: 2px solid #474d57; border-radius: 12px; overflow: hidden; background: white; margin: 20px auto; max-width: 350px; }
-        .status-box { background: #1e2329; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 0.9em; border: 1px solid #333; }
-        iframe { width: 100%; height: 350px; border: none; }
-        .safe { color: #00ef8b; }
-        .danger { color: #f44336; }
+        .nft-preview { border: 2px solid #474d57; border-radius: 12px; background: white; margin: 20px auto; max-width: 350px; height: 350px; overflow: hidden; }
+        iframe { width: 100%; height: 100%; border: none; }
+        .info { background: #1e2329; padding: 15px; border-radius: 8px; font-size: 0.9em; border: 1px solid #333; margin-top: 10px; }
+        .status-tag { display: inline-block; padding: 5px 10px; border-radius: 4px; font-weight: bold; margin-bottom: 10px; }
+        .secure { background: #2e7d32; color: white; }
+        .vulnerable { background: #c62828; color: white; }
     </style>
 </head>
 <body>
 
-    <h3>Tampilan NFT (WKWebView Simulation)</h3>
+    <h3>Simulasi NFT SVG Berbahaya</h3>
     
-    <div class="nft-container">
+    <div class="nft-preview">
         <iframe 
             sandbox="allow-forms" 
             srcdoc='
                 <html>
                 <body>
-                    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="40" stroke="green" stroke-width="4" fill="yellow" />
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="40" fill="yellow" stroke="black" />
+                        <text x="5" y="55" font-size="8" fill="red">Klik Lingkaran!</text>
                         <script>
-                            // Skrip ini akan GAGAL dieksekusi karena atribut sandbox iframe
-                            alert("XSS: Berhasil mencuri kunci dompet!");
-                            console.log("JavaScript di dalam NFT mencoba berjalan...");
+                            // Script ini mencoba mencuri konteks
+                            document.querySelector("circle").onclick = function() {
+                                alert("XSS BERHASIL: JavaScript NFT bisa dieksekusi!");
+                            };
+                            console.log("Mencoba menjalankan skrip...");
                         </script>
-                        <text x="10" y="110" font-family="Verdana" font-size="10" fill="red">
-                            SVG NFT dengan Skrip Tersembunyi
-                        </text>
                     </svg>
+                    <script>
+                        // Otomatis mencoba menjalankan alert
+                        alert("XSS OTOMATIS: Sandbox Gagal!");
+                    </script>
                 </body>
                 </html>
             '>
         </iframe>
     </div>
 
-    <div class="status-box">
-        <p><strong>Status Keamanan:</strong> <span class="safe">TERISOLASI (Sandbox Aktif)</span></p>
-        <p style="font-size: 0.8em; color: #848e9c;">
-            Meskipun NFT SVG di atas mengandung perintah <code>alert()</code>, 
-            browser dApp tidak akan menjalankannya karena berada di dalam 
-            <strong>iframe yang diisolasi (sandboxed)</strong>.
-        </p>
+    <div class="info">
+        <div id="statusTag" class="status-tag secure">MENGECEK ISOLASI...</div>
+        <p><strong>Cara Membaca Hasil:</strong></p>
+        <ul style="text-align: left; font-size: 0.85em;">
+            <li><strong>Jika Aman:</strong> Tidak muncul pop-up alert apapun. Lingkaran kuning tidak bereaksi saat diklik.</li>
+            <li><strong>Jika Rentan:</strong> Muncul pesan "XSS" saat halaman dimuat atau saat lingkaran diklik.</li>
+        </ul>
     </div>
 
 </body>
