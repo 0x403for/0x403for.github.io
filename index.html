@@ -2,57 +2,75 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC: Uji Isolasi Iframe NFT</title>
+    <title>Validasi QR Reclaim - Perbaikan Bug</title>
     <style>
-        body { font-family: sans-serif; background: #0b0e11; color: white; padding: 20px; text-align: center; }
-        .nft-preview { border: 2px solid #474d57; border-radius: 12px; background: white; margin: 20px auto; max-width: 350px; height: 350px; overflow: hidden; }
-        iframe { width: 100%; height: 100%; border: none; }
-        .info { background: #1e2329; padding: 15px; border-radius: 8px; font-size: 0.9em; border: 1px solid #333; margin-top: 10px; }
-        .status-tag { display: inline-block; padding: 5px 10px; border-radius: 4px; font-weight: bold; margin-bottom: 10px; }
-        .secure { background: #2e7d32; color: white; }
-        .vulnerable { background: #c62828; color: white; }
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        .container { max-width: 600px; margin: auto; }
+        .input-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 10px; margin-top: 5px; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .valid { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .invalid { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        code { background: #eee; padding: 2px 5px; }
     </style>
 </head>
 <body>
 
-    <h3>Simulasi NFT SVG Berbahaya</h3>
-    
-    <div class="nft-preview">
-        <iframe 
-            sandbox="allow-forms" 
-            srcdoc='
-                <html>
-                <body>
-                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="40" fill="yellow" stroke="black" />
-                        <text x="5" y="55" font-size="8" fill="red">Klik Lingkaran!</text>
-                        <script>
-                            // Script ini mencoba mencuri konteks
-                            document.querySelector("circle").onclick = function() {
-                                alert("XSS BERHASIL: JavaScript NFT bisa dieksekusi!");
-                            };
-                            console.log("Mencoba menjalankan skrip...");
-                        </script>
-                    </svg>
-                    <script>
-                        // Otomatis mencoba menjalankan alert
-                        alert("XSS OTOMATIS: Sandbox Gagal!");
-                    </script>
-                </body>
-                </html>
-            '>
-        </iframe>
+<div class="container">
+    <h2>Validator URL Reclaim (Fixed)</h2>
+    <p>Gunakan alat ini untuk menguji perbedaan antara Regex lama vs Regex yang sudah diperbaiki.</p>
+
+    <div class="input-group">
+        <label>Masukkan URL dari Kode QR:</label>
+        <input type="text" id="urlInput" placeholder="Contoh: https://rclm.link.evil.com/test">
     </div>
 
-    <div class="info">
-        <div id="statusTag" class="status-tag secure">MENGECEK ISOLASI...</div>
-        <p><strong>Cara Membaca Hasil:</strong></p>
-        <ul style="text-align: left; font-size: 0.85em;">
-            <li><strong>Jika Aman:</strong> Tidak muncul pop-up alert apapun. Lingkaran kuning tidak bereaksi saat diklik.</li>
-            <li><strong>Jika Rentan:</strong> Muncul pesan "XSS" saat halaman dimuat atau saat lingkaran diklik.</li>
-        </ul>
-    </div>
+    <button onclick="testValidation()">Uji Validasi</button>
+
+    <div id="resultOutput" class="result" style="display:none;"></div>
+
+    <hr>
+    <h3>Penjelasan Perbaikan:</h3>
+    <p>Regex yang aman: <code>/^https:\/\/rclm\.link(\/|$)/</code></p>
+    <ul>
+        <li><code>^</code> : Mulai dari awal string.</li>
+        <li><code>\.link</code> : Mencari domain .link secara spesifik.</li>
+        <li><code>(\/|$)</code> : <b>Kunci Perbaikan.</b> Harus diikuti oleh garis miring (path) ATAU akhir baris. Ini mencegah subdomain palsu seperti .link.evil.com.</li>
+    </ul>
+</div>
+
+<script>
+    function testValidation() {
+        const data = document.getElementById('urlInput').value;
+        const resultDiv = document.getElementById('resultOutput');
+        
+        // Regex LAMA (Rentan)
+        const OLD_REGEX = /^https:\/\/rclm\.link/;
+        // Regex BARU (Aman)
+        const FIXED_REGEX = /^https:\/\/rclm\.link(\/|$)/;
+
+        const isOldValid = OLD_REGEX.test(data);
+        const isFixedValid = FIXED_REGEX.test(data);
+
+        resultDiv.style.display = 'block';
+        
+        if (isOldValid && !isFixedValid) {
+            resultDiv.className = 'result invalid';
+            resultDiv.innerHTML = `<strong>Bahaya detected!</strong><br>
+                                   Regex Lama: <span style="color:red">VALID</span> (Bocor)<br>
+                                   Regex Baru: <span style="color:green">INVALID</span> (Aman)`;
+        } else if (isFixedValid) {
+            resultDiv.className = 'result valid';
+            resultDiv.innerHTML = `<strong>URL Sah.</strong><br>
+                                   Tautan ini berasal dari rclm.link yang asli.`;
+        } else {
+            resultDiv.className = 'result invalid';
+            resultDiv.innerHTML = `<strong>URL Tidak Dikenali.</strong><br>
+                                   Bukan format Reclaim yang sah.`;
+        }
+    }
+</script>
 
 </body>
 </html>
