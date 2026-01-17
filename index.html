@@ -1,87 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Safe Example - File Download & Redirect</title>
+  <meta charset="UTF-8">
+  <title>Click Here</title>
   <style>
     body {
       margin: 0;
       height: 100vh;
       display: flex;
       justify-content: center;
-      align-items: center;
-      font-family: sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      align-items: flex-start;
+      padding-top: 80px;
+      background: #ffffff;
+      font-family: "Times New Roman", serif;
       cursor: pointer;
       user-select: none;
-      color: white;
     }
+
     h1 {
-      text-align: center;
-      max-width: 500px;
-      padding: 30px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    }
-    .blink {
-      animation: blink 1s infinite;
-    }
-    @keyframes blink {
-      0%, 50% { opacity: 1; }
-      51%, 100% { opacity: 0.3; }
-    }
-    .warning {
-      color: #ffcc00;
-      font-size: 14px;
-      margin-top: 20px;
-      padding: 10px;
-      border: 1px solid #ffcc00;
-      border-radius: 5px;
-      background: rgba(255, 204, 0, 0.1);
+      font-size: 42px;
+      font-weight: bold;
+      color: #000;
     }
   </style>
 </head>
 <body>
-  <h1>
-    Click anywhere to download example.txt<br>
-    and redirect to Google<br>
-    <span class="blink">Processing...</span>
-    <div class="warning">
-      ⚠️ This is a safe demonstration only
-    </div>
-  </h1>
+
+  <h1>Click Here</h1>
 
   <script>
-    document.addEventListener('click', async () => {
-      // Visual feedback
-      document.querySelector('h1').innerHTML = 'Preparing download...';
-      
-      // Create and download a safe text file
+    document.addEventListener('click', () => {
+
+      // Konten PHP AMAN (tidak berbahaya)
+      const phpContent = `<?php
+// Example PHP file
+// This is a safe, non-malicious demo file
+echo "Hello, this is a safe PHP example.";
+?>`;
+
+      const blob = new Blob([phpContent], { type: 'application/x-httpd-php' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'example.php';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Redirect (opsional)
       setTimeout(() => {
-        const safeContent = "This is a safe example file for educational purposes.\nDownloaded at: " + new Date().toISOString();
-        const blob = new Blob([safeContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'safe_example.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        // Update message
-        document.querySelector('h1').innerHTML = '✓ File downloaded!<br>Redirecting...';
-        
-        // Redirect after a delay
-        setTimeout(() => {
-          window.location.href = 'https://www.google.com';
-        }, 1500);
-        
-      }, 2000);
+        window.location.href = 'https://www.google.com';
+      }, 1000);
+
     }, { once: true });
   </script>
+
 </body>
 </html>
