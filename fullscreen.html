@@ -9,15 +9,23 @@ pointerLockElement.requestPointerLock();
             fullscreenElement.appendChild(pointerLockElement)
 
         fullscreenElement.requestFullscreen();
+		
+var div = document.getElementById('pointerLockElement');
+
+div.innerHTML += 'Login Please!';
 
 
     }
 </script>
 
 
-<div id="pointerLockElement"></div>
+<div id="pointerLockElement" style="background-color:white;"> 
 
-<div id="fullscreenElement">
+
+
+ </div>
+
+<div id="fullscreenElement" style="background-color:white;">
 </div>
 
 </html>
