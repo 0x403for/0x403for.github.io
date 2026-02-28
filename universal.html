@@ -1,12 +1,29 @@
-<button onclick="testBridge()">KLIK UNTUK TEST</button>
-<script>
-function testBridge() {
-    try {
-        // Coba panggil fungsi init dengan cara baru
-        window.OneInchiOSWallet.init("alert('Berhasil tembus!')");
-        alert("Perintah terkirim, cek apakah ada respon dari dompet.");
-    } catch(e) {
-        alert("Masih terkunci: " + e.message);
-    }
-}
-</script>
+<!DOCTYPE html>
+<html>
+<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
+    <h3>🧪 Testing Safe Payload</h3>
+    <button onclick="sendSafe()">Kirim Perintah Halus</button>
+    <div id="logs"></div>
+
+    <script>
+        function sendSafe() {
+            const Bridge = window.OneInchiOSWallet;
+            if (Bridge) {
+                try {
+                    // Kita kirim format JSON paling standar yang biasanya tidak bikin crash
+                    const safePayload = JSON.stringify({
+                        id: Date.now().toString(),
+                        method: "eth_accounts", 
+                        params: []
+                    });
+                    
+                    Bridge.executeCallback("1", safePayload);
+                    document.getElementById('logs').innerHTML = "> Perintah terkirim, cek apakah aplikasi tetap hidup...";
+                } catch(e) {
+                    alert("Error: " + e.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
