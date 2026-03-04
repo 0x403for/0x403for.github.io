@@ -1,9 +1,24 @@
-<title>Whatever</title>
-<h1>Address bar says dailymail.co.uk – this is NOT dailymail.co.uk</h1>
-<script>
-function f()
-{
-    location="http://www.dailymail.co.uk/home/index.html?random="+Math.random();
-}
-setInterval("f()",10);
-</script>
+<html>
+	<head></head>
+	<body>
+          <a href='htttps://www.verylongurl.googlecloudplatform.accounts.google.com'>Incorrect long</a>
+
+		Visit this link: <span id="304url">https://www.google.com:1234/</span> (please copy and paste into your address bar)<br>
+
+		<button onclick="copyUrl();">copy url</button>
+		<script>
+		
+
+			function copyUrl(){
+				const url = document.getElementById("304url");
+				if(!window.getSelection) return;
+				var range = document.createRange();
+				range.selectNodeContents(url);
+				var sel = window.getSelection();
+				sel.removeAllRanges();
+				sel.addRange(range);
+				document.execCommand("copy");
+							}
+		</script>
+	</body>
+</html>
