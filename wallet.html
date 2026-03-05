@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Simple Web3 Wallet Test</title>
+<title>Universal Web3 Wallet Test</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
 </head>
 
 <body>
 
-<h2>Web3 Wallet Connection Test</h2>
+<h2>Universal Web3 Wallet Test</h2>
 
 <button onclick="connectWallet()">Connect Wallet</button>
 <button onclick="getBalance()">Check Balance</button>
@@ -20,42 +20,76 @@
 let provider;
 let signer;
 
-async function connectWallet() {
+async function connectWallet(){
 
-  if (typeof window.ethereum !== "undefined") {
+ try{
 
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
+  if(window.ethereum){
 
-    signer = provider.getSigner();
+   provider = new ethers.providers.Web3Provider(window.ethereum);
 
-    const address = await signer.getAddress();
+   await window.ethereum.request({
+    method: "eth_requestAccounts"
+   });
 
-    document.getElementById("walletAddress").innerText =
-      "Wallet Address: " + address;
+   signer = provider.getSigner();
+
+   const address = await signer.getAddress();
+
+   document.getElementById("walletAddress").innerText =
+   "Connected: " + address;
+
+  } else if(window.web3){
+
+   provider = new ethers.providers.Web3Provider(window.web3.currentProvider);
+
+   signer = provider.getSigner();
+
+   const address = await signer.getAddress();
+
+   document.getElementById("walletAddress").innerText =
+   "Connected: " + address;
 
   } else {
 
-    alert("No Web3 wallet detected");
+   alert("Web3 wallet not detected. Open in DApp browser.");
 
   }
+
+ }catch(error){
+
+  console.log(error);
+  alert("Wallet connection failed");
+
+ }
+
 }
 
-async function getBalance() {
+async function getBalance(){
 
-  if (!signer) {
-    alert("Connect wallet first");
-    return;
-  }
+ if(!signer){
+
+  alert("Connect wallet first");
+  return;
+
+ }
+
+ try{
 
   const address = await signer.getAddress();
 
   const balance = await provider.getBalance(address);
 
-  const ethBalance = ethers.utils.formatEther(balance);
+  const eth = ethers.utils.formatEther(balance);
 
   document.getElementById("walletBalance").innerText =
-    "Balance: " + ethBalance + " ETH";
+  "Balance: " + eth;
+
+ }catch(err){
+
+  console.log(err);
+
+ }
 
 }
 
