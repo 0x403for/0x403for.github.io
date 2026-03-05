@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Simple Web3 Wallet Test</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+</head>
+
+<body>
+
+<h2>Web3 Wallet Connection Test</h2>
+
+<button onclick="connectWallet()">Connect Wallet</button>
+<button onclick="getBalance()">Check Balance</button>
+
+<p id="walletAddress"></p>
+<p id="walletBalance"></p>
+
+<script>
+
+let provider;
+let signer;
+
+async function connectWallet() {
+
+  if (typeof window.ethereum !== "undefined") {
+
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+
+    signer = provider.getSigner();
+
+    const address = await signer.getAddress();
+
+    document.getElementById("walletAddress").innerText =
+      "Wallet Address: " + address;
+
+  } else {
+
+    alert("No Web3 wallet detected");
+
+  }
+}
+
+async function getBalance() {
+
+  if (!signer) {
+    alert("Connect wallet first");
+    return;
+  }
+
+  const address = await signer.getAddress();
+
+  const balance = await provider.getBalance(address);
+
+  const ethBalance = ethers.utils.formatEther(balance);
+
+  document.getElementById("walletBalance").innerText =
+    "Balance: " + ethBalance + " ETH";
+
+}
+
+</script>
+
+</body>
+</html>
