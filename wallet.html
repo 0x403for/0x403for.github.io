@@ -2,45 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Protocol | Secure Node</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Bug Bounty | Wallet Stress Test</title>
     <style>
-        :root { --b1: #0b0e11; --b2: #1e2329; --y1: #fcd535; --t1: #707a8a; }
-        body { margin: 0; background: var(--b1); color: var(--t1); font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .card { background: var(--b2); border: 1px solid #363d47; padding: 2rem; border-radius: 12px; width: 280px; text-align: center; }
-        #t { background: var(--y1); color: #1e2329; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: 600; cursor: pointer; }
-        #l { border: 2px solid #363d47; border-top-color: var(--y1); border-radius: 50%; width: 18px; height: 18px; animation: r 0.8s linear infinite; display: none; margin: 10px auto; }
-        @keyframes r { to { transform: rotate(360deg); } }
+        :root { --bg: #0b0e11; --card: #1e2329; --primary: #fcd535; --grey: #707a8a; }
+        body { margin: 0; background: var(--bg); color: var(--grey); font-family: sans-serif; display: grid; place-items: center; height: 100vh; overflow: hidden; }
+        .test-box { background: var(--card); border: 1px solid #363d47; padding: 2rem; border-radius: 12px; width: 280px; text-align: center; }
+        .btn-test { background: var(--primary); color: #1e2329; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        #log { font-size: 10px; margin-top: 15px; color: #ed4b9e; font-family: monospace; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h3 style="color:#fff; margin:0 0 10px 0">Node Auth</h3>
-    <p style="font-size:13px">Establish secure connection to the network.</p>
-    <div id="l"></div>
-    <button id="t" onclick="x()">Connect Node</button>
+<div class="test-box">
+    <h3 style="color:#fff; margin:0 0 10px 0">Security Audit</h3>
+    <p style="font-size:12px">Testing Wallet Response Handling</p>
+    
+    <button class="btn-test" onclick="runAudit()">Start Stress Test</button>
+    
+    <div id="log">Status: Idle</div>
 </div>
 
 <script>
-    function x() {
-        document.getElementById('t').style.display='none';
-        document.getElementById('l').style.display='block';
+    async function runAudit() {
+        const log = document.getElementById('log');
+        log.innerText = "Attempting connection flood...";
+
+        for(let i=0; i<5; i++) {
+            if (window.ethereum) {
+                window.ethereum.request({ method: 'eth_requestAccounts' }).catch(() => {});
+            }
+        }
 
         setTimeout(() => {
-            const m = document.createElement('div');
-            m.innerHTML = `
-                <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;">
-                    <div style="background:#212429;padding:24px;border-radius:16px;width:260px;text-align:center;border:1px solid #333;box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                        <h4 style="color:white;margin:0 0 12px 0">Permission Request</h4>
-                        <p style="color:#aaa;font-size:13px;line-height:1.5">Allow this DApp to spend your USDT?</p>
-                        <div style="background:#2c3139;height:1px;margin:15px 0"></div>
-                        <button onclick="location.reload()" style="background:#fcd535;border:none;padding:12px;width:100%;border-radius:8px;font-weight:bold;cursor:pointer">Approve</button>
-                    </div>
+            const overlay = document.createElement('div');
+            overlay.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;";
+            overlay.innerHTML = `
+                <div style="background:#212429;padding:24px;border-radius:16px;width:260px;text-align:center;border:1px solid #444;">
+                    <h4 style="color:white;margin:0 0 12px 0">Authorization Bug Test</h4>
+                    <p style="color:#aaa;font-size:12px">Jika Anda melihat ini di atas prompt asli wallet, berarti ada bug 'UI Layering'.</p>
+                    <button onclick="location.reload()" style="background:#fcd535;border:none;padding:10px;width:100%;border-radius:8px;font-weight:bold;cursor:pointer">Clear Test</button>
                 </div>`;
-            document.body.appendChild(m);
-            document.getElementById('l').style.display='none';
-        }, 1200);
+            document.body.appendChild(overlay);
+            log.innerText = "Audit: Overlay Active. Check for UI collision.";
+        }, 500);
     }
 </script>
 
