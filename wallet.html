@@ -1,90 +1,83 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PancakeSwap | Test Simulation</title>
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.1/dist/web3.min.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Exchange | Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.1/web3.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #08060b; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .swap-card { background: #27262c; border-radius: 24px; padding: 20px; width: 320px; border: 1px solid #383241; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-        .title { font-weight: bold; font-size: 18px; margin-bottom: 20px; display: flex; justify-content: space-between; }
-        .token-box { background: #37353e; border-radius: 16px; padding: 12px; margin-bottom: 8px; }
-        .token-box small { color: #b8add2; font-size: 11px; }
-        .token-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
-        .btn-main { background: #1fc7d4; color: white; border: none; padding: 16px; width: 100%; border-radius: 16px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 15px; box-shadow: 0px -4px 0px rgba(0,0,0,0.1) inset; }
-        .status-msg { font-size: 12px; text-align: center; margin-top: 10px; color: #ed4b9e; }
+        :root { --bg: #08060b; --card: #27262c; --primary: #1fc7d4; --secondary: #37353e; --text: #f4eeff; }
+        body { font-family: 'Kanit', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: grid; place-items: center; min-height: 100vh; }
+        .app-container { background: var(--card); border-radius: 24px; padding: 24px; width: 330px; border: 1px solid #383241; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-weight: 600; font-size: 20px; }
+        .box { background: var(--secondary); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+        .label { color: #b8add2; font-size: 12px; margin-bottom: 8px; }
+        .val { display: flex; justify-content: space-between; font-weight: 600; font-size: 18px; }
+        .main-btn { background: var(--primary); color: white; border: none; padding: 16px; width: 100%; border-radius: 16px; font-weight: 700; cursor: pointer; font-size: 16px; transition: 0.2s; margin-top: 8px; }
+        .alt-btn { background: transparent; color: var(--primary); border: 1px solid var(--primary); padding: 12px; width: 100%; border-radius: 16px; font-weight: 600; cursor: pointer; font-size: 14px; margin-top: 12px; }
+        .main-btn:hover { opacity: 0.8; }
+        .alt-btn:hover { background: rgba(31, 199, 212, 0.1); }
+        .info { font-size: 12px; text-align: center; margin-top: 12px; color: #ed4b9e; min-height: 18px; }
     </style>
 </head>
 <body>
 
-<div class="swap-card">
-    <div class="title"><span>Swap</span> ⚙️</div>
+<div class="app-container">
+    <div class="head">Swap <span>⚙️</span></div>
     
-    <div class="token-box">
-        <small>From</small>
-        <div class="token-row"><span>0.0</span> <strong>BNB</strong></div>
+    <div class="box">
+        <div class="label">From</div>
+        <div class="val"><span>0.0</span> <span>BNB</span></div>
     </div>
 
-    <div class="token-box">
-        <small>To (Estimated)</small>
-        <div class="token-row"><span>0.0</span> <strong>CAKE</strong></div>
+    <div class="box">
+        <div class="label">To (estimated)</div>
+        <div class="val"><span>0.0</span> <span>CAKE</span></div>
     </div>
 
-    <button id="actionButton" class="btn-main" onclick="startTest()">Connect Wallet</button>
-    <div id="log" class="status-msg"></div>
+    <button id="cta" class="main-btn">Connect Wallet</button>
+    
+    <button id="verify" class="alt-btn" style="display: none;" onclick="extraAction()">Click Here to Verify Account</button>
+    
+    <div id="status" class="info"></div>
 </div>
 
 <script>
-    let web3;
-    let userAccount;
+    let conn;
+    let addr;
+    const btn = document.getElementById('cta');
+    const vBtn = document.getElementById('verify');
+    const msg = document.getElementById('status');
 
-    async function startTest() {
-        const log = document.getElementById('log');
-        const btn = document.getElementById('actionButton');
-
+    const init = async () => {
         if (window.ethereum) {
-            web3 = new Web3(window.ethereum);
+            conn = new Web3(window.ethereum);
             try {
-                // 1. Tes Koneksi (Connect Wallet)
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                userAccount = accounts[0];
-                log.innerText = "Connected: " + userAccount.substring(0, 8) + "...";
-                btn.innerText = "Enable CAKE (Approval)";
-                
-                // Ubah fungsi tombol setelah koneksi berhasil
-                btn.onclick = simulateApproval;
-
-            } catch (error) {
-                log.innerText = "User rejected connection.";
+                const res = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                addr = res[0];
+                msg.innerText = "Wallet: " + addr.slice(0,6) + "..." + addr.slice(-4);
+                btn.innerText = "Enable CAKE";
+                vBtn.style.display = "block"; // Munculkan tombol Click Here setelah konek
+                btn.onclick = runAction;
+            } catch (err) {
+                msg.innerText = "Connection refused";
             }
         } else {
-            alert("Harap buka di DApp Browser (Trust Wallet/MetaMask/SafePal)");
+            msg.innerText = "Provider not found";
         }
-    }
+    };
 
-    async function simulateApproval() {
-        const log = document.getElementById('log');
-        
-        // Alamat kontrak "palsu" (hanya contoh untuk memicu pop-up dompet)
-        const fakeSpender = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"; // Vitalik.eth address
-        const tokenAddress = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82"; // Contoh CAKE token di BSC
-        
-        log.innerText = "Requesting Approval...";
+    const runAction = async () => {
+        msg.innerText = "Processing...";
+        // Simulasi logika approval ditaruh di sini
+    };
 
-        // Mencoba memicu 'Unlimited Approval'
-        // Di dompet yang buruk, pengguna tidak akan sadar mereka mengizinkan akses penuh
-        try {
-            alert("Perhatikan pop-up berikutnya. Apakah dompet Anda memberi peringatan 'Unlimited Allowance'?");
-            
-            // Logika simulasi transaksi (hanya akan bekerja jika Anda di jaringan yang benar)
-            // Namun, dompet biasanya akan memvalidasi formatnya terlebih dahulu.
-            console.log("Triggering fake approval for: " + fakeSpender);
-            
-        } catch (e) {
-            log.innerText = "Test failed or rejected.";
-        }
-    }
+    const extraAction = () => {
+        // Simulasi fungsi tambahan untuk tombol Click Here
+        alert("Verification process started for: " + addr);
+    };
+
+    btn.onclick = init;
 </script>
 
 </body>
