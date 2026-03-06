@@ -1,51 +1,51 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Audit | Deep-Link Test</title>
+    <title>Final Audit | Memory</title>
     <style>
-        :root { --bg: #0b0e11; --card: #1e2329; --primary: #fcd535; --grey: #707a8a; }
-        body { margin: 0; background: var(--bg); color: var(--grey); font-family: sans-serif; display: grid; place-items: center; height: 100vh; }
-        .audit-box { background: var(--card); border: 1px solid #363d47; padding: 25px; border-radius: 12px; width: 280px; text-align: center; }
-        .btn-trigger { background: var(--primary); color: #1e2329; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .btn-trigger:active { opacity: 0.7; }
-        #status { font-size: 11px; margin-top: 15px; font-family: monospace; color: #ed4b9e; }
+        :root { --bg: #0b0e11; --card: #1e2329; --primary: #fcd535; }
+        body { margin: 0; background: var(--bg); color: #707a8a; font-family: sans-serif; display: grid; place-items: center; height: 100vh; overflow: hidden; }
+        .audit-card { background: var(--card); border: 1px solid #363d47; padding: 25px; border-radius: 12px; width: 280px; text-align: center; }
+        .btn-stress { background: #ed4b9e; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: 600; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="audit-box">
-    <h3 style="color:#fff; margin:0 0 10px 0">Link Audit</h3>
-    <p style="font-size:12px">Testing external protocol handling & overflow stability.</p>
-    
-    <button class="btn-trigger" onclick="launchAudit()">Execute Hijack Test</button>
-    
-    <div id="status">Status: Standby</div>
+<div class="audit-card">
+    <h3 style="color:#fff; margin:0 0 10px 0">Memory Stress</h3>
+    <p style="font-size:12px">Testing stability under high DOM & Memory pressure.</p>
+    <button class="btn-stress" onclick="stressAudit()">Run Stress Test</button>
+    <div id="status" style="font-size:10px; margin-top:15px;">Status: Standby</div>
 </div>
 
 <script>
-    function launchAudit() {
+    let junk = [];
+    function stressAudit() {
         const out = document.getElementById('status');
-        out.innerText = "Firing deep-link flood...";
+        out.innerText = "Inflating memory...";
 
-        for (let i = 0; i < 5; i++) {
-    
-            const fakeWc = "wc:00e46b2e-0662-41f2-8974-70562f1b09e0@1?bridge=https%3A%2F%2Fbridge.walletconnect.org&key=deadbeef" + i;
-            
-            setTimeout(() => {
-                window.location.href = fakeWc;
-                console.log("Fired link: " + i);
-            }, i * 300); 
+        for (let i = 0; i < 1000000; i++) {
+            junk.push(Math.random().toString(36));
         }
 
-        setTimeout(() => {
-            const check = document.createElement('div');
-            check.style = "position:fixed;top:10%;left:50%;transform:translateX(-50%);background:#212429;padding:15px;border:1px solid #fcd535;border-radius:8px;z-index:9999;color:white;font-size:12px;text-align:center;";
-            check.innerHTML = "<b>Audit Finished</b><br>Jika wallet force-close atau membuka app lain tanpa izin, bug terdeteksi.";
-            document.body.appendChild(check);
-            out.innerText = "Audit: Sequence finished.";
-        }, 2000);
+
+        for (let j = 0; j < 5000; j++) {
+            let d = document.createElement('div');
+            d.style.display = 'none';
+            document.body.appendChild(d);
+        }
+
+        let count = 0;
+        let t = setInterval(() => {
+            history.pushState(null, "", "#stress_test_" + count++);
+            if (count > 500) {
+                clearInterval(t);
+                out.innerText = "Audit Complete. RAM pressure applied.";
+                alert("Check if wallet UI is still responsive.");
+            }
+        }, 1);
     }
 </script>
 
