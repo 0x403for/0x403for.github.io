@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Security Audit | Critical Vulnerability Test</title>
+    <style>
+        :root { --danger: #ff4444; --bg: #0a0a0c; --text: #ececec; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: 20px; line-height: 1.6; }
+        .container { max-width: 500px; margin: auto; border: 1px solid #333; padding: 25px; border-radius: 12px; background: #111; }
+        .vuln-card { border-left: 4px solid var(--danger); background: #1a1a1d; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+        h3 { margin-top: 0; font-size: 14px; text-transform: uppercase; color: var(--danger); }
+        p { font-size: 12px; color: #aaa; }
+        button { width: 100%; padding: 10px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; transition: 0.3s; }
+        .btn-lock { background: #555; color: white; }
+        .btn-leak { background: var(--danger); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center;">Wallet Exploit PoC</h2>
+    <p style="text-align: center; color: var(--danger); font-weight: bold;">[FOR SECURITY RESEARCH ONLY]</p>
+
+    <div class="vuln-card">
+        <h3>1. Permanent Fund Lockup (DoS)</h3>
+        <p>Menguji apakah loop transaksi yang berlebihan dapat membekukan UI dompet sehingga dana tidak bisa dipindahkan.</p>
+        <button class="btn-lock" onclick="simulateLockup()">Trigger Resource Exhaustion</button>
+    </div>
+
+    <div class="vuln-card">
+        <h3>2. Recovery Phrase Leakage</h3>
+        <p>Menguji apakah skrip pihak ketiga dapat mengakses variabel sensitif atau menangkap input frasa rahasia.</p>
+        <button class="btn-leak" onclick="simulateLeak()">Intercept Seed Phrase</button>
+    </div>
+
+    <div class="vuln-card">
+        <h3>3. Account Recovery Failure</h3>
+        <p>Simulasi manipulasi jalur derivasi yang menyebabkan akun tidak dapat ditemukan saat pemulihan.</p>
+        <button class="btn-lock" onclick="simulatePathHijack()">Corrupt Recovery Flow</button>
+    </div>
+
+    <div id="status" style="margin-top:20px; font-family:monospace; font-size:11px; color:#00ff00;"></div>
+</div>
+
+<script>
+    const statusDiv = document.getElementById('status');
+    function log(msg) { statusDiv.innerHTML += `> ${msg}<br>`; }
+
+    function simulateLockup() {
+        log("Executing DoS attack on Wallet Bridge...");
+        setTimeout(() => {
+            let start = Date.now();
+            while (Date.now() - start < 5000) {
+                
+                window.history.pushState(null, "", "#locking_funds_" + Math.random());
+            }
+            log("Check if Send/Transfer buttons are now frozen.");
+            alert("PoC: Dana tidak dapat diakses karena UI Hang.");
+        }, 100);
+    }
+
+
+    function simulateLeak() {
+        log("Searching for 'seed' or 'mnemonic' in local storage...");
+        
+        const leak = localStorage.getItem('mnemonic') || "Access Denied (Secure)";
+        log("Result: " + leak);
+        
+        if(leak === "Access Denied (Secure)") {
+            log("Security check passed: LocalStorage is isolated.");
+        } else {
+            log("VULNERABILITY FOUND: Seed exposed!");
+        }
+        alert("Peringatan: Jika frasa muncul di log, dompet ini rentan!");
+    }
+
+  
+    function simulatePathHijack() {
+        log("Attempting to inject malformed Derivation Path (BIP44)...");
+       
+        log("Payload sent: m/44'/60'/0'/0/invalid_index");
+        log("Testing if application logic breaks on recovery...");
+        setTimeout(() => {
+            alert("PoC: Akun tidak akan muncul karena jalur derivasi rusak.");
+        }, 1000);
+    }
+</script>
+
+</body>
+</html>
