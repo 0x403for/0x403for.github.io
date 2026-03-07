@@ -1,54 +1,68 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>PoC | Account Visibility Leak</title>
+    <title>Slush Bridge Debugger</title>
     <style>
-        body { background: #0d1117; color: #58a6ff; font-family: monospace; padding: 30px; text-align: center; }
-        .audit-box { border: 1px solid #30363d; padding: 20px; border-radius: 10px; background: #161b22; display: inline-block; width: 100%; max-width: 400px; }
-        .status-low { color: #8b949e; font-size: 12px; margin-bottom: 20px; }
-        #address-display { color: #ff7b72; word-break: break-all; margin-top: 15px; font-weight: bold; border: 1px dashed #444; padding: 10px; }
-        .btn-check { background: #238636; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; width: 100%; }
+        body { background: #050505; color: #00ff00; font-family: monospace; padding: 20px; }
+        .monitor { border: 1px solid #333; padding: 15px; background: #111; height: 300px; overflow-y: auto; font-size: 11px; }
+        button { background: #222; color: #00ff00; border: 1px solid #00ff00; padding: 10px; cursor: pointer; margin: 5px; }
+        .highlight { color: #ff00ff; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="audit-box">
-    <h3>Account Visibility PoC</h3>
-    <p class="status-low">Menguji apakah alamat dompet bocor otomatis tanpa izin "Connect".</p>
+    <h3>Slush Account Management Probe</h3>
+    <div class="monitor" id="logger">Waiting for bridge activity...</div>
     
-    <button class="btn-check" onclick="checkVisibility()">Check Account Access</button>
-    
-    <div id="address-display">Status: Menunggu interaksi...</div>
-</div>
+    <button onclick="probeRPC()">Probe Custom RPC</button>
+    <button onclick="listenEvents()">Listen Events</button>
 
 <script>
-    async function checkVisibility() {
-        const display = document.getElementById('address-display');
-        display.innerText = "Mencoba memanggil eth_accounts...";
+    const logger = document.getElementById('logger');
+    function log(msg, highlight = false) {
+        const div = document.createElement('div');
+        if(highlight) div.className = 'highlight';
+        div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logger.prepend(div);
+    }
 
-        if (window.ethereum) {
+  
+    async function probeRPC() {
+        if (!window.ethereum) return log("Error: No provider detected.");
+        
+        const methods = [
+            'wallet_getSnaps',       
+            'wallet_getAccounts',   
+            'eth_requestAccounts',    
+            'wallet_watchAsset'        
+        ];
+
+        for (const method of methods) {
+            log(`Probing method: ${method}...`);
             try {
-             
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                
-                if (accounts.length > 0) {
-                    display.innerHTML = "VULNERABILITY DETECTED!<br>Alamat Bocor: " + accounts[0];
-                    console.log("Terdeteksi akun:", accounts[0]);
-                } else {
-                    display.innerText = "Aman: Akun tidak terlihat sebelum diizinkan.";
-                }
-            } catch (error) {
-                display.innerText = "Error: " + error.message;
+                const res = await window.ethereum.request({ method });
+                log(`Success [${method}]: ${JSON.stringify(res)}`, true);
+            } catch (e) {
+                log(`Failed [${method}]: ${e.message}`);
             }
-        } else {
-            
-            display.innerText = "Mencoba via Deep Link Bridge...";
-            window.location.href = "slush://request?method=eth_accounts";
         }
     }
-</script>
 
+    function listenEvents() {
+        if (!window.ethereum) return log("Error: No provider detected.");
+        
+        log("Listening for 'accountsChanged' & 'chainChanged'...");
+        
+        window.ethereum.on('accountsChanged', (accounts) => {
+            log(`EVENT DETECTED: accountsChanged -> ${accounts}`, true);
+            alert("Account visibility leaked via event!");
+        });
+
+        window.ethereum.on('chainChanged', (chainId) => {
+            log(`EVENT DETECTED: chainChanged -> ${chainId}`, true);
+        });
+    }
+</script>
 </body>
 </html>
