@@ -1,47 +1,43 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>PoC | Derivation Path Manipulation</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Keamanan Slush Wallet</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; text-align: center; padding: 40px; }
-        .audit-box { border: 1px solid #0f0; padding: 25px; border-radius: 10px; background: #050505; display: inline-block; }
-        button { background: #0f0; color: #000; border: none; padding: 15px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
-        .status { margin-top: 20px; font-size: 12px; color: #888; text-align: left; }
+        body { background: #0b0f19; color: #00ff00; font-family: 'Courier New', monospace; text-align: center; padding: 50px; }
+        .card { border: 2px solid #00ff00; padding: 30px; border-radius: 15px; background: #161b22; display: inline-block; box-shadow: 0 0 20px #00ff00; }
+        button { background: #00ff00; color: #000; border: none; padding: 20px 40px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #00cc00; }
+        .info { color: #888; margin-top: 20px; font-size: 14px; }
     </style>
 </head>
 <body>
 
-<div class="audit-box">
-    <h3>Derivation Path Hijack</h3>
-    <p style="color: #ccc; font-size: 13px;">Mengirimkan payload jalur derivasi yang rusak ke aplikasi.</p>
-    
-    <button onclick="injectCorruptPath()">INJECT CORRUPT PATH</button>
-    
-    <div id="log" class="status">> Menunggu perintah...</div>
-</div>
-
-<script>
-    function injectCorruptPath() {
-        const log = document.getElementById('log');
+    <div class="card">
+        <h2>Pemicu Kerentanan BIP44</h2>
+        <p>Klik tombol di bawah untuk menyuntikkan jalur derivasi yang rusak:</p>
         
-      
-        const corruptPath = "m/44'/60'/0'/0/invalid_index_999"; 
-        
+        <button onclick="injectMaliciousPath()">INJECT CORRUPT PATH</button>
 
-        const maliciousUri = `slush://recovery?path=${encodeURIComponent(corruptPath)}`;
+        <div class="info">
+            <p>Payload: <b>m/44'/60'/0'/0/invalid_index_999</b></p>
+            <p>Target: Slush Wallet v26.8.3</p>
+        </div>
+    </div>
 
-        log.innerHTML = `> Mencoba menyuntikkan:<br>${corruptPath}`;
-        
-    
-        window.location.href = maliciousUri;
+    <script>
+        function injectMaliciousPath() {
 
-        setTimeout(() => {
-            alert("AUDIT SELESAI:\nPeriksa menu pemulihan dompet. Jika jalur di atas diterima tanpa error 'Invalid Path', validasi dompet gagal.");
-        }, 1500);
-    }
-</script>
+            const payload = "m/44'/60'/0'/0/invalid_index_999"; 
+            
+       
+            const targetUri = `slush://recovery?path=${encodeURIComponent(payload)}`;
+            
+            console.log("Mengirim payload...");
+            window.location.href = targetUri;
+        }
+    </script>
 
 </body>
 </html>
