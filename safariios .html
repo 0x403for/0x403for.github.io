@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>iCloud Photo Viewer - Verify Identity</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica; text-align: center; padding-top: 50px; }
+    .cloud-icon { width: 100px; margin-bottom: 20px; }
+    .btn-container { border: 2px dashed #ccc; padding: 20px; display: inline-block; border-radius: 10px; }
+    #exploit-stage { display: none; color: red; }
+  </style>
+</head>
+<body draggable="true">
+
+  <div id="setup">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" class="cloud-icon" alt="Apple">
+    <h2>Click or Drag to See the Puppies!</h2>
+    <p>To verify you are not a robot, drag the link below to your address bar.</p>
+    
+    <div class="btn-container">
+      <h3><a href="https://icloud.com" id="drag-link" style="color: #007aff; text-decoration: none; font-weight: bold;">Verify via iCloud.com</a></h3>
+    </div>
+  </div>
+
+  <div id="exploit-stage">
+    <h1>UXSS PoC Successful</h1>
+    <p><strong>This Website is Stealing your iCloud Photos...</strong></p>
+    <img src="https://i.ibb.co.com/xS0bMW7S/image.png" alt="Captured Data" style="max-width: 500px; border: 5px solid red;">
+    <br>
+    <p>Status: All photos downloaded.</p>
+  </div>
+
+  <script>
+
+    window.ondragend = function(){
+ 
+      document.getElementById('setup').style.display = 'none';
+      
+ 
+      document.getElementById('exploit-stage').style.display = 'block';
+      document.title = "Data Compromised";
+      
+   
+      console.warn("Interaksi terdeteksi: Menjalankan simulasi pencurian data...");
+    }
+  </script>
+</body>
+</html>
