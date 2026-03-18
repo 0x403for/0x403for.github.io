@@ -1,15 +1,33 @@
+<!DOCTYPE html>
 <html>
+<head>
+  <title>Click Spoof Testcase - Modified from Code Audit Labs</title>
+</head>
 <body>
-<script>
-location='https://www.google.com';
-function go(){
-if(window.opener){
-window.opener.location = 'data:text/html,<title>test</title><script>'+
-'pass = prompt("https://google.com \nType your password:\n");'+
-'alert("Your Password is: "+pass);'+
-'<\/script>';
-}}
-go();
-</script>
+
+  <h3>
+    <a href="http://www.google.com" id="a" onclick="executeSpoof(); return false;">
+      Click Me 
+    </a>
+  </h3>
+  
+  <h3 id="note" style="display:none;">
+    <img src="https://i.ibb.co.com/xS0bMW7S/image.png" alt="Obito Scene" style="max-width: 500px; height: auto;">
+    <br>
+    I Am Not Google At All
+  </h3>
+
 </body>
+
+<script>
+  function executeSpoof() {
+
+    try { stop(); } catch(e) {} 
+    
+    document.title = 'Done';
+    document.getElementById('a').style.display = 'none';
+    document.getElementById('note').style.display = 'block';
+
+  }
+</script>
 </html>
