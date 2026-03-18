@@ -1,0 +1,15 @@
+<html>
+<body>
+<script>
+location='https://www.google.com';
+function go(){
+if(window.opener){
+window.opener.location = 'data:text/html,<title>test</title><script>'+
+'pass = prompt("https://google.com \nType your password:\n");'+
+'alert("Your Password is: "+pass);'+
+'<\/script>';
+}}
+go();
+</script>
+</body>
+</html>
