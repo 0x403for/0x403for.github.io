@@ -1,28 +1,69 @@
-<html lang="en">
-
+<!DOCTYPE html>
+<html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        img {
-            position: fixed;
-            top: 52%;
-            right: 10%;
-        }
-    </style>
+<title>Google Drive Upload</title>
+<style>
+    h1 {
+        margin: 1em;
+    }
+
+    a {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 80;
+    }
+
+    input {
+        display: none;
+    }
+
+    img {
+        width: 100%;
+    }
+</style>
 </head>
-
 <body>
-    <h1>Double-tap the cookie</h1>
-    <img src="cookie.png" onclick="permission()">
-    <script>
-        const permission = () => {
-            // open a permission prompt
-            // such as notification or camera access
-            
-            // Notification.requestPermission();
-            navigator.getUserMedia({ video: true }, console.log, console.error);
-        }
-    </script>
-</body>
+<center>
+<br>
+<br>
+<br>
+<br>
 
+<a id="link" href="https://workspace.google.com/intl/en_in/products/drive/" > Right Click and Open in Split To Open Google Drive & Upload Fast</a>
+<br>
+<img id="img">
+
+</center>
+
+<input id="fileSelect" type="file" accept="image/*" />
+
+
+
+<script>
+  document.getElementById('link').addEventListener('contextmenu', function(event) {
+    // Prevent the default browser context menu from appearing
+
+setTimeout(function() {
+
+         fileSelect.click();
+
+
+fileSelect.onchange = (event) => {
+        img.src = URL.createObjectURL(fileSelect.files[0]);
+    }
+
+}, 4000);
+
+
+
+   
+  });
+</script>
+
+</body>
 </html>
+
+
+</style>
+
