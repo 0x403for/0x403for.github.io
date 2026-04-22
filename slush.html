@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Audit - dApp Browser</title>
+    <style>
+        body { font-family: 'Courier New', monospace; background: #1a1a1a; color: #00ff00; padding: 20px; }
+        .log-container { background: #000; border: 1px solid #333; padding: 15px; border-radius: 5px; height: 400px; overflow-y: scroll; margin-top: 10px; }
+        .bug-btn { background: #ff4757; color: white; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        .info-card { border-left: 3px solid #00ff00; padding-left: 15px; margin-bottom: 20px; }
+        .secret-info { color: #ff9f43; }
+    </style>
+</head>
+<body>
+
+    <h2>🔍 dApp Environment Scanner</h2>
+    
+    <div class="info-card">
+        <button class="bug-btn" onclick="startAudit()">Mulai Scan Provider</button>
+        <p>Gunakan ini untuk melihat variabel apa saja yang diekspos oleh Slush Wallet ke browser.</p>
+    </div>
+
+    <div class="log-container" id="log">
+        > Menunggu perintah...
+    </div>
+
+<script>
+    const logDiv = document.getElementById('log');
+
+    function log(msg, isWarning = false) {
+        const time = new Date().toLocaleTimeString();
+        const color = isWarning ? "#ff4757" : "#00ff00";
+        logDiv.innerHTML += `<div style="color: ${color}">[${time}] ${msg}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    async function startAudit() {
+        log("Memulai inspeksi window.ethereum...");
+
+        // 1. Cek keberadaan provider
+        if (window.ethereum) {
+            log("✅ Provider terdeteksi: window.ethereum");
+            
+            // Cek properti internal (Seringkali wallet membocorkan nama atau versi)
+            if (window.ethereum.isMetaMask) log("Info: Provider mengklaim sebagai MetaMask (Spoofing?)");
+            if (window.ethereum.isSlush) log("Info: Terdeteksi sebagai Slush Wallet secara eksplisit.");
+            
+            // 2. Cek Request Accounts (Izin)
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                log(`✅ Akses Diterima. Alamat: ${accounts[0]}`);
+                
+                // 3. Cek RPC Metadata
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                log(`Chain ID: ${chainId}`);
+
+                // 4. Eksplorasi Properti Non-Standar (Potensi Bug Informasi)
+                // Beberapa wallet membocorkan state internal di objek ini
+                const internalState = JSON.stringify(window.ethereum._state || "Tidak ada data _state");
+                log(`Internal State: <span class="secret-info">${internalState}</span>`);
+
+            } catch (err) {
+                log(`❌ Error/Ditolak: ${err.message}`, true);
+            }
+        } else {
+            log("❌ window.ethereum tidak ditemukan. Pastikan dibuka di dApp Browser Slush.", true);
+        }
+
+        // 5. Cek Objek Global lain (Seringkali provider menginjeksi lebih dari satu objek)
+        const commonInjections = ['web3', 'ethereum', 'slush', 'trustwallet'];
+        commonInjections.forEach(key => {
+            if (window[key]) log(`🔍 Objek ditemukan di window.${key}`);
+        });
+    }
+</script>
+</body>
+</html>
