@@ -1,0 +1,19 @@
+<html>
+<body>
+
+<script>
+// Fungsi ini akan memunculkan prompt saat browser kehilangan fokus
+window.onblur = function incognito() {
+    prompt('Security Verification: Enter your Seed Phrase to continue');
+}
+</script>
+
+<div style="text-align: center; margin-top: 50px;">
+    <h1> dApp Browser Sandbox Test </h1>
+    <p>1. Klik di area kosong halaman ini agar fokus.</p>
+    <p>2. Lalu klik tombol <b>Search</b> atau pindah tab.</p>
+    <p>3. Jika prompt muncul tanpa label "This page says", ini adalah bug <b>UI Spoofing</b>.</p>
+</div>
+
+</body>
+</html>
