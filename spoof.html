@@ -2,13 +2,14 @@
 <html>
 <head>
   <title>Google Secure Payment</title>
-  <meta http-equiv="refresh" content="0;url=data:text/html,<html><head><title>Google Secure Payment</title></head><body><h1>Fake Google Page</h1></body></html>">
 </head>
-<body onunload="history.back()">
+<body>
   <h2>Secure Payment Portal</h2>
-  <p>Jika tidak redirect otomatis, klik link di bawah:</p>
-  <a href="data:text/html,<html><head><title>Google Secure Payment</title></head><body><h1>Fake Google Page</h1></body></html>">
-    CLICK ME
-  </a>
+  <iframe src="https://www.google.com" style="width:100%; height:300px; border:none;"></iframe>
+
+  <script>
+    // Trik manipulasi history
+    history.pushState({}, "Google Secure Payment", "/secure/payment");
+  </script>
 </body>
 </html>
