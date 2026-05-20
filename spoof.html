@@ -1,15 +1,232 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <title>Google Secure Payment</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Respring iOS</title>
+    <style>
+        /* Gaya Dasar & Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Container Utama Web / Rasio Layar HP */
+        .app-container {
+            width: 100%;
+            max-width: 414px;
+            height: 100vh;
+            background: #232252; /* Warna biru keunguan gelap sesuai video */
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Gaya Tombol Utama (Diubah menjadi Click Here) */
+        .trigger-btn {
+            background-color: #007aff;
+            color: white;
+            border: none;
+            padding: 14px 45px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.1s ease, opacity 0.2s;
+            z-index: 10;
+        }
+
+        .trigger-btn:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        /* Gaya Pop-up Alert iOS Dark Mode */
+        .alert-box {
+            position: absolute;
+            background: rgba(30, 30, 30, 0.75);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            width: 320px;
+            border-radius: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: scale(1.1);
+            opacity: 0;
+            visibility: hidden;
+            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s;
+            z-index: 20;
+        }
+
+        .alert-box.show {
+            transform: scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .alert-text {
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 400;
+            text-align: left;
+            padding-right: 15px;
+        }
+
+        .alert-close {
+            color: #2f80ed;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: none;
+            border: none;
+            white-space: nowrap;
+        }
+
+        /* Efek Layar Hitam Respring */
+        .respring-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+            z-index: 30;
+        }
+
+        .respring-screen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Animasi Khas Spinner iOS */
+        .ios-spinner {
+            position: relative;
+            width: 36px;
+            height: 36px;
+        }
+
+        .ios-spinner div {
+            position: absolute;
+            width: 3px;
+            height: 10px;
+            background: #fff;
+            left: 16.5px;
+            top: 0;
+            opacity: 0.15;
+            border-radius: 2px;
+            transform-origin: 1.5px 18px;
+            animation: ios-fade 1s linear infinite;
+        }
+
+        /* Pengaturan sudut kelopak spinner (12 titik) */
+        .ios-spinner div:nth-child(1) { transform: rotate(0deg); animation-delay: -1s; }
+        .ios-spinner div:nth-child(2) { transform: rotate(30deg); animation-delay: -0.916s; }
+        .ios-spinner div:nth-child(3) { transform: rotate(60deg); animation-delay: -0.833s; }
+        .ios-spinner div:nth-child(4) { transform: rotate(90deg); animation-delay: -0.75s; }
+        .ios-spinner div:nth-child(5) { transform: rotate(120deg); animation-delay: -0.666s; }
+        .ios-spinner div:nth-child(6) { transform: rotate(150deg); animation-delay: -0.583s; }
+        .ios-spinner div:nth-child(7) { transform: rotate(180deg); animation-delay: -0.5s; }
+        .ios-spinner div:nth-child(8) { transform: rotate(210deg); animation-delay: -0.416s; }
+        .ios-spinner div:nth-child(9) { transform: rotate(240deg); animation-delay: -0.333s; }
+        .ios-spinner div:nth-child(10) { transform: rotate(270deg); animation-delay: -0.25s; }
+        .ios-spinner div:nth-child(11) { transform: rotate(300deg); animation-delay: -0.166s; }
+        .ios-spinner div:nth-child(12) { transform: rotate(330deg); animation-delay: -0.083s; }
+
+        @keyframes ios-fade {
+            from { opacity: 1; }
+            to { opacity: 0.15; }
+        }
+    </style>
 </head>
 <body>
-  <h2>Secure Payment Portal</h2>
-  <iframe src="https://www.google.com" style="width:100%; height:300px; border:none;"></iframe>
 
-  <script>
-    // Trik manipulasi history
-    history.pushState({}, "Google Secure Payment", "/secure/payment");
-  </script>
+    <div class="app-container">
+        <button class="trigger-btn" id="startBtn">Click Here</button>
+
+        <div class="alert-box" id="alertBox">
+            <div class="alert-text" id="alertText">device will respring in 5 seconds!!</div>
+            <button class="alert-close" id="closeBtn">Close</button>
+        </div>
+
+        <div class="respring-screen" id="respringScreen">
+            <div class="ios-spinner">
+                <div></div><div></div><div></div><div></div>
+                <div></div><div></div><div></div><div></div>
+                <div></div><div></div><div></div><div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const alertBox = document.getElementById('alertBox');
+        const alertText = document.getElementById('alertText');
+        const closeBtn = document.getElementById('closeBtn');
+        const respringScreen = document.getElementById('respringScreen');
+
+        let countdownInterval;
+        let countdownValue = 5;
+
+        // Ketika tombol "Click Here" ditekan
+        startBtn.addEventListener('click', () => {
+            startBtn.style.display = 'none'; 
+            alertBox.classList.add('show');  
+            countdownValue = 5;
+            alertText.textContent = `device will respring in ${countdownValue} seconds!!`;
+
+            // Interval Hitung Mundur 5 Detik
+            countdownInterval = setInterval(() => {
+                countdownValue--;
+                if (countdownValue > 0) {
+                    alertText.textContent = `device will respring in ${countdownValue} seconds!!`;
+                } else {
+                    clearInterval(countdownInterval);
+                    triggerRespring();
+                }
+            }, 1000);
+        });
+
+        // Eksekusi Layar Hitam (Respring)
+        function triggerRespring() {
+            alertBox.classList.remove('show');
+            respringScreen.classList.add('active');
+
+            // Kembali ke halaman awal setelah simulasi loading selesai (4 detik)
+            setTimeout(() => {
+                respringScreen.classList.remove('active');
+                startBtn.style.display = 'block'; 
+            }, 4000);
+        }
+
+        // Tombol 'Close' untuk membatalkan
+        closeBtn.addEventListener('click', () => {
+            clearInterval(countdownInterval);
+            alertBox.classList.remove('show');
+            startBtn.style.display = 'block';
+        });
+    </script>
 </body>
 </html>
