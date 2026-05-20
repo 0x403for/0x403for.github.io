@@ -2,31 +2,40 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC Security Research</title>
+    <title>PoC Address Bar Spoofing</title>
     <style>
-        body { font-family: -apple-system, sans-serif; padding: 20px; text-align: center; }
-        .box { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 20px; }
+        body { font-family: sans-serif; padding: 20px; text-align: center; }
+        #spoof-content { display: none; padding: 40px; background: #fff; }
+        .alert { color: red; border: 2px solid red; padding: 20px; }
     </style>
 </head>
 <body>
 
-    <h2>Analisis Parser URL</h2>
-    <p>Pengujian integritas Address Bar terhadap manipulasi domain homograph.</p>
-    
-    <div class="box">
-        <p>Target: <b>apple.com</b> (via Punycode)</p>
-        <button id="trigger" style="padding: 15px 30px; font-size: 16px; cursor: pointer;">Mulai Uji Navigasi</button>
+    <div id="trigger-area">
+        <h1>Uji Coba Address Bar</h1>
+        <button onclick="startSpoof()" style="padding:15px; font-size:18px;">Klik untuk Uji Spoofing</button>
+    </div>
+
+    <div id="spoof-content">
+        <div class="alert">
+            <h1>Situs Terverifikasi</h1>
+            <p>Konten ini dimuat di bawah domain yang Anda lihat di Address Bar.</p>
+        </div>
+        <p>Jika address bar menampilkan domain yang salah namun konten ini muncul, maka spoofing berhasil.</p>
     </div>
 
     <script>
-        document.getElementById('trigger').addEventListener('click', function() {
-            // Kita coba teknik 'window.open' dengan manipulasi target
-            // Jika browser gagal men-sanitasi, dia akan menampilkan label apple.com
-            // padahal navigasi diarahkan ke domain homograph.
-            window.open('https://xn--pple-43d.com', '_blank', 'noopener,noreferrer');
-        });
+        function startSpoof() {
+            // 1. Sembunyikan bagian pemicu
+            document.getElementById('trigger-area').style.display = 'none';
+            
+            // 2. Tampilkan konten spoof
+            document.getElementById('spoof-content').style.display = 'block';
+            
+            // 3. (Opsional) Ubah URL di Address Bar tanpa reload (mengelabui visual)
+            // Ini adalah teknik yang digunakan browser untuk navigasi internal
+            history.pushState(null, null, '/apple.com-spoof');
+        }
     </script>
-
 </body>
 </html>
