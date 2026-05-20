@@ -3,18 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC Address Bar Spoofing - IDN Test</title>
+    <title>PoC Security Research</title>
     <style>
-        body { font-family: -apple-system, sans-serif; padding: 30px; text-align: center; }
-        .btn-link { background-color: #34c759; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 10px; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; text-align: center; }
+        .box { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <h2>PoC Uji Coba IDN Homograph</h2>
-    <p>Klik tautan di bawah. Jika address bar menampilkan bentuk tulisan Latin bersih (misal: <code>apple.com</code> palsu) dan bukan bentuk Punycode (<code>xn--...</code>), maka filter Homograph berstatus bypass.</p>
+    <h2>Analisis Parser URL</h2>
+    <p>Pengujian integritas Address Bar terhadap manipulasi domain homograph.</p>
     
-    <a href="https://xn--pple-43d.com" target="_blank" class="btn-link">Buka Domain Tiruan</a>
+    <div class="box">
+        <p>Target: <b>apple.com</b> (via Punycode)</p>
+        <button id="trigger" style="padding: 15px 30px; font-size: 16px; cursor: pointer;">Mulai Uji Navigasi</button>
+    </div>
+
+    <script>
+        document.getElementById('trigger').addEventListener('click', function() {
+            // Kita coba teknik 'window.open' dengan manipulasi target
+            // Jika browser gagal men-sanitasi, dia akan menampilkan label apple.com
+            // padahal navigasi diarahkan ke domain homograph.
+            window.open('https://xn--pple-43d.com', '_blank', 'noopener,noreferrer');
+        });
+    </script>
 
 </body>
 </html>
