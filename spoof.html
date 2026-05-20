@@ -3,230 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulasi Respring iOS</title>
+    <title>IDN Homograph Spoofing Lab - GitHub Pages</title>
     <style>
-        /* Gaya Dasar & Reset */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
         body {
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background-color: #f4f6f9;
+            color: #333;
         }
-
-        /* Container Utama Web / Rasio Layar HP */
-        .app-container {
-            width: 100%;
-            max-width: 414px;
-            height: 100vh;
-            background: #232252; /* Warna biru keunguan gelap sesuai video */
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+        h1 {
+            color: #d9383a;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
         }
-
-        /* Gaya Tombol Utama (Diubah menjadi Click Here) */
-        .trigger-btn {
-            background-color: #007aff;
-            color: white;
-            border: none;
-            padding: 14px 45px;
-            font-size: 1.1rem;
-            font-weight: 500;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: transform 0.1s ease, opacity 0.2s;
-            z-index: 10;
-        }
-
-        .trigger-btn:active {
-            transform: scale(0.95);
-            opacity: 0.8;
-        }
-
-        /* Gaya Pop-up Alert iOS Dark Mode */
-        .alert-box {
-            position: absolute;
-            background: rgba(30, 30, 30, 0.75);
-            -webkit-backdrop-filter: blur(20px);
-            backdrop-filter: blur(20px);
-            width: 320px;
-            border-radius: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transform: scale(1.1);
-            opacity: 0;
-            visibility: hidden;
-            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s;
-            z-index: 20;
-        }
-
-        .alert-box.show {
-            transform: scale(1);
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .alert-text {
-            color: #ffffff;
-            font-size: 0.95rem;
-            font-weight: 400;
-            text-align: left;
-            padding-right: 15px;
-        }
-
-        .alert-close {
-            color: #2f80ed;
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            background: none;
-            border: none;
-            white-space: nowrap;
-        }
-
-        /* Efek Layar Hitam Respring */
-        .respring-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease;
-            z-index: 30;
-        }
-
-        .respring-screen.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Animasi Khas Spinner iOS */
-        .ios-spinner {
-            position: relative;
-            width: 36px;
-            height: 36px;
-        }
-
-        .ios-spinner div {
-            position: absolute;
-            width: 3px;
-            height: 10px;
+        .card {
             background: #fff;
-            left: 16.5px;
-            top: 0;
-            opacity: 0.15;
-            border-radius: 2px;
-            transform-origin: 1.5px 18px;
-            animation: ios-fade 1s linear infinite;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+            margin-bottom: 20px;
         }
-
-        /* Pengaturan sudut kelopak spinner (12 titik) */
-        .ios-spinner div:nth-child(1) { transform: rotate(0deg); animation-delay: -1s; }
-        .ios-spinner div:nth-child(2) { transform: rotate(30deg); animation-delay: -0.916s; }
-        .ios-spinner div:nth-child(3) { transform: rotate(60deg); animation-delay: -0.833s; }
-        .ios-spinner div:nth-child(4) { transform: rotate(90deg); animation-delay: -0.75s; }
-        .ios-spinner div:nth-child(5) { transform: rotate(120deg); animation-delay: -0.666s; }
-        .ios-spinner div:nth-child(6) { transform: rotate(150deg); animation-delay: -0.583s; }
-        .ios-spinner div:nth-child(7) { transform: rotate(180deg); animation-delay: -0.5s; }
-        .ios-spinner div:nth-child(8) { transform: rotate(210deg); animation-delay: -0.416s; }
-        .ios-spinner div:nth-child(9) { transform: rotate(240deg); animation-delay: -0.333s; }
-        .ios-spinner div:nth-child(10) { transform: rotate(270deg); animation-delay: -0.25s; }
-        .ios-spinner div:nth-child(11) { transform: rotate(300deg); animation-delay: -0.166s; }
-        .ios-spinner div:nth-child(12) { transform: rotate(330deg); animation-delay: -0.083s; }
-
-        @keyframes ios-fade {
-            from { opacity: 1; }
-            to { opacity: 0.15; }
+        .test-link {
+            display: inline-block;
+            background: #28a745;
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .test-link:hover {
+            background: #218838;
+        }
+        code {
+            background: #f1f1f1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.95em;
+            color: #c7254e;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
         }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <button class="trigger-btn" id="startBtn">Click Here</button>
-
-        <div class="alert-box" id="alertBox">
-            <div class="alert-text" id="alertText">device will respring in 5 seconds!!</div>
-            <button class="alert-close" id="closeBtn">Close</button>
-        </div>
-
-        <div class="respring-screen" id="respringScreen">
-            <div class="ios-spinner">
-                <div></div><div></div><div></div><div></div>
-                <div></div><div></div><div></div><div></div>
-                <div></div><div></div><div></div><div></div>
-            </div>
-        </div>
+    <h1>IDN Homograph Bug Hunting Lab</h1>
+    
+    <div class="warning">
+        <strong>PENTING (Syarat Pengujian):</strong> <br>
+        Meskipun halaman ini di-host di GitHub, browser Anda tetap akan mencari IP domain palsu di bawah ke internet asli. 
+        Agar pengujian berhasil dan aman, Anda <strong>wajib</strong> memetakan domain punycode berikut ke <code>127.0.0.1</code> di file <code>hosts</code> perangkat Anda sebelum mengklik tombol pengujian.
     </div>
 
-    <script>
-        const startBtn = document.getElementById('startBtn');
-        const alertBox = document.getElementById('alertBox');
-        const alertText = document.getElementById('alertText');
-        const closeBtn = document.getElementById('closeBtn');
-        const respringScreen = document.getElementById('respringScreen');
+    <div class="card">
+        <h3>Eksperimen 1: Armenian Small Letter Oh (o &rarr; 𝖴)</h3>
+        <p>Mengganti huruf 'o' pertama pada google.com dengan karakter Unicode Armenian.</p>
+        <p>Punycode Payload: <code>xn--gogle-lkg.com</code></p>
+        <a href="http://xn--gogle-lkg.com" target="_blank" class="test-link">Uji di Tab Baru &rarr;</a>
+    </div>
 
-        let countdownInterval;
-        let countdownValue = 5;
+    <div class="card">
+        <h3>Eksperimen 2: Cyrillic Small Letter O (o &rarr; о)</h3>
+        <p>Mengganti huruf 'o' pertama pada google.com dengan karakter Cyrillic O yang sangat identik.</p>
+        <p>Punycode Payload: <code>xn--gogle-95a.com</code></p>
+        <a href="http://xn--gogle-95a.com" target="_blank" class="test-link">Uji di Tab Baru &rarr;</a>
+    </div>
 
-        // Ketika tombol "Click Here" ditekan
-        startBtn.addEventListener('click', () => {
-            startBtn.style.display = 'none'; 
-            alertBox.classList.add('show');  
-            countdownValue = 5;
-            alertText.textContent = `device will respring in ${countdownValue} seconds!!`;
+    <div class="card">
+        <h3>Eksperimen 3: Greek Small Letter Omicron (o &rarr; ο)</h3>
+        <p>Mengganti huruf 'o' pertama pada google.com dengan karakter alfabet Yunani (Omicron).</p>
+        <p>Punycode Payload: <code>xn--gogle-4xa.com</code></p>
+        <a href="http://xn--gogle-4xa.com" target="_blank" class="test-link">Uji di Tab Baru &rarr;</a>
+    </div>
 
-            // Interval Hitung Mundur 5 Detik
-            countdownInterval = setInterval(() => {
-                countdownValue--;
-                if (countdownValue > 0) {
-                    alertText.textContent = `device will respring in ${countdownValue} seconds!!`;
-                } else {
-                    clearInterval(countdownInterval);
-                    triggerRespring();
-                }
-            }, 1000);
-        });
+    <div class="card">
+        <h3>Eksperimen 4: Cyrillic Small Letter A (a &rarr; а)</h3>
+        <p>Mengganti huruf 'a' pada domain paypal.com dengan Cyrillic A.</p>
+        <p>Punycode Payload: <code>xn--pypal-4qa.com</code></p>
+        <a href="http://xn--pypal-4qa.com" target="_blank" class="test-link">Uji di Tab Baru &rarr;</a>
+    </div>
 
-        // Eksekusi Layar Hitam (Respring)
-        function triggerRespring() {
-            alertBox.classList.remove('show');
-            respringScreen.classList.add('active');
-
-            // Kembali ke halaman awal setelah simulasi loading selesai (4 detik)
-            setTimeout(() => {
-                respringScreen.classList.remove('active');
-                startBtn.style.display = 'block'; 
-            }, 4000);
-        }
-
-        // Tombol 'Close' untuk membatalkan
-        closeBtn.addEventListener('click', () => {
-            clearInterval(countdownInterval);
-            alertBox.classList.remove('show');
-            startBtn.style.display = 'block';
-        });
-    </script>
 </body>
 </html>
