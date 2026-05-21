@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>URL Fixup Security Tester</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+        .test-box { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+        code { background: #f4f4f4; padding: 2px 5px; }
+    </style>
+</head>
+<body>
+    <h1>URL Fixup Security Tester</h1>
+    <p>Klik link di bawah ini untuk melihat apakah <i>Address Bar</i> tertipu atau melakukan normalisasi yang tepat.</p>
+
+    <div class="test-box">
+        <h3>1. Test Kasus Host (Baris 703+)</h3>
+        <ul>
+            <li><a href="http://..www.example.com" target="_blank">Test <code>..www.example.com</code></a></li>
+            <li><a href="http://www.example.com.." target="_blank">Test <code>www.example.com..</code></a></li>
+            <li><a href="http://.www.example.com." target="_blank">Test <code>.www.example.com.</code></a></li>
+            <li><a href="http://www.example" target="_blank">Test <code>www.example</code></a></li>
+        </ul>
+    </div>
+
+    <div class="test-box">
+        <h3>2. Test Skema dan Delimiter</h3>
+        <ul>
+            <li><a href="http;www.google.com/" target="_blank">Test <code>http;www.google.com/</code></a></li>
+        </ul>
+    </div>
+
+    <p><em>Perhatikan: Jika browser melakukan "Fixup", browser akan mengarahkan Anda ke URL yang benar. Jika Address Bar menampilkan domain yang Anda klik (misal: example.com) namun isinya berbeda, itu adalah temuan krusial.</em></p>
+</body>
+</html>
