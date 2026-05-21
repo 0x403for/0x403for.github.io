@@ -1,24 +1,35 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Uji Coba Stabilitas Permintaan Izin</title>
+<style>
+  /* Styling untuk mensimulasikan modal sistem */
+  .fake-modal {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 20px;
+    width: 250px;
+    text-align: center;
+    margin: 20px auto;
+    font-family: sans-serif;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  button { margin: 5px; padding: 10px 20px; }
+</style>
 </head>
 <body>
-    <h1>Uji Coba *Race Condition*</h1>
-    <button id="test-btn" style="padding: 20px;">
-        Tekan 3x dengan Cepat
-    </button>
 
-    <script>
-        document.getElementById('test-btn').addEventListener('click', () => {
-            // Memicu 3 permintaan kamera sekaligus dalam waktu bersamaan
-            for(let i = 0; i < 3; i++) {
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then(stream => console.log("Permintaan " + i + " berhasil"))
-                    .catch(err => console.error("Permintaan " + i + " gagal:", err));
-            }
-        });
-    </script>
+<button onclick="showFakeModals()">Klik di sini</button>
+
+<div id="modals-container"></div>
+
+<script>
+function showFakeModals() {
+  const container = document.getElementById('modals-container');
+  container.innerHTML = `
+    <div class="fake-modal">"Situs" Ingin Mengakses Kamera<br><button>Batalkan</button><button>Izinkan</button></div>
+    <div class="fake-modal">"Situs" Ingin Mengakses Kamera<br><button>Batalkan</button><button>Izinkan</button></div>
+  `;
+}
+</script>
 </body>
 </html>
