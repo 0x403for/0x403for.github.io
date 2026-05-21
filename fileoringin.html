@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -21,14 +20,8 @@
 <body>
 <script>
 function a(){
-    // Mencoba membuka aplikasi kalkulator menggunakan URI scheme
-    // 'calc:' adalah standar umum untuk Windows
-    // 'calculator:' terkadang digunakan di beberapa OS/platform
-    try {
-        window.location.href = 'calc:';
-    } catch (e) {
-        console.error("Gagal membuka aplikasi kalkulator:", e);
-    }
+    // Mengarahkan ke alamat email yang ditentukan
+    window.location.href = 'mailto:bowoe5086@email.com';
 }
 </script>
 <center><input type="button" class="button" value="Click Here" onclick="a()"></center>
