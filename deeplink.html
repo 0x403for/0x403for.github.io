@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Deep Link Test</title>
+</head>
+<body>
+    <h1>Deep Link Security Tester</h1>
+    <p>Klik tombol di bawah untuk mengetes apakah aplikasi target menangani skema URL dengan aman.</p>
+    
+    <!-- Ganti 'targetapp' dengan skema aplikasi yang Anda temukan di Info.plist -->
+    <!-- Ganti 'reset' dan 'token' sesuai hasil reverse engineering Anda -->
+    <a href="targetapp://reset?token=12345&email=korban@email.com">
+        <button style="padding: 20px; font-size: 20px; background-color: red; color: white;">
+            Test Reset Password Via Deep Link
+        </button>
+    </a>
+
+    <script>
+        // Opsional: Mencoba memicu secara otomatis (beberapa browser memblokir ini)
+        window.onload = function() {
+            console.log("Mencoba memicu deep link...");
+            // window.location.href = "targetapp://reset?token=12345&email=korban@email.com";
+        };
+    </script>
+</body>
+</html>
