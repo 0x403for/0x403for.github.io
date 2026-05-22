@@ -2,26 +2,27 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Security Research - Universal Link Tester</title>
+    <title>Deep Link Security Lab - Opera Protocol</title>
     <style>
         body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
         .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         code { background: #e7e7e7; padding: 5px; border-radius: 4px; display: block; margin: 10px 0; word-break: break-all; color: #d9534f; }
-        button { padding: 15px; width: 100%; cursor: pointer; background: #28a745; color: white; border: none; font-size: 16px; border-radius: 4px; }
+        button { padding: 15px; width: 100%; cursor: pointer; background: #c02942; color: white; border: none; font-size: 16px; border-radius: 4px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Universal Link Security Lab</h2>
-        <p>Gunakan tombol ini untuk menguji apakah OS mengarahkan tautan ke aplikasi atau browser:</p>
+        <h2>Opera Protocol Tester</h2>
+        <p>Menguji apakah skema internal <code>opera://</code> dapat dipicu dari luar aplikasi:</p>
         
-        <code>https://auth.opera.com/account/change-password?key=d8zevg-baa5c2aaffcc7dbc4b8007c116b1e928&service=auth</code>
+        <p><strong>Target URL:</strong></p>
+        <code>opera://history</code>
 
-        <a href="https://auth.opera.com/account/change-password?key=d8zevg-baa5c2aaffcc7dbc4b8007c116b1e928&service=auth">
-            <button>Test Universal Link</button>
+        <a href="opera://history">
+            <button>Uji Coba Skema: opera://history</button>
         </a>
 
-        <p><small><em>Tips: Selalu gunakan akun pengujian (sandbox) untuk riset keamanan. Jangan pernah gunakan token akun utama Anda.</em></small></p>
+        <p><small>Catatan: Jika muncul pesan "Aplikasi tidak ditemukan", itu berarti aplikasi Opera tidak mengekspos protokol tersebut untuk diakses dari aplikasi pihak ketiga atau browser lain.</small></p>
     </div>
 </body>
 </html>
