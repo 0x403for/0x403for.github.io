@@ -2,27 +2,26 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Deep Link Security Lab - Research Tool</title>
+    <title>Security Research - Universal Link Tester</title>
     <style>
         body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
         .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        code { background: #e7e7e7; padding: 2px 4px; border-radius: 4px; display: block; margin: 10px 0; word-break: break-all; }
-        button { padding: 15px; width: 100%; cursor: pointer; background: #e95420; color: white; border: none; font-size: 16px; border-radius: 4px; }
+        code { background: #e7e7e7; padding: 5px; border-radius: 4px; display: block; margin: 10px 0; word-break: break-all; color: #d9534f; }
+        button { padding: 15px; width: 100%; cursor: pointer; background: #28a745; color: white; border: none; font-size: 16px; border-radius: 4px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Deep Link Tester</h2>
-        <p>Aksi: Memicu Deep Link ke aplikasi target.</p>
+        <h2>Universal Link Security Lab</h2>
+        <p>Gunakan tombol ini untuk menguji apakah OS mengarahkan tautan ke aplikasi atau browser:</p>
         
-        <p><strong>Target URL:</strong></p>
-        <code>opera://account/change-password?key=d8zevg-baa5c2aaffcc7dbc4b8007c116b1e928&service=auth</code>
+        <code>https://auth.opera.com/account/change-password?key=d8zevg-baa5c2aaffcc7dbc4b8007c116b1e928&service=auth</code>
 
-        <a href="opera://account/change-password?key=d8zevg-baa5c2aaffcc7dbc4b8007c116b1e928&service=auth">
-            <button>Uji Coba Deep Link (Change Password)</button>
+        <a href="https://auth.opera.com/account/change-password?key=d8zevg-baa5c2aaffcc7dbc4b8007c116b1e928&service=auth">
+            <button>Test Universal Link</button>
         </a>
 
-        <p><small>Catatan: Pastikan aplikasi target terinstal di perangkat Anda untuk memvalidasi apakah skema ini terdaftar dan aktif.</small></p>
+        <p><small><em>Tips: Selalu gunakan akun pengujian (sandbox) untuk riset keamanan. Jangan pernah gunakan token akun utama Anda.</em></small></p>
     </div>
 </body>
 </html>
