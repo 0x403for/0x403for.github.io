@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chromium url_fixer Fuzzer Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #252538;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        h1 { color: #f5c2e7; margin-top: 0; font-size: 24px; }
+        p { color: #a6adc8; line-height: 1.5; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .panel {
+            background: #181825;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #313244;
+        }
+        h3 { margin-top: 0; color: #89b4fa; border-bottom: 1px solid #313244; padding-bottom: 8px; }
+        label { display: block; margin: 10px 0 5px; font-weight: bold; font-size: 14px; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            background: #313244;
+            border: 1px solid #45475a;
+            border-radius: 6px;
+            color: #cdd6f4;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+        .btn {
+            background: #a6e3a1;
+            color: #11111b;
+            border: none;
+            padding: 12px 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #94e2d5; }
+        .btn-fuzz { background: #fab387; }
+        .btn-fuzz:hover { background: #f9e2af; }
+        .status-box {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center;
+            font-family: monospace;
+        }
+        .status-safe { background: #2e3f31; color: #a6e3a1; border: 1px solid #a6e3a1; }
+        .status-crash { background: #4c2933; color: #f38ba8; border: 1px solid #f38ba8; animation: shake 0.2s ease-in-out 2; }
+        .log-area {
+            background: #11111b;
+            color: #a6e3a1;
+            padding: 12px;
+            border-radius: 6px;
+            height: 180px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            border: 1px solid #313244;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛠️ Chromium url_formatter::FixupURL Fuzzer Simulator</h1>
+    <p>Halaman ini mensimulasikan bagaimana fungsi <code>FixupURL()</code> di <code>url_fixer.cc</code> memproses input berbahaya, serta bagaimana LibFuzzer melakukan mutasi otomatis untuk mencari celah keamanan (Crash).</p>
+
+    <div class="grid">
+        <!-- PANEL INPUT MANUAL -->
+        <div class="panel">
+            <h3>1. Uji manual (Edge Cases)</h3>
+            <p>Pilih atau ketik payload ekstrem untuk melihat reaksi logika kode C++:</p>
+            
+            <label>Pilih Template Serangan:</label>
+            <select id="templateSelect" onchange="loadTemplate()">
+                <option value="">-- Pilih Payload --</option>
+                <option value="http://google.com:99999999999999999999">Integer Overflow (Port Terlalu Besar)</option>
+                <option value="A|\\\\\\\\\\\\\\\\\\\\\\\\">Windows Drive Bug (filename[1] == '|')</option>
+                <option value="google.com\uD800">Corrupted UTF-8 (Iterator Out-of-Bounds)</option>
+                <option value=".......................">Domain Underrun (domain_length - 1)</option>
+            </select>
+
+            <label>Custom URL Input:</label>
+            <textarea id="urlInput" rows="3" placeholder="Ketik URL acak di sini..."></textarea>
+            
+            <button class="btn" onclick="runManualTest()">Kirim ke FixupURL()</button>
+        </div>
+
+        <!-- PANEL AUTOMATED FUZZING -->
+        <div class="panel">
+            <h3>2. Automated Fuzzing Engine</h3>
+            <p>Simulasikan <code>url_fixer_fuzzer.cc</code> yang memutasi string secara acak berkecepatan tinggi:</p>
+            
+            <label>Kecepatan Eksekusi (per detik):</label>
+            <select id="fuzzSpeed">
+                <option value="100">100 Exec/s</option>
+                <option value="500">500 Exec/s</option>
+                <option value="1000">1000 Exec/s (Maksimal)</option>
+            </select>
+
+            <button id="fuzzBtn" class="btn btn-fuzz" onclick="toggleFuzzing()">Mulai LibFuzzer</button>
+            
+            <label style="margin-top:15px;">Fuzzer Live Logs:</label>
+            <div id="logArea" class="log-area">Engine stopped...</div>
+        </div>
+    </div>
+
+    <!-- HASIL OUTPUT -->
+    <div class="panel" style="margin-top: 20px;">
+        <h3>3. Hasil Analisis Engine</h3>
+        <label>Parsed Output URL:</label>
+        <input type="text" id="outputURL" readonly placeholder="Menunggu input...">
+        
+        <div id="statusBox" class="status-box status-safe">STATUS: SYSTEM STABLE (0 CRASHES)</div>
+    </div>
+</div>
+
+<script>
+    let fuzzInterval = null;
+    let totalExecs = 0;
+
+    // Kumpulan karakter acak untuk mutasi fuzzer
+    const fuzzChars = ['a','7','/',':','.','|','~','%','0','\uD800','\\','\0','A','-'];
+
+    function loadTemplate() {
+        const select = document.getElementById('templateSelect');
+        if(select.value) {
+            document.getElementById('urlInput').value = select.value;
+        }
+    }
+
+    // Simulasi Logika Internal url_fixer.cc
+    function simulateFixupURL(input) {
+        let text = input.trim();
+        let isCrash = false;
+        let crashReason = "";
+        let result = text;
+
+        if (text.length === 0) return { result: "about:blank", isCrash: false };
+
+        // 1. Simulasi Pengecekan Port Integer Overflow
+        if (text.includes(':')) {
+            let parts = text.split(':');
+            let port = parts[parts.length - 1];
+            if (/^\d+$/.test(port) && port.length > 10) {
+                isCrash = true;
+                crashReason = "CRASH: Integer Overflow pada penanganan port! Memori korup di atoi().";
+            }
+        }
+
+        // 2. Simulasi Windows Drive Bug (filename[1] == '|')
+        if (text.length > 1 && text[1] === '|' && text.includes('\\\\\\\\')) {
+            isCrash = true;
+            crashReason = "CRASH: AddressSanitizer mendeteksi Out-of-Bounds Read pada konversi path Windows!";
+        }
+
+        // 3. Simulasi Corrupted UTF-8 / Bad Iterator
+        if (text.includes('\uD800') || text.includes('\0')) {
+            isCrash = true;
+            crashReason = "CRASH: UTF8CharIterator melompati null-terminator! Heap-buffer-overflow detected.";
+        }
+
+        // 4. Simulasi Domain Underrun (Mengecek index minus)
+        if (/^\.+$/.test(text) && text.length > 15) {
+            isCrash = true;
+            crashReason = "CRASH: Segmentation Fault! Pengecekan indeks (*domain)[domain_length - 1] menghasilkan nilai negatif.";
+        }
+
+        // Jika tidak crash, lakukan "perbaikan" standar ala Chromium
+        if (!isCrash) {
+            if (!text.startsWith('http://') && !text.startsWith('https://') && !text.startsWith('file://')) {
+                result = "https://" + text;
+            }
+        }
+
+        return { result: isCrash ? crashReason : result, isCrash: isCrash };
+    }
+
+    function runManualTest() {
+        const input = document.getElementById('urlInput').value;
+        const statusBox = document.getElementById('statusBox');
+        const outputField = document.getElementById('outputURL');
+
+        const analysis = simulateFixupURL(input);
+
+        outputField.value = analysis.result;
+
+        if (analysis.isCrash) {
+            statusBox.className = "status-box status-crash";
+            statusBox.innerText = analysis.result;
+        } else {
+            statusBox.className = "status-box status-safe";
+            statusBox.innerText = "STATUS: SUCCESS (URL Berhasil Diperbaiki Tanpa Crash)";
+        }
+    }
+
+    function toggleFuzzing() {
+        const btn = document.getElementById('fuzzBtn');
+        const logArea = document.getElementById('logArea');
+        const speed = parseInt(document.getElementById('fuzzSpeed').value);
+
+        if (fuzzInterval) {
+            clearInterval(fuzzInterval);
+            fuzzInterval = null;
+            btn.innerText = "Mulai LibFuzzer";
+            btn.className = "btn btn-fuzz";
+            logArea.innerHTML += "<br>[INFO] Fuzzer Dihentikan.";
+            logArea.scrollTop = logArea.scrollHeight;
+        } else {
+            btn.innerText = "Stop Fuzzer";
+            btn.className = "btn";
+            btn.style.backgroundColor = "#f38ba8";
+            logArea.innerHTML = "[INFO] Menginisialisasi LibFuzzer target: url_fixer_fuzzer...<br>";
+            
+            fuzzInterval = setInterval(() => {
+                // Generate string acak (Mutasi)
+                let testLength = Math.floor(Math.random() * 25) + 2;
+                let randomInput = "";
+                for(let i=0; i<testLength; i++) {
+                    randomInput += fuzzChars[Math.floor(Math.random() * fuzzChars.length)];
+                }
+
+                totalExecs++;
+                const analysis = simulateFixupURL(randomInput);
+
+                // Print ke log
+                logArea.innerHTML += `#${totalExecs} | Execs/s: ${speed} | Input: ${escapeHtml(randomInput)}<br>`;
+                logArea.scrollTop = logArea.scrollHeight;
+
+                if (analysis.isCrash) {
+                    clearInterval(fuzzInterval);
+                    fuzzInterval = null;
+                    btn.innerText = "Mulai LibFuzzer";
+                    btn.className = "btn btn-fuzz";
+                    btn.style.backgroundColor = "";
+                    
+                    document.getElementById('urlInput').value = randomInput;
+                    document.getElementById('outputURL').value = analysis.result;
+                    
+                    const statusBox = document.getElementById('statusBox');
+                    statusBox.className = "status-box status-crash";
+                    statusBox.innerText = `💥 CRASH DITEMUKAN PADA ITERASI #${totalExecs}! \nInput: ${randomInput} \nAlasan: ${analysis.result}`;
+                }
+            }, 1000 / (speed / 10)); // Pembagian interval agar tidak membuat browser freeze asli
+        }
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+</script>
+
+</body>
+</html>
