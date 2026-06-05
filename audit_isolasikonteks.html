@@ -3,78 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisis Validasi Objek Provider Web3</title>
+    <title>Uji Validasi Manajemen Antrean Web3</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; line-height: 1.6; }
-        .card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
-        .status-badge { inline-size: fit-content; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
-        .info { background: #e3f2fd; color: #0d47a1; }
-        .log-box { background: #212121; color: #eeff41; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; overflow-x: auto; }
+        body { font-family: sans-serif; padding: 20px; line-height: 1.5; }
+        .box { border: 1px solid #ccc; padding: 15px; margin-top: 15px; background: #f9f9f9; border-radius: 6px; }
+        .log-area { background: #1e1e1e; color: #00ff00; padding: 15px; font-family: monospace; white-space: pre-wrap; border-radius: 4px; max-height: 250px; overflow-y: auto; }
+        button { padding: 10px 15px; font-size: 1em; cursor: pointer; margin-right: 10px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <h3>Instrumen Analisis Desain Properti Web3</h3>
-    <p>Halaman ini mengevaluasi konfigurasi mutabilitas objek <code>window.ethereum</code> untuk keperluan dokumentasi teknis defensif.</p>
+    <h2>Analisis Manajemen Antrean Dialog UI</h2>
+    <p>Halaman ini mengirimkan beberapa permintaan interaksi berurutan untuk memverifikasi mekanisme pembatasan simultan pada dompet.</p>
 
-    <div class="card">
-        <div id="badge" class="status-badge info">Memeriksa eksistensi objek...</div>
-        <p id="details">Menunggu eksekusi skrip...</p>
+    <button onclick="hubungkanDompet()">1. Hubungkan Dompet Dulu</button>
+    <button onclick="kirimPermintaanBerurutan()">2. Jalankan Uji Antrean (3x Request)</button>
+
+    <div class="box">
+        <h4>Status Log Aktivitas:</h4>
+        <div id="logKonsol" class="log-area">Menunggu interaksi pengguna...</div>
     </div>
 
-    <button onclick="periksaKonfigurasiObjek()" style="padding: 10px 15px; font-size: 1em; cursor: pointer;">Mulai Analisis Properti</button>
-
-    <h4>Hasil Log Konsol Internal:</h4>
-    <div id="consoleLog" class="log-box">Log kosong. Klik tombol di atas untuk memulai.</div>
-
     <script>
-        function periksaKonfigurasiObjek() {
-            const logBox = document.getElementById('consoleLog');
-            const badge = document.getElementById('badge');
-            const details = document.getElementById('details');
-            let report = "";
+        const logKonsol = document.getElementById('logKonsol');
+        let akunAktif = null;
 
-            // 1. Memeriksa ketersediaan objek di lingkup global window
+        function cetakLog(teks) {
+            logKonsol.textContent += `\n${teks}`;
+            logKonsol.scrollTop = logKonsol.scrollHeight;
+        }
+
+        // Memastikan dompet terhubung untuk mendapatkan alamat sebelum meminta signature
+        async function hubungkanDompet() {
             if (typeof window.ethereum === 'undefined') {
-                badge.textContent = "Provider Tidak Terdeteksi";
-                badge.style.background = "#ffebee";
-                badge.style.color = "#c62828";
-                logBox.textContent = "Objek window.ethereum tidak ditemukan pada konteks halaman ini.";
+                logKonsol.textContent = "[!] Provider Web3 tidak terdeteksi. Buka halaman ini di dApp browser.";
+                return;
+            }
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                akunAktif = accounts[0];
+                logKonsol.textContent = `[*] Terhubung ke akun: ${akunAktif}`;
+            } catch (err) {
+                logKonsol.textContent = `[!] Gagal terhubung: ${err.message}`;
+            }
+        }
+
+        // Simulasi pengiriman 3 permintaan berturut-turut untuk melihat penanganan antrean
+        async function kirimPermintaanBerurutan() {
+            if (!akunAktif) {
+                alert("Silakan klik tombol 'Hubungkan Dompet' terlebih dahulu.");
                 return;
             }
 
-            report += "[*] Mengevaluasi objek window.ethereum...\n";
+            cetakLog("\n--- Memulai Pengujian Antrean Prosedural ---");
+            const pesanDasar = "Verifikasi Antrean Pesan ID: ";
 
-            // 2. Memeriksa apakah objek telah dibekukan (frozen)
-            const isFrozen = Object.isFrozen(window.ethereum);
-            report += `[-] Status Object.isFrozen: ${isFrozen}\n`;
-
-            // 3. Memeriksa atribut deskriptor properti pada objek window
-            const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
-            
-            if (descriptor) {
-                report += `[-] Deskriptor Properti 'ethereum' pada objek 'window':\n`;
-                report += `    - Writable (Dapat ditulis ulang): ${descriptor.writable}\n`;
-                report += `    - Configurable (Dapat dikonfigurasi ulang): ${descriptor.configurable}\n`;
-                report += `    - Enumerable: ${descriptor.enumerable}\n`;
-            } else {
-                report += "[!] Gagal mengambil deskriptor properti langsung dari objek window (kemungkinan disuntikkan via prototipe tingkat lanjut).\n";
+            // Menjalankan 3 panggilan asinkron secara bersamaan (simultan)
+            for (let i = 1; i <= 3; i++) {
+                cetakLog(`[>] Mengirimkan Permintaan #${i} ke runtime dompet...`);
+                
+                window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [`${pesanDasar}${i}`, akunAktif]
+                })
+                .then((result) => {
+                    cetakLog(`[+] Permintaan #${i} DISETUJUI oleh pengguna.`);
+                })
+                .catch((err) => {
+                    // Celah keamanan TIDAK ditemukan jika permintaan berikutnya otomatis ditolak dengan error (misal: RPC Busy atau User Rejected)
+                    cetakLog(`[-] Permintaan #${i} SELESAI/DITOLAK dengan respons: ${err.message} (Code: ${err.code})`);
+                });
             }
-
-            // 4. Menyimpulkan tingkat ketahanan arsitektur berdasarkan standar defensif
-            if (isFrozen === true || (descriptor && descriptor.writable === false)) {
-                badge.textContent = "Konfigurasi Defensif Aktif";
-                badge.style.background = "#e8f5e9";
-                badge.style.color = "#2e7d32";
-                details.innerHTML = "Objek diimplementasikan sebagai <strong>Immutable/Read-Only</strong>. Modifikasi fungsi secara langsung di batasi oleh aturan pembatasan *strict* JavaScript.";
-            } else {
-                badge.textContent = "Konfigurasi Standar / Terbuka";
-                badge.style.background = "#fff3e0";
-                badge.style.color = "#ef6c00";
-                details.innerHTML = "Objek berstatus <strong>Mutable</strong>. Fungsi-fungsi di dalamnya menggunakan konfigurasi standar dan dapat menerima penambahan atau perubahan properti secara dinamis dalam konteks runtime saat ini.";
-            }
-
-            logBox.textContent = report;
         }
     </script>
 
