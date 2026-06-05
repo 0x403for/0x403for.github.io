@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sui Wallet History Fuzzer / Tester</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            background-color: #121214;
+            color: #ffffff;
+            text-align: center;
+        }
+        button {
+            background-color: #38bdf8;
+            color: #000000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            width: 100%;
+            max-width: 300px;
+        }
+        button:disabled {
+            background-color: #4b5563;
+            color: #9ca3af;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #1e1e22;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            text-align: left;
+            word-wrap: break-word;
+            font-family: monospace;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+    </style>
+</head>
+<body>
+
+    <h2>Sui Wallet Integration Tester</h2>
+    <p>Gunakan halaman ini untuk menguji fungsi interaksi pada dApp Browser.</p>
+
+    <button id="connectBtn">1. Hubungkan Dompet</button>
+    <br>
+    <button id="spamTxBtn" disabled>2. Mulai Spam Transaksi (Loop)</button>
+    <br>
+    <button id="stopBtn" disabled style="background-color: #ef4444; color: white;">Stop Spam</button>
+
+    <h3>Log Aktivitas:</h3>
+    <div id="status">Menunggu inisialisasi...</div>
+
+    <script>
+        let selectedWallet = null;
+        let spamInterval = null;
+        let txCount = 0;
+
+        const statusDiv = document.getElementById('status');
+        const connectBtn = document.getElementById('connectBtn');
+        const spamTxBtn = document.getElementById('spamTxBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        function log(message, type = '') {
+            const time = new Date().toLocaleTimeString();
+            const className = type ? `class="${type}"` : '';
+            statusDiv.innerHTML = `[${time}] <span ${className}>${message}</span><br>` + statusDiv.innerHTML;
+        }
+
+        // 1. Mendeteksi Dompet yang Terinjeksi (Wallet Standard)
+        window.addEventListener('DOMContentLoaded', () => {
+            log("Mencari ekomisitem dompet Sui...");
+            
+            // Memeriksa window.sui Wallets (Standard API)
+            if (window.suiWallet || (window.__suiWallets && Object.keys(window.__suiWallets).length > 0)) {
+                log("Dompet Sui terdeteksi di dApp Browser!", "success");
+            } else {
+                log("Dompet tidak langsung terdeteksi. Mencoba mendengarkan event register...", "error");
+            }
+        });
+
+        // 2. Fungsi Connect Dompet
+        connectBtn.addEventListener('click', async () => {
+            log("Mencoba melakukan koneksi ke dompet...");
+            
+            try {
+                // Metode fallback jika menggunakan provider standar langsung
+                if (window.suiWallet) {
+                    const res = await window.suiWallet.requestPermissions();
+                    const accounts = await window.suiWallet.getAccounts();
+                    if (accounts.length > 0) {
+                        selectedWallet = window.suiWallet;
+                        log(`Terhubung ke: ${accounts[0]}`, "success");
+                        spamTxBtn.disabled = false;
+                    }
+                } else {
+                    // Jika dompet menyuntikkan nama kustom (seperti Slush / Mysten)
+                    // Kita mendeteksi via window.ethereum alternatif atau objek spesifik mereka
+                    log("Metode injeksi kustom terdeteksi, mencoba jabat tangan universal...", "error");
+                    
+                    // Contoh simulasi request account jika dApp browser kompatibel dengan standar dasar
+                    if (typeof window.ethereum !== 'undefined') {
+                        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        log(`Terhubung (EVM Fallback Mode): ${accounts[0]}`, "success");
+                        spamTxBtn.disabled = false;
+                    } else {
+                        alert("Dompet gagal memberikan respons akun. Pastikan fitur injeksi Web3 dompet Anda aktif.");
+                    }
+                }
+            } catch (err) {
+                log(`Gagal terhubung: ${err.message}`, "error");
+            }
+        });
+
+        // 3. Fungsi Memicu Spam Transaksi Berulang
+        spamTxBtn.addEventListener('click', () => {
+            log("Memulai loop transaksi otomatis...", "success");
+            spamTxBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            // Jalankan fungsi pengiriman transaksi setiap 3 detik (3000ms)
+            spamInterval = setInterval(async () => {
+                txCount++;
+                log(`Mengirim Request Transaksi #${txCount}...`);
+
+                try {
+                    // Struktur transaksi dasar jaringan Sui untuk memicu pop-up konfirmasi history
+                    // Jika yang dicari adalah celah UI freeze, pengiriman parameter kosong/acak sering kali memicu bug penanganan error
+                    const dummyTransaction = {
+                        kind: 'moveCall',
+                        data: {
+                            packageObjectId: '0x2',
+                            module: 'sui',
+                            function: 'transfer',
+                            typeArguments: [],
+                            arguments: [],
+                            gasBudget: 10000
+                        }
+                    };
+
+                    // Memicu jendela konfirmasi transaksi di Dompet
+                    let result;
+                    if (window.suiWallet) {
+                        result = await window.suiWallet.signAndExecuteTransaction({ transaction: dummyTransaction });
+                    } else if (window.ethereum) {
+                        // Fallback jika dompet menggunakan interface RPC standar
+                        result = await window.ethereum.request({
+                            method: 'eth_sendTransaction',
+                            params: [{ from: window.ethereum.selectedAddress, to: window.ethereum.selectedAddress, value: '0x0' }]
+                        });
+                    }
+
+                    log(`Respon Transaksi #${txCount}: Sukses/Disetujui.`, "success");
+                } catch (err) {
+                    // Di sinilah letak analisis bug bounty kamu:
+                    // Jika pengguna menolak (User Rejected), apakah transaksi tetap masuk ke UI riwayat sebagai "Failed" atau justru merusak tampilan?
+                    log(`Respon Transaksi #${txCount}: Ditolak/Error -> ${err.message}`, "error");
+                }
+            }, 3000); 
+        });
+
+        // 4. Menghentikan Spam
+        stopBtn.addEventListener('click', () => {
+            if (spamInterval) {
+                clearInterval(spamInterval);
+                log("Loop transaksi dihentikan oleh pengguna.");
+                spamTxBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>
