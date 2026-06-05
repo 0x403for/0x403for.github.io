@@ -3,110 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instrumen Analisis Antrean Prosedural Web3</title>
+    <title>EVM Wallet Standard Test Interface</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; line-height: 1.6; color: #333; }
-        .card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
-        .log-box { background: #212121; color: #eeff41; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; overflow-x: auto; max-height: 300px; }
-        .btn { display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px; margin-bottom: 10px; text-decoration: none; }
-        .btn-primary { background-color: #007aff; color: white; }
-        .btn-secondary { background-color: #4cd964; color: white; }
-        .btn-danger { background-color: #ff3b30; color: white; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            background-color: #0c0f14;
+            color: #e6edf3;
+            text-align: center;
+        }
+        button {
+            background-color: #1f6feb;
+            color: #ffffff;
+            border: 1px solid rgba(240,246,252,0.1);
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            width: 100%;
+            max-width: 320px;
+            transition: background-color 0.2s;
+        }
+        button:disabled {
+            background-color: #21262d;
+            color: #8b949e;
+            cursor: not-allowed;
+        }
+        #stopBtn {
+            background-color: #da3633;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #161b22;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            text-align: left;
+            word-wrap: break-word;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #3fb950; }
+        .error { color: #f85149; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h3>Analisis Manajemen Antrean Dialog UI (V2)</h3>
-    <p>Halaman ini menyediakan instrumen manual dan semi-otomatis untuk memverifikasi perilaku isolasi antrean permintaan pada dApp browser.</p>
+    <h2>EVM Wallet Test Interface</h2>
+    <p>Halaman evaluasi penanganan pengecualian data (Error Handling) pada dApp Browser EVM.</p>
 
-    <div class="card">
-        <button class="btn btn-primary" onclick="hubungkanDompet()">1. Hubungkan Dompet</button>
-        <button class="btn btn-secondary" onclick="pemicuAntreanBerjeda()">2. Tes Otomatis (Jeda Mikro)</button>
-        <button class="btn btn-danger" onclick="kirimPermintaanTunggal()">3. Kirim Manual (Klik Cepat)</button>
-    </div>
+    <button id="connectBtn">1. Hubungkan 1inch Wallet</button>
+    <br>
+    <button id="spamTxBtn" disabled>2. Mulai Stress-Test (Loop)</button>
+    <br>
+    <button id="stopBtn" disabled>Stop Pengujian</button>
 
-    <div class="card">
-        <h4>Status Log Aktivitas:</h4>
-        <div id="statusLog" class="log-box">Menunggu inisialisasi interaksi...</div>
-    </div>
+    <h3>Log Aktivitas Eksekusi:</h3>
+    <div id="status">Menunggu inisialisasi lingkungan Web3...</div>
 
     <script>
-        const statusLog = document.getElementById('statusLog');
-        let akunAktif = null;
-        let counterPermintaan = 0;
+        let walletAddress = null;
+        let spamInterval = null;
+        let txCount = 0;
 
-        function perbaruiLog(teks) {
-            statusLog.textContent += `\n${teks}`;
-            statusLog.scrollTop = statusLog.scrollHeight;
+        const statusDiv = document.getElementById('status');
+        const connectBtn = document.getElementById('connectBtn');
+        const spamTxBtn = document.getElementById('spamTxBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        function log(message, type = '') {
+            const time = new Date().toLocaleTimeString();
+            const className = type ? `class="${type}"` : '';
+            statusDiv.innerHTML = `[${time}] <span ${className}>${message}</span><br>` + statusDiv.innerHTML;
         }
 
-        // Tahap awal untuk mendapatkan izin alamat dompet
-        async function hubungkanDompet() {
+        // 1. Verifikasi Keberadaan Provider Terinjeksi
+        window.addEventListener('DOMContentLoaded', () => {
+            log("Memeriksa keberadaan window.ethereum...");
+            if (typeof window.ethereum !== 'undefined') {
+                log("EVM Web3 Provider terdeteksi.", "success");
+            } else {
+                log("Provider tidak ditemukan. Pastikan halaman dibuka melalui dApp Browser dompet EVM.", "error");
+            }
+        });
+
+        // 2. Prosedur Autentikasi / Koneksi Akun
+        connectBtn.addEventListener('click', async () => {
+            log("Mengirimkan permintaan eth_requestAccounts...");
+            
             if (typeof window.ethereum === 'undefined') {
-                statusLog.textContent = "[!] Provider window.ethereum tidak terdeteksi di lingkungan ini.";
+                log("Kesalahan: window.ethereum tidak terdefinisi.", "error");
                 return;
             }
+
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                akunAktif = accounts[0];
-                statusLog.textContent = `[*] Terhubung ke akun:\n${akunAktif}\n\n[Siap] Gunakan tombol 2 atau klik tombol 3 berkali-kali untuk menguji antrean.`;
+                if (accounts && accounts.length > 0) {
+                    walletAddress = accounts[0];
+                    log(`Koneksi berhasil terjalin. Alamat: ${walletAddress}`, "success");
+                    spamTxBtn.disabled = false;
+                } else {
+                    log("Dompet mengembalikan array akun kosong.", "error");
+                }
             } catch (err) {
-                statusLog.textContent = `[!] Kegagalan koneksi akun: ${err.message}`;
+                log(`Permintaan koneksi ditolak: ${err.message}`, "error");
             }
-        }
+        });
 
-        // Metode A: Menggunakan fungsi penunda (setTimeout) agar tidak tertahan di event loop browser
-        async function pemicuAntreanBerjeda() {
-            if (!akunAktif) {
-                alert("Silakan hubungkan dompet Anda terlebih dahulu.");
-                return;
-            }
-            
-            perbaruiLog("\n--- Memulai Tes Otomatis (Jeda Mikro 100ms) ---");
-            
-            for (let i = 1; i <= 3; i++) {
-                setTimeout(() => {
-                    counterPermintaan++;
-                    const idSaatIni = counterPermintaan;
-                    perbaruiLog(`[>] [ID #${idSaatIni}] Meneruskan ke runtime dompet...`);
-                    
-                    window.ethereum.request({
-                        method: 'personal_sign',
-                        params: [`Verifikasi Antrean Otomatis ID: ${idSaatIni}`, akunAktif]
-                    })
-                    .then((skrip) => {
-                        perbaruiLog(`[+] [ID #${idSaatIni}] Respons received: DISETUJUI`);
-                    })
-                    .catch((err) => {
-                        perbaruiLog(`[-] [ID #${idSaatIni}] Respons received: DITOLAK/GAGAL (${err.message})`);
+        // 3. Prosedur Pengujian Penanganan Struktur Data (Stress-Test Loop)
+        spamTxBtn.addEventListener('click', () => {
+            log("Memulai pengiriman urutan data malformasi ke RPC...", "error");
+            spamTxBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            // Interval diatur ke 1000ms (1 detik) untuk mengevaluasi ketahanan manajemen state antarmuka
+            spamInterval = setInterval(async () => {
+                txCount++;
+                log(`Mengirimkan Payload Variasi Struktur #${txCount}...`);
+
+                try {
+                    /*
+                      Penyusunan objek parameter yang sengaja dirusak (Malformed Argument).
+                      Menghapus parameter wajib atau memberikan tipe data primitif yang tidak valid
+                      sering kali memicu kegagalan inferensi tipe pada parsing native kode internal dompet.
+                    */
+                    const malformedParams = {
+                        from: walletAddress,
+                        to: null,              // Pengisian nilai penunjuk kosong (Null Pointer Target)
+                        value: undefined,      // Parameter esensial tidak terdefinisi
+                        gas: "0x5208",         // Batasan gas standar
+                        data: []               // Mengirim tipe Array kosong untuk parameter string data ekspektasi
+                    };
+
+                    // Eksekusi pemanggilan metode standar industri
+                    await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [malformedParams]
                     });
-                }, i * 100); // Jeda 100ms di antara setiap permintaan
+
+                    log(`Respon #${txCount}: Diterima oleh dompet.`);
+                } catch (err) {
+                    /* Jika mekanisme pengaman (try-catch) pada dompet bekerja dengan baik,
+                       kesalahan arsitektur parameter akan ditangkap di sini tanpa merusak stabilitas aplikasi.
+                    */
+                    log(`Respon #${txCount} ditolak aman: ${err.message}`);
+                }
+            }, 1000); 
+        });
+
+        // 4. Terminasi Pengujian
+        stopBtn.addEventListener('click', () => {
+            if (spamInterval) {
+                clearInterval(spamInterval);
+                log("Urutan stress-test dihentikan oleh pengguna.");
+                spamTxBtn.disabled = false;
+                stopBtn.disabled = true;
             }
-        }
-
-        // Metode B: Pemicu tunggal untuk pengujian kecepatan klik manual secara acak
-        async function kirimPermintaanTunggal() {
-            if (!akunAktif) {
-                alert("Silakan hubungkan dompet Anda terlebih dahulu.");
-                return;
-            }
-
-            counterPermintaan++;
-            const idSaatIni = counterPermintaan;
-            perbaruiLog(`[>] [Manual #${idSaatIni}] Meneruskan permintaan signature manual...`);
-
-            window.ethereum.request({
-                method: 'personal_sign',
-                params: [`Verifikasi Manual ID: ${idSaatIni}`, akunAktif]
-            })
-            .then((skrip) => {
-                perbaruiLog(`[+] [Manual #${idSaatIni}] Respons received: DISETUJUI`);
-            })
-            .catch((err) => {
-                perbaruiLog(`[-] [Manual #${idSaatIni}] Respons received: DITOLAK/GAGAL (${err.message})`);
-            });
-        }
+        });
     </script>
-
 </body>
 </html>
