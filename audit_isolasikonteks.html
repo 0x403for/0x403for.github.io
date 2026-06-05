@@ -3,77 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uji Validasi Manajemen Antrean Web3</title>
+    <title>Instrumen Analisis Antrean Prosedural Web3</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.5; }
-        .box { border: 1px solid #ccc; padding: 15px; margin-top: 15px; background: #f9f9f9; border-radius: 6px; }
-        .log-area { background: #1e1e1e; color: #00ff00; padding: 15px; font-family: monospace; white-space: pre-wrap; border-radius: 4px; max-height: 250px; overflow-y: auto; }
-        button { padding: 10px 15px; font-size: 1em; cursor: pointer; margin-right: 10px; margin-bottom: 10px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; line-height: 1.6; color: #333; }
+        .card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
+        .log-box { background: #212121; color: #eeff41; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; overflow-x: auto; max-height: 300px; }
+        .btn { display: inline-block; padding: 12px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px; margin-bottom: 10px; text-decoration: none; }
+        .btn-primary { background-color: #007aff; color: white; }
+        .btn-secondary { background-color: #4cd964; color: white; }
+        .btn-danger { background-color: #ff3b30; color: white; }
     </style>
 </head>
 <body>
 
-    <h2>Analisis Manajemen Antrean Dialog UI</h2>
-    <p>Halaman ini mengirimkan beberapa permintaan interaksi berurutan untuk memverifikasi mekanisme pembatasan simultan pada dompet.</p>
+    <h3>Analisis Manajemen Antrean Dialog UI (V2)</h3>
+    <p>Halaman ini menyediakan instrumen manual dan semi-otomatis untuk memverifikasi perilaku isolasi antrean permintaan pada dApp browser.</p>
 
-    <button onclick="hubungkanDompet()">1. Hubungkan Dompet Dulu</button>
-    <button onclick="kirimPermintaanBerurutan()">2. Jalankan Uji Antrean (3x Request)</button>
+    <div class="card">
+        <button class="btn btn-primary" onclick="hubungkanDompet()">1. Hubungkan Dompet</button>
+        <button class="btn btn-secondary" onclick="pemicuAntreanBerjeda()">2. Tes Otomatis (Jeda Mikro)</button>
+        <button class="btn btn-danger" onclick="kirimPermintaanTunggal()">3. Kirim Manual (Klik Cepat)</button>
+    </div>
 
-    <div class="box">
+    <div class="card">
         <h4>Status Log Aktivitas:</h4>
-        <div id="logKonsol" class="log-area">Menunggu interaksi pengguna...</div>
+        <div id="statusLog" class="log-box">Menunggu inisialisasi interaksi...</div>
     </div>
 
     <script>
-        const logKonsol = document.getElementById('logKonsol');
+        const statusLog = document.getElementById('statusLog');
         let akunAktif = null;
+        let counterPermintaan = 0;
 
-        function cetakLog(teks) {
-            logKonsol.textContent += `\n${teks}`;
-            logKonsol.scrollTop = logKonsol.scrollHeight;
+        function perbaruiLog(teks) {
+            statusLog.textContent += `\n${teks}`;
+            statusLog.scrollTop = statusLog.scrollHeight;
         }
 
-        // Memastikan dompet terhubung untuk mendapatkan alamat sebelum meminta signature
+        // Tahap awal untuk mendapatkan izin alamat dompet
         async function hubungkanDompet() {
             if (typeof window.ethereum === 'undefined') {
-                logKonsol.textContent = "[!] Provider Web3 tidak terdeteksi. Buka halaman ini di dApp browser.";
+                statusLog.textContent = "[!] Provider window.ethereum tidak terdeteksi di lingkungan ini.";
                 return;
             }
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 akunAktif = accounts[0];
-                logKonsol.textContent = `[*] Terhubung ke akun: ${akunAktif}`;
+                statusLog.textContent = `[*] Terhubung ke akun:\n${akunAktif}\n\n[Siap] Gunakan tombol 2 atau klik tombol 3 berkali-kali untuk menguji antrean.`;
             } catch (err) {
-                logKonsol.textContent = `[!] Gagal terhubung: ${err.message}`;
+                statusLog.textContent = `[!] Kegagalan koneksi akun: ${err.message}`;
             }
         }
 
-        // Simulasi pengiriman 3 permintaan berturut-turut untuk melihat penanganan antrean
-        async function kirimPermintaanBerurutan() {
+        // Metode A: Menggunakan fungsi penunda (setTimeout) agar tidak tertahan di event loop browser
+        async function pemicuAntreanBerjeda() {
             if (!akunAktif) {
-                alert("Silakan klik tombol 'Hubungkan Dompet' terlebih dahulu.");
+                alert("Silakan hubungkan dompet Anda terlebih dahulu.");
+                return;
+            }
+            
+            perbaruiLog("\n--- Memulai Tes Otomatis (Jeda Mikro 100ms) ---");
+            
+            for (let i = 1; i <= 3; i++) {
+                setTimeout(() => {
+                    counterPermintaan++;
+                    const idSaatIni = counterPermintaan;
+                    perbaruiLog(`[>] [ID #${idSaatIni}] Meneruskan ke runtime dompet...`);
+                    
+                    window.ethereum.request({
+                        method: 'personal_sign',
+                        params: [`Verifikasi Antrean Otomatis ID: ${idSaatIni}`, akunAktif]
+                    })
+                    .then((skrip) => {
+                        perbaruiLog(`[+] [ID #${idSaatIni}] Respons received: DISETUJUI`);
+                    })
+                    .catch((err) => {
+                        perbaruiLog(`[-] [ID #${idSaatIni}] Respons received: DITOLAK/GAGAL (${err.message})`);
+                    });
+                }, i * 100); // Jeda 100ms di antara setiap permintaan
+            }
+        }
+
+        // Metode B: Pemicu tunggal untuk pengujian kecepatan klik manual secara acak
+        async function kirimPermintaanTunggal() {
+            if (!akunAktif) {
+                alert("Silakan hubungkan dompet Anda terlebih dahulu.");
                 return;
             }
 
-            cetakLog("\n--- Memulai Pengujian Antrean Prosedural ---");
-            const pesanDasar = "Verifikasi Antrean Pesan ID: ";
+            counterPermintaan++;
+            const idSaatIni = counterPermintaan;
+            perbaruiLog(`[>] [Manual #${idSaatIni}] Meneruskan permintaan signature manual...`);
 
-            // Menjalankan 3 panggilan asinkron secara bersamaan (simultan)
-            for (let i = 1; i <= 3; i++) {
-                cetakLog(`[>] Mengirimkan Permintaan #${i} ke runtime dompet...`);
-                
-                window.ethereum.request({
-                    method: 'personal_sign',
-                    params: [`${pesanDasar}${i}`, akunAktif]
-                })
-                .then((result) => {
-                    cetakLog(`[+] Permintaan #${i} DISETUJUI oleh pengguna.`);
-                })
-                .catch((err) => {
-                    // Celah keamanan TIDAK ditemukan jika permintaan berikutnya otomatis ditolak dengan error (misal: RPC Busy atau User Rejected)
-                    cetakLog(`[-] Permintaan #${i} SELESAI/DITOLAK dengan respons: ${err.message} (Code: ${err.code})`);
-                });
-            }
+            window.ethereum.request({
+                method: 'personal_sign',
+                params: [`Verifikasi Manual ID: ${idSaatIni}`, akunAktif]
+            })
+            .then((skrip) => {
+                perbaruiLog(`[+] [Manual #${idSaatIni}] Respons received: DISETUJUI`);
+            })
+            .catch((err) => {
+                perbaruiLog(`[-] [Manual #${idSaatIni}] Respons received: DITOLAK/GAGAL (${err.message})`);
+            });
         }
     </script>
 
