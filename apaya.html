@@ -3,121 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FX-DOS Browser for iOS</title>
+    <title>MS-DOS INTERNAL CRASH TEST v3.2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
 
         body {
             background-color: #000000;
-            color: #ff9900; /* Warna oranye khas Firefox versi DOS */
-            font-family: 'Courier Prime', 'Courier New', monospace;
+            color: #ff3333; /* Warna merah peringatan */
+            font-family: 'Courier Prime', monospace;
             padding: 20px;
-            margin: 0;
-            user-select: none;
         }
 
         .dos-container {
-            border: 2px solid #ff9900;
+            border: 2px solid #ff3333;
             padding: 20px;
-            max-width: 800px;
+            max-width: 700px;
             margin: 0 auto;
-            box-shadow: 0 0 15px rgba(255, 153, 0, 0.3);
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.4);
         }
 
         .header {
-            border-bottom: 2px double #ff9900;
+            border-bottom: 2px double #ff3333;
             padding-bottom: 10px;
             margin-bottom: 20px;
             text-align: center;
+            font-weight: bold;
         }
 
-        .url-bar {
-            border: 1px solid #ff9900;
-            padding: 5px 10px;
-            margin-bottom: 20px;
-            background-color: #110800;
-        }
-
-        .content {
-            min-height: 200px;
-            line-height: 1.6;
-        }
-
-        /* Tombol DOS */
         .dos-btn {
-            background-color: #ff9900;
+            background-color: #ff3333;
             color: #000000;
             border: none;
-            padding: 8px 20px;
-            font-family: 'Courier Prime', 'Courier New', monospace;
+            padding: 10px 20px;
+            font-family: monospace;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 4px 4px 0px #552200;
-            display: inline-block;
-            margin-top: 15px;
+            box-shadow: 4px 4px 0px #550000;
         }
 
-        .dos-btn:hover {
-            background-color: #cc6600;
-            box-shadow: 2px 2px 0px #331100;
+        .dos-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #000;
         }
 
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        .footer {
-            margin-top: 30px;
-            border-top: 1px solid #ff9900;
-            padding-top: 10px;
-            font-size: 14px;
-        }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
 
 <div class="dos-container">
     <div class="header">
-        <div>MOZILLA FIREFOX(R) FOR IOS - DOS EDITION</div>
-        <div>(C) Mozilla Foundation 1998-2026.</div>
-        <div style="margin-top: 5px; font-weight: bold;">--- SYSTEM CRASH TESTING UTILITY ---</div>
+        WARNING: HARDWARE & BROWSER STRESS TEST<br>
+        TARGET: WEBKIT / FIREFOX FOR IOS
     </div>
 
-    <div class="url-bar">
-        SRC: about:crash-test-ios
-    </div>
+    <p>C:\CRASH> PERINGATAN! Menekan tombol di bawah ini akan memaksa browser mengalokasikan memori ekstrem secara instan.</p>
+    <p>Ini akan memicu mekanisme kegagalan WebKit (OOM Crash / Tab Reload Loop).</p>
+    <br>
+    
+    <button class="dos-btn" onclick="executeRealCrash()">[ FORCE CRASH NOW ]</button>
 
-    <div class="content">
-        <p>C:\FIREFOX> load web_exploit.exe</p>
-        <p>PERINGATAN: Tombol di bawah ini dirancang untuk menguji stabilitas RAM pada Firefox iOS dengan memicu kegagalan memori (Force Close).</p>
-        <p>Pastikan Anda tidak sedang membuka tab penting lain.</p>
-        <br>
-        
-        <button class="dos-btn" onclick="paksaBerhenti()">[ CRASH FIREFOX NOW ]</button>
-    </div>
-
-    <div class="footer">
-        <span>Status: READY TO CRASH</span>
-        <br><br>
-        <span>C:\FIREFOX> <span class="blink">_</span></span>
-    </div>
+    <p style="margin-top: 30px;">C:\CRASH> <span class="blink">_</span></p>
 </div>
 
 <script>
-    function paksaBerhenti() {
-        alert("Memulai simulasi Force Close... Firefox akan membeku lalu keluar.");
+    function executeRealCrash() {
+        console.log("Memicu kegagalan sistem...");
         
-        // Metode 1: Infinite History Push State (Sangat ampuh membuat iOS WebKit kehabisan memori)
-        var totalMemori = "";
-        while (true) {
-            // Metode 2: String concatenation tanpa batas untuk memakan sisa RAM perangkat dengan cepat
-            totalMemori += new Array(1000000).join("🔥FIREFOX-CRASH🔥");
-            window.history.pushState(null, null, window.location.href + totalMemori.length);
+        // Elemen kontainer tersembunyi untuk menampung sampah memori DOM
+        const dump = document.createElement('div');
+        document.body.appendChild(dump);
+
+        // 1. Rekursi Tumpukan Maksimal (Stack Overflow) kombinasi Alokasi Objek Besar
+        function pembekuMemori() {
+            // Membuat string sampah berukuran besar berulang kali di dalam memori
+            let leak = new Array(5000000).join("CRASH_TEST_WEBKIT_MEM_FATAL_ERROR_");
+            
+            // Menyisipkan elemen HTML dalam jumlah jutaan secara paksa untuk melumpuhkan rendering engine
+            let p = document.createElement('p');
+            p.innerText = leak;
+            dump.appendChild(p);
+            
+            // Rekursi tanpa henti
+            pembekuMemori();
+        }
+
+        // 2. Loop tambahan eksternal untuk memastikan tidak ada celah bagi browser untuk pulih (Recover)
+        try {
+            pembekuMemori();
+        } catch(e) {
+            // Jika tertangkap oleh pelindung browser, hantam lagi dengan duplikasi baris riwayat browser
+            for (let i = 0; i < 100000; i++) {
+                window.history.pushState({}, '', i);
+            }
+            // Pemicu terakhir jika masih bertahan: Panggil ulang fungsi utama secara rekursif
+            executeRealCrash();
         }
     }
 </script>
