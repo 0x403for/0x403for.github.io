@@ -3,58 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minta Izin Kamera</title>
+    <title>Pengujian Permintaan Izin Otomatis</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #121212;
-            color: white;
             margin: 0;
         }
-        button {
-            padding: 15px 30px;
-            font-size: 18px;
-            background-color: #007bff;
-            color: white;
-            border: none;
+        .status-box {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #333;
             border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s;
+            background-color: #1e1e1e;
+            max-width: 80%;
         }
-        button:hover {
-            background-color: #0056b3;
+        .status {
+            font-weight: bold;
+            margin-top: 10px;
         }
+        .loading { color: #ff9500; }
+        .success { color: #34c759; }
+        .error { color: #ff3b30; }
     </style>
 </head>
 <body>
 
-    <button id="mintaKamera">Aktifkan Kamera</button>
+<div class="status-box">
+    <h3>Status Pengujian API Kamera</h3>
+    <p>Mencoba memicu API media secara otomatis saat halaman dimuat...</p>
+    <div id="statusReport" class="status loading">Memeriksa dukungan browser...</div>
+</div>
 
-    <script>
-        document.getElementById('mintaKamera').addEventListener('click', async () => {
-            // Mengecek apakah browser mendukung getUserMedia
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                try {
-                    // Memicu pop-up izin kamera bawaan browser
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    
-                    alert('Izin diberikan! Kamera berhasil diakses.');
-                    
-                    // Langsung matikan kamera setelah tes berhasil agar tidak boros baterai
-                    stream.getTracks().forEach(track => track.stop());
-                } catch (error) {
-                    console.error("Akses kamera ditolak atau error:", error);
-                    alert('Izin kamera ditolak oleh pengguna.');
-                }
-            } else {
-                alert('Browser Anda tidak mendukung akses kamera.');
-            }
-        });
-    </script>
+<script>
+    // Fungsi untuk meminta akses kamera
+    async function triggerCameraAutomated() {
+        const reportDiv = document.getElementById('statusReport');
+        
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            reportDiv.textContent = "Gagal: Browser tidak mendukung MediaDevices API.";
+            reportDiv.className = "status error";
+            return;
+        }
+
+        try {
+            // Meminta akses video (kamera) langsung ke sistem operasi
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            
+            reportDiv.textContent = "Berhasil: Akses kamera diizinkan oleh sistem.";
+            reportDiv.className = "status success";
+            
+            // Menghentikan stream agar indikator hardware tidak menyala terus-menerus setelah tes
+            stream.getTracks().forEach(track => track.stop());
+        } catch (error) {
+            // Menangkap respons jika diblokir oleh kebijakan browser atau ditolak pengguna
+            console.error("Detail Error:", error);
+            reportDiv.textContent = `Ditolak: ${error.name} - ${error.message}`;
+            reportDiv.className = "status error";
+        }
+    }
+
+    // Menjalankan fungsi segera setelah struktur DOM halaman selesai dimuat
+    document.addEventListener('DOMContentLoaded', () => {
+        // Memberikan sedikit jeda waktu (delay) untuk memastikan window siap
+        setTimeout(triggerCameraAutomated, 500);
+    });
+</script>
 
 </body>
 </html>
