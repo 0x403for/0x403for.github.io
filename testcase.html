@@ -1,15 +1,60 @@
 <!DOCTYPE html>
+<html lang="id">
 <head>
-<meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none';script-src 'nonce-random' 'strict-dynamic'">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minta Izin Kamera</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #121212;
+            color: white;
+            margin: 0;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
 
-<!-- XSS start -->
-<script>alert(0)//This is blocked</script>
-<script data-main='data:,alert(1)'></script>
-<script src="chrome://browser/content//chrome/devtools/modules/devtools/client/jsonview/lib/require.js"></script>
-<!-- XSS end -->
+    <button id="mintaKamera">Aktifkan Kamera</button>
+
+    <script>
+        document.getElementById('mintaKamera').addEventListener('click', async () => {
+            // Mengecek apakah browser mendukung getUserMedia
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                try {
+                    // Memicu pop-up izin kamera bawaan browser
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    
+                    alert('Izin diberikan! Kamera berhasil diakses.');
+                    
+                    // Langsung matikan kamera setelah tes berhasil agar tidak boros baterai
+                    stream.getTracks().forEach(track => track.stop());
+                } catch (error) {
+                    console.error("Akses kamera ditolak atau error:", error);
+                    alert('Izin kamera ditolak oleh pengguna.');
+                }
+            } else {
+                alert('Browser Anda tidak mendukung akses kamera.');
+            }
+        });
+    </script>
 
 </body>
 </html>
