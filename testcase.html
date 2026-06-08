@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pengujian Validasi API Media</title>
+    <title>Pengujian Multi-Tab & Objek WebKit Kamera</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #1c1c1e;
+            background-color: #121212;
             color: #ffffff;
             display: flex;
             justify-content: center;
@@ -15,100 +15,120 @@
             height: 100vh;
             margin: 0;
         }
-        .test-container {
+        .container {
             text-align: center;
-            padding: 30px;
-            background-color: #2c2c2e;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            padding: 25px;
+            background-color: #1e1e1e;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
             max-width: 400px;
-            width: 100%;
+            width: 90%;
         }
         button {
-            background-color: #007aff;
+            background-color: #34c759; /* Hijau menandakan kontrol aktif */
             color: #ffffff;
             border: none;
-            padding: 14px 28px;
+            padding: 15px 30px;
             font-size: 16px;
             font-weight: 600;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             width: 100%;
+            margin-bottom: 15px;
             transition: background-color 0.2s;
         }
-        button:active {
-            background-color: #0056b3;
+        .btn-stop {
+            background-color: #ff3b30; /* Merah untuk mematikan */
         }
         .log-box {
-            margin-top: 20px;
+            margin-top: 15px;
             padding: 12px;
-            background-color: #121212;
-            border-radius: 6px;
+            background-color: #000000;
+            border-radius: 8px;
             font-family: monospace;
-            font-size: 13px;
+            font-size: 12px;
             text-align: left;
-            max-height: 150px;
+            max-height: 180px;
             overflow-y: auto;
             white-space: pre-wrap;
         }
-        .info { color: #0a84ff; }
-        .success { color: #30d158; }
-        .error { color: #ff453a; }
+        .status-active { color: #30d158; }
+        .status-inactive { color: #ff453a; }
+        .status-info { color: #0a84ff; }
     </style>
 </head>
 <body>
 
-<div class="test-container">
-    <h3>Audit Eksplisit API Kamera</h3>
-    <p style="font-size: 14px; color: #aeaeb2;">Gunakan tombol di bawah untuk memicu dan menganalisis respons balik dari subsistem media browser.</p>
+<div class="container">
+    <h3>Uji Sesi Kamera Multi-Tab</h3>
+    <p style="font-size: 13px; color: #8e8e93;">Gunakan kode ini untuk menguji persistensi status izin antar-tab pada domain yang sama.</p>
     
-    <button id="startAudit">Picu Permintaan Media</button>
+    <button id="btnMulai">Aktifkan Kamera Depan</button>
+    <button id="btnMatikan" class="btn-stop">Matikan Kamera Sekarang</button>
     
-    <div id="consoleLog" class="log-box"><span class="info">[System] Siap untuk pengujian...</span></div>
+    <div id="logKonsol" class="log-box">
+        <div class="status-info">[Sistem] Menunggu instruksi...</div>
+    </div>
 </div>
 
 <script>
-    const logBox = document.getElementById('consoleLog');
+    const logKonsol = document.getElementById('logKonsol');
+    let localStream = null;
 
-    function appendLog(text, type) {
-        const timestamp = new Date().toLocaleTimeString();
-        const entry = document.createElement('div');
-        entry.className = type;
-        entry.textContent = `[${timestamp}] ${text}`;
-        logBox.appendChild(entry);
-        logBox.scrollTop = logBox.scrollHeight;
+    function cetakLog(teks, tipe) {
+        const waktu = new Date().toLocaleTimeString();
+        const elemen = document.createElement('div');
+        elemen.className = tipe;
+        elemen.textContent = `[${waktu}] ${teks}`;
+        logKonsol.appendChild(elemen);
+        logKonsol.scrollTop = logKonsol.scrollHeight;
     }
 
-    document.getElementById('startAudit').addEventListener('click', async () => {
-        appendLog("Memulai pemanggilan navigator.mediaDevices.getUserMedia...", "info");
+    // Fungsi untuk mengaktifkan kamera depan (Target: Objek WebKit)
+    document.getElementById('btnMulai').addEventListener('click', async () => {
+        cetakLog("Meminta akses objek WebKit media...", "status-info");
 
-        // Memastikan kompatibilitas API
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            appendLog("Gagal: API tidak didukung atau lingkungan tidak aman (Non-HTTPS).", "error");
+            cetakLog("Error: API Media tidak didukung di lingkungan ini.", "status-inactive");
             return;
         }
 
+        // Konfigurasi constraints objek kamera untuk mengunci WebKit pada kamera depan
+        const constraints = {
+            audio: false, // Fokus hanya pada video/kamera
+            video: {
+                facingMode: "user", // Memaksa WebKit memilih kamera depan (Kamera Selfie)
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        };
+
         try {
-            // Meminta akses dengan parameter standar
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: {
-                    facingMode: "user"
-                } 
-            });
+            // Memicu aliran media
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            cetakLog("Sukses: Kamera Depan aktif.", "status-active");
+            cetakLog(`Stream ID: ${localStream.id}`, "status-active");
+            
+            // Catatan: track.stop() TIDAK dipanggil di sini agar kamera tetap menyala 
+            // untuk memantau indikator visual di bilah alamat browser.
 
-            appendLog("Sukses: Objek MediaStream berhasil diperoleh.", "success");
-            appendLog(`ID Aliran: ${stream.id}`, "success");
+        } catch (err) {
+            cetakLog(`Gagal: ${err.name} - ${err.message}`, "status-inactive");
+        }
+    });
 
-            // Menghentikan trek segera setelah konfirmasi sukses untuk menjaga privasi
-            stream.getTracks().forEach(track => {
-                appendLog(`Menghentikan trek: ${track.label}`, "info");
+    // Fungsi untuk mematikan kamera secara manual pada tab saat ini
+    document.getElementById('btnMatikan').addEventListener('click', () => {
+        if (localStream) {
+            localStream.getTracks().forEach(track => {
                 track.stop();
+                cetakLog(`Trek dihentikan: ${track.label}`, "status-info");
             });
-
-        } catch (objError) {
-            // Menganalisis jenis pengecualian (exception) yang dilemparkan oleh browser
-            appendLog(`Error Terdeteksi: ${objError.name}`, "error");
-            appendLog(`Pesan: ${objError.message}`, "error");
+            localStream = null;
+            cetakLog("Kamera pada tab ini berhasil dimatikan.", "status-inactive");
+        } else {
+            cetakLog("Tidak ada kamera yang aktif di tab ini.", "status-info");
         }
     });
 </script>
