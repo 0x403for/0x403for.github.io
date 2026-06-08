@@ -1,13 +1,1 @@
-<font id="font1">
-
-<script>
-    function run() {
-        document.designMode = 'on';
-        font1.size = null;
-        document.execCommand("selectAll", false);
-        document.execCommand("createLink", false, "test1");
-        document.execCommand("fontSize", false, "1");
-    }
-
-run();
-</script>
+<iframe srcdoc="<a href='tel:1'>TEST</a>" sandbox></iframe>
