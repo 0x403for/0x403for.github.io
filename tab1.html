@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoC 1: Multi-Tab State Audit</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        .box { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; }
+        button { background: #007aff; color: #fff; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; margin-bottom: 10px; }
+        .btn-danger { background: #ff3b30; }
+        .console { background: #000; padding: 10px; text-align: left; font-family: monospace; font-size: 12px; border-radius: 6px; max-height: 150px; overflow-y: auto; }
+        .green { color: #30d158; } .red { color: #ff453a; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h3>Uji Sesi Lintas Tab (Kamera Depan)</h3>
+    <button id="startCam">1. Panggil Kamera Depan</button>
+    <button id="stopCam" class="btn-danger">2. Hentikan Kamera</button>
+    <div id="log" class="console">Waiting instruction...</div>
+</div>
+<script>
+    let streamRef = null;
+    const logDiv = document.getElementById('log');
+    
+    function writeLog(msg, clr) {
+        logDiv.innerHTML += `<div class="${clr}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+    }
+
+    document.getElementById('startCam').addEventListener('click', async () => {
+        writeLog("Memanggil getUserMedia...", "");
+        try {
+            streamRef = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user" } 
+            });
+            writeLog(`Sukses! ID: ${streamRef.id}`, "green");
+        } catch (e) {
+            writeLog(`Gagal: ${e.name}`, "red");
+        }
+    });
+
+    document.getElementById('stopCam').addEventListener('click', () => {
+        if(streamRef) {
+            streamRef.getTracks().forEach(t => t.stop());
+            writeLog("Trek dihentikan di tab ini.", "red");
+            streamRef = null;
+        }
+    });
+</script>
+</body>
+</html>
