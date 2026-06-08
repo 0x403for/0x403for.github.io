@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pengujian Permintaan Izin Otomatis</title>
+    <title>Sistem Pengujian Validasi API Media</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
-            background-color: #121212;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #1c1c1e;
             color: #ffffff;
             display: flex;
             justify-content: center;
@@ -15,63 +15,101 @@
             height: 100vh;
             margin: 0;
         }
-        .status-box {
+        .test-container {
             text-align: center;
-            padding: 20px;
-            border: 1px solid #333;
+            padding: 30px;
+            background-color: #2c2c2e;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+        button {
+            background-color: #007aff;
+            color: #ffffff;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 600;
             border-radius: 8px;
-            background-color: #1e1e1e;
-            max-width: 80%;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
         }
-        .status {
-            font-weight: bold;
-            margin-top: 10px;
+        button:active {
+            background-color: #0056b3;
         }
-        .loading { color: #ff9500; }
-        .success { color: #34c759; }
-        .error { color: #ff3b30; }
+        .log-box {
+            margin-top: 20px;
+            padding: 12px;
+            background-color: #121212;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            text-align: left;
+            max-height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .info { color: #0a84ff; }
+        .success { color: #30d158; }
+        .error { color: #ff453a; }
     </style>
 </head>
 <body>
 
-<div class="status-box">
-    <h3>Status Pengujian API Kamera</h3>
-    <p>Mencoba memicu API media secara otomatis saat halaman dimuat...</p>
-    <div id="statusReport" class="status loading">Memeriksa dukungan browser...</div>
+<div class="test-container">
+    <h3>Audit Eksplisit API Kamera</h3>
+    <p style="font-size: 14px; color: #aeaeb2;">Gunakan tombol di bawah untuk memicu dan menganalisis respons balik dari subsistem media browser.</p>
+    
+    <button id="startAudit">Picu Permintaan Media</button>
+    
+    <div id="consoleLog" class="log-box"><span class="info">[System] Siap untuk pengujian...</span></div>
 </div>
 
 <script>
-    // Fungsi untuk meminta akses kamera
-    async function triggerCameraAutomated() {
-        const reportDiv = document.getElementById('statusReport');
-        
+    const logBox = document.getElementById('consoleLog');
+
+    function appendLog(text, type) {
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = type;
+        entry.textContent = `[${timestamp}] ${text}`;
+        logBox.appendChild(entry);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    document.getElementById('startAudit').addEventListener('click', async () => {
+        appendLog("Memulai pemanggilan navigator.mediaDevices.getUserMedia...", "info");
+
+        // Memastikan kompatibilitas API
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            reportDiv.textContent = "Gagal: Browser tidak mendukung MediaDevices API.";
-            reportDiv.className = "status error";
+            appendLog("Gagal: API tidak didukung atau lingkungan tidak aman (Non-HTTPS).", "error");
             return;
         }
 
         try {
-            // Meminta akses video (kamera) langsung ke sistem operasi
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            
-            reportDiv.textContent = "Berhasil: Akses kamera diizinkan oleh sistem.";
-            reportDiv.className = "status success";
-            
-            // Menghentikan stream agar indikator hardware tidak menyala terus-menerus setelah tes
-            stream.getTracks().forEach(track => track.stop());
-        } catch (error) {
-            // Menangkap respons jika diblokir oleh kebijakan browser atau ditolak pengguna
-            console.error("Detail Error:", error);
-            reportDiv.textContent = `Ditolak: ${error.name} - ${error.message}`;
-            reportDiv.className = "status error";
-        }
-    }
+            // Meminta akses dengan parameter standar
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: {
+                    facingMode: "user"
+                } 
+            });
 
-    // Menjalankan fungsi segera setelah struktur DOM halaman selesai dimuat
-    document.addEventListener('DOMContentLoaded', () => {
-        // Memberikan sedikit jeda waktu (delay) untuk memastikan window siap
-        setTimeout(triggerCameraAutomated, 500);
+            appendLog("Sukses: Objek MediaStream berhasil diperoleh.", "success");
+            appendLog(`ID Aliran: ${stream.id}`, "success");
+
+            // Menghentikan trek segera setelah konfirmasi sukses untuk menjaga privasi
+            stream.getTracks().forEach(track => {
+                appendLog(`Menghentikan trek: ${track.label}`, "info");
+                track.stop();
+            });
+
+        } catch (objError) {
+            // Menganalisis jenis pengecualian (exception) yang dilemparkan oleh browser
+            appendLog(`Error Terdeteksi: ${objError.name}`, "error");
+            appendLog(`Pesan: ${objError.message}`, "error");
+        }
     });
 </script>
 
