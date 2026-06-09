@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+</head>
+
+<body>
+
+    <form action="http://www.mozilla.org:800" target="aa" method="post" onsubmit="setTimeout('p()',1000);">
+        
+<input type="submit">
+
+</form>
+
+<script>
+
+function p() {
+
+  var t = window.open('','aa');
+
+    t.document.body.innerHTML = '<h1>Fake Mozila Homepage!</h1>';
+
+  t.stop();
+
+}
+
+</script>
+
+</body>
+
+</html>
