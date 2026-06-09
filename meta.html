@@ -15,8 +15,10 @@
     function p() {
         var t = window.open('','aa');
         
-        // Menambahkan gambar menggunakan tag <img> dengan source link langsung dari ImgBB
-        t.document.body.innerHTML = '<h1>Fake Facebook Homepage!</h1><br><img src="https://i.ibb.co.co/2YFLVWHG/image.png" alt="Facebook Logo" style="width:300px;">';
+        // Ganti teks di bawah ini dengan Direct Link yang sudah Anda salin dari ImgBB
+        var urlGambar = "https://ibb.co.com/TqcYcGgR";
+
+        t.document.body.innerHTML = '<h1>Fake Facebook Homepage!</h1><br><img src="' + urlGambar + '" alt="Facebook Logo" style="width:300px;">';
         
         t.stop();
     }
