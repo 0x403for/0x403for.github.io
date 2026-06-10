@@ -2,203 +2,181 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Camera Permission & Fingerprinting Test</title>
+<title>Advanced Permission Bypass Tests</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #00ff88; padding: 20px; }
-  h1 { font-size: 18px; border-bottom: 1px solid #00ff88; padding-bottom: 8px; margin-bottom: 16px; }
-  h2 { font-size: 14px; margin: 16px 0 8px; color: #ffcc00; }
-  .section { background: #111; border: 1px solid #333; padding: 16px; margin-bottom: 16px; border-radius: 4px; }
-  pre { background: #0d0d0d; padding: 10px; font-size: 12px; overflow-x: auto; border-left: 2px solid #00ff88; }
-  .log { color: #ccc; font-size: 12px; margin: 2px 0; }
-  .log.warn { color: #ff9900; }
-  .log.ok { color: #00ff88; }
-  .log.err { color: #ff3355; }
-  .log.info { color: #66ccff; }
-  #log-container { max-height: 300px; overflow-y: auto; }
-  iframe { width: 100%; height: 200px; border: 2px dashed #ffcc00; margin-top: 10px; background: #050505; }
-  button { background: #222; color: #00ff88; border: 1px solid #00ff88; padding: 6px 14px; cursor: pointer; font-family: inherit; font-size: 12px; margin-right: 6px; margin-top: 8px; }
-  button:hover { background: #00ff88; color: #000; }
-  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; margin-left: 6px; }
-  .badge-green { background: #00ff8822; color: #00ff88; border: 1px solid #00ff88; }
-  .badge-red { background: #ff335522; color: #ff3355; border: 1px solid #ff3355; }
-  .badge-yellow { background: #ffcc0022; color: #ffcc00; border: 1px solid #ffcc00; }
+  body { background: #0a0a0a; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; }
+  .section { background: #111; border: 1px solid #333; padding: 16px; margin-bottom: 16px; }
+  h2 { color: #ffcc00; font-size: 14px; border-bottom: 1px solid #333; padding-bottom: 6px; }
+  pre { font-size: 12px; background: #050505; padding: 8px; }
+  button { background: #222; color: #0f0; border: 1px solid #0f0; padding: 5px 12px; cursor: pointer; margin: 4px; }
+  .warn { color: #ff9900; }
+  .good { color: #0f0; }
+  .bad { color: #ff3355; }
+  iframe { width: 100%; height: 180px; border: 1px dashed #ffcc00; margin-top: 8px; }
 </style>
 </head>
 <body>
 
-<h1>// CAMERA PERMISSION BYPASS &amp; FINGERPRINTING TEST</h1>
-<p style="font-size:11px; color:#888; margin-bottom:16px;">[!] Authorized pentest — controlled environment only</p>
+<h1>// ADVANCED CAMERA RECON &amp; BYPASS PROBES</h1>
+<p style="color:#888; font-size:12px;">[!] Run via HTTPS or localhost for full capability</p>
 
 <div class="section">
-  <h2>▸ Phase 1: enumerateDevices() — Silent Camera Detection</h2>
-  <button onclick="testEnumerateDevices()">▶ Run enumerateDevices()</button>
-  <button onclick="clearLog('log1')">✕ Clear</button>
-  <div id="log1" style="margin-top:8px;"></div>
+  <h2>▸ Test A: Feature Detection via MediaCapabilities</h2>
+  <button onclick="testMediaCapabilities()">▶ Probe MediaCapabilities</button>
+  <pre id="outA"></pre>
 </div>
 
 <div class="section">
-  <h2>▸ Phase 2: MediaDevices Permission Status</h2>
-  <button onclick="testPermissionQuery()">▶ Check permission state</button>
-  <div id="log2" style="margin-top:8px;"></div>
+  <h2>▸ Test B: Constraint Probing (resolution fingerprint)</h2>
+  <button onclick="testConstraintProbing()">▶ Probe without gUM</button>
+  <pre id="outB"></pre>
 </div>
 
 <div class="section">
-  <h2>▸ Phase 3: Iframe Permission Policy Inheritance</h2>
-  <p style="font-size:11px; color:#999; margin-bottom:6px;">Iframe below has <code>allow="camera *; microphone *"</code> — testing policy inheritance from parent</p>
-  <iframe id="testIframe" src="about:blank" allow="camera *; microphone *; display-capture *"></iframe>
-  <button onclick="loadIframeTest()">▶ Load iframe test payload</button>
-  <button onclick="document.getElementById('testIframe').src='about:blank'">✕ Reset iframe</button>
+  <h2>▸ Test C: Cross-origin iframe with different policy</h2>
+  <p style="font-size:12px; color:#999;">Iframe with sandbox="allow-scripts" + allow="camera" — strict isolation</p>
+  <iframe id="strictIframe" sandbox="allow-scripts" allow="camera" srcdoc="<html><body style='background:#050505;color:#0f0;font:12px monospace;padding:8px;'><h3>Strict sandbox iframe</h3><button onclick='tryCam()' style='background:#222;color:#0f0;border:1px solid #0f0;padding:4px 8px;margin:4px;'>try getUserMedia</button><pre id='o'></pre><script>async function tryCam(){const o=document.getElementById('o');try{const s=await navigator.mediaDevices.getUserMedia({video:true});o.textContent='[WARN] Camera obtained in strict sandbox!';s.getTracks().forEach(t=>t.stop())}catch(e){o.textContent='Blocked: '+e.message}}<\/script></body></html>"></iframe>
 </div>
 
 <div class="section">
-  <h2>▸ Phase 4: Direct getUserMedia Probe</h2>
-  <button onclick="testGetUserMedia()">▶ Request camera (gUM)</button>
-  <div id="log4" style="margin-top:8px;"></div>
+  <h2>▸ Test D: Repeated enumerateDevices() after gUM prompt dismissal</h2>
+  <button onclick="testRepeatedEnum()">▶ Loop enumerateDevices (3x)</button>
+  <pre id="outD"></pre>
+</div>
+
+<div class="section">
+  <h2>▸ Test E: User gesture context bypass</h2>
+  <button onclick="testGestureBypass()">▶ Simulate user gesture → gUM</button>
+  <pre id="outE"></pre>
 </div>
 
 <script>
-function log(containerId, msg, type = 'log') {
-  const c = document.getElementById(containerId);
-  if (!c) return;
-  const d = document.createElement('div');
-  d.className = `log ${type}`;
-  d.textContent = `[${new Date().toISOString().slice(11,19)}] ${msg}`;
-  c.appendChild(d);
-  c.scrollTop = c.scrollHeight;
-}
+function $(id) { return document.getElementById(id); }
 
-function clearLog(id) {
-  document.getElementById(id).innerHTML = '';
-}
-
-// ─── Phase 1: enumerateDevices ───
-async function testEnumerateDevices() {
-  const c = 'log1';
-  clearLog(c);
-  log(c, 'Calling navigator.mediaDevices.enumerateDevices()...', 'info');
+// ─── Test A: MediaCapabilities ───
+async function testMediaCapabilities() {
+  const o = $('outA');
+  o.textContent = 'Probing MediaCapabilities for video input...\n';
   try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    log(c, `Found ${devices.length} device(s)`, 'ok');
-    devices.forEach(d => {
-      let label = d.label || '(empty — no permission granted yet)';
-      let info = `  • kind: ${d.kind} | id: ${d.deviceId.slice(0,16)}... | label: ${label}`;
-      if (d.kind === 'videoinput') {
-        if (d.label && !d.label.includes('empty')) {
-          log(c, `${info} ← CAMERA DETECTED (name visible without permission!)`, 'warn');
-        } else {
-          log(c, info, 'log');
-        }
+    // Check if MediaCapabilities supports videoinput
+    if ('mediaCapabilities' in navigator) {
+      o.textContent += 'navigator.mediaCapabilities exists\n';
+      // Some browsers expose encoding info
+      if (navigator.mediaCapabilities.encodingInfo) {
+        o.textContent += 'encodingInfo() available — can probe codec support\n';
       } else {
-        log(c, info, 'log');
+        o.textContent += 'encodingInfo not exposed (expected)\n';
+      }
+    } else {
+      o.textContent += 'MediaCapabilities not available\n';
+    }
+    
+    // Check for other camera indicators
+    if ('mediaDevices' in navigator) {
+      o.textContent += 'mediaDevices.enumerateDevices() signature: ' + 
+        navigator.mediaDevices.enumerateDevices.toString().slice(0, 60) + '...\n';
+    }
+    
+    // Detect videoinput in group info if available
+    o.textContent += '[INFO] No direct camera fingerprint via MediaCapabilities alone\n';
+  } catch(e) {
+    o.textContent += `Error: ${e.message}\n`;
+  }
+}
+
+// ─── Test B: Constraint probing ───
+async function testConstraintProbing() {
+  const o = $('outB');
+  o.textContent = 'Testing constraint-based camera detection...\n';
+  try {
+    // Test 1: check if getSupportedConstraints reveals camera capabilities
+    const supported = navigator.mediaDevices.getSupportedConstraints();
+    const cameraConstraints = ['facingMode', 'deviceId', 'width', 'height', 'frameRate', 
+                              'aspectRatio', 'zoom', 'torch', 'whiteBalanceMode'];
+    o.textContent += 'Camera-related constraints supported:\n';
+    cameraConstraints.forEach(c => {
+      if (c in supported) {
+        o.textContent += `  ✅ ${c}\n`;
+      } else {
+        o.textContent += `  ❌ ${c}\n`;
       }
     });
-    // Check if any camera has label without gUM
-    const cams = devices.filter(d => d.kind === 'videoinput' && d.label && !d.label.includes('empty'));
-    if (cams.length > 0) {
-      log(c, `[!] ${cams.length} camera(s) identified by name WITHOUT explicit gUM call`, 'warn');
-    } else {
-      log(c, 'No camera names leaked — labels are empty (expected without prior permission)', 'ok');
-    }
-  } catch(e) {
-    log(c, `Error: ${e.message}`, 'err');
-  }
-}
-
-// ─── Phase 2: Permission Query ───
-async function testPermissionQuery() {
-  const c = 'log2';
-  clearLog(c);
-  if (!navigator.permissions || !navigator.permissions.query) {
-    log(c, 'Permissions API not available in this browser', 'err');
-    return;
-  }
-  log(c, 'Querying permission state for "camera"...', 'info');
-  try {
-    const status = await navigator.permissions.query({ name: 'camera' });
-    log(c, `Permission state: ${status.state}`, status.state === 'granted' ? 'warn' : 'log');
-    status.onchange = () => log(c, `Permission changed to: ${status.state}`, 'warn');
-    log(c, 'Subscribed to permission change events', 'info');
-  } catch(e) {
-    log(c, `Error querying camera permission: ${e.message}`, 'err');
-  }
-}
-
-// ─── Phase 3: Iframe test ───
-const iframePayload = `
-<!DOCTYPE html>
-<html><body style="background:#0a0a0a; color:#0f0; font-family:monospace; padding:10px; font-size:12px;">
-<h3 style="margin:0 0 8px; color:#ffcc00;">[iframe] Camera Permission Inheritance Test</h3>
-<button onclick="test()" style="background:#222;color:#0f0;border:1px solid #0f0;padding:4px 10px;cursor:pointer;">Test navigator.mediaDevices</button>
-<pre id="out" style="margin-top:6px;font-size:11px;"></pre>
-<script>
-function log(msg, type) {
-  const o = document.getElementById('out');
-  o.textContent += '[' + new Date().toLocaleTimeString() + '] ' + msg + '\\n';
-  o.style.color = type === 'warn' ? '#ff9900' : type === 'err' ? '#ff3355' : '#0f0';
-}
-async function test() {
-  const o = document.getElementById('out');
-  o.textContent = '';
-  try {
-    log('Checking iframe camera permissions...', '');
-    // Test enumerateDevices
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const cams = devices.filter(d => d.kind === 'videoinput' && d.label);
-    log('enumerateDevices() returned ' + devices.length + ' devices', '');
-    if (cams.length > 0) {
-      log('[WARN] Camera labels accessible from iframe: ' + cams.map(c=>c.label).join(', '), 'warn');
-    } else {
-      log('No camera labels leaked in iframe', '');
-    }
-    // Test getUserMedia
+    
+    // Test 2: Build a fake constraint set and see if browser validates
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      log('[WARN] getUserMedia SUCCEEDED inside iframe — permission inherited from parent!', 'warn');
-      stream.getTracks().forEach(t => t.stop());
+      const tempStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 } }
+      });
+      o.textContent += '[WARN] getUserMedia succeeded — permission was already granted?\n';
+      const track = tempStream.getVideoTracks()[0];
+      const caps = track.getCapabilities();
+      o.textContent += `Device capabilities: ${JSON.stringify(caps, null, 2)}\n`;
+      tempStream.getTracks().forEach(t => t.stop());
     } catch(e) {
-      log('getUserMedia denied: ' + e.message, 'err');
+      o.textContent += `gUM blocked as expected: ${e.message.slice(0, 80)}\n`;
     }
   } catch(e) {
-    log('Error: ' + e.message, 'err');
+    o.textContent += `Error: ${e.message}\n`;
   }
 }
-<\/script>
-</body></html>
-`;
 
-function loadIframeTest() {
-  const iframe = document.getElementById('testIframe');
-  iframe.srcdoc = iframePayload;
+// ─── Test D: Repeated enum ───
+async function testRepeatedEnum() {
+  const o = $('outD');
+  let results = [];
+  for (let i = 0; i < 3; i++) {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      const hasLabels = cams.some(c => c.label && !c.label.includes('empty'));
+      results.push({
+        attempt: i + 1,
+        totalDevices: devices.length,
+        cameras: cams.length,
+        labelsVisible: hasLabels,
+        labels: cams.map(c => c.label || '(empty)').join(', ')
+      });
+    } catch(e) {
+      results.push({ attempt: i + 1, error: e.message });
+    }
+  }
+  o.textContent = JSON.stringify(results, null, 2) + '\n';
+  // Analysis
+  const anyLabel = results.some(r => r.labelsVisible);
+  o.textContent += `\n[ANALYSIS] Labels leaked in any attempt: ${anyLabel}\n`;
+  if (!anyLabel) {
+    o.textContent += '[INFO] Browser correctly protects device labels without permission\n';
+  }
 }
 
-// ─── Phase 4: getUserMedia ───
-async function testGetUserMedia() {
-  const c = 'log4';
-  clearLog(c);
-  log(c, 'Attempting getUserMedia({ video: true })...', 'info');
+// ─── Test E: User gesture → gUM ───
+async function testGestureBypass() {
+  const o = $('outE');
+  o.textContent = 'Attempting gUM inside user gesture handler...\n';
+  // Already inside click handler (user gesture)
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    log(c, '✅ Camera stream obtained — checking device label...', 'warn');
-    const track = stream.getVideoTracks()[0];
-    log(c, `Track label: "${track.label}"`, 'warn');
-    log(c, `Track settings: ${JSON.stringify(track.getSettings())}`, 'log');
-    // Now re-run enumerateDevices to see full labels
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const cams = devices.filter(d => d.kind === 'videoinput');
-    cams.forEach(cam => {
-      log(c, `  Camera: "${cam.label}" (${cam.deviceId.slice(0,16)}...)`, 'warn');
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { width: { ideal: 320 }, height: { ideal: 240 } }
     });
-    log(c, `Total cameras detected: ${cams.length}`, 'ok');
+    o.textContent += '✅ SUCCESS: Camera obtained via user gesture!\n';
+    const track = stream.getVideoTracks()[0];
+    o.textContent += `Track: "${track.label}"\n`;
+    o.textContent += `Facing: ${track.getSettings().facingMode || 'unknown'}\n`;
+    o.textContent += `Resolution: ${track.getSettings().width}x${track.getSettings().height}\n`;
+    
+    // Now enumerate with full labels
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    devices.filter(d => d.kind === 'videoinput').forEach(cam => {
+      o.textContent += `📷 "${cam.label}"\n`;
+    });
     stream.getTracks().forEach(t => t.stop());
-    log(c, 'Stream released', 'info');
   } catch(e) {
-    log(c, `getUserMedia failed: ${e.message}`, 'err');
+    o.textContent += `❌ Blocked: ${e.name}: ${e.message.slice(0, 100)}\n`;
     if (e.name === 'NotAllowedError') {
-      log(c, 'Permission denied by user or browser policy', 'err');
-    } else if (e.name === 'NotFoundError') {
-      log(c, 'No camera device found', 'err');
+      o.textContent += '[INFO] Even with user gesture, browser denied. Check:\n';
+      o.textContent += '  - Is the page served via HTTPS or localhost?\n';
+      o.textContent += '  - Has the user previously denied camera permission?\n';
+      o.textContent += '  - Is camera blocked at browser/OS level?\n';
     }
   }
 }
