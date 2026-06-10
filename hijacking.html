@@ -1,49 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <style>body{font-family:monospace; padding:10px; background:#f4f4f4;}</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.5; }
+        input { width: 100%; margin: 10px 0; padding: 8px; }
+        button { padding: 10px; margin: 5px 0; cursor: pointer; width: 100%; }
+        #status { font-weight: bold; color: blue; }
+        #info { margin-top: 10px; padding: 10px; background: #eee; }
+    </style>
 </head>
 <body>
     <h3>Security Lab: Allowance Auditor</h3>
-    <button id="connect">Connect Wallet</button>
-    <div id="info"></div>
+    <p id="status">Status: Belum Terhubung</p>
+    <button id="connectBtn">Connect Wallet</button>
 
     <hr>
-    <input id="token" placeholder="Token Address">
-    <input id="spender" placeholder="Spender Address (Target)">
-    <button onclick="checkAllowance()">Cek Izin Saat Ini</button>
-    <button onclick="exploitApprove()">Kirim Approve (PoC)</button>
+    <input type="text" id="token" placeholder="Alamat Token (WETH Sepolia)">
+    <input type="text" id="spender" placeholder="Alamat Spender (Uniswap)">
+    <button onclick="checkAllowance()">Cek Izin (Allowance)</button>
+    <button onclick="exploitApprove()">Approve (Set Max)</button>
+
+    <div id="info">Hasil akan muncul di sini...</div>
 
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
     <script>
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        
+        const abi = [
+            "function allowance(address owner, address spender) view returns (uint256)",
+            "function approve(address spender, uint256 amount) public returns (bool)"
+        ];
+
+        document.getElementById('connectBtn').onclick = async () => {
+            if (!window.ethereum) return alert("Install MetaMask/1inch Wallet!");
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            document.getElementById('status').innerText = "Status: Terhubung!";
+        };
+
         async function checkAllowance() {
-            const tokenAddr = document.getElementById('token').value;
-            const spender = document.getElementById('spender').value;
-            const signer = provider.getSigner();
-            const user = await signer.getAddress();
-            
-            const abi = ["function allowance(address owner, address spender) view returns (uint256)"];
-            const contract = new ethers.Contract(tokenAddr, abi, provider);
-            
-            const allowance = await contract.allowance(user, spender);
-            document.getElementById('info').innerText = `Izin Saat Ini: ${allowance.toString()}`;
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const user = await signer.getAddress();
+                const tokenAddr = document.getElementById('token').value;
+                const spender = document.getElementById('spender').value;
+
+                const contract = new ethers.Contract(tokenAddr, abi, provider);
+                const allowance = await contract.allowance(user, spender);
+                
+                document.getElementById('info').innerText = "Izin saat ini: " + allowance.toString();
+            } catch (err) {
+                alert("Gagal Cek: " + err.message);
+            }
         }
 
         async function exploitApprove() {
-            const tokenAddr = document.getElementById('token').value;
-            const spender = document.getElementById('spender').value;
-            const signer = provider.getSigner();
-            
-            const abi = ["function approve(address spender, uint256 amount) public returns (bool)"];
-            const contract = new ethers.Contract(tokenAddr, abi, signer);
-
-            // PoC: Menguji apakah kontrak target menerima izin tanpa validasi
             try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const tokenAddr = document.getElementById('token').value;
+                const spender = document.getElementById('spender').value;
+                
+                const contract = new ethers.Contract(tokenAddr, abi, signer);
                 const tx = await contract.approve(spender, ethers.constants.MaxUint256);
-                alert("Transaksi dikirim, periksa console untuk hash.");
-            } catch(e) { alert(e.message); }
+                
+                document.getElementById('info').innerText = "Transaksi dikirim! Tx: " + tx.hash;
+            } catch (err) {
+                alert("Gagal Approve: " + err.message);
+            }
         }
     </script>
 </body>
