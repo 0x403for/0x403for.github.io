@@ -1,0 +1,25 @@
+<script>
+    (async () => {
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        async function isRedirect (url1) {
+            const a = await fetch(url1, { 'mode': 'no-cors', credentials: 'include', cache: 'no-store' });
+            await sleep(1000);
+            const performanceEntry = performance.getEntriesByName(url1)[0];
+            //console.log(performanceEntry, performanceEntry.startTime, performanceEntry.fetchStart);
+            if ( (performanceEntry.fetchStart - performanceEntry.startTime) > 5 ) {
+                console.log(`${url1} is a redirect?`);
+                return true;
+            } else {
+                console.log(`${url1} is not a redirect`);
+                return false;
+            }
+        }
+        const url1 = 'https://google.com/';
+        const url2 = 'https://www.google.com/';
+        console.log('Starting test');
+        await isRedirect(url1);
+        await isRedirect(url2);
+        console.log('Finished test');
+        
+    })();
+</script>
