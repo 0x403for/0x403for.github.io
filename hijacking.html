@@ -1,29 +1,56 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        input { width: 100%; margin: 8px 0; padding: 12px; border: 1px solid #aaa; border-radius: 6px; box-sizing: border-box; }
+        button { padding: 15px; margin: 8px 0; width: 100%; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: bold; }
+        #info { margin-top: 20px; padding: 15px; background: #fff; border: 1px solid #333; border-radius: 6px; word-break: break-all; min-height: 50px; }
+    </style>
+</head>
 <body>
-    <h3>Audit Minimalis</h3>
-    <button onclick="check()">Cek Allowance</button>
-    <div id="out"></div>
+    <h3>Security Auditor Pro</h3>
+    <button id="connectBtn">1. Hubungkan Dompet</button>
+    
+    <label>Token Address:</label>
+    <input type="text" id="token" value="0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14">
+    
+    <label>Spender Address:</label>
+    <input type="text" id="spender" placeholder="Masukkan alamat target...">
+    
+    <button onclick="runCheck()">2. Cek Izin (Allowance)</button>
+    <div id="info">Menunggu aksi...</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script>
-        async function check() {
-            const out = document.getElementById('out');
+        document.getElementById('connectBtn').onclick = async () => {
             try {
+                if (!window.ethereum) throw new Error("Browser ini tidak memiliki dompet Web3!");
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                document.getElementById('info').innerText = "Status: Terhubung ke dompet.";
+            } catch(e) { alert(e.message); }
+        };
+
+        async function runCheck() {
+            try {
+                const info = document.getElementById('info');
+                info.innerText = "Memeriksa...";
+                
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const user = await provider.getSigner().getAddress();
+                const signer = provider.getSigner();
+                const user = await signer.getAddress();
                 
-                // Gunakan alamat yang saya berikan di bawah ini
-                const token = "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14"; 
-                const spender = "0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008";
+                const tokenAddr = document.getElementById('token').value;
+                const spender = document.getElementById('spender').value;
                 
-                const abi = ["function allowance(address, address) view returns (uint256)"];
-                const contract = new ethers.Contract(token, abi, provider);
+                const abi = ["function allowance(address owner, address spender) view returns (uint256)"];
+                const contract = new ethers.Contract(tokenAddr, abi, provider);
                 
-                const val = await contract.allowance(user, spender);
-                out.innerText = "Izin: " + val.toString();
-            } catch(e) {
-                out.innerText = "ERROR: " + e.message;
+                const allowance = await contract.allowance(user, spender);
+                info.innerText = "Izin saat ini: " + allowance.toString();
+            } catch (err) {
+                document.getElementById('info').innerText = "ERROR: " + err.message;
             }
         }
     </script>
