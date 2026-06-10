@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>body{font-family:monospace; padding:10px; background:#f4f4f4;}</style>
+</head>
+<body>
+    <h3>Security Lab: Allowance Auditor</h3>
+    <button id="connect">Connect Wallet</button>
+    <div id="info"></div>
+
+    <hr>
+    <input id="token" placeholder="Token Address">
+    <input id="spender" placeholder="Spender Address (Target)">
+    <button onclick="checkAllowance()">Cek Izin Saat Ini</button>
+    <button onclick="exploitApprove()">Kirim Approve (PoC)</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+    <script>
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        
+        async function checkAllowance() {
+            const tokenAddr = document.getElementById('token').value;
+            const spender = document.getElementById('spender').value;
+            const signer = provider.getSigner();
+            const user = await signer.getAddress();
+            
+            const abi = ["function allowance(address owner, address spender) view returns (uint256)"];
+            const contract = new ethers.Contract(tokenAddr, abi, provider);
+            
+            const allowance = await contract.allowance(user, spender);
+            document.getElementById('info').innerText = `Izin Saat Ini: ${allowance.toString()}`;
+        }
+
+        async function exploitApprove() {
+            const tokenAddr = document.getElementById('token').value;
+            const spender = document.getElementById('spender').value;
+            const signer = provider.getSigner();
+            
+            const abi = ["function approve(address spender, uint256 amount) public returns (bool)"];
+            const contract = new ethers.Contract(tokenAddr, abi, signer);
+
+            // PoC: Menguji apakah kontrak target menerima izin tanpa validasi
+            try {
+                const tx = await contract.approve(spender, ethers.constants.MaxUint256);
+                alert("Transaksi dikirim, periksa console untuk hash.");
+            } catch(e) { alert(e.message); }
+        }
+    </script>
+</body>
+</html>
