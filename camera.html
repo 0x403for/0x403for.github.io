@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Camera Auto-Access — Permission Exploit Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff88;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 { color: #00ffcc; border-bottom: 1px solid #00ff88; }
+        h2 { color: #ffcc00; }
+        .section {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        button {
+            background: #222;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1em;
+            margin: 4px;
+        }
+        button:hover { background: #00ff88; color: #000; }
+        button.danger { border-color: #ff4444; color: #ff4444; }
+        button.danger:hover { background: #ff4444; color: #fff; }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border: 2px solid #00ff88;
+            border-radius: 4px;
+            background: #000;
+        }
+        pre {
+            background: #000;
+            border: 1px solid #333;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .success { color: #00ff88; }
+        .warn { color: #ffcc00; }
+        .error { color: #ff4444; }
+        .info { color: #66ccff; }
+        #log {
+            max-height: 250px;
+            overflow-y: auto;
+            font-size: 0.85em;
+            background: #000;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        #log p { margin: 2px 0; }
+    </style>
+</head>
+<body>
+
+    <h1>📷 Camera Auto-Access — Permission Bypass Test Lab</h1>
+    <p class="warn">⚠ Hanya untuk lingkungan terkontrol dengan otorisasi terverifikasi.</p>
+
+    <!-- ===== STEP 1: Grant Izin Sekali ===== -->
+    <div class="section">
+        <h2>Step 1: Grant Izin Sekali (Persistent Permission)</h2>
+        <p>Klik tombol ini SATU KALI, beri izin "Izinkan" saat pop-up muncul.<br>
+        Setelah itu, izin akan tersimpan <strong>persistent</strong> untuk origin ini.</p>
+        <button onclick="grantPermission()">🔓 Grant Izin Kamera (1x Klik)</button>
+        <button onclick="checkPermission()">🔍 Cek Status Izin</button>
+        <div id="permStatus" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- ===== STEP 2: Auto-Access Tanpa Pop-Up ===== -->
+    <div class="section">
+        <h2>Step 2: Auto-Access Kamera Tanpa Pop-Up</h2>
+        <p>Setelah izin di-grant di Step 1, klik tombol di bawah.<br>
+        <strong>Tidak akan muncul pop-up izin lagi</strong> — akses langsung.</p>
+        <button onclick="autoAccessCamera()">📸 Akses Kamera Langsung (No Pop-Up)</button>
+        <button onclick="stopCamera()">⏹ Stop Kamera</button>
+        <button class="danger" onclick="revokePermission()">🚫 Revoke Izin</button>
+        <div id="cameraContainer" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- ===== STEP 3: Iframe Warisan Izin ===== -->
+    <div class="section">
+        <h2>Step 3: Iframe — Warisan Izin ke Konten Pihak Ketiga</h2>
+        <p>Jika izin sudah di-grant di parent, iframe bisa akses kamera <strong>tanpa pop-up</strong>.</p>
+        <button onclick="loadIframeBypass()">📦 Muat Iframe Dengan Akses Kamera</button>
+        <button onclick="document.getElementById('iframeContainer').innerHTML = ''">✖ Hapus Iframe</button>
+        <div id="iframeContainer" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- ===== Log ===== -->
+    <div class="section">
+        <h2>📋 Log</h2>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const logDiv = document.getElementById('log');
+        let mediaStream = null;
+
+        function log(msg, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = `[${new Date().toISOString().slice(11,19)}] ${msg}`;
+            logDiv.appendChild(p);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // =========================================================
+        // STEP 1: Grant permission sekali
+        // =========================================================
+        async function grantPermission() {
+            const statusDiv = document.getElementById('permStatus');
+            statusDiv.innerHTML = '<span class="info">⏳ Meminta izin kamera...</span>';
+            log('▶ Meminta izin kamera (getUserMedia)...', 'info');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 320, height: 240 },
+                    audio: false
+                });
+
+                // Dapat izin — langsung stop stream
+                stream.getTracks().forEach(t => t.stop());
+
+                statusDiv.innerHTML = '<span class="success">✅ Izin kamera GRANTED! Persistent permission tersimpan untuk origin ini.</span>';
+                log('✅ Izin kamera diberikan — persistent permission aktif.', 'success');
+                log('💡 Sekarang akses kamera TIDAK akan memicu pop-up lagi.', 'warn');
+
+                // Tampilkan info permission
+                checkPermission();
+
+            } catch (err) {
+                statusDiv.innerHTML = `<span class="error">❌ Gagal: ${err.message}</span>`;
+                log(`❌ Error: ${err.message}`, 'error');
+
+                if (err.name === 'NotAllowedError') {
+                    log('⚠ User menolak izin, atau permission diblokir.', 'warn');
+                }
+            }
+        }
+
+        // =========================================================
+        // Cek status permission (Permissions API)
+        // =========================================================
+        async function checkPermission() {
+            const statusDiv = document.getElementById('permStatus');
+            try {
+                // Permissions API — didukung Chrome/Edge, terbatas di Firefox
+                if (navigator.permissions && navigator.permissions.query) {
+                    const result = await navigator.permissions.query({ name: 'camera' });
+                    const state = result.state; // 'granted', 'denied', 'prompt'
+                    statusDiv.innerHTML = `
+                        <span class="${state === 'granted' ? 'success' : state === 'denied' ? 'error' : 'warn'}">
+                        🔑 Status izin kamera: <strong>${state.toUpperCase()}</strong>
+                        </span>
+                    `;
+                    log(`ℹ Permissions API: camera = ${state}`, 'info');
+                } else {
+                    statusDiv.innerHTML += '<span class="info">ℹ Permissions API tidak didukung browser ini.</span>';
+                }
+            } catch (e) {
+                log(`ℹ Permissions API error: ${e.message}`, 'info');
+            }
+        }
+
+        // =========================================================
+        // STEP 2: Auto-access — tanpa pop-up
+        // =========================================================
+        async function autoAccessCamera() {
+            const container = document.getElementById('cameraContainer');
+            const logMsg = '▶ Mencoba akses kamera langsung (tanpa pop-up)...';
+
+            // Hapus video sebelumnya
+            container.innerHTML = '<p class="info">⏳ Mengakses kamera...</p>';
+            log(logMsg, 'info');
+
+            try {
+                // Coba akses dengan resolusi penuh
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+
+                mediaStream = stream;
+
+                // Tampilkan video
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.muted = true;
+                video.playsInline = true;
+                video.setAttribute('playsinline', '');
+                video.style.width = '100%';
+                video.style.maxWidth = '640px';
+
+                container.innerHTML = '';
+                container.appendChild(video);
+
+                // Info
+                const track = stream.getVideoTracks()[0];
+                const capabilities = track.getCapabilities?.();
+                const settings = track.getSettings?.();
+
+                const info = document.createElement('div');
+                info.className = 'info';
+                info.style.marginTop = '8px';
+                info.innerHTML = `
+                    ✅ <strong>Kamera aktif!</strong><br>
+                    Track: ${track.label}<br>
+                    Resolusi: ${settings?.width || '?'} x ${settings?.height || '?'}<br>
+                    Frame rate: ${settings?.frameRate || '?'} fps<br>
+                    ${capabilities?.facingMode ? `Facing mode tersedia: ${capabilities.facingMode.join(', ')}` : ''}
+                `;
+                container.appendChild(info);
+
+                log(`✅ Kamera langsung diakses! Track: ${track.label}`, 'success');
+                log(`⚠ TIDAK ADA pop-up izin — persistent permission bekerja.`, 'warn');
+
+                // Enumerate devices untuk bukti fingerprint
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cams = devices.filter(d => d.kind === 'videoinput');
+                log(`📷 ${cams.length} kamera terdeteksi (label sekarang terlihat):`, 'info');
+                cams.forEach((c, i) => {
+                    log(`   Kamera ${i+1}: ${c.label}`, 'info');
+                });
+
+            } catch (err) {
+                container.innerHTML = `<span class="error">❌ Gagal: ${err.message}</span>`;
+                log(`❌ Error akses kamera: ${err.message}`, 'error');
+
+                if (err.name === 'NotAllowedError') {
+                    log('⚠ Izin belum di-grant. Jalankan Step 1 dulu.', 'warn');
+                }
+            }
+        }
+
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+                document.getElementById('cameraContainer').innerHTML = '<p class="info">⏹ Kamera dihentikan.</p>';
+                log('⏹ Stream kamera dihentikan.', 'info');
+            }
+        }
+
+        // =========================================================
+        // Revoke permission (hapus persistent permission)
+        // =========================================================
+        async function revokePermission() {
+            stopCamera();
+            document.getElementById('cameraContainer').innerHTML = '';
+            document.getElementById('permStatus').innerHTML = '<span class="info">🔄 Izin di-revoke...</span>';
+            log('🔄 Mencoba revoke izin...', 'info');
+
+            // Browser tidak punya API revoke permission secara native
+            // Tapi kita bisa coba akses dengan constraints yang berbeda
+            // atau informasikan user untuk clear site settings
+
+            try {
+                // Coba akses dengan audio (akan trigger ulang permission)
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: false,
+                    audio: true
+                });
+                stream.getTracks().forEach(t => t.stop());
+                log('ℹ Mikrofon masih bisa diakses — izin belum hilang.', 'info');
+            } catch (e) {
+                log('ℹ Mikrofon ditolak.', 'info');
+            }
+
+            const statusDiv = document.getElementById('permStatus');
+            statusDiv.innerHTML = `
+                <span class="warn">⚠ Browser tidak menyediakan API untuk revoke permission programmatically.</span><br>
+                <span class="info">Untuk hapus persistent permission, buka: <strong>chrome://settings/content/camera</strong> (Chrome) atau <strong>about:preferences#privacy</strong> (Firefox), lalu hapus izin untuk origin ini.</span>
+            `;
+            log('ℹ Informasi cara revoke manual ditampilkan.', 'info');
+        }
+
+        // =========================================================
+        // STEP 3: Iframe warisan izin
+        // =========================================================
+        function loadIframeBypass() {
+            const container = document.getElementById('iframeContainer');
+            container.innerHTML = '';
+
+            const iframe = document.createElement('iframe');
+            iframe.src = 'about:blank';
+            iframe.allow = 'camera *; microphone *';
+            iframe.sandbox = 'allow-scripts allow-same-origin';
+            iframe.style.width = '100%';
+            iframe.style.height = '300px';
+            iframe.style.border = '2px dashed #ffcc00';
+            iframe.style.borderRadius = '4px';
+
+            container.appendChild(iframe);
+            log('📦 Iframe dimuat — sandbox longgar + allow="camera *"', 'info');
+
+            // Inject konten ke iframe
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head><title>Iframe Camera Bypass</title></head>
+                <body style="background:#1a1a1a; color:#0f0; font-family:monospace; padding:10px; margin:0;">
+                    <h3 style="color:#ffcc00; margin:0 0 10px 0;">📷 Iframe — Akses Kamera Warisan</h3>
+                    <div id="status" style="margin-bottom:8px;">⏳ Mengecek izin...</div>
+                    <video id="preview" autoplay muted playsinline style="width:100%; max-width:320px; border:1px solid #0f0; display:none;"></video>
+                    <div id="detail" style="margin-top:8px; font-size:0.9em;"></div>
+                    <script>
+                        const status = document.getElementById('status');
+                        const video = document.getElementById('preview');
+                        const detail = document.getElementById('detail');
+
+                        // Coba enumerate dulu
+                        if (navigator.mediaDevices) {
+                            navigator.mediaDevices.enumerateDevices().then(devices => {
+                                const cams = devices.filter(d => d.kind === 'videoinput');
+                                detail.innerHTML += '<p>🔍 enumerateDevices: ' + cams.length + ' kamera ditemukan.</p>';
+                            });
+                        }
+
+                        // Coba getUserMedia — jika parent sudah grant izin,
+                        // ini TIDAK akan muncul pop-up
+                        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                            .then(stream => {
+                                status.innerHTML = '✅ <strong style="color:#0f0;">KAMERA DIAKSES DARI IFRAME! Tanpa pop-up!</strong>';
+                                status.style.color = '#0f0';
+                                video.srcObject = stream;
+                                video.style.display = 'block';
+                                const track = stream.getVideoTracks()[0];
+                                detail.innerHTML += '<p style="color:#0f0;">✓ Track: ' + track.label + '</p>';
+                                detail.innerHTML += '<p style="color:#ffcc00;">⚠ Izin diwariskan dari parent — permission policy bypass berhasil.</p>';
+
+                                // Auto-stop after 5 detik
+                                setTimeout(() => {
+                                    stream.getTracks().forEach(t => t.stop());
+                                    detail.innerHTML += '<p style="color:#888;">⏹ Stream dihentikan (5 detik).</p>';
+                                }, 5000);
+                            })
+                            .catch(err => {
+                                status.innerHTML = '❌ <strong style="color:#f44;">GAGAL: ' + err.message + '</strong>';
+                                if (err.name === 'NotAllowedError') {
+                                    detail.innerHTML += '<p class="warn">⚠ Izin tidak diwariskan. Parent belum grant izin.</p>';
+                                }
+                            });
+                    <\\/script>
+                </body>
+                </html>
+            `);
+            iframeDoc.close();
+
+            log('✅ Iframe siap — cek apakah izin diwariskan.', 'success');
+        }
+    </script>
+
+</body>
+</html>
