@@ -1,6 +1,16 @@
-<meta name="viewport" content="width=device-width, initial-scale=1">
-not actually google.com
+
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<body style="height: 10000px;">
+    Scroll down until the address bar disappears, then tap on the page.
+</body>
 <script>
-location.href = 'https://google.com';
-stop();
+    var prevent = false;
+    document.body.onclick = function () { prevent = true; };
+    window.addEventListener('DOMMouseScroll', function (e) {
+        e.preventDefault();
+    });
+    document.ontouchstart = function (e) {
+        if (prevent) e.preventDefault();
+    };
 </script>
