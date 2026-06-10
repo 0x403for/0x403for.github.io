@@ -2,47 +2,49 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; }
-        input { width: 100%; margin: 5px 0; padding: 10px; }
-        button { padding: 10px; margin: 5px 0; width: 100%; }
-        #info { margin-top: 10px; padding: 10px; background: #ddd; border: 1px solid #000; }
+        input { width: 100%; margin: 5px 0; padding: 10px; box-sizing: border-box; }
+        button { padding: 15px; margin: 5px 0; width: 100%; font-size: 16px; }
+        #info { margin-top: 10px; padding: 10px; background: #eee; border: 1px solid #000; word-break: break-all; }
     </style>
 </head>
 <body>
-    <h3>Debug Mode</h3>
+    <h3>Security Lab v2</h3>
     <button id="connectBtn">1. Connect Wallet</button>
-    <input type="text" id="token" placeholder="Token Address" value="0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14">
-    <input type="text" id="spender" placeholder="Spender Address" value="0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008">
-    <button onclick="debugAllowance()">2. Cek Izin (DEBUG)</button>
-    <div id="info">Hasil Debug...</div>
+    <input type="text" id="token" value="0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14">
+    <input type="text" id="spender" value="0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008">
+    <button onclick="runCheck()">2. Cek Izin (Allowance)</button>
+    <div id="info">Menunggu...</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
     <script>
         document.getElementById('connectBtn').onclick = async () => {
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
-            document.getElementById('info').innerText = "Terhubung, silakan tekan Cek Izin...";
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                document.getElementById('info').innerText = "Terhubung!";
+            } catch(e) { alert(e.message); }
         };
 
-        async function debugAllowance() {
-            const info = document.getElementById('info');
-            info.innerText = "Memulai pemanggilan...";
-            
+        async function runCheck() {
             try {
+                // Pastikan ethers sudah dimuat
+                if (typeof ethers === 'undefined') throw new Error("Library ethers gagal dimuat!");
+                
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const signer = provider.getSigner();
                 const user = await signer.getAddress();
+                
                 const tokenAddr = document.getElementById('token').value;
                 const spender = document.getElementById('spender').value;
                 
-                info.innerText = "Membaca kontrak...";
                 const abi = ["function allowance(address owner, address spender) view returns (uint256)"];
                 const contract = new ethers.Contract(tokenAddr, abi, provider);
                 
                 const allowance = await contract.allowance(user, spender);
-                info.innerText = "Berhasil! Izin: " + allowance.toString();
+                document.getElementById('info').innerText = "Izin saat ini: " + allowance.toString();
             } catch (err) {
-                info.innerText = "ERROR: " + err.message;
+                document.getElementById('info').innerText = "ERROR: " + err.message;
             }
         }
     </script>
