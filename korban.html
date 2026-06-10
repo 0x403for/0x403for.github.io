@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><title>DApp Korban</title></head>
+<body>
+    <h2>DApp Resmi (Target)</h2>
+    <div id="status">Menunggu perintah...</div>
+
+    <script>
+        // Simulasi data sensitif di DApp korban
+        const sensitiveData = {
+            wallet: "0x1234567890abcdef1234567890abcdef12345678",
+            sessionToken: "SECRET_TOKEN_999"
+        };
+
+        // BUG: Event listener ini tidak memeriksa event.origin
+        window.addEventListener("message", (event) => {
+            console.log("Menerima pesan dari:", event.origin);
+            
+            // Jika ada perintah 'getData', dia langsung mengirim balik data sensitif
+            if (event.data.action === "getData") {
+                event.source.postMessage({
+                    status: "success",
+                    data: sensitiveData
+                }, event.origin); // Mengirim balik ke asal pesan
+            }
+        });
+    </script>
+</body>
+</html>
