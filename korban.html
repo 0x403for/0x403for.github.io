@@ -1,27 +1,23 @@
+
 <!DOCTYPE html>
 <html>
-<head><title>DApp Korban</title></head>
 <body>
-    <h2>DApp Resmi (Target)</h2>
-    <div id="status">Menunggu perintah...</div>
+    <h3>DApp Target (Korban)</h3>
+    <div id="status">Status: Menunggu pesan dari penyerang...</div>
 
     <script>
-        // Simulasi data sensitif di DApp korban
-        const sensitiveData = {
-            wallet: "0x1234567890abcdef1234567890abcdef12345678",
-            sessionToken: "SECRET_TOKEN_999"
-        };
+        const dataRahasia = { saldo: "100 ETH", wallet: "0x123...abc" };
 
-        // BUG: Event listener ini tidak memeriksa event.origin
         window.addEventListener("message", (event) => {
-            console.log("Menerima pesan dari:", event.origin);
-            
-            // Jika ada perintah 'getData', dia langsung mengirim balik data sensitif
-            if (event.data.action === "getData") {
+            // BUG: Tidak ada pengecekan if (event.origin !== ...)
+            if (event.data.action === "curi") {
+                document.getElementById("status").innerText = "Pesan diterima dari: " + event.origin;
+                
+                // Mengirim balik data sensitif ke penyerang
                 event.source.postMessage({
-                    status: "success",
-                    data: sensitiveData
-                }, event.origin); // Mengirim balik ke asal pesan
+                    type: "DATA_RAHASIA",
+                    data: dataRahasia
+                }, event.origin);
             }
         });
     </script>
