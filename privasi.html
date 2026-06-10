@@ -1,0 +1,15 @@
+<h3>Clipboard Privacy Tester</h3>
+<button onclick="cekClipboard()">Coba Baca Clipboard</button>
+<div id="hasil"></div>
+
+<script>
+    async function cekClipboard() {
+        try {
+            // Jika ini berhasil tanpa notifikasi izin, DApp tersebut rentan
+            const text = await navigator.clipboard.readText();
+            document.getElementById('hasil').innerText = "Berhasil membaca clipboard: " + text;
+        } catch (err) {
+            document.getElementById('hasil').innerText = "Akses ditolak (Aman): " + err;
+        }
+    }
+</script>
