@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h3>DApp Target (Vulnerable)</h3>
+    <div id="log" style="border:1px solid #ccc; padding:10px;">Status: Waiting...</div>
+
+    <script>
+        window.addEventListener("message", (event) => {
+            // Menampilkan siapa pengirimnya agar terlihat jelas di video
+            document.getElementById("log").innerText = "Message received from: " + event.origin;
+
+            if (event.data.action === "executeTx") {
+                document.getElementById("log").innerText += "\n[!] Executing transaction...";
+                
+                // Di sini simulasi memicu fungsi transaksi
+                // Dalam dApp asli, ini akan memicu window.ethereum.request(...)
+                alert("!!! ALERT: TRANSACTION POP-UP TRIGGERED !!!"); 
+            }
+        });
+    </script>
+</body>
+</html>
