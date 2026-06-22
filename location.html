@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Testing Geolocation Permission Trigger</h1>
+    <div id="status">Menginisiasi eksploitasi...</div>
+
+    <!-- Metode 1: Nested Iframe Injection -->
+    <iframe id="exploit-frame" style="display:none;"></iframe>
+
+    <script>
+        // Simulasi onload untuk memicu eksekusi otomatis
+        window.onload = function() {
+            console.log("[*] Halaman dimuat. Mencoba memicu Geolocation...");
+            
+            // Mencoba mengakses geolocation di konteks utama
+            navigator.geolocation.getCurrentPosition(
+                (pos) => console.log("Lokasi ditemukan:", pos),
+                (err) => console.warn("Akses ditolak (Normal):", err.message)
+            );
+
+            // Mencoba memicu melalui iframe (sering diblokir oleh browser)
+            let frame = document.getElementById('exploit-frame');
+            frame.srcdoc = `
+                <script>
+                    window.onload = () => {
+                        parent.navigator.geolocation.getCurrentPosition(
+                            (p) => console.log("Iframe berhasil akses lokasi"),
+                            (e) => console.log("Iframe diblokir:", e.message)
+                        );
+                    };
+                <\/script>
+            `;
+        };
+    </script>
+</body>
+</html>
