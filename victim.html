@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Checkout - Apply Coupon</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      padding: 50px;
+      text-align: center;
+    }
+    .checkout-box {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: inline-block;
+      padding: 40px;
+      max-width: 400px;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    #box {
+      border: 2px dashed #ccc;
+      padding: 15px;
+      min-height: 60px;
+      font-size: 16px;
+      border-radius: 6px;
+      outline: none;
+    }
+    #box:focus {
+      border-color: #3498db;
+    }
+    p.note {
+      color: #888;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-box">
+    <h2>Apply Your Coupon</h2>
+    <div id="box" contenteditable="true"></div>
+    <p class="note">👉 Click inside the box and press <b>Ctrl+V</b> to paste your coupon.</p>
+  </div>
+
+  <script>
+    const box = document.getElementById('box');
+    box.addEventListener('paste', e => {
+      const html = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
+      e.preventDefault();
+      // Vulnerable: directly inserting untrusted HTML
+      box.innerHTML = html;
+    });
+  </script>
+</body>
+</html>
