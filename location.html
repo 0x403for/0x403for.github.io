@@ -1,35 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Geolocation Trigger Test</title>
+</head>
 <body>
-    <h1>Testing Geolocation Permission Trigger</h1>
+    <h1>Testing Geolocation Permission Trigger (v2)</h1>
     <div id="status">Menginisiasi eksploitasi...</div>
 
-    <!-- Metode 1: Nested Iframe Injection -->
-    <iframe id="exploit-frame" style="display:none;"></iframe>
-
     <script>
-        // Simulasi onload untuk memicu eksekusi otomatis
-        window.onload = function() {
-            console.log("[*] Halaman dimuat. Mencoba memicu Geolocation...");
-            
-            // Mencoba mengakses geolocation di konteks utama
-            navigator.geolocation.getCurrentPosition(
-                (pos) => console.log("Lokasi ditemukan:", pos),
-                (err) => console.warn("Akses ditolak (Normal):", err.message)
-            );
+        // Mencoba memicu perilaku yang mensimulasikan interaksi pengguna
+        async function attemptExploit() {
+            const status = document.getElementById('status');
+            status.innerText = "[*] Mencoba memicu geolocation API...";
 
-            // Mencoba memicu melalui iframe (sering diblokir oleh browser)
-            let frame = document.getElementById('exploit-frame');
-            frame.srcdoc = `
-                <script>
-                    window.onload = () => {
-                        parent.navigator.geolocation.getCurrentPosition(
-                            (p) => console.log("Iframe berhasil akses lokasi"),
-                            (e) => console.log("Iframe diblokir:", e.message)
-                        );
-                    };
-                <\/script>
-            `;
+            try {
+                // Mencoba memanggil geolocation
+                // Beberapa versi Chromium memerlukan 'high accuracy' atau opsi spesifik
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    });
+                });
+                status.innerText = "[+] Berhasil mendapatkan lokasi: " + position.coords.latitude;
+            } catch (err) {
+                status.innerText = "[-] Ditolak: " + err.message;
+                console.error("Error Detail:", err);
+            }
+        }
+
+        // Metode Trigger: 
+        // 1. Mencoba delay setelah load (sering dideteksi sebagai bot)
+        // 2. Mencoba memicu melalui event listener yang disimulasikan
+        window.onload = () => {
+            setTimeout(attemptExploit, 2000); 
         };
     </script>
 </body>
