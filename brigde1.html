@@ -5,60 +5,65 @@
     <title>Security Audit: Automated DApp Interaction</title>
     <style>
         body { font-family: 'Courier New', Courier, monospace; background: #050505; color: #00ff00; padding: 20px; }
-        .log { border: 1px solid #333; padding: 10px; margin-top: 10px; background: #111; }
+        .log { border: 1px solid #333; padding: 10px; margin-top: 10px; background: #111; border-radius: 4px; }
+        .success { color: #ffffff; }
         .warning { color: #ff0000; font-weight: bold; }
+        .highlight { color: #00ffff; }
     </style>
 </head>
 <body>
-    <h2>Security Audit: Bridge Access Proof</h2>
-    <div id="status">Scanning DApp Bridge...</div>
+    <h2>Security Audit: Bridge Access & Interaction Proof</h2>
+    <div id="status">Initializing Security Scanner...</div>
     <div id="log" class="log"></div>
 
     <script>
         const status = document.getElementById('status');
         const log = document.getElementById('log');
 
-        function addLog(msg) {
-            log.innerHTML += `<div>> ${msg}</div>`;
+        function addLog(msg, type = '') {
+            log.innerHTML += `<div class="${type}">> ${msg}</div>`;
         }
 
         async function initExploit() {
             if (!window.ethereum) {
-                status.innerHTML = "<span class='warning'>[!] Bridge not found.</span>";
+                status.innerHTML = "<span class='warning'>[!] Web3 Bridge not found.</span>";
                 return;
             }
 
             try {
-                // Tahap 1: Injeksi otomatis untuk mendapatkan alamat tanpa user click
-                addLog("Attempting silent identity extraction...");
+                addLog("Attempting silent identity extraction...", "highlight");
+                // Menarik alamat tanpa prompt interaksi
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
                 
                 if (accounts.length > 0) {
                     const address = accounts[0];
-                    status.innerHTML = `<span style="color: #fff;">[!] Identity Exposed: ${address}</span>`;
-                    addLog("Extraction successful.");
+                    status.innerHTML = `Status: <span class='success'>VULNERABLE</span>`;
+                    addLog(`Identity Exposed: ${address}`, "success");
 
-                    // Tahap 2: Memicu prompt transaksi asli
                     addLog("Triggering transaction sequence...");
                     
-                    // Mengirim transaksi "kosong" ke alamat sendiri atau dead address
-                    // Peramban DApp akan menampilkan popup asli setelah baris ini dieksekusi
+                    // Memanggil fungsi transaksi untuk membuktikan kemampuan akses
                     await window.ethereum.request({
                         method: 'eth_sendTransaction',
                         params: [{
                             from: address,
-                            to: address, // Transfer ke diri sendiri untuk memicu popup
+                            to: address, 
                             value: '0x0',
-                            data: '0x'   // Tidak ada data, hanya trigger popup
+                            data: '0x'
                         }],
                     });
                     
-                    addLog("Transaction prompt injected successfully.");
+                    addLog("Transaction prompt triggered successfully.", "success");
                 } else {
-                    addLog("No active accounts found.");
+                    addLog("No active accounts found in the provider.", "warning");
                 }
             } catch (err) {
-                addLog(`<span class='warning'>[!] Error: ${err.message}</span>`);
+                // Menangani kondisi di mana pengguna menutup popup
+                if (err.code === 4001) {
+                    addLog("Prompt triggered: User denied transaction (As expected).", "highlight");
+                } else {
+                    addLog(`[!] Sequence halted: ${err.message}`, "warning");
+                }
             }
         }
 
