@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Uji Keamanan Web Bluetooth API</title>
+</head>
+<body>
+    <h1>Pengujian Akses Bluetooth</h1>
+    <p>Status: <span id="status">Memulai pengujian...</span></p>
+
+    <script>
+        // Fungsi untuk mencoba memanggil API Bluetooth
+        async function testBluetoothAPI() {
+            const statusEl = document.getElementById('status');
+            statusEl.innerText = "Mencoba memicu akses Bluetooth...";
+
+            try {
+                // Mencoba memanggil API tanpa interaksi pengguna (User Gesture)
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true
+                });
+                statusEl.innerText = "BERHASIL (Bug!): Akses diperoleh tanpa klik.";
+                console.log("Perangkat ditemukan:", device.name);
+            } catch (error) {
+                // Perilaku normal browser adalah menolak akses jika tidak ada user gesture
+                statusEl.innerText = "Ditolak (Normal): " + error.message;
+                console.error("Akses diblokir oleh browser:", error);
+            }
+        }
+
+        // Jalankan uji coba saat halaman dimuat (tanpa interaksi klik)
+        window.onload = () => {
+            setTimeout(testBluetoothAPI, 2000); // Menunggu 2 detik setelah load
+        };
+    </script>
+</body>
+</html>
