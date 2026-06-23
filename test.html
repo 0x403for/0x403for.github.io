@@ -1,20 +1,32 @@
-<canvas id="fingerprintCanvas" width="200" height="50"></canvas>
-<p id="fingerprintID"></p>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Browser Sanitization Test</title>
+</head>
+<body>
+    <h1>Pengujian Input Browser</h1>
+    <p>Hasil akan terlihat di bawah jika browser mampu memproses input ini.</p>
+    
+    <!-- 1. Uji Karakter Null Byte dalam Nama Atribut -->
+    <!-- Beberapa parser browser mungkin berhenti atau berperilaku aneh saat menemui null byte -->
+    <div id="null-test" data-test="nilai-dengan-null-byte-di-tengah-\0-ini"></div>
 
-<script>
-    const canvas = document.getElementById('fingerprintCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Menggambar teks dengan gaya khusus
-    ctx.textBaseline = "top";
-    ctx.font = "14px 'Arial'";
-    ctx.fillStyle = "#f60";
-    ctx.fillRect(125, 1, 62, 20);
-    ctx.fillStyle = "#069";
-    ctx.fillText("Hello, world!", 2, 15);
-    
-    // Mengambil data piksel sebagai string
-    const data = canvas.toDataURL();
-    document.getElementById('fingerprintID').innerText = 
-        "Hash Fingerprint Anda: " + btoa(data).substring(0, 32);
-</script>
+    <!-- 2. Uji Unicode (Overlong UTF-8 atau Karakter Kompleks) -->
+    <!-- Uji bagaimana mesin layout memproses karakter yang tidak biasa -->
+    <div id="unicode-test" style="font-family: 'serif';">
+        &#x0000; &#x10FFFF; &#xDEAD; 𝕿𝖍𝖎𝖘 𝖎𝖘 𝖆 𝖙𝖊𝖘𝖙 𝖔𝖋 𝖀𝖓𝖎𝖈𝖔𝖉𝖊
+    </div>
+
+    <!-- 3. Uji Long String (Stress Test) -->
+    <!-- Memasukkan string yang sangat panjang ke dalam atribut untuk melihat apakah terjadi overflow -->
+    <div id="long-string-test"></div>
+
+    <script>
+        // Mengisi long string secara dinamis
+        const longString = "A".repeat(1024 * 1024 * 5); // 5MB String
+        document.getElementById('long-string-test').setAttribute('title', longString);
+
+        console.log("Input berhasil diproses.");
+    </script>
+</body>
+</html>
