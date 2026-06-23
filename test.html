@@ -1,42 +1,20 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Browser Permission Auditor</title>
-    <style>
-        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
-        .card { border: 1px solid #333; padding: 15px; margin-bottom: 10px; }
-    </style>
-</head>
-<body>
+<canvas id="fingerprintCanvas" width="200" height="50"></canvas>
+<p id="fingerprintID"></p>
 
-    <h2>Analisis Izin API Browser</h2>
-    <div id="results"></div>
-
-    <script>
-        async function checkPermissions() {
-            const apis = ['geolocation', 'notifications', 'camera', 'microphone'];
-            const container = document.getElementById('results');
-
-            for (const api of apis) {
-                try {
-                    const result = await navigator.permissions.query({ name: api });
-                    const div = document.createElement('div');
-                    div.className = 'card';
-                    div.innerHTML = `<strong>${api.toUpperCase()}</strong>: ${result.state}`;
-                    container.appendChild(div);
-                    
-                    // Memantau perubahan izin secara real-time
-                    result.onchange = () => {
-                        div.innerHTML = `<strong>${api.toUpperCase()}</strong>: ${result.state} (Status Berubah!)`;
-                    };
-                } catch (e) {
-                    console.log(`API ${api} tidak didukung atau diblokir.`);
-                }
-            }
-        }
-
-        checkPermissions();
-    </script>
-</body>
-</html>
+<script>
+    const canvas = document.getElementById('fingerprintCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Menggambar teks dengan gaya khusus
+    ctx.textBaseline = "top";
+    ctx.font = "14px 'Arial'";
+    ctx.fillStyle = "#f60";
+    ctx.fillRect(125, 1, 62, 20);
+    ctx.fillStyle = "#069";
+    ctx.fillText("Hello, world!", 2, 15);
+    
+    // Mengambil data piksel sebagai string
+    const data = canvas.toDataURL();
+    document.getElementById('fingerprintID').innerText = 
+        "Hash Fingerprint Anda: " + btoa(data).substring(0, 32);
+</script>
