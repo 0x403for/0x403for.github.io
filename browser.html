@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Uji Coba Keamanan dApp</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        button { padding: 10px; cursor: pointer; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Dashboard Uji Coba Keamanan</h1>
+    
+    <div class="card">
+        <h3>1. Identitas & Koneksi</h3>
+        <button id="connectBtn">Hubungkan ke Wallet</button>
+        <p>Status: <span id="status">Terputus</span></p>
+        <p>Alamat: <code id="address">-</code></p>
+    </div>
+
+    <div class="card">
+        <h3>2. Pengujian Security Boundary</h3>
+        <button id="signBtn">Uji Tanda Tangan</button>
+        <button id="txBtn">Uji Transaksi (Testnet)</button>
+    </div>
+
+    <script>
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        
+        // 1. Logika Koneksi
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                document.getElementById('status').innerText = "Terhubung!";
+                document.getElementById('address').innerText = accounts[0];
+            } catch (err) {
+                alert("Koneksi ditolak: " + err.message);
+            }
+        });
+
+        // 2. Logika Tanda Tangan
+        document.getElementById('signBtn').addEventListener('click', async () => {
+            try {
+                const signer = await provider.getSigner();
+                const sig = await signer.signMessage("Uji coba keamanan 1inch");
+                alert("Tanda tangan berhasil dibuat. Signature: " + sig.substring(0, 20) + "...");
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        // 3. Logika Transaksi
+        document.getElementById('txBtn').addEventListener('click', async () => {
+            try {
+                const signer = await provider.getSigner();
+                const tx = await signer.sendTransaction({
+                    to: "0x0000000000000000000000000000000000000000",
+                    value: ethers.parseEther("0.000001") // Nilai sangat kecil untuk tes
+                });
+                alert("Transaksi dikirim: " + tx.hash);
+            } catch (err) {
+                alert("Transaksi dibatalkan atau gagal.");
+            }
+        });
+    </script>
+</body>
+</html>
