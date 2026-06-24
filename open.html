@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Uji Bypass Blacklist</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        .card { border: 1px solid #007bff; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Audit Bypass Keamanan URL</h1>
+    
+    <div class="card">
+        <h3>1. Uji Double URL Encoding</h3>
+        <p>Apakah dompet memblokir situs jika URL di-encode dua kali?</p>
+        <button onclick="testDoubleEncoding()">Tes Encoding</button>
+    </div>
+
+    <div class="card">
+        <h3>2. Uji Open Redirect</h3>
+        <p>Mengalihkan melalui domain terpercaya (misal: google.com) untuk menghindari filter.</p>
+        <button onclick="testRedirect()">Tes Redirect</button>
+    </div>
+
+    <script>
+        // Teknik 1: Double URL Encoding
+        // Target: %68%74%74%70... (encoded http)
+        function testDoubleEncoding() {
+            const target = "https://www.google.com";
+            // Contoh payload double encoded: %2568%2574%2574%2570...
+            const doubleEncoded = encodeURIComponent(encodeURIComponent(target));
+            alert("Mencoba navigasi dengan double encoding payload: " + doubleEncoded);
+            window.location.href = doubleEncoded;
+        }
+
+        // Teknik 2: Open Redirect (Menggunakan parameter URL)
+        // Banyak filter hanya memeriksa domain utama (google.com) dan mengabaikan parameter 'q' atau 'url'
+        function testRedirect() {
+            const safeDomain = "https://www.google.com/url?q=";
+            const maliciousSite = "https://malicious-site.example.com";
+            const fullUrl = safeDomain + encodeURIComponent(maliciousSite);
+            
+            alert("Mencoba navigasi via Open Redirect: " + fullUrl);
+            window.location.href = fullUrl;
+        }
+    </script>
+</body>
+</html>
