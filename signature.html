@@ -1,22 +1,27 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Audit: Unauthorized Signature Trigger</title>
+    <title>Security Audit: Unauthorized Signature Trigger</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        #status { font-weight: bold; margin-top: 15px; }
+    </style>
 </head>
 <body>
-    <h3>Audit Keamanan Penandatanganan</h3>
-    <button onclick="testSignature()">Tes Memicu Signature (EIP-712)</button>
-    <p id="status"></p>
+    <h3>Web3 Provider Security Audit</h3>
+    <p>Testing if the DApp browser allows signature requests from this origin.</p>
+    <button onclick="testSignature()">Trigger Signature Request (EIP-712)</button>
+    <p id="status">Status: Waiting for action...</p>
 
     <script>
         async function testSignature() {
             const status = document.getElementById('status');
+            status.innerText = "Status: Testing...";
             
-            // Data dummy EIP-712 sesuai standar
             const msgParams = JSON.stringify({
                 domain: { chainId: 1, name: 'Security Audit', version: '1' },
-                message: { contents: 'Audit Penandatanganan Tanpa Izin' },
+                message: { contents: 'Unauthorized Signature Audit' },
                 primaryType: 'Mail',
                 types: {
                     EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }],
@@ -25,16 +30,17 @@
             });
 
             try {
-                // Mencoba memicu dialog penandatanganan dari konteks saat ini
+            
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
                 const signature = await window.ethereum.request({
                     method: 'eth_signTypedData_v4',
                     params: [accounts[0], msgParams],
                 });
-                status.innerText = "CRITICAL: Dialog tanda tangan berhasil dipicu!";
+                status.innerText = "CRITICAL: Signature dialog was successfully triggered!";
                 status.style.color = "red";
             } catch (err) {
-                status.innerText = "Akses ditolak: " + err.message;
+                status.innerText = "Access denied: " + err.message;
+                status.style.color = "black";
             }
         }
     </script>
