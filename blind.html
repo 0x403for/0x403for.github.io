@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h3>Sui Wallet Security Audit: Blind Signing Test</h3>
+    <button id="signBtn">Test Sign Arbitrary Data</button>
+
+    <script>
+        async function testBlindSign() {
+            // Data ini adalah target yang akan dikirim ke wallet
+            // Dalam serangan nyata, ini adalah payload berbahaya
+            const message = new TextEncoder().encode("Beri saya akses ke token Anda: 0xDEADBEEF...");
+
+            try {
+                // Mengecek apakah wallet terhubung
+                if (!window.suiWallet) return alert("Sui Wallet tidak terdeteksi");
+
+                // Meminta tanda tangan pesan mentah (Blind Signing)
+                const result = await window.suiWallet.signPersonalMessage({
+                    message: message,
+                });
+
+                console.log("Hasil Tanda Tangan:", result);
+                alert("Pesan berhasil ditandatangani. Cek apakah wallet menampilkan isi pesan dengan jelas!");
+            } catch (e) {
+                console.error("Gagal:", e);
+            }
+        }
+
+        document.getElementById('signBtn').addEventListener('click', testBlindSign);
+    </script>
+</body>
+</html>
