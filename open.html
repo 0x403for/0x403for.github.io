@@ -2,45 +2,41 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Advanced Context Audit</title>
-    <style>
-        body { font-family: monospace; padding: 10px; background: #0e0e0e; color: #00ff00; }
-        .log { border-bottom: 1px solid #333; padding: 5px; }
-    </style>
+    <title>Audit: Unauthorized Signature Trigger</title>
 </head>
 <body>
-    <h3>Audit Kebocoran Data Lintas Konteks</h3>
-    <div id="logs"></div>
+    <h3>Audit Keamanan Penandatanganan</h3>
+    <button onclick="testSignature()">Tes Memicu Signature (EIP-712)</button>
+    <p id="status"></p>
 
     <script>
-        const logger = (msg) => {
-            const div = document.createElement('div');
-            div.className = 'log';
-            div.innerText = `> ${msg}`;
-            document.getElementById('logs').appendChild(div);
-        };
+        async function testSignature() {
+            const status = document.getElementById('status');
+            
+            // Data dummy EIP-712 sesuai standar
+            const msgParams = JSON.stringify({
+                domain: { chainId: 1, name: 'Security Audit', version: '1' },
+                message: { contents: 'Audit Penandatanganan Tanpa Izin' },
+                primaryType: 'Mail',
+                types: {
+                    EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }],
+                    Mail: [{ name: 'contents', type: 'string' }]
+                }
+            });
 
-        async function runDeepAudit() {
-            // 1. Audit IndexedDB (Sering kali bocor antar domain di WebView yang buruk)
             try {
-                const databases = await indexedDB.databases();
-                logger("Ditemukan database indexedDB: " + databases.map(d => d.name).join(', '));
-            } catch(e) { logger("Gagal akses IndexedDB"); }
-
-            // 2. Audit Sensor (Akselerometer/Giroskop - Sering digunakan untuk fingerprinting perangkat)
-            window.addEventListener('devicemotion', (event) => {
-                logger("Sensor gerak terdeteksi (Bisa digunakan untuk pelacakan fisik)");
-            }, { once: true });
-
-            // 3. Audit Window Opener (Melihat apakah kita bisa menjangkau halaman lain)
-            if (window.opener) {
-                logger("WARNING: window.opener terdeteksi. Kita bisa memanipulasi halaman induk!");
-            } else {
-                logger("window.opener terisolasi.");
+                // Mencoba memicu dialog penandatanganan dari konteks saat ini
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                const signature = await window.ethereum.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [accounts[0], msgParams],
+                });
+                status.innerText = "CRITICAL: Dialog tanda tangan berhasil dipicu!";
+                status.style.color = "red";
+            } catch (err) {
+                status.innerText = "Akses ditolak: " + err.message;
             }
         }
-
-        runDeepAudit();
     </script>
 </body>
 </html>
