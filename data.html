@@ -2,37 +2,50 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Transparansi Data Kontrak</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <title>Uji Kebocoran Informasi</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
+        .card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+        pre { background: #eee; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 13px; }
+        button { padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
 </head>
 <body>
-    <h1>Uji Transparansi Transaksi</h1>
-    <p>Pengujian: Apakah dompet bisa membaca data fungsi ini?</p>
-    <button id="testDataBtn">Kirim Data Kompleks</button>
-    <pre id="log">-</pre>
+    <h1>Audit Kebocoran Informasi dApp</h1>
+    <button onclick="auditSystem()">Audit Sistem</button>
+    <div class="card">
+        <h3>Hasil Audit:</h3>
+        <pre id="auditResult">-</pre>
+    </div>
 
     <script>
-        document.getElementById('testDataBtn').addEventListener('click', async () => {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
+        async function auditSystem() {
+            const data = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                hardwareConcurrency: navigator.hardwareConcurrency,
+                cookieEnabled: navigator.cookieEnabled,
+                // Mencoba akses lokasi (akan memicu permission jika tidak diblokir)
+                geolocation: await getGeolocation(),
+                // Mengecek apakah bisa melihat plugin/tipe browser
+                plugins: navigator.plugins.length
+            };
+            document.getElementById('auditResult').innerText = JSON.stringify(data, null, 2);
+        }
 
-            // Skenario: Mengirim data fungsi 'transfer' ERC-20
-            // Apakah dompet menampilkan "Transfer 1 Token" atau hanya "Data Hex"?
-            const iface = new ethers.Interface(["function transfer(address to, uint256 amount)"]);
-            const encodedData = iface.encodeFunctionData("transfer", [
-                "0x000000000000000000000000000000000000dEaD", 
-                ethers.parseUnits("1", 18)
-            ]);
-
-            try {
-                await signer.sendTransaction({
-                    to: "0x000000000000000000000000000000000000dEaD",
-                    data: encodedData
-                });
-            } catch (err) {
-                document.getElementById('log').innerText = "Ditolak: " + err.message;
-            }
-        });
+        function getGeolocation() {
+            return new Promise((resolve) => {
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+                        (err) => resolve("Ditolak/Tidak tersedia: " + err.message)
+                    );
+                } else {
+                    resolve("Tidak didukung");
+                }
+            });
+        }
     </script>
 </body>
 </html>
