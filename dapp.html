@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uji Coba Integrasi Wallet</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; text-align: center; }
+        button { padding: 10px 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Uji Coba Koneksi dApp</h1>
+    
+    <button id="connectBtn">Hubungkan ke Wallet</button>
+    
+    <div id="output" style="margin-top: 20px;">
+        <p>Status: <span id="status">Terputus</span></p>
+        <p>Alamat: <code id="address">Belum Terhubung</code></p>
+    </div>
+
+    <script>
+        const btn = document.getElementById('connectBtn');
+        const status = document.getElementById('status');
+        const addr = document.getElementById('address');
+
+        btn.addEventListener('click', async () => {
+            if (typeof window.ethereum === 'undefined') {
+                alert("Browser tidak memiliki dApp wallet terpasang.");
+                return;
+            }
+
+            try {
+                // Meminta izin akses akun (EIP-1102)
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                const signer = await provider.getSigner();
+                const address = await signer.getAddress();
+                
+                status.innerText = "Terhubung!";
+                addr.innerText = address;
+            } catch (err) {
+                console.error("User menolak atau terjadi kesalahan:", err);
+                status.innerText = "Koneksi Ditolak";
+            }
+        });
+    </script>
+</body>
+</html>
