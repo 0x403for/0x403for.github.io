@@ -1,32 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Sui/Web3 Security Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        button { padding: 15px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        #log { margin-top: 20px; color: #555; font-family: monospace; }
+    </style>
+</head>
 <body>
-    <h3>Sui Wallet Security Audit: Blind Signing Test</h3>
-    <button id="signBtn">Test Sign Arbitrary Data</button>
+    <h1>Audit Keamanan dApp Browser</h1>
+    <p>Gunakan tombol di bawah untuk mendeteksi provider dan mencoba request.</p>
+    
+    <button id="connectBtn">1. Hubungkan Wallet</button>
+    <button id="signBtn" style="background: #28a745;">2. Uji Blind Sign</button>
+
+    <div id="log"></div>
 
     <script>
-        async function testBlindSign() {
-            // Data ini adalah target yang akan dikirim ke wallet
-            // Dalam serangan nyata, ini adalah payload berbahaya
-            const message = new TextEncoder().encode("Beri saya akses ke token Anda: 0xDEADBEEF...");
+        const log = (msg) => document.getElementById('log').innerHTML += `<p>> ${msg}</p>`;
+        let selectedWallet = null;
+
+        // 1. Deteksi otomatis
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            // Mencoba deteksi umum (Sui atau EVM)
+            if (window.suiWallet) {
+                selectedWallet = window.suiWallet;
+                log("Sui Wallet terdeteksi!");
+                await selectedWallet.requestPermissions([{ parentCapability: 'viewAccount' }]);
+                log("Berhasil terhubung ke Sui Wallet.");
+            } else if (window.ethereum) {
+                selectedWallet = window.ethereum;
+                log("EVM Provider terdeteksi!");
+                await selectedWallet.request({ method: 'eth_requestAccounts' });
+                log("Berhasil terhubung ke EVM Wallet.");
+            } else {
+                log("Error: Tidak ada wallet yang terdeteksi di window object.");
+            }
+        });
+
+        // 2. Eksperimen Blind Sign
+        document.getElementById('signBtn').addEventListener('click', async () => {
+            if (!selectedWallet) return alert("Hubungkan wallet dulu!");
 
             try {
-                // Mengecek apakah wallet terhubung
-                if (!window.suiWallet) return alert("Sui Wallet tidak terdeteksi");
-
-                // Meminta tanda tangan pesan mentah (Blind Signing)
-                const result = await window.suiWallet.signPersonalMessage({
-                    message: message,
-                });
-
-                console.log("Hasil Tanda Tangan:", result);
-                alert("Pesan berhasil ditandatangani. Cek apakah wallet menampilkan isi pesan dengan jelas!");
-            } catch (e) {
-                console.error("Gagal:", e);
+                if (window.suiWallet) {
+                    // Payload Blind Message
+                    const msg = new TextEncoder().encode("Uji coba keamanan: Apakah pesan ini muncul dengan jelas?");
+                    const result = await selectedWallet.signPersonalMessage({ message: msg });
+                    log("Hasil (Sui): " + JSON.stringify(result));
+                } else if (window.ethereum) {
+                    // Payload Blind Message (Hex)
+                    const msg = "0x556a6920636f626120616d616e";
+                    const account = await selectedWallet.request({ method: 'eth_accounts' });
+                    const result = await selectedWallet.request({ 
+                        method: 'personal_sign', 
+                        params: [msg, account[0]] 
+                    });
+                    log("Hasil (EVM): " + result);
+                }
+            } catch (err) {
+                log("Error saat sign: " + err.message);
             }
-        }
-
-        document.getElementById('signBtn').addEventListener('click', testBlindSign);
+        });
     </script>
 </body>
 </html>
