@@ -2,80 +2,35 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Uji Coba Keamanan dApp</title>
+    <title>Uji Transparansi Data Kontrak</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; background-color: #f4f4f9; }
-        .card { border: 1px solid #ccc; padding: 20px; margin-bottom: 15px; border-radius: 8px; background: white; }
-        button { padding: 12px 20px; cursor: pointer; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; }
-        pre { background: #eee; padding: 10px; border-radius: 5px; font-size: 12px; overflow-x: auto; }
-    </style>
 </head>
 <body>
-    <h1>Dashboard Uji Coba Keamanan</h1>
-    
-    <div class="card">
-        <h3>1. Status</h3>
-        <button id="connectBtn">Hubungkan ke Wallet</button>
-        <p>Alamat: <code id="address">-</code></p>
-    </div>
-
-    <div class="card">
-        <h3>2. Pengujian</h3>
-        <button id="signBtn">Uji Tanda Tangan</button>
-        <button id="txBtn">Uji Transaksi (Testnet)</button>
-        <p>Output Log:</p>
-        <pre id="log">-</pre>
-    </div>
+    <h1>Uji Transparansi Transaksi</h1>
+    <p>Pengujian: Apakah dompet bisa membaca data fungsi ini?</p>
+    <button id="testDataBtn">Kirim Data Kompleks</button>
+    <pre id="log">-</pre>
 
     <script>
-        // Fungsi pembantu untuk memperbaiki error BigInt saat JSON.stringify
-        const log = (msg) => {
-            const logElement = document.getElementById('log');
-            const output = typeof msg === 'object' ? 
-                JSON.stringify(msg, (key, value) => 
-                    typeof value === 'bigint' ? value.toString() : value, 2) 
-                : msg;
-            logElement.innerText = output;
-        };
+        document.getElementById('testDataBtn').addEventListener('click', async () => {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
 
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        
-        document.getElementById('connectBtn').addEventListener('click', async () => {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                document.getElementById('address').innerText = accounts[0];
-                log("Berhasil terhubung: " + accounts[0]);
-            } catch (err) {
-                log("Error: " + err.message);
-            }
-        });
+            // Skenario: Mengirim data fungsi 'transfer' ERC-20
+            // Apakah dompet menampilkan "Transfer 1 Token" atau hanya "Data Hex"?
+            const iface = new ethers.Interface(["function transfer(address to, uint256 amount)"]);
+            const encodedData = iface.encodeFunctionData("transfer", [
+                "0x000000000000000000000000000000000000dEaD", 
+                ethers.parseUnits("1", 18)
+            ]);
 
-        document.getElementById('signBtn').addEventListener('click', async () => {
             try {
-                const signer = await provider.getSigner();
-                const msg = "Uji coba keamanan: " + new Date().toISOString();
-                log("Meminta tanda tangan...");
-                const sig = await signer.signMessage(msg);
-                log("Signature: " + sig);
-            } catch (err) {
-                log("Ditolak: " + err.message);
-            }
-        });
-
-        document.getElementById('txBtn').addEventListener('click', async () => {
-            try {
-                const signer = await provider.getSigner();
-                const txParams = {
+                await signer.sendTransaction({
                     to: "0x000000000000000000000000000000000000dEaD",
-                    value: ethers.parseEther("0.000001")
-                };
-                log("Mengirim transaksi...");
-                const tx = await signer.sendTransaction(txParams);
-                log("Transaksi sukses! Hash: " + tx.hash);
+                    data: encodedData
+                });
             } catch (err) {
-                log("Transaksi gagal: " + err.message);
+                document.getElementById('log').innerText = "Ditolak: " + err.message;
             }
         });
     </script>
