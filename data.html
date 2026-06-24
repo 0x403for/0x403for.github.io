@@ -2,40 +2,32 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba Manipulasi Data Kontrak</title>
+    <title>Uji Coba Interaksi Proxy Kontrak</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        textarea { width: 100%; height: 100px; }
-        button { padding: 15px; margin-top: 10px; background: #007bff; color: white; border: none; }
-    </style>
 </head>
 <body>
-    <h1>Pengujian Arbitrary Call</h1>
-    <p>Target Kontrak (Address):</p>
-    <input type="text" id="targetAddr" placeholder="0x..." style="width: 100%;">
+    <h1>Uji Transparansi Proxy</h1>
+    <p>Masukkan Alamat Proxy Kontrak:</p>
+    <input type="text" id="proxyAddr" placeholder="0x..." style="width: 100%;">
     
-    <p>Data Transaksi (Hex Payload):</p>
-    <textarea id="payload" placeholder="0xa9059cbb..."></textarea>
-    
-    <button id="sendBtn">Kirim Transaksi</button>
+    <button id="checkBtn">Simulasi Panggilan Fungsi</button>
+    <p id="info"></p>
 
     <script>
-        document.getElementById('sendBtn').addEventListener('click', async () => {
+        document.getElementById('checkBtn').addEventListener('click', async () => {
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
-            
-            const target = document.getElementById('targetAddr').value;
-            const data = document.getElementById('payload').value;
+            const proxyAddress = document.getElementById('proxyAddr').value;
 
             try {
+                // Simulasi memanggil fungsi 'upgradeTo' atau fungsi logika di Proxy
                 const tx = await signer.sendTransaction({
-                    to: target,
-                    data: data // Payload inilah yang akan dieksekusi oleh kontrak
+                    to: proxyAddress,
+                    data: "0x3659cfe6" // Contoh selector fungsi
                 });
-                alert("Transaksi berhasil dikirim. Hash: " + tx.hash);
+                document.getElementById('info').innerText = "Transaksi terkirim: " + tx.hash;
             } catch (err) {
-                console.error("Kesalahan:", err);
+                console.error(err);
             }
         });
     </script>
