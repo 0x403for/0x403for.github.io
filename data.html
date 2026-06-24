@@ -2,32 +2,83 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba Interaksi Proxy Kontrak</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Security PoC Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .card { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 12px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        button { padding: 12px 20px; cursor: pointer; margin: 5px; border-radius: 6px; border: none; background: #007bff; color: white; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        pre { background: #eee; padding: 10px; border-radius: 5px; font-size: 12px; overflow-x: auto; }
+    </style>
 </head>
 <body>
-    <h1>Uji Transparansi Proxy</h1>
-    <p>Masukkan Alamat Proxy Kontrak:</p>
-    <input type="text" id="proxyAddr" placeholder="0x..." style="width: 100%;">
+    <h1>Security Boundary PoC</h1>
     
-    <button id="checkBtn">Simulasi Panggilan Fungsi</button>
-    <p id="info"></p>
+    <div class="card">
+        <h3>1. Status & Jaringan</h3>
+        <p>Status: <span id="status">Terputus</span></p>
+        <p>Alamat: <code id="address">-</code></p>
+        <p>Chain ID: <code id="chainId">-</code></p>
+        <button id="connectBtn">Hubungkan ke Wallet</button>
+    </div>
+
+    <div class="card">
+        <h3>2. Pengujian Security Boundary</h3>
+        <button id="signBtn">Uji Tanda Tangan (EIP-191)</button>
+        <button id="txBtn">Uji Transaksi (Testnet)</button>
+        <div id="logArea" style="margin-top: 15px;">
+            <strong>Output Log:</strong>
+            <pre id="log">-</pre>
+        </div>
+    </div>
 
     <script>
-        document.getElementById('checkBtn').addEventListener('click', async () => {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            const proxyAddress = document.getElementById('proxyAddr').value;
-
+        const log = (msg) => document.getElementById('log').innerText = msg;
+        
+        document.getElementById('connectBtn').addEventListener('click', async () => {
             try {
-                // Simulasi memanggil fungsi 'upgradeTo' atau fungsi logika di Proxy
-                const tx = await signer.sendTransaction({
-                    to: proxyAddress,
-                    data: "0x3659cfe6" // Contoh selector fungsi
-                });
-                document.getElementById('info').innerText = "Transaksi terkirim: " + tx.hash;
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const network = await window.ethereum.request({ method: 'eth_chainId' });
+                document.getElementById('status').innerText = "Terhubung!";
+                document.getElementById('address').innerText = accounts[0];
+                document.getElementById('chainId').innerText = network;
+                log("Berhasil terhubung ke: " + accounts[0]);
             } catch (err) {
-                console.error(err);
+                log("Error: " + err.message);
+            }
+        });
+
+        document.getElementById('signBtn').addEventListener('click', async () => {
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                const msg = "Uji coba keamanan: " + new Date().toISOString();
+                log("Meminta tanda tangan untuk: " + msg);
+                const sig = await signer.signMessage(msg);
+                log("Signature: " + sig);
+            } catch (err) {
+                log("Ditolak: " + err.message);
+            }
+        });
+
+        document.getElementById('txBtn').addEventListener('click', async () => {
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                
+                const txParams = {
+                    to: "0x000000000000000000000000000000000000dEaD",
+                    value: ethers.parseEther("0.000001"),
+                    data: "0x" 
+                };
+
+                log("Mengirim transaksi: " + JSON.stringify(txParams, null, 2));
+                const tx = await signer.sendTransaction(txParams);
+                log("Transaksi sukses! Hash: " + tx.hash);
+            } catch (err) {
+                log("Transaksi gagal: " + err.message);
             }
         });
     </script>
