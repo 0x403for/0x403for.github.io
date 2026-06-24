@@ -2,50 +2,45 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Kebocoran Informasi</title>
+    <title>Uji Sandbox WebView</title>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
-        .card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
-        pre { background: #eee; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 13px; }
-        button { padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .card { border: 2px dashed #dc3545; padding: 20px; background: white; }
+        iframe { width: 100%; height: 150px; border: 1px solid #ccc; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>Audit Kebocoran Informasi dApp</h1>
-    <button onclick="auditSystem()">Audit Sistem</button>
+    <h1>Audit Sandbox WebView</h1>
+    <p>Status: <span id="status">Menguji...</span></p>
+
     <div class="card">
-        <h3>Hasil Audit:</h3>
-        <pre id="auditResult">-</pre>
+        <h3>Iframe Pihak Ketiga:</h3>
+        <iframe id="testIframe" src="about:blank"></iframe>
     </div>
 
     <script>
-        async function auditSystem() {
-            const data = {
-                userAgent: navigator.userAgent,
-                platform: navigator.platform,
-                language: navigator.language,
-                hardwareConcurrency: navigator.hardwareConcurrency,
-                cookieEnabled: navigator.cookieEnabled,
-                // Mencoba akses lokasi (akan memicu permission jika tidak diblokir)
-                geolocation: await getGeolocation(),
-                // Mengecek apakah bisa melihat plugin/tipe browser
-                plugins: navigator.plugins.length
-            };
-            document.getElementById('auditResult').innerText = JSON.stringify(data, null, 2);
-        }
-
-        function getGeolocation() {
-            return new Promise((resolve) => {
-                if ("geolocation" in navigator) {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-                        (err) => resolve("Ditolak/Tidak tersedia: " + err.message)
-                    );
-                } else {
-                    resolve("Tidak didukung");
-                }
-            });
-        }
+        // Kita mencoba mengecek apakah iframe bisa mengakses window.ethereum dari halaman induk
+        const iframe = document.getElementById('testIframe');
+        
+        // Memuat konten sederhana ke dalam iframe
+        iframe.srcdoc = `
+            <html>
+                <body>
+                    <p>Iframe mencoba akses window.ethereum...</p>
+                    <script>
+                        try {
+                            if (window.parent.ethereum) {
+                                document.body.innerHTML += "<h3 style='color:red'>CELAH DITEMUKAN: Iframe bisa mengakses ethereum!</h3>";
+                            } else {
+                                document.body.innerHTML += "<h3 style='color:green'>Sandbox Aman: Akses terisolasi.</h3>";
+                            }
+                        } catch(e) {
+                            document.body.innerHTML += "<h3>Sandbox Aman (Terjadi error akses)</h3>";
+                        }
+                    <\/script>
+                </body>
+            </html>
+        `;
     </script>
 </body>
 </html>
