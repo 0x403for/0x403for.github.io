@@ -2,48 +2,41 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Bypass Blacklist</title>
+    <title>Audit Keamanan Web3: Provider Validation</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        .card { border: 1px solid #007bff; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        body { font-family: sans-serif; padding: 20px; background-color: #f8f9fa; }
+        .log-box { background: #212529; color: #00ff00; padding: 15px; border-radius: 5px; height: 300px; overflow-y: auto; font-family: monospace; }
+        .btn { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
-    <h1>Audit Bypass Keamanan URL</h1>
-    
-    <div class="card">
-        <h3>1. Uji Double URL Encoding</h3>
-        <p>Apakah dompet memblokir situs jika URL di-encode dua kali?</p>
-        <button onclick="testDoubleEncoding()">Tes Encoding</button>
-    </div>
-
-    <div class="card">
-        <h3>2. Uji Open Redirect</h3>
-        <p>Mengalihkan melalui domain terpercaya (misal: google.com) untuk menghindari filter.</p>
-        <button onclick="testRedirect()">Tes Redirect</button>
-    </div>
+    <h2>Audit Integritas Provider</h2>
+    <p>Uji apakah <code>window.ethereum</code> dapat diakses oleh konteks terisolasi:</p>
+    <button class="btn" onclick="runAudit()">Jalankan Audit Provider</button>
+    <div class="log-box" id="logs"></div>
 
     <script>
-        // Teknik 1: Double URL Encoding
-        // Target: %68%74%74%70... (encoded http)
-        function testDoubleEncoding() {
-            const target = "https://www.google.com";
-            // Contoh payload double encoded: %2568%2574%2574%2570...
-            const doubleEncoded = encodeURIComponent(encodeURIComponent(target));
-            alert("Mencoba navigasi dengan double encoding payload: " + doubleEncoded);
-            window.location.href = doubleEncoded;
-        }
+        const log = (msg) => document.getElementById('logs').innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
 
-        // Teknik 2: Open Redirect (Menggunakan parameter URL)
-        // Banyak filter hanya memeriksa domain utama (google.com) dan mengabaikan parameter 'q' atau 'url'
-        function testRedirect() {
-            const safeDomain = "https://www.google.com/url?q=";
-            const maliciousSite = "https://malicious-site.example.com";
-            const fullUrl = safeDomain + encodeURIComponent(maliciousSite);
+        function runAudit() {
+            log("Memulai audit provider...");
             
-            alert("Mencoba navigasi via Open Redirect: " + fullUrl);
-            window.location.href = fullUrl;
+            // Skenario Nyata: Menguji apakah akses provider bersifat global atau terbatas pada origin
+            if (window.ethereum) {
+                log("Objek ethereum ditemukan.");
+                
+                // Mencoba melakukan request tanpa interaksi pengguna langsung
+                window.ethereum.request({ method: 'eth_accounts' })
+                    .then(accounts => {
+                        log("BERHASIL MENGAKSES AKUN: " + accounts[0]);
+                        log("WARNING: Akses akun didapat tanpa gating origin yang ketat.");
+                    })
+                    .catch(err => {
+                        log("Akses ditolak (Keamanan berfungsi): " + err.message);
+                    });
+            } else {
+                log("Provider ethereum tidak terdeteksi.");
+            }
         }
     </script>
 </body>
