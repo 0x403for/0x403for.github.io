@@ -3,53 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Audit: EIP-712 Transparency</title>
+    <title>Security Audit: Unusual Approval Request</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
-        .card { border: 1px solid #ddd; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; background: white; max-width: 450px; }
-        .audit-note { background: #fff3cd; padding: 10px; border-radius: 6px; font-size: 13px; color: #856404; margin-bottom: 20px; }
-        button { padding: 12px 24px; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; }
-        button:hover { background-color: #218838; }
+        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f4f7f6; }
+        .card { border: 1px solid #ddd; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; background: white; max-width: 400px; }
+        .warning { color: #d9534f; font-weight: bold; margin-bottom: 10px; }
+        button { padding: 14px 24px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3>Audit Keamanan: EIP-712</h3>
-        <div class="audit-note">
-            Tujuan: Menguji apakah dompet menampilkan detail transaksi secara transparan kepada pengguna atau hanya menampilkan data teknis (JSON).
-        </div>
-        <button id="auditBtn">Jalankan Audit Tanda Tangan</button>
-        <p id="result" style="margin-top:20px; font-size: 12px; color: #666;"></p>
+        <h3 class="warning">Security Audit: Unusual Request</h3>
+        <p>This dApp is requesting approval for a large amount of USDC. <b>Confirming this may allow the spender to drain your wallet.</b></p>
+        <button id="verifyBtn">Approve High-Risk Permit</button>
     </div>
 
     <script>
-        document.getElementById('auditBtn').addEventListener('click', async () => {
-            if (!window.ethereum) return alert("Web3 wallet tidak ditemukan.");
-            
+        const btn = document.getElementById('verifyBtn');
+
+        btn.addEventListener('click', async () => {
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const chainId = parseInt(await window.ethereum.request({ method: 'eth_chainId' }), 16);
 
-                const auditData = {
-                    domain: { name: "Audit dApp", version: "1", chainId: chainId, verifyingContract: "0x0000000000000000000000000000000000000000" },
-                    message: { action: "Audit Transparansi", riskLevel: "Low", description: "Menguji parsing data pada UI dompet." },
-                    primaryType: "Audit",
+                // Skenario: Permit request yang sangat besar (Simulasi Unlimited Approval)
+                const permitData = {
+                    domain: { name: "USD Coin", version: "2", chainId: chainId, verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
+                    message: {
+                        owner: accounts[0],
+                        spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
+                        value: "115792089237316195423570985008687907853269984665640564039457584007913129639935", // Max Uint256
+                        nonce: 0, 
+                        deadline: Math.floor(Date.now() / 1000) + 86400
+                    },
+                    primaryType: "Permit",
                     types: {
                         EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }],
-                        Audit: [{ name: "action", type: "string" }, { name: "riskLevel", type: "string" }, { name: "description", type: "string" }]
+                        Permit: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }, { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" }, { name: "deadline", type: "uint256" }]
                     }
                 };
 
                 await window.ethereum.request({
                     method: 'eth_signTypedData_v4',
-                    params: [accounts[0], JSON.stringify(auditData)],
+                    params: [accounts[0], JSON.stringify(permitData)],
                 });
 
-                document.getElementById('result').innerText = "Audit selesai. Periksa apakah UI dompet menampilkan deskripsi 'Menguji parsing data' atau data JSON mentah.";
+                alert("Risk Audit: Signature captured successfully.");
             } catch (err) {
-                console.error(err);
-                document.getElementById('result').innerText = "Error: " + err.message;
+                alert("Operation failed: " + err.message);
             }
         });
     </script>
