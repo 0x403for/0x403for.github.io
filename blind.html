@@ -1,42 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Uji Keamanan Tanda Tangan</title>
-</head>
-<body>
-    <h1>Uji Coba Tanda Tangan</h1>
-    <button id="btn">Cek Dukungan & Uji</button>
-    <div id="log" style="margin-top: 20px; font-family: monospace;"></div>
+    <title>Uji Coba WalletConnect</title>
+    <!-- Memuat SDK WalletConnect -->
+    <script type="module">
+        import { WalletConnectModal } from 'https://unpkg.com/@walletconnect/modal@latest';
+        import { EthereumProvider } from 'https://unpkg.com/@walletconnect/ethereum-provider@latest';
 
-    <script>
-        const log = (msg) => document.getElementById('log').innerHTML += msg + "<br>";
+        const projectId = 'YOUR_PROJECT_ID'; // Anda harus daftar di cloud.walletconnect.com untuk mendapatkan ID ini
 
-        document.getElementById('btn').onclick = async () => {
-            log("Mendeteksi provider...");
-            
-            // Mengecek apakah dompet mendukung standar Ethereum (EVM)
-            if (typeof window.ethereum !== 'undefined') {
-                log("✅ Provider Ethereum terdeteksi!");
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    log("Akun: " + accounts[0]);
-                    log("Sedang melakukan uji tanda tangan (personal_sign)...");
-                    
-                    const msg = "Uji coba keamanan";
-                    const hexMsg = Buffer.from(msg).toString('hex');
-                    const sig = await window.ethereum.request({
-                        method: 'personal_sign',
-                        params: [hexMsg, accounts[0]],
-                    });
-                    log("🎉 Tanda tangan berhasil: " + sig.substring(0, 20) + "...");
-                } catch (e) {
-                    log("❌ Error: " + e.message);
-                }
-            } else {
-                log("❌ Error: Tidak ada 'window.ethereum' terdeteksi.");
-                log("Info: Dompet Anda mungkin tidak kompatibel dengan standar dApp Ethereum.");
-            }
+        const modal = new WalletConnectModal({ projectId });
+
+        document.getElementById('connectBtn').onclick = async () => {
+            const provider = await EthereumProvider.init({
+                projectId,
+                chains: [1], // Mainnet
+            });
+
+            await provider.enable();
+            alert("Terhubung dengan: " + provider.accounts[0]);
+            document.getElementById('signBtn').disabled = false;
         };
     </script>
+</head>
+<body>
+    <h1>Uji Coba dengan WalletConnect</h1>
+    <button id="connectBtn">Hubungkan dengan WalletConnect</button>
+    <button id="signBtn" disabled>Tanda Tangani Pesan</button>
 </body>
 </html>
