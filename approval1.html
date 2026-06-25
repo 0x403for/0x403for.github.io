@@ -2,41 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Audit: Invalid Permit Test</title>
+    <title>Audit Keamanan: Validasi Kontrak</title>
     <style>
-        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f4f7f6; }
-        .card { border: 1px solid #ddd; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; background: white; max-width: 400px; }
-        .warning { color: #d9534f; font-weight: bold; margin-bottom: 10px; }
-        button { padding: 14px 24px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; }
+        body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
+        .card { border: 1px solid #dee2e6; padding: 25px; border-radius: 10px; background: white; max-width: 400px; text-align: center; }
+        .status { margin-top: 15px; font-weight: bold; color: #333; }
+        button { padding: 12px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3 class="warning">Security Audit: Invalid Permit Test</h3>
-        <p>This audit test is designed to trigger an invalid permit signature to evaluate error handling.</p>
-        <button id="verifyBtn">Approve High-Risk Permit</button>
+        <h3>Uji Validasi Kontrak</h3>
+        <p>Audit ini akan mengirimkan data *Permit* dengan <code>nonce</code> tidak valid untuk menguji respons error aplikasi.</p>
+        <button id="verifyBtn">Mulai Uji Transaksi</button>
+        <div id="status" class="status"></div>
     </div>
 
     <script>
-        const btn = document.getElementById('verifyBtn');
-
-        btn.addEventListener('click', async () => {
+        document.getElementById('verifyBtn').addEventListener('click', async () => {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerText = "Memproses...";
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const chainId = parseInt(await window.ethereum.request({ method: 'eth_chainId' }), 16);
 
-                // Skenario: Menggunakan nonce yang tidak valid (999) 
-                // untuk memastikan transaksi akan ditolak oleh kontrak pintar USDC
                 const permitData = {
                     domain: { name: "USD Coin", version: "2", chainId: chainId, verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
                     message: {
                         owner: accounts[0],
                         spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
-                        value: "115792089237316195423570985008687907853269984665640564039457584007913129639935",
-                        nonce: 999, // Memaksa nonce tidak valid agar transaksi gagal di level kontrak
-                        deadline: Math.floor(Date.now() / 1000) + 86400
+                        value: "1000000",
+                        nonce: 999, // Memicu kegagalan karena Nonce tidak valid
+                        deadline: Math.floor(Date.now() / 1000) + 3600
                     },
                     primaryType: "Permit",
                     types: {
@@ -49,10 +47,9 @@
                     method: 'eth_signTypedData_v4',
                     params: [accounts[0], JSON.stringify(permitData)],
                 });
-
-                alert("Audit: Signature requested.");
+                statusDiv.innerText = "Audit Selesai.";
             } catch (err) {
-                alert("Audit: Operation handled: " + err.message);
+                statusDiv.innerText = "Hasil Audit: " + err.message;
             }
         });
     </script>
