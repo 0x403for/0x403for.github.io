@@ -1,50 +1,40 @@
 <!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Uji Coba Tanda Tangan dApp</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-</head>
+<html>
 <body>
-    <h1>Pengujian Keamanan Tanda Tangan</h1>
-    <button id="connectBtn">1. Hubungkan Dompet</button>
-    <hr>
-    <h3>Uji Tanda Tangan (Simulasi)</h3>
-    <button id="signPlainBtn" disabled>2a. Personal Sign (Raw Text)</button>
-    <button id="signTypedBtn" disabled>2b. EIP-712 Sign (Structured Data)</button>
+    <h1>Uji Coba Tanda Tangan</h1>
+    <button id="connectBtn">Hubungkan Dompet</button>
+    <button id="signBtn" disabled>Tanda Tangani Pesan</button>
+    <p id="status">Status: Belum terhubung</p>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script>
         let provider, signer;
 
         document.getElementById('connectBtn').onclick = async () => {
-            if (window.ethereum) {
-                provider = new ethers.providers.Web3Provider(window.ethereum);
+            // Deteksi provider (MetaMask atau dompet EVM lainnya)
+            const ethProvider = window.ethereum || window.web3?.currentProvider;
+            
+            if (ethProvider) {
+                provider = new ethers.providers.Web3Provider(ethProvider);
                 await provider.send("eth_requestAccounts", []);
                 signer = provider.getSigner();
-                document.getElementById('signPlainBtn').disabled = false;
-                document.getElementById('signTypedBtn').disabled = false;
-                alert("Dompet terhubung!");
+                document.getElementById('status').innerText = "Status: Terhubung (EVM)";
+                document.getElementById('signBtn').disabled = false;
+            } else {
+                alert("Tidak ada provider Ethereum terdeteksi. Apakah dompet Anda berbasis EVM?");
             }
         };
 
-        // 2a. Skenario Blind Signing (Raw Text)
-        document.getElementById('signPlainBtn').onclick = async () => {
-            const message = "Apakah Anda setuju memberikan akses penuh ke aset Anda?";
-            const signature = await signer.signMessage(message);
-            console.log("Personal Signature:", signature);
-            alert("Tanda tangan (Personal) selesai. Cek konsol!");
-        };
-
-        // 2b. Skenario EIP-712 (Structured Data - Lebih Aman)
-        document.getElementById('signTypedBtn').onclick = async () => {
-            const domain = { name: 'Test Dapp', version: '1', chainId: 1, verifyingContract: '0x0000000000000000000000000000000000000000' };
-            const types = { Mail: [{ name: 'from', type: 'address' }, { name: 'message', type: 'string' }] };
-            const value = { from: await signer.getAddress(), message: 'Halo, ini pesan terstruktur!' };
-            
-            // Menggunakan fungsi provider untuk signTypedData
-            const signature = await provider.send('eth_signTypedData_v4', [await signer.getAddress(), JSON.stringify({ domain, types, primaryType: 'Mail', message: value })]);
-            console.log("EIP-712 Signature:", signature);
-            alert("Tanda tangan (Typed Data) selesai. Cek konsol!");
+        document.getElementById('signBtn').onclick = async () => {
+            try {
+                const message = "Ini adalah pesan uji coba keamanan.";
+                const signature = await signer.signMessage(message);
+                console.log("Tanda tangan:", signature);
+                alert("Berhasil! Tanda tangan telah dibuat.");
+            } catch (err) {
+                console.error(err);
+                alert("Gagal menandatangani: " + err.message);
+            }
         };
     </script>
 </body>
