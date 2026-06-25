@@ -2,61 +2,50 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Skenario Uji Audit Keamanan</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        button { display: block; width: 100%; padding: 15px; margin-bottom: 10px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; color: white; }
-        .btn-connect { background: #6c757d; }
-        .btn-sign { background: #007bff; }
-        .btn-approval { background: #dc3545; }
-        #log { margin-top: 20px; padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; font-family: monospace; }
-    </style>
+    <title>Uji Coba Tanda Tangan dApp</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 </head>
 <body>
-    <h1>Audit Keamanan dApp Browser</h1>
-    <button id="connectBtn" class="btn-connect">1. Hubungkan Wallet</button>
-    <button id="signBtn" class="btn-sign">2. Uji Blind Sign (Personal Sign)</button>
-    <button id="approvalBtn" class="btn-approval">3. Uji Token Approval Phishing</button>
-
-    <div id="log">Log aktivitas...</div>
+    <h1>Pengujian Keamanan Tanda Tangan</h1>
+    <button id="connectBtn">1. Hubungkan Dompet</button>
+    <hr>
+    <h3>Uji Tanda Tangan (Simulasi)</h3>
+    <button id="signPlainBtn" disabled>2a. Personal Sign (Raw Text)</button>
+    <button id="signTypedBtn" disabled>2b. EIP-712 Sign (Structured Data)</button>
 
     <script>
-        const log = (msg) => document.getElementById('log').innerHTML += `<p>> ${msg}</p>`;
-        let account = null;
+        let provider, signer;
 
-        // Hubungkan Wallet
-        document.getElementById('connectBtn').addEventListener('click', async () => {
+        document.getElementById('connectBtn').onclick = async () => {
             if (window.ethereum) {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                account = accounts[0];
-                log("Terhubung: " + account);
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                document.getElementById('signPlainBtn').disabled = false;
+                document.getElementById('signTypedBtn').disabled = false;
+                alert("Dompet terhubung!");
             }
-        });
+        };
 
-        // Skenario 1: Blind Sign
-        document.getElementById('signBtn').addEventListener('click', async () => {
-            const msg = "0x556a6920636f626120616d616e"; // Data Hex Mentah
-            const result = await window.ethereum.request({ method: 'personal_sign', params: [msg, account] });
-            log("Hasil Sign: " + result);
-        });
+        // 2a. Skenario Blind Signing (Raw Text)
+        document.getElementById('signPlainBtn').onclick = async () => {
+            const message = "Apakah Anda setuju memberikan akses penuh ke aset Anda?";
+            const signature = await signer.signMessage(message);
+            console.log("Personal Signature:", signature);
+            alert("Tanda tangan (Personal) selesai. Cek konsol!");
+        };
 
-        // Skenario 2: Approval Phishing (Simulasi)
-        document.getElementById('approvalBtn').addEventListener('click', async () => {
-            // Data transaksi untuk memberikan izin (Approval) ke alamat penyerang
-            const txParams = {
-                to: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Contoh alamat penyerang
-                from: account,
-                data: '0x095ea7b3000000000000000000000000dac17f958d2ee523a2206206994597c13d831ec7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', // Data approval USDC
-                value: '0x0'
-            };
+        // 2b. Skenario EIP-712 (Structured Data - Lebih Aman)
+        document.getElementById('signTypedBtn').onclick = async () => {
+            const domain = { name: 'Test Dapp', version: '1', chainId: 1, verifyingContract: '0x0000000000000000000000000000000000000000' };
+            const types = { Mail: [{ name: 'from', type: 'address' }, { name: 'message', type: 'string' }] };
+            const value = { from: await signer.getAddress(), message: 'Halo, ini pesan terstruktur!' };
             
-            try {
-                const txHash = await window.ethereum.request({ method: 'eth_sendTransaction', params: [txParams] });
-                log("Tx Hash: " + txHash);
-            } catch (err) {
-                log("Error: " + err.message);
-            }
-        });
+            // Menggunakan fungsi provider untuk signTypedData
+            const signature = await provider.send('eth_signTypedData_v4', [await signer.getAddress(), JSON.stringify({ domain, types, primaryType: 'Mail', message: value })]);
+            console.log("EIP-712 Signature:", signature);
+            alert("Tanda tangan (Typed Data) selesai. Cek konsol!");
+        };
     </script>
 </body>
 </html>
