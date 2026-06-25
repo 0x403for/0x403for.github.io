@@ -24,11 +24,12 @@
 
         btn.addEventListener('click', async () => {
             try {
+                // Meminta akses ke akun dompet
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
                 const chainId = parseInt(chainIdHex, 16);
 
-                // Max Uint256 value as a string for precision
+                // Max Uint256 value (Nilai tak terbatas untuk approval)
                 const MAX_UINT256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
                 const permitData = {
@@ -36,12 +37,12 @@
                         name: "USD Coin",
                         version: "2",
                         chainId: chainId,
-                        verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+                        verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" // Kontrak USDC Mainnet
                     },
                     message: {
                         owner: accounts[0],
-                        spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
-                        value: MAX_UINT256, // Menggunakan nilai tak terbatas
+                        spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", // Contoh Spender (misal: Uniswap Router)
+                        value: MAX_UINT256, 
                         nonce: 0, 
                         deadline: Math.floor(Date.now() / 1000) + 3600
                     },
@@ -59,6 +60,7 @@
                     }
                 };
 
+                // Menandatangani data (Typed Data)
                 const signature = await window.ethereum.request({
                     method: 'eth_signTypedData_v4',
                     params: [accounts[0], JSON.stringify(permitData)],
