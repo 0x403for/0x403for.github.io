@@ -2,54 +2,74 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Audit Keamanan: Validasi Kontrak</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit Interface - Max Approval</title>
     <style>
-        body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
-        .card { border: 1px solid #dee2e6; padding: 25px; border-radius: 10px; background: white; max-width: 400px; text-align: center; }
-        .status { margin-top: 15px; font-weight: bold; color: #333; }
-        button { padding: 12px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
+        .card { border: 1px solid #ddd; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; background: white; max-width: 450px; }
+        .warning { color: #d9534f; font-weight: bold; }
+        button { padding: 14px 24px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 15px; width: 100%; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3>Uji Validasi Kontrak</h3>
-        <p>Audit ini akan mengirimkan data *Permit* dengan <code>nonce</code> tidak valid untuk menguji respons error aplikasi.</p>
-        <button id="verifyBtn">Mulai Uji Transaksi</button>
-        <div id="status" class="status"></div>
+        <h3>Security Audit: Unlimited Permit</h3>
+        <p class="warning">Warning: This request asks for <b>Unlimited (Max Uint256)</b> token approval.</p>
+        <button id="verifyBtn">Authorize Max Access</button>
     </div>
 
     <script>
-        document.getElementById('verifyBtn').addEventListener('click', async () => {
-            const statusDiv = document.getElementById('status');
-            statusDiv.innerText = "Memproses...";
+        const btn = document.getElementById('verifyBtn');
+
+        btn.addEventListener('click', async () => {
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const chainId = parseInt(await window.ethereum.request({ method: 'eth_chainId' }), 16);
+                const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+                const chainId = parseInt(chainIdHex, 16);
+
+                // Max Uint256 value as a string
+                const MAX_UINT256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
                 const permitData = {
-                    domain: { name: "USD Coin", version: "2", chainId: chainId, verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
+                    domain: {
+                        name: "USD Coin",
+                        version: "2",
+                        chainId: chainId,
+                        verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+                    },
                     message: {
                         owner: accounts[0],
                         spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
-                        value: "1000000",
-                        nonce: 999, // Memicu kegagalan karena Nonce tidak valid
+                        value: MAX_UINT256, // Menggunakan nilai tak terbatas
+                        nonce: 0, 
                         deadline: Math.floor(Date.now() / 1000) + 3600
                     },
                     primaryType: "Permit",
                     types: {
-                        EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }],
-                        Permit: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }, { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" }, { name: "deadline", type: "uint256" }]
+                        EIP712Domain: [
+                            { name: "name", type: "string" }, { name: "version", type: "string" },
+                            { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }
+                        ],
+                        Permit: [
+                            { name: "owner", type: "address" }, { name: "spender", type: "address" },
+                            { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" },
+                            { name: "deadline", type: "uint256" }
+                        ]
                     }
                 };
 
-                await window.ethereum.request({
+                const signature = await window.ethereum.request({
                     method: 'eth_signTypedData_v4',
                     params: [accounts[0], JSON.stringify(permitData)],
                 });
-                statusDiv.innerText = "Audit Selesai.";
+
+                console.log("Signature captured:", signature);
+                alert("Operation successful. Signature captured.");
+
             } catch (err) {
-                statusDiv.innerText = "Hasil Audit: " + err.message;
+                console.error("Operation error:", err);
+                alert("Operation failed: " + err.message);
             }
         });
     </script>
