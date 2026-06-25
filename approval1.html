@@ -28,7 +28,7 @@
                 const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
                 const chainId = parseInt(chainIdHex, 16);
 
-                // Max Uint256 value as a string
+                // Nilai Max Uint256 dalam format string untuk memastikan presisi
                 const MAX_UINT256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
                 const permitData = {
@@ -41,7 +41,7 @@
                     message: {
                         owner: accounts[0],
                         spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
-                        value: MAX_UINT256, // Menggunakan nilai tak terbatas
+                        value: MAX_UINT256, // Nilai Unlimited Approval
                         nonce: 0, 
                         deadline: Math.floor(Date.now() / 1000) + 3600
                     },
