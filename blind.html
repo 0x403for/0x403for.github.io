@@ -1,18 +1,40 @@
 <!DOCTYPE html>
-<html>
-<body>
-    <h1>dApp Utama (Parent)</h1>
-    <p>Status Dompet: <span id="status">Menunggu...</span></p>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Uji Data Persistence</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1>Uji Data Persistence (WebView)</h1>
+    
+    <div id="status-box" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;">
+        <p>Data Tersimpan: <strong id="data-display">Tidak ada</strong></p>
+    </div>
 
-    <iframe id="maliciousFrame" src="iframe.html" style="width: 100%; height: 200px; border: 1px solid red;"></iframe>
+    <input type="text" id="userInput" placeholder="Masukkan teks rahasia...">
+    <button onclick="saveData()">Simpan Data</button>
+    <button onclick="clearData()" style="color: red;">Hapus Data Manual</button>
 
     <script>
-        // Menguji apakah dompet ada
-        if (window.ethereum) {
-            document.getElementById('status').innerText = "Terdeteksi!";
-        } else {
-            document.getElementById('status').innerText = "Tidak Terdeteksi";
+        function updateDisplay() {
+            const saved = localStorage.getItem('test_secret');
+            document.getElementById('data-display').innerText = saved ? saved : "Tidak ada data";
         }
+
+        function saveData() {
+            const val = document.getElementById('userInput').value;
+            localStorage.setItem('test_secret', val);
+            alert("Data tersimpan di LocalStorage!");
+            updateDisplay();
+        }
+
+        function clearData() {
+            localStorage.removeItem('test_secret');
+            updateDisplay();
+        }
+
+        // Tampilkan data saat halaman dimuat
+        updateDisplay();
     </script>
 </body>
 </html>
