@@ -1,31 +1,18 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Uji Coba WalletConnect</title>
-    <!-- Memuat SDK WalletConnect -->
-    <script type="module">
-        import { WalletConnectModal } from 'https://unpkg.com/@walletconnect/modal@latest';
-        import { EthereumProvider } from 'https://unpkg.com/@walletconnect/ethereum-provider@latest';
-
-        const projectId = 'YOUR_PROJECT_ID'; // Anda harus daftar di cloud.walletconnect.com untuk mendapatkan ID ini
-
-        const modal = new WalletConnectModal({ projectId });
-
-        document.getElementById('connectBtn').onclick = async () => {
-            const provider = await EthereumProvider.init({
-                projectId,
-                chains: [1], // Mainnet
-            });
-
-            await provider.enable();
-            alert("Terhubung dengan: " + provider.accounts[0]);
-            document.getElementById('signBtn').disabled = false;
-        };
-    </script>
-</head>
 <body>
-    <h1>Uji Coba dengan WalletConnect</h1>
-    <button id="connectBtn">Hubungkan dengan WalletConnect</button>
-    <button id="signBtn" disabled>Tanda Tangani Pesan</button>
+    <h1>dApp Utama (Parent)</h1>
+    <p>Status Dompet: <span id="status">Menunggu...</span></p>
+
+    <iframe id="maliciousFrame" src="iframe.html" style="width: 100%; height: 200px; border: 1px solid red;"></iframe>
+
+    <script>
+        // Menguji apakah dompet ada
+        if (window.ethereum) {
+            document.getElementById('status').innerText = "Terdeteksi!";
+        } else {
+            document.getElementById('status').innerText = "Tidak Terdeteksi";
+        }
+    </script>
 </body>
 </html>
