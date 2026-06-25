@@ -1,39 +1,40 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Uji Keamanan Tanda Tangan</title>
+</head>
 <body>
     <h1>Uji Coba Tanda Tangan</h1>
-    <button id="connectBtn">Hubungkan Dompet</button>
-    <button id="signBtn" disabled>Tanda Tangani Pesan</button>
-    <p id="status">Status: Belum terhubung</p>
+    <button id="btn">Cek Dukungan & Uji</button>
+    <div id="log" style="margin-top: 20px; font-family: monospace;"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script>
-        let provider, signer;
+        const log = (msg) => document.getElementById('log').innerHTML += msg + "<br>";
 
-        document.getElementById('connectBtn').onclick = async () => {
-            // Deteksi provider (MetaMask atau dompet EVM lainnya)
-            const ethProvider = window.ethereum || window.web3?.currentProvider;
+        document.getElementById('btn').onclick = async () => {
+            log("Mendeteksi provider...");
             
-            if (ethProvider) {
-                provider = new ethers.providers.Web3Provider(ethProvider);
-                await provider.send("eth_requestAccounts", []);
-                signer = provider.getSigner();
-                document.getElementById('status').innerText = "Status: Terhubung (EVM)";
-                document.getElementById('signBtn').disabled = false;
+            // Mengecek apakah dompet mendukung standar Ethereum (EVM)
+            if (typeof window.ethereum !== 'undefined') {
+                log("✅ Provider Ethereum terdeteksi!");
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    log("Akun: " + accounts[0]);
+                    log("Sedang melakukan uji tanda tangan (personal_sign)...");
+                    
+                    const msg = "Uji coba keamanan";
+                    const hexMsg = Buffer.from(msg).toString('hex');
+                    const sig = await window.ethereum.request({
+                        method: 'personal_sign',
+                        params: [hexMsg, accounts[0]],
+                    });
+                    log("🎉 Tanda tangan berhasil: " + sig.substring(0, 20) + "...");
+                } catch (e) {
+                    log("❌ Error: " + e.message);
+                }
             } else {
-                alert("Tidak ada provider Ethereum terdeteksi. Apakah dompet Anda berbasis EVM?");
-            }
-        };
-
-        document.getElementById('signBtn').onclick = async () => {
-            try {
-                const message = "Ini adalah pesan uji coba keamanan.";
-                const signature = await signer.signMessage(message);
-                console.log("Tanda tangan:", signature);
-                alert("Berhasil! Tanda tangan telah dibuat.");
-            } catch (err) {
-                console.error(err);
-                alert("Gagal menandatangani: " + err.message);
+                log("❌ Error: Tidak ada 'window.ethereum' terdeteksi.");
+                log("Info: Dompet Anda mungkin tidak kompatibel dengan standar dApp Ethereum.");
             }
         };
     </script>
