@@ -3,37 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UI Security Audit Tool</title>
+    <title>Security Audit: EIP-712 Transparency</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #f4f4f9; }
-        .card { border: 1px solid #ccc; padding: 25px; border-radius: 12px; background: white; max-width: 450px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .audit-info { background: #e9ecef; padding: 15px; border-radius: 8px; font-size: 14px; margin-bottom: 15px; border-left: 4px solid #007bff; }
-        .btn-audit { background-color: #28a745; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .card { border: 1px solid #ddd; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; background: white; max-width: 450px; }
+        .audit-note { background: #fff3cd; padding: 10px; border-radius: 6px; font-size: 13px; color: #856404; margin-bottom: 20px; }
+        button { padding: 12px 24px; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; }
+        button:hover { background-color: #218838; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3>Analisis Keamanan Antarmuka</h3>
-        <div class="audit-info">
-            <p><strong>Tujuan:</strong> Menguji transparansi UI dompet saat menerima permintaan koneksi.</p>
-            <p>Kode ini <strong>TIDAK</strong> akan memicu penandatanganan data atau izin transfer aset. Ini murni untuk audit apakah UI dompet memberikan peringatan yang jelas kepada pengguna tentang asal domain.</p>
+        <h3>Audit Keamanan: EIP-712</h3>
+        <div class="audit-note">
+            Tujuan: Menguji apakah dompet menampilkan detail transaksi secara transparan kepada pengguna atau hanya menampilkan data teknis (JSON).
         </div>
-        <button id="auditBtn" class="btn-audit">Mulai Audit Koneksi</button>
-        <p id="log" style="font-size: 12px; margin-top: 15px; color: #555;"></p>
+        <button id="auditBtn">Jalankan Audit Tanda Tangan</button>
+        <p id="result" style="margin-top:20px; font-size: 12px; color: #666;"></p>
     </div>
 
     <script>
         document.getElementById('auditBtn').addEventListener('click', async () => {
-            const log = document.getElementById('log');
-            if (!window.ethereum) return log.innerText = "Error: Tidak ada penyedia dompet Web3 terdeteksi.";
+            if (!window.ethereum) return alert("Web3 wallet tidak ditemukan.");
             
             try {
-                // Hanya meminta akses koneksi akun (koneksi standar)
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                log.innerText = "Audit Berhasil: Dompet terhubung dengan akun " + accounts[0] + ". Periksa apakah UI dompet menampilkan nama domain ini dengan jelas.";
+                const chainId = parseInt(await window.ethereum.request({ method: 'eth_chainId' }), 16);
+
+                const auditData = {
+                    domain: { name: "Audit dApp", version: "1", chainId: chainId, verifyingContract: "0x0000000000000000000000000000000000000000" },
+                    message: { action: "Audit Transparansi", riskLevel: "Low", description: "Menguji parsing data pada UI dompet." },
+                    primaryType: "Audit",
+                    types: {
+                        EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }],
+                        Audit: [{ name: "action", type: "string" }, { name: "riskLevel", type: "string" }, { name: "description", type: "string" }]
+                    }
+                };
+
+                await window.ethereum.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [accounts[0], JSON.stringify(auditData)],
+                });
+
+                document.getElementById('result').innerText = "Audit selesai. Periksa apakah UI dompet menampilkan deskripsi 'Menguji parsing data' atau data JSON mentah.";
             } catch (err) {
-                log.innerText = "Audit Dihentikan: " + err.message;
+                console.error(err);
+                document.getElementById('result').innerText = "Error: " + err.message;
             }
         });
     </script>
