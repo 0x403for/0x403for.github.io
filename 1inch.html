@@ -2,50 +2,50 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Audit: Sensitive Data Disclosure</title>
+    <title>EIP-1193 Origin Auditor</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-        .card { background: white; padding: 15px; border-radius: 8px; border-left: 5px solid #d9534f; margin-bottom: 10px; }
-        pre { background: #333; color: #fff; padding: 10px; overflow-x: auto; }
-        button { padding: 10px 20px; background: #d9534f; color: white; border: none; cursor: pointer; }
+        body { font-family: sans-serif; padding: 20px; }
+        .log { background: #333; color: #00ff00; padding: 15px; border-radius: 5px; height: 250px; overflow-y: scroll; font-family: monospace; }
+        button { padding: 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h2>Scan LocalStorage untuk Data Sensitif</h2>
-    <p>Skrip ini akan mencari pola yang menyerupai alamat dompet, token, atau sesi API.</p>
-    
-    <button onclick="scanStorage()">Mulai Pindai Penyimpanan</button>
-    <div id="results"></div>
+    <h2>Audit EIP-1193</h2>
+    <p>Menguji apakah Bridge melakukan verifikasi Origin:</p>
+    <button onclick="auditBridge()">Jalankan Audit Origin</button>
+    <div class="log" id="log">Siap...</div>
 
     <script>
-        function scanStorage() {
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = "<h3>Hasil Pemindaian:</h3>";
+        const logBox = document.getElementById('log');
+        function log(m) { logBox.innerHTML += m + "<br>"; }
+
+        async function auditBridge() {
+            log("Memulai Audit EIP-1193...");
             
-            if (localStorage.length === 0) {
-                resultsDiv.innerHTML += "<p>LocalStorage kosong.</p>";
+            if (!window.ethereum) {
+                log("❌ EIP-1193 Provider (window.ethereum) tidak ditemukan.");
                 return;
             }
 
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                const value = localStorage.getItem(key);
-                
-                const card = document.createElement('div');
-                card.className = 'card';
-                
-                // Analisis pola data (Regex sederhana untuk deteksi alamat ETH)
-                const isEthAddress = /^0x[a-fA-F0-9]{40}$/.test(value);
-                const isToken = value.length > 50; // Asumsi token API biasanya panjang
+            // Skenario: Mencoba request akun tanpa persetujuan
+            // Jika bridge aman, ini harus menolak atau memicu pop-up otorisasi
+            try {
+                log("📡 Melakukan request eth_accounts...");
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                log("✅ Hasil eth_accounts: " + JSON.stringify(accounts));
+            } catch (e) {
+                log("🛡️ Ditolak (Sesuai protokol): " + e.message);
+            }
 
-                card.innerHTML = `
-                    <strong>Key:</strong> ${key}<br>
-                    <strong>Value:</strong> <pre>${value}</pre>
-                    <small style="color: ${isEthAddress || isToken ? 'red' : 'green'}">
-                        Status: ${isEthAddress || isToken ? '⚠️ DATA SENSITIF TERDETEKSI' : '✅ Terlihat Aman'}
-                    </small>
-                `;
-                resultsDiv.appendChild(card);
+            // Skenario: Uji Origin Hijacking (Mencoba request tidak valid)
+            try {
+                log("📡 Melakukan request method tidak dikenal...");
+                await window.ethereum.request({ method: 'invalid_method_test' });
+            } catch (e) {
+                log("🛡️ Hasil metode tidak dikenal: " + e.message);
+                if (e.code === 4200) {
+                    log("ℹ️ Bridge mengikuti standar EIP-1193 dengan benar (Method not supported).");
+                }
             }
         }
     </script>
