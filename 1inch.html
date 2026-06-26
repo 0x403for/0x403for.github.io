@@ -2,52 +2,39 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>EIP-1193 Origin Auditor</title>
+    <title>Uji Keamanan: Blind Signing</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .log { background: #333; color: #00ff00; padding: 15px; border-radius: 5px; height: 250px; overflow-y: scroll; font-family: monospace; }
-        button { padding: 10px; margin-top: 10px; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .box { border: 2px solid #ddd; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .alert { background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 15px; }
+        button { padding: 15px 25px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+        .btn-phish { background-color: #d9534f; color: white; }
     </style>
 </head>
 <body>
-    <h2>Audit EIP-1193</h2>
-    <p>Menguji apakah Bridge melakukan verifikasi Origin:</p>
-    <button onclick="auditBridge()">Jalankan Audit Origin</button>
-    <div class="log" id="log">Siap...</div>
+
+    <div class="box">
+        <h3>Simulasi Celah Keamanan: Blind Signing</h3>
+        <p class="alert">
+            <strong>Catatan Audit:</strong> Situs ini mencoba meminta izin untuk mentransfer USDC Anda menggunakan <code>personal_sign</code>. 
+            Dompet yang aman harus memperingatkan bahwa data ini berisi perintah transfer token, bukan sekadar pesan teks biasa.
+        </p>
+        
+        <button class="btn-phish" id="btnExploit">Minta Akses Transfer USDC (Berbahaya)</button>
+    </div>
 
     <script>
-        const logBox = document.getElementById('log');
-        function log(m) { logBox.innerHTML += m + "<br>"; }
-
-        async function auditBridge() {
-            log("Memulai Audit EIP-1193...");
+        document.getElementById('btnExploit').addEventListener('click', async () => {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             
-            if (!window.ethereum) {
-                log("❌ EIP-1193 Provider (window.ethereum) tidak ditemukan.");
-                return;
-            }
-
-            // Skenario: Mencoba request akun tanpa persetujuan
-            // Jika bridge aman, ini harus menolak atau memicu pop-up otorisasi
-            try {
-                log("📡 Melakukan request eth_accounts...");
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                log("✅ Hasil eth_accounts: " + JSON.stringify(accounts));
-            } catch (e) {
-                log("🛡️ Ditolak (Sesuai protokol): " + e.message);
-            }
-
-            // Skenario: Uji Origin Hijacking (Mencoba request tidak valid)
-            try {
-                log("📡 Melakukan request method tidak dikenal...");
-                await window.ethereum.request({ method: 'invalid_method_test' });
-            } catch (e) {
-                log("🛡️ Hasil metode tidak dikenal: " + e.message);
-                if (e.code === 4200) {
-                    log("ℹ️ Bridge mengikuti standar EIP-1193 dengan benar (Method not supported).");
-                }
-            }
-        }
+            // Hex ini adalah pesan: "Transfer 5000 USDC ke Kontrak Penyerang 0xAttacker..."
+            // Dalam serangan nyata, dApp akan menyembunyikan instruksi ini di sini
+            const maliciousData = "0x5472616e736665722035303030205553444320746f20307841747461636b6572"; 
+            
+            // Penggunaan personal_sign untuk transaksi sensitif adalah celah keamanan tinggi
+            // karena dompet tidak bisa membedakan ini dengan tanda tangan login biasa
+            await window.ethereum.request({ method: 'personal_sign', params: [maliciousData, accounts[0]] });
+        });
     </script>
 </body>
 </html>
