@@ -1,46 +1,53 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>PoC: Insecure Persistence Audit</title>
+    <title>Audit: Sensitive Data Disclosure</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .box { border: 1px solid #333; padding: 15px; margin-bottom: 10px; }
-        #dataDisplay { font-weight: bold; color: #d9534f; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .card { background: white; padding: 15px; border-radius: 8px; border-left: 5px solid #d9534f; margin-bottom: 10px; }
+        pre { background: #333; color: #fff; padding: 10px; overflow-x: auto; }
+        button { padding: 10px 20px; background: #d9534f; color: white; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h2>Uji Nyata: Storage Persistence</h2>
+    <h2>Scan LocalStorage untuk Data Sensitif</h2>
+    <p>Skrip ini akan mencari pola yang menyerupai alamat dompet, token, atau sesi API.</p>
     
-    <div class="box">
-        <p>1. Simpan data unik ke storage:</p>
-        <button onclick="injectData()">Simpan Data Unik</button>
-    </div>
-
-    <div class="box">
-        <p>2. Status Data saat ini:</p>
-        <div id="dataDisplay">Memeriksa...</div>
-        <button onclick="refreshData()">Refresh Status</button>
-    </div>
+    <button onclick="scanStorage()">Mulai Pindai Penyimpanan</button>
+    <div id="results"></div>
 
     <script>
-        const STORAGE_KEY = "audit_persistence_key";
+        function scanStorage() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = "<h3>Hasil Pemindaian:</h3>";
+            
+            if (localStorage.length === 0) {
+                resultsDiv.innerHTML += "<p>LocalStorage kosong.</p>";
+                return;
+            }
 
-        function injectData() {
-            const uniqueId = "SessionID-" + Math.floor(Math.random() * 1000000);
-            localStorage.setItem(STORAGE_KEY, uniqueId);
-            alert("Data tersimpan: " + uniqueId + "\n\nSekarang tutup aplikasi sepenuhnya (Force Close) lalu buka kembali dApp ini!");
-            refreshData();
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Analisis pola data (Regex sederhana untuk deteksi alamat ETH)
+                const isEthAddress = /^0x[a-fA-F0-9]{40}$/.test(value);
+                const isToken = value.length > 50; // Asumsi token API biasanya panjang
+
+                card.innerHTML = `
+                    <strong>Key:</strong> ${key}<br>
+                    <strong>Value:</strong> <pre>${value}</pre>
+                    <small style="color: ${isEthAddress || isToken ? 'red' : 'green'}">
+                        Status: ${isEthAddress || isToken ? '⚠️ DATA SENSITIF TERDETEKSI' : '✅ Terlihat Aman'}
+                    </small>
+                `;
+                resultsDiv.appendChild(card);
+            }
         }
-
-        function refreshData() {
-            const data = localStorage.getItem(STORAGE_KEY);
-            document.getElementById('dataDisplay').innerText = data ? "Data Ditemukan: " + data : "Storage Kosong (Aman)";
-        }
-
-        // Jalankan saat load
-        window.onload = refreshData;
     </script>
 </body>
 </html>
