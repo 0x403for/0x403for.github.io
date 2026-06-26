@@ -1,75 +1,46 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet WebView Audit Tool</title>
+    <title>PoC: Insecure Persistence Audit</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        button { display: block; width: 100%; padding: 15px; margin: 10px 0; cursor: pointer; }
-        #log { background: #f4f4f4; padding: 15px; border: 1px solid #ccc; white-space: pre-wrap; font-family: monospace; }
-        .success { color: red; font-weight: bold; }
+        body { font-family: sans-serif; padding: 20px; }
+        .box { border: 1px solid #333; padding: 15px; margin-bottom: 10px; }
+        #dataDisplay { font-weight: bold; color: #d9534f; }
     </style>
 </head>
 <body>
+    <h2>Uji Nyata: Storage Persistence</h2>
+    
+    <div class="box">
+        <p>1. Simpan data unik ke storage:</p>
+        <button onclick="injectData()">Simpan Data Unik</button>
+    </div>
 
-    <h2>Audit Keamanan WebView</h2>
-    <button onclick="testSignVulnerability()">1. Test Sign Transaction (Bridge Hijack)</button>
-    <button onclick="testDataLeakage()">2. Test Data Leakage (Metadata)</button>
-    <button onclick="testPersistence()">3. Test Storage Persistence</button>
-    <button onclick="clearLog()">Bersihkan Log</button>
-
-    <h3>Hasil Audit:</h3>
-    <div id="log">Menunggu instruksi...</div>
+    <div class="box">
+        <p>2. Status Data saat ini:</p>
+        <div id="dataDisplay">Memeriksa...</div>
+        <button onclick="refreshData()">Refresh Status</button>
+    </div>
 
     <script>
-        const logBox = document.getElementById('log');
-        function log(m) { logBox.innerHTML += m + "\n"; }
-        function clearLog() { logBox.innerHTML = ""; }
+        const STORAGE_KEY = "audit_persistence_key";
 
-        // 1. Uji Fungsi Sign
-        async function testSignVulnerability() {
-            log("--- Menguji Sign Transaction ---");
-            try {
-                const tx = { to: "0x0000000000000000000000000000000000000000", value: "0" };
-                if (window.ethereum) {
-                    await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
-                    log("SUCCESS: Dialog muncul (Normal).");
-                } else {
-                    log("Bridge 'ethereum' tidak ditemukan.");
-                }
-            } catch (e) {
-                log("Ditolak/Error: " + e.message);
-            }
+        function injectData() {
+            const uniqueId = "SessionID-" + Math.floor(Math.random() * 1000000);
+            localStorage.setItem(STORAGE_KEY, uniqueId);
+            alert("Data tersimpan: " + uniqueId + "\n\nSekarang tutup aplikasi sepenuhnya (Force Close) lalu buka kembali dApp ini!");
+            refreshData();
         }
 
-        // 2. Uji Kebocoran Data
-        function testDataLeakage() {
-            log("\n--- Menguji Kebocoran Data ---");
-            const targets = [window.ReactNativeWebView, window.ethereum, window.walletBridge];
-            let found = false;
-            targets.forEach(target => {
-                if (target && target.getDeviceInfo) {
-                    try {
-                        log("!!! KEBOCORAN !!! Data: " + JSON.stringify(target.getDeviceInfo()));
-                        found = true;
-                    } catch(e) { log("Akses getDeviceInfo ditolak."); }
-                }
-            });
-            if (!found) log("Tidak ada data sensitif yang bocor melalui metode umum.");
+        function refreshData() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            document.getElementById('dataDisplay').innerText = data ? "Data Ditemukan: " + data : "Storage Kosong (Aman)";
         }
 
-        // 3. Uji Persistensi Penyimpanan
-        function testPersistence() {
-            log("\n--- Menguji LocalStorage ---");
-            try {
-                localStorage.setItem('audit_test', 'vulnerable');
-                log("Data berhasil ditulis ke LocalStorage.");
-                log("Value: " + localStorage.getItem('audit_test'));
-            } catch(e) {
-                log("LocalStorage terisolasi atau diblokir.");
-            }
-        }
+        // Jalankan saat load
+        window.onload = refreshData;
     </script>
 </body>
 </html>
