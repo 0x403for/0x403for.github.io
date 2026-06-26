@@ -1,37 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet WebView Audit Tool</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        button { display: block; width: 100%; padding: 15px; margin: 10px 0; cursor: pointer; }
+        #log { background: #f4f4f4; padding: 15px; border: 1px solid #ccc; white-space: pre-wrap; font-family: monospace; }
+        .success { color: red; font-weight: bold; }
+    </style>
+</head>
 <body>
-    <h3>Security Research: Bridge Validation Test</h3>
-    <button onclick="testBridge()">Tes Koneksi Bridge</button>
-    <pre id="log"></pre>
+
+    <h2>Audit Keamanan WebView</h2>
+    <button onclick="testSignVulnerability()">1. Test Sign Transaction (Bridge Hijack)</button>
+    <button onclick="testDataLeakage()">2. Test Data Leakage (Metadata)</button>
+    <button onclick="testPersistence()">3. Test Storage Persistence</button>
+    <button onclick="clearLog()">Bersihkan Log</button>
+
+    <h3>Hasil Audit:</h3>
+    <div id="log">Menunggu instruksi...</div>
 
     <script>
-        function log(msg) {
-            document.getElementById('log').innerHTML += msg + "\n";
+        const logBox = document.getElementById('log');
+        function log(m) { logBox.innerHTML += m + "\n"; }
+        function clearLog() { logBox.innerHTML = ""; }
+
+        // 1. Uji Fungsi Sign
+        async function testSignVulnerability() {
+            log("--- Menguji Sign Transaction ---");
+            try {
+                const tx = { to: "0x0000000000000000000000000000000000000000", value: "0" };
+                if (window.ethereum) {
+                    await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+                    log("SUCCESS: Dialog muncul (Normal).");
+                } else {
+                    log("Bridge 'ethereum' tidak ditemukan.");
+                }
+            } catch (e) {
+                log("Ditolak/Error: " + e.message);
+            }
         }
 
-        function testBridge() {
-            // Skenario: Mencoba mengakses fungsi native yang terekspos
-            // Nama bridge berbeda-beda tiap wallet (misal: ethereum, walletBridge, InjectedProvider)
-            
-            const potentialBridges = ['ethereum', 'walletBridge', 'ReactNativeWebView', '1inchBridge'];
-            
-            potentialBridges.forEach(bridge => {
-                if (window[bridge]) {
-                    log("DITEMUKAN: " + bridge + " bridge tersedia!");
-                    
-                    // Mencoba memanggil fungsi tanpa izin (Exploitation Attempt)
+        // 2. Uji Kebocoran Data
+        function testDataLeakage() {
+            log("\n--- Menguji Kebocoran Data ---");
+            const targets = [window.ReactNativeWebView, window.ethereum, window.walletBridge];
+            let found = false;
+            targets.forEach(target => {
+                if (target && target.getDeviceInfo) {
                     try {
-                        console.log("Mencoba memanggil fungsi getAccount...");
-                        const data = window[bridge].getAccount ? window[bridge].getAccount() : "No getAccount";
-                        log("Hasil: " + JSON.stringify(data));
-                    } catch (e) {
-                        log("Gagal memanggil fungsi (terproteksi): " + e.message);
-                    }
-                } else {
-                    log("Bridge " + bridge + " tidak ditemukan.");
+                        log("!!! KEBOCORAN !!! Data: " + JSON.stringify(target.getDeviceInfo()));
+                        found = true;
+                    } catch(e) { log("Akses getDeviceInfo ditolak."); }
                 }
             });
+            if (!found) log("Tidak ada data sensitif yang bocor melalui metode umum.");
+        }
+
+        // 3. Uji Persistensi Penyimpanan
+        function testPersistence() {
+            log("\n--- Menguji LocalStorage ---");
+            try {
+                localStorage.setItem('audit_test', 'vulnerable');
+                log("Data berhasil ditulis ke LocalStorage.");
+                log("Value: " + localStorage.getItem('audit_test'));
+            } catch(e) {
+                log("LocalStorage terisolasi atau diblokir.");
+            }
         }
     </script>
 </body>
