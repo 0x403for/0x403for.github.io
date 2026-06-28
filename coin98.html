@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Uji Coba Transaksi Nyata</title>
+</head>
+<body>
+    <h1>Security Audit: Verify Transaction</h1>
+    <button id="sendBtn" style="padding: 15px 30px; background: #d9534f; color: white; border: none; cursor: pointer;">
+        Kirim Transaksi Uji Coba
+    </button>
+    <p id="status"></p>
+
+    <script>
+        document.getElementById('sendBtn').onclick = async () => {
+            if (window.ethereum) {
+                try {
+                    // Meminta akses ke dompet pengguna untuk skenario nyata
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    
+                    // Skenario: Mengirim 0.001 ETH ke alamat Dead (skenario nyata dari foto)
+                    const transactionParameters = {
+                        from: accounts[0],
+                        to: '0x000000000000000000000000000000000000dEaD', 
+                        value: '0x38D7EA4C68000', // 0.001 ETH dalam hex
+                        gas: '0x5208',
+                    };
+
+                    // Memanggil fungsi transaksi asli
+                    const txHash = await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [transactionParameters],
+                    });
+                    
+                    document.getElementById('status').innerText = "Transaksi Terkirim! Hash: " + txHash;
+                } catch (error) {
+                    document.getElementById('status').innerText = "Ditolak: " + error.message;
+                }
+            } else {
+                alert("Peramban dApp tidak terdeteksi!");
+            }
+        };
+    </script>
+</body>
+</html>
