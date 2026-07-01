@@ -2,47 +2,78 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>dApp Production Interface</title>
+    <title>Web3 Session Security Audit</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f4f4f9; }
+        .box { border: 1px solid #ddd; padding: 20px; border-radius: 12px; background: white; }
+        .log { background: #333; color: #0f0; padding: 10px; font-family: monospace; overflow-x: auto; }
+    </style>
 </head>
 <body>
-    <h1>Interface Transaksi Kontrak</h1>
-    <button id="connectBtn">Connect Wallet</button>
-    <button id="executeBtn" disabled>Execute Contract Function</button>
-    <p id="log"></p>
+    <h1>Security Audit: Session Expiration & Hijacking</h1>
+    <div id="status">Status: Tidak Terhubung</div>
+    
+    <div class="box">
+        <button id="btnConnect">1. Hubungkan Wallet (Initiate Session)</button>
+        <button id="btnTx">2. Kirim Transaksi (Execute & Audit)</button>
+    </div>
+
+    <h3>Audit Logs:</h3>
+    <pre id="auditLog" class="log">Menunggu aktivitas...</pre>
 
     <script>
-        const log = (msg) => document.getElementById('log').innerText = msg;
+        const AUDIT_DURATION = 30000; // 30 detik
+        const auditLog = document.getElementById('auditLog');
 
-        // Dalam produksi, gunakan ABI kontrak yang sebenarnya
-        const CONTRACT_ADDRESS = "0x..."; // Alamat kontrak nyata (misal: Uniswap Router)
-        const ABI_ENCODED_DATA = "0x..."; // Data eksekusi fungsi yang valid
+        function updateLog(msg) {
+            auditLog.innerText += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+        }
 
-        document.getElementById('connectBtn').onclick = async () => {
+        // Fungsi untuk mengambil waktu sesi yang tersimpan
+        const getSession = () => JSON.parse(localStorage.getItem('web3_session'));
+
+        document.getElementById('btnConnect').onclick = async () => {
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                document.getElementById('executeBtn').disabled = false;
-                log("Terhubung: " + accounts[0]);
-            } catch (err) { log("Error: " + err.message); }
+                const sessionData = { start: Date.now(), account: accounts[0] };
+                localStorage.setItem('web3_session', JSON.stringify(sessionData));
+                updateLog("Sesi dimulai untuk: " + accounts[0]);
+                document.getElementById('status').innerText = "Terhubung: " + accounts[0];
+            } catch (e) { updateLog("Error: " + e.message); }
         };
 
-        document.getElementById('executeBtn').onclick = async () => {
-            // Skenario nyata: Mengirim transaksi dengan parameter kontrak yang valid
-            const txParams = {
-                from: window.ethereum.selectedAddress,
-                to: CONTRACT_ADDRESS,
-                data: ABI_ENCODED_DATA, // Harus berupa byte data fungsi kontrak yang valid
-                gas: "0x5208", 
-                value: "0x0"
-            };
+        document.getElementById('btnTx').onclick = async () => {
+            const session = getSession();
+            if (!session) return alert("Sesi tidak ditemukan!");
 
+            const elapsed = Date.now() - session.start;
+            updateLog(`Audit: Waktu berlalu ${elapsed}ms`);
+
+            // Audit Keamanan: Apakah sesi masih valid?
+            if (elapsed > AUDIT_DURATION) {
+                updateLog("⚠️ ALERT: Sesi kadaluarsa! Memblokir eksekusi...");
+                alert("Session Expired: dApp menolak transaksi karena sesi telah kedaluwarsa.");
+                localStorage.removeItem('web3_session');
+                return;
+            }
+
+            // Eksekusi transaksi nyata (Non-dummy)
             try {
-                const txHash = await window.ethereum.request({
+                const tx = {
+                    from: session.account,
+                    to: "0x000000000000000000000000000000000000dEaD",
+                    value: "0x0",
+                    gas: "0x5208" // Default gas untuk transfer standar
+                };
+                
+                updateLog("Mengirim request ke provider...");
+                const hash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
-                    params: [txParams]
+                    params: [tx]
                 });
-                log("Transaction Sent! Hash: " + txHash);
-            } catch (err) {
-                log("Transaction Rejected: " + err.message);
+                updateLog("Transaksi berhasil! Hash: " + hash);
+            } catch (e) {
+                updateLog("Transaction Failed: " + e.message);
             }
         };
     </script>
