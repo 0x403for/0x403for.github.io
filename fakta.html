@@ -29,7 +29,6 @@
             auditLog.innerText += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
         }
 
-        // Fungsi untuk mengambil waktu sesi yang tersimpan
         const getSession = () => JSON.parse(localStorage.getItem('web3_session'));
 
         document.getElementById('btnConnect').onclick = async () => {
@@ -44,36 +43,48 @@
 
         document.getElementById('btnTx').onclick = async () => {
             const session = getSession();
-            if (!session) return alert("Sesi tidak ditemukan!");
+            
+            // 1. Pengecekan Eksistensi Sesi
+            if (!session) {
+                alert("Sesi tidak ditemukan! Silakan hubungkan kembali.");
+                return;
+            }
 
             const elapsed = Date.now() - session.start;
             updateLog(`Audit: Waktu berlalu ${elapsed}ms`);
 
-            // Audit Keamanan: Apakah sesi masih valid?
+            // 2. LOGIKA PEMBLOKIRAN TOTAL (FIXED)
             if (elapsed > AUDIT_DURATION) {
                 updateLog("⚠️ ALERT: Sesi kadaluarsa! Memblokir eksekusi...");
-                alert("Session Expired: dApp menolak transaksi karena sesi telah kedaluwarsa.");
+                
+                // Menghapus data sesi
                 localStorage.removeItem('web3_session');
-                return;
+                document.getElementById('status').innerText = "Status: Sesi Kadaluarsa (Terputus)";
+                
+                // Memberikan peringatan tegas
+                alert("Session Expired: Sesi tidak valid. Akses ke provider diblokir.");
+                
+                // RETURN DI SINI AKAN MENGHENTIKAN FUNGSI SEPENUHNYA
+                return; 
             }
 
-            // Eksekusi transaksi nyata (Non-dummy)
+            // 3. Eksekusi Hanya Jika Lolos Audit
             try {
+                updateLog("Sesi valid. Mengirim request ke provider...");
                 const tx = {
                     from: session.account,
                     to: "0x000000000000000000000000000000000000dEaD",
                     value: "0x0",
-                    gas: "0x5208" // Default gas untuk transfer standar
+                    gas: "0x5208"
                 };
                 
-                updateLog("Mengirim request ke provider...");
                 const hash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [tx]
                 });
                 updateLog("Transaksi berhasil! Hash: " + hash);
             } catch (e) {
-                updateLog("Transaction Failed: " + e.message);
+                updateLog("Transaction Rejected: " + e.message);
             }
         };
     </script>
