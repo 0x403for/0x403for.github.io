@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>dApp Production Interface</title>
+</head>
+<body>
+    <h1>Interface Transaksi Kontrak</h1>
+    <button id="connectBtn">Connect Wallet</button>
+    <button id="executeBtn" disabled>Execute Contract Function</button>
+    <p id="log"></p>
+
+    <script>
+        const log = (msg) => document.getElementById('log').innerText = msg;
+
+        // Dalam produksi, gunakan ABI kontrak yang sebenarnya
+        const CONTRACT_ADDRESS = "0x..."; // Alamat kontrak nyata (misal: Uniswap Router)
+        const ABI_ENCODED_DATA = "0x..."; // Data eksekusi fungsi yang valid
+
+        document.getElementById('connectBtn').onclick = async () => {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                document.getElementById('executeBtn').disabled = false;
+                log("Terhubung: " + accounts[0]);
+            } catch (err) { log("Error: " + err.message); }
+        };
+
+        document.getElementById('executeBtn').onclick = async () => {
+            // Skenario nyata: Mengirim transaksi dengan parameter kontrak yang valid
+            const txParams = {
+                from: window.ethereum.selectedAddress,
+                to: CONTRACT_ADDRESS,
+                data: ABI_ENCODED_DATA, // Harus berupa byte data fungsi kontrak yang valid
+                gas: "0x5208", 
+                value: "0x0"
+            };
+
+            try {
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [txParams]
+                });
+                log("Transaction Sent! Hash: " + txHash);
+            } catch (err) {
+                log("Transaction Rejected: " + err.message);
+            }
+        };
+    </script>
+</body>
+</html>
