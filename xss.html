@@ -1,1 +1,70 @@
-">]<img src=x onerror=alert(document.cookie)>7-
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>1inch Wallet Security Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
+        .actions-container { display: flex; flex-direction: column; gap: 8px; max-width: 400px; margin: auto; }
+        button { padding: 12px; border: none; border-radius: 6px; background: #007bff; color: white; font-weight: bold; cursor: pointer; }
+        #log { margin-top: 20px; padding: 10px; background: #fff; border: 1px solid #ddd; font-size: 11px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h2 style="text-align:center;">Actions</h2>
+    <div class="actions-container">
+        <button onclick="run('eth_sendTransaction')">eth_sendTransaction</button>
+        <button onclick="run('testSignTransaction_approve_1')">testSignTransaction_approve_1</button>
+        <button onclick="run('testSignTransaction_approve_2')">testSignTransaction_approve_2</button>
+        <button onclick="run('testSignTransaction_approve_3')">testSignTransaction_approve_3</button>
+        <button onclick="run('eth_sign_auto')">eth_sign (auto attack test)</button>
+        <button onclick="run('eth_signTypedData')">eth_signTypedData</button>
+        <button onclick="run('eth_sign_legacy')">eth_sign_legacy</button>
+        <button onclick="run('eth_sign_standard')">eth_sign_standard</button>
+        <button onclick="run('personal_sign')">personal_sign</button>
+    </div>
+    <pre id="log">Log menunggu aksi...</pre>
+
+    <script>
+        const log = (msg) => document.getElementById('log').innerText = msg;
+
+        async function run(action) {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const from = accounts[0];
+                let txParams = {};
+
+                // KONFIGURASI PAYLOAD (Sesuaikan alamat & data untuk target)
+                const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000"; // Ganti dengan alamat kontrak uji
+                const APPROVE_DATA = "0x095ea7b3..."; // Ganti dengan data hex approve (spender, amount)
+
+                switch(action) {
+                    case 'eth_sendTransaction':
+                        txParams = { from, to: from, value: '0x0' };
+                        break;
+                    case 'testSignTransaction_approve_1':
+                        txParams = { from, to: CONTRACT_ADDRESS, data: APPROVE_DATA };
+                        break;
+                    case 'personal_sign':
+                        txParams = ["0x48656c6c6f", from];
+                        break;
+                    case 'eth_sign_auto':
+                        txParams = [from, "0xdeadbeef"];
+                        break;
+                    // Tambahkan case lain sesuai kebutuhan payload Anda
+                    default:
+                        txParams = [from, "0xdeadbeef"];
+                }
+
+                log(`Memulai: ${action}`);
+                const result = await window.ethereum.request({ 
+                    method: action.includes('test') || action === 'eth_sendTransaction' ? 'eth_sendTransaction' : 
+                            (action === 'eth_signTypedData' ? 'eth_signTypedData_v4' : 'eth_sign'), 
+                    params: Array.isArray(txParams) ? txParams : [txParams] 
+                });
+                log("Response: " + JSON.stringify(result));
+            } catch (err) { log("Error: " + err.message); }
+        }
+    </script>
+</body>
+</html>
