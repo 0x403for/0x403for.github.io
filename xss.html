@@ -2,56 +2,50 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Security Audit Tool: Interaction Auditor</title>
+    <title>Race Condition Auditor</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
-        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-        button { background: #007bff; color: #fff; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; margin-top: 10px; }
-        #log { margin-top: 15px; font-size: 12px; color: #333; background: #eee; padding: 10px; border-radius: 5px; }
+        body { font-family: monospace; background: #000; color: #00ff00; padding: 20px; }
+        .box { border: 2px solid #00ff00; padding: 15px; max-width: 500px; margin: auto; }
+        button { background: #002200; color: #00ff00; border: 1px solid #00ff00; padding: 15px; width: 100%; cursor: pointer; }
+        #log { margin-top: 10px; font-size: 11px; color: #fff; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h3>Security Audit Tool</h3>
-        <p>Gunakan tombol di bawah untuk menguji apakah dompet meminta otorisasi (PIN/FaceID) secara konsisten.</p>
-        
-        <button onclick="testEthSign()">Uji eth_sign (Legacy)</button>
-        <button onclick="testTypedData()">Uji SignTypedData (EIP-712)</button>
-        
-        <div id="log">Status: Menunggu pengujian...</div>
+    <div class="box">
+        <h3>[!] RACE CONDITION AUDITOR</h3>
+        <p>Menguji tumpang tindih antara Transaksi dan Tanda Tangan.</p>
+        <button onclick="triggerRaceCondition()">JALANKAN UJI RACE CONDITION</button>
+        <div id="log">Status: Menunggu aksi...</div>
     </div>
 
     <script>
-        const log = (m) => document.getElementById('log').innerText = m;
+        const log = (m) => document.getElementById('log').innerText += "\n> " + m;
 
-        async function testEthSign() {
-            log("Memulai eth_sign...");
+        async function triggerRaceCondition() {
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const msg = "Security Test: Legacy Signature";
-                const sig = await window.ethereum.request({ 
-                    method: 'eth_sign', 
-                    params: [accounts[0], msg] 
-                });
-                log("Berhasil (Jika ini tanpa PIN, ini celah keamanan): " + sig.substring(0, 15));
-            } catch (err) { log("Error: " + err.message); }
-        }
+                
+                log("1. Mengirim Transaksi (Pending)...");
+                // Transaksi ke diri sendiri
+                window.ethereum.request({ 
+                    method: 'eth_sendTransaction', 
+                    params: [{ from: accounts[0], to: accounts[0], value: '0x0' }] 
+                }).then(() => log("Transaksi Selesai."));
 
-        async function testTypedData() {
-            log("Memulai SignTypedData_v4...");
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const msg = JSON.stringify({
-                    types: { EIP712Domain: [], Test: [{ name: 'content', type: 'string' }] },
-                    primaryType: 'Test',
-                    domain: {},
-                    message: { content: 'Security Test: TypedData' }
-                });
-                const sig = await window.ethereum.request({ 
-                    method: 'eth_signTypedData_v4', 
-                    params: [accounts[0], msg] 
-                });
-                log("Berhasil (Jika ini tanpa PIN, ini celah keamanan): " + sig.substring(0, 15));
+                // Delay sangat singkat (50ms) untuk mensimulasikan tabrakan UI
+                setTimeout(async () => {
+                    log("2. Memicu SignTypedData (EIP-712)...");
+                    const msg = JSON.stringify({
+                        types: { EIP712Domain: [], Test: [{ name: 'val', type: 'string' }] },
+                        primaryType: 'Test', domain: {}, message: { val: 'RaceConditionTest' }
+                    });
+                    
+                    window.ethereum.request({ 
+                        method: 'eth_signTypedData_v4', 
+                        params: [accounts[0], msg] 
+                    }).then(() => log("Tanda Tangan Selesai."));
+                }, 50);
+
             } catch (err) { log("Error: " + err.message); }
         }
     </script>
