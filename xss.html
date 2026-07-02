@@ -2,68 +2,83 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Wallet Security Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vite React MMSDK Example (Full Functional)</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
-        .actions-container { display: flex; flex-direction: column; gap: 8px; max-width: 400px; margin: auto; }
-        button { padding: 12px; border: none; border-radius: 6px; background: #007bff; color: white; font-weight: bold; cursor: pointer; }
-        #log { margin-top: 20px; padding: 10px; background: #fff; border: 1px solid #ddd; font-size: 11px; overflow-x: auto; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background: #fff; }
+        .info-box { border: 2px solid #5d3fd3; background: #eef2ff; padding: 15px; border-radius: 8px; width: 100%; max-width: 400px; margin-bottom: 20px; font-size: 13px; word-break: break-all; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; }
+        button { padding: 12px; border: none; border-radius: 6px; background: #7c3aed; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #5b21b6; }
+        button:nth-last-child(1) { grid-column: span 2; }
     </style>
 </head>
 <body>
-    <h2 style="text-align:center;">Actions</h2>
-    <div class="actions-container">
-        <button onclick="run('eth_sendTransaction')">eth_sendTransaction</button>
-        <button onclick="run('testSignTransaction_approve_1')">testSignTransaction_approve_1</button>
-        <button onclick="run('testSignTransaction_approve_2')">testSignTransaction_approve_2</button>
-        <button onclick="run('testSignTransaction_approve_3')">testSignTransaction_approve_3</button>
-        <button onclick="run('eth_sign_auto')">eth_sign (auto attack test)</button>
-        <button onclick="run('eth_signTypedData')">eth_signTypedData</button>
-        <button onclick="run('eth_sign_legacy')">eth_sign_legacy</button>
-        <button onclick="run('eth_sign_standard')">eth_sign_standard</button>
-        <button onclick="run('personal_sign')">personal_sign</button>
+
+    <h2>Vite React MMSDK Example</h2>
+
+    <div class="info-box">
+        Connected chain: <span id="chainId">0x1</span><br>
+        Connected account: <span id="account">undefined</span><br>
+        Last request response: <span id="res" style="color: #5d3fd3;">none</span><br>
+        Connected: <span id="conn">false</span>
     </div>
-    <pre id="log">Log menunggu aksi...</pre>
+
+    <div class="grid">
+        <button onclick="run('requestAccounts')">Request Accounts</button>
+        <button onclick="run('eth_signTypedData_v4')">eth_signTypedData_v4</button>
+        <button onclick="run('personal_sign')">personal_sign</button>
+        <button onclick="run('sendTransaction')">Send transaction</button>
+        <button onclick="run('switchGoerli')">Switch to Goerli</button>
+        <button onclick="run('switchPolygon')">Switch to Polygon</button>
+        <button onclick="run('addPolygon')">Add Polygon Chain</button>
+        <button onclick="run('readOnly')">readOnlyCalls</button>
+        <button onclick="run('requestPermissions')">requestPermissions</button>
+    </div>
 
     <script>
-        const log = (msg) => document.getElementById('log').innerText = msg;
+        const el = (id) => document.getElementById(id);
 
         async function run(action) {
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const from = accounts[0];
-                let txParams = {};
-
-                // KONFIGURASI PAYLOAD (Sesuaikan alamat & data untuk target)
-                const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000"; // Ganti dengan alamat kontrak uji
-                const APPROVE_DATA = "0x095ea7b3..."; // Ganti dengan data hex approve (spender, amount)
-
+                let response = "Called " + action;
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                const currentAccount = accounts[0] || "undefined";
+                el('account').innerText = currentAccount;
+                el('conn').innerText = "true";
+                
                 switch(action) {
-                    case 'eth_sendTransaction':
-                        txParams = { from, to: from, value: '0x0' };
-                        break;
-                    case 'testSignTransaction_approve_1':
-                        txParams = { from, to: CONTRACT_ADDRESS, data: APPROVE_DATA };
+                    case 'requestAccounts':
+                        const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        response = accs[0];
                         break;
                     case 'personal_sign':
-                        txParams = ["0x48656c6c6f", from];
+                        response = await window.ethereum.request({ method: 'personal_sign', params: ["0x48656c6c6f", currentAccount] });
                         break;
-                    case 'eth_sign_auto':
-                        txParams = [from, "0xdeadbeef"];
+                    case 'sendTransaction':
+                        response = await window.ethereum.request({ method: 'eth_sendTransaction', params: [{ from: currentAccount, to: currentAccount, value: '0x0' }] });
                         break;
-                    // Tambahkan case lain sesuai kebutuhan payload Anda
-                    default:
-                        txParams = [from, "0xdeadbeef"];
+                    case 'switchGoerli':
+                        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x5' }] });
+                        response = "Switched to Goerli";
+                        break;
+                    case 'switchPolygon':
+                        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x89' }] });
+                        response = "Switched to Polygon";
+                        break;
+                    case 'addPolygon':
+                        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x89', chainName: 'Polygon', rpcUrls: ['https://polygon-rpc.com'] }] });
+                        response = "Added Polygon";
+                        break;
+                    case 'readOnly':
+                        response = await window.ethereum.request({ method: 'eth_blockNumber' });
+                        break;
+                    case 'requestPermissions':
+                        response = await window.ethereum.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
+                        break;
                 }
-
-                log(`Memulai: ${action}`);
-                const result = await window.ethereum.request({ 
-                    method: action.includes('test') || action === 'eth_sendTransaction' ? 'eth_sendTransaction' : 
-                            (action === 'eth_signTypedData' ? 'eth_signTypedData_v4' : 'eth_sign'), 
-                    params: Array.isArray(txParams) ? txParams : [txParams] 
-                });
-                log("Response: " + JSON.stringify(result));
-            } catch (err) { log("Error: " + err.message); }
+                el('res').innerText = response;
+            } catch (err) { el('res').innerText = "Error: " + err.code; }
         }
     </script>
 </body>
