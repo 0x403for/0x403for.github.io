@@ -2,58 +2,57 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Advanced DApp Auditor V8</title>
+    <title>Security Audit Tool: Interaction Auditor</title>
     <style>
-        body { font-family: monospace; background: #000; color: #ff00ff; padding: 20px; }
-        .box { border: 2px solid #ff00ff; padding: 15px; max-width: 500px; margin: auto; }
-        button { background: #330033; color: #ff00ff; border: 1px solid #ff00ff; padding: 10px; width: 100%; margin-top: 5px; cursor: pointer; }
-        #log { color: #fff; font-size: 10px; margin-top: 10px; border-top: 1px solid #333; padding-top: 5px; }
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        button { background: #007bff; color: #fff; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        #log { margin-top: 15px; font-size: 12px; color: #333; background: #eee; padding: 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h3>[!] DAPP BROWSER AUDITOR</h3>
-        <button onclick="stressBridge()">[1] Stress Test Bridge (Race Condition)</button>
-        <button onclick="malformedTx()">[2] Malformed Parsing Test (Ambiguous Data)</button>
-        <button onclick="checkStorage()">[3] XSS/Storage Isolation Test</button>
-        <div id="log">Status: Ready.</div>
+    <div class="card">
+        <h3>Security Audit Tool</h3>
+        <p>Gunakan tombol di bawah untuk menguji apakah dompet meminta otorisasi (PIN/FaceID) secara konsisten.</p>
+        
+        <button onclick="testEthSign()">Uji eth_sign (Legacy)</button>
+        <button onclick="testTypedData()">Uji SignTypedData (EIP-712)</button>
+        
+        <div id="log">Status: Menunggu pengujian...</div>
     </div>
 
     <script>
-        const log = (m) => document.getElementById('log').innerText += "\n> " + m;
+        const log = (m) => document.getElementById('log').innerText = m;
 
-        // 1. Race Condition: Mengirim 10 permintaan transaksi dalam 100ms
-        async function stressBridge() {
-            log("Stress testing bridge...");
-            const account = (await window.ethereum.request({method:'eth_requestAccounts'}))[0];
-            for(let i=0; i<10; i++) {
-                window.ethereum.request({ 
-                    method: 'eth_sendTransaction', 
-                    params: [{ from: account, to: account, value: '0x0', data: '0x' + i }] 
-                }).catch(e => log("Req " + i + " rejected: " + e.code));
-            }
-        }
-
-        // 2. Malformed Parsing: Mengirim data yang secara teknis valid tapi menyesatkan
-        async function malformedTx() {
-            log("Sending ambiguous contract interaction...");
-            const account = (await window.ethereum.request({method:'eth_requestAccounts'}))[0];
-            // Menggunakan selector yang membingungkan atau data overflow
-            const maliciousData = "0x" + "a".repeat(128); 
-            window.ethereum.request({ 
-                method: 'eth_sendTransaction', 
-                params: [{ from: account, to: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC", data: maliciousData }] 
-            });
-        }
-
-        // 3. XSS/Storage Test: Mencoba membaca localStorage
-        async function checkStorage() {
-            log("Checking LocalStorage Access...");
+        async function testEthSign() {
+            log("Memulai eth_sign...");
             try {
-                localStorage.setItem('secret_key', 'ATTACK_SUCCESS');
-                log("LocalStorage Test: " + localStorage.getItem('secret_key'));
-                log("Periksa apakah situs lain bisa membaca ini.");
-            } catch(e) { log("Access Denied: " + e.message); }
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const msg = "Security Test: Legacy Signature";
+                const sig = await window.ethereum.request({ 
+                    method: 'eth_sign', 
+                    params: [accounts[0], msg] 
+                });
+                log("Berhasil (Jika ini tanpa PIN, ini celah keamanan): " + sig.substring(0, 15));
+            } catch (err) { log("Error: " + err.message); }
+        }
+
+        async function testTypedData() {
+            log("Memulai SignTypedData_v4...");
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const msg = JSON.stringify({
+                    types: { EIP712Domain: [], Test: [{ name: 'content', type: 'string' }] },
+                    primaryType: 'Test',
+                    domain: {},
+                    message: { content: 'Security Test: TypedData' }
+                });
+                const sig = await window.ethereum.request({ 
+                    method: 'eth_signTypedData_v4', 
+                    params: [accounts[0], msg] 
+                });
+                log("Berhasil (Jika ini tanpa PIN, ini celah keamanan): " + sig.substring(0, 15));
+            } catch (err) { log("Error: " + err.message); }
         }
     </script>
 </body>
