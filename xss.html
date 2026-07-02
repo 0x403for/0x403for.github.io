@@ -2,57 +2,36 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Security Auditor: Unauthenticated Signature Test</title>
+    <title>Legacy Security Test</title>
     <style>
-        body { font-family: monospace; background: #000; color: #fff; padding: 20px; }
-        .box { border: 1px solid #ff00ff; padding: 20px; max-width: 500px; margin: auto; }
-        button { background: #300; color: #f00; border: 1px solid #f00; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; }
-        #log { margin-top: 15px; color: #0f0; font-size: 12px; }
+        body { background: #000; color: #f00; padding: 20px; font-family: monospace; }
+        button { background: #500; border: 1px solid #f00; color: #fff; padding: 20px; width: 100%; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h3>[!] TEST: UNAUTHENTICATED SIGNATURE</h3>
-        <p>Tombol ini memicu <code>eth_signTypedData_v4</code>. Amati apakah dompet meminta Passcode/Biometric.</p>
-        
-        <button onclick="testUnauthenticatedSignature()">JALANKAN UJI TANDA TANGAN</button>
-        
-        <div id="log">Status: Menunggu aksi...</div>
-    </div>
+    <h3>[!] LEGACY SIGNATURE TEST</h3>
+    <p>Gunakan metode <code>eth_sign</code> untuk melihat apakah dompet memproses tanpa otorisasi tambahan.</p>
+    <button onclick="runInsecureTest()">UJI METODE LEGACY (eth_sign)</button>
+    <pre id="log" style="color: #fff;"></pre>
 
     <script>
         const log = (m) => document.getElementById('log').innerText = m;
 
-        async function testUnauthenticatedSignature() {
+        async function runInsecureTest() {
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const account = accounts[0];
                 
-                log("Memulai proses tanda tangan EIP-712...");
-
-                // Payload EIP-712 yang memicu otorisasi
-                const msgParams = JSON.stringify({
-                    domain: {
-                        name: "Security Audit Test",
-                        version: "1",
-                        chainId: 1, // Mainnet (gunakan 11155111 untuk Sepolia)
-                    },
-                    types: {
-                        EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }],
-                        TestMessage: [{ name: "data", type: "string" }]
-                    },
-                    primaryType: "TestMessage",
-                    message: { data: "UJI KEAMANAN TANPA OTORISASI" }
-                });
-
+                log("Memulai eth_sign (Legacy)...");
+                // eth_sign adalah metode yang seringkali tidak memiliki perlindungan EIP-712
                 const signature = await window.ethereum.request({
-                    method: 'eth_signTypedData_v4',
-                    params: [account, msgParams],
+                    method: 'eth_sign',
+                    params: [account, "0x4c6f67696e20746f205365637572697479"], // "Login to Security"
                 });
-
-                log("Tanda tangan berhasil dibuat: " + signature.substring(0, 20) + "...");
+                
+                log("Berhasil Tanda Tangan: " + signature.substring(0, 30) + "...");
             } catch (err) {
-                log("Error: " + err.message);
+                log("Hasil: " + err.message);
             }
         }
     </script>
