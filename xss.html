@@ -2,51 +2,48 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Advanced Security Auditor V5</title>
+    <title>Security Auditor: Allowance Test</title>
     <style>
-        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
-        .box { border: 2px solid #f00; padding: 15px; max-width: 500px; margin: auto; }
-        button { background: #500; color: #f00; border: 1px solid #f00; padding: 10px; width: 100%; margin-top: 5px; cursor: pointer; }
-        #log { font-size: 10px; color: #fff; margin-top: 10px; }
+        body { font-family: monospace; background: #1a1a1a; color: #fff; padding: 20px; }
+        .box { border: 2px solid #ffaa00; padding: 20px; max-width: 500px; margin: auto; background: #000; }
+        button { background: #b37700; color: #fff; border: none; padding: 15px; width: 100%; cursor: pointer; font-size: 16px; font-weight: bold; }
+        #log { margin-top: 15px; font-size: 12px; color: #ffaa00; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h3>[!] ADVANCED AUDITOR (HIGH/CRITICAL)</h3>
-        
-        <button onclick="testArrayIntegrity()">1. Test Transaction Integrity (Array Data)</button>
-        <button onclick="testRaceCondition()">2. Test Race Condition (Sequential Sign)</button>
-        
-        <div id="log">Status: Ready. Pastikan Anda sudah terhubung ke Sepolia.</div>
+        <h3>[!] UJI ALLOWANCE RISIKO TINGGI</h3>
+        <p>Tombol ini memicu <code>approve</code> dengan jumlah <b>tak terbatas (Unlimited)</b>.</p>
+        <button onclick="testUnlimitedAllowance()">JALANKAN UJI ALLOWANCE</button>
+        <div id="log">Status: Menunggu aksi...</div>
     </div>
 
     <script>
         const log = (m) => document.getElementById('log').innerText = m;
 
-        // 1. Uji Integritas Data Kompleks (Array/Struct)
-        async function testArrayIntegrity() {
-            log("Mengirim transaksi dengan Array Data (Fungsi 'batchTransfer')...");
-            // Fungsi dummy yang menerima array address dan array amount
-            // Selector: 0x9815a519 (batchTransfer(address[],uint256[]))
-            const data = "0x9815a519" + "0000000000000000000000000000000000000000000000000000000000000040" + "00000000000000000000000000000000000000000000000000000000000000a0";
-            
-            await window.ethereum.request({ 
-                method: 'eth_sendTransaction', 
-                params: [{ from: (await window.ethereum.request({method:'eth_requestAccounts'}))[0], to: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC", data }] 
-            });
-        }
-
-        // 2. Uji Race Condition (Kirim 2 tanda tangan beruntun)
-        async function testRaceCondition() {
-            log("Mengirim 2 permintaan tanda tangan beruntun (Race Condition)...");
-            const account = (await window.ethereum.request({method:'eth_requestAccounts'}))[0];
-            
-            // Permintaan 1
-            window.ethereum.request({ method: 'personal_sign', params: ["Sign 1", account] });
-            // Permintaan 2 (langsung dikirim tanpa menunggu hasil 1)
-            window.ethereum.request({ method: 'personal_sign', params: ["Sign 2", account] });
-            
-            log("Selesai dikirim. Amati apakah dompet menampilkan 2 pop-up atau crash.");
+        async function testUnlimitedAllowance() {
+            try {
+                // Alamat WETH di Sepolia
+                const tokenAddress = "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14";
+                const spenderAddress = "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC";
+                
+                // Data hex untuk approve(spender, maxUint256)
+                const data = "0x095ea7b3" + 
+                             spenderAddress.replace('0x', '').padStart(64, '0') + 
+                             "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+                
+                log("Mengirim permintaan Approve Unlimited...");
+                
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                await window.ethereum.request({ 
+                    method: 'eth_sendTransaction', 
+                    params: [{ from: accounts[0], to: tokenAddress, data: data }] 
+                });
+                
+                log("Transaksi dikirim. Perhatikan apakah dompet memberi peringatan risiko!");
+            } catch (err) {
+                log("Error: " + err.message);
+            }
         }
     </script>
 </body>
