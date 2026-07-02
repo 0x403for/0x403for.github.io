@@ -2,48 +2,52 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Security Auditor: Allowance Test</title>
+    <title>Advanced Security Auditor V7</title>
     <style>
-        body { font-family: monospace; background: #1a1a1a; color: #fff; padding: 20px; }
-        .box { border: 2px solid #ffaa00; padding: 20px; max-width: 500px; margin: auto; background: #000; }
-        button { background: #b37700; color: #fff; border: none; padding: 15px; width: 100%; cursor: pointer; font-size: 16px; font-weight: bold; }
-        #log { margin-top: 15px; font-size: 12px; color: #ffaa00; }
+        body { font-family: monospace; background: #000; color: #fff; padding: 20px; }
+        .box { border: 2px solid #00ffff; padding: 15px; max-width: 500px; margin: auto; background: #111; }
+        button { background: #004444; color: #00ffff; border: 1px solid #00ffff; padding: 15px; width: 100%; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        #log { margin-top: 15px; font-size: 11px; color: #aaa; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h3>[!] UJI ALLOWANCE RISIKO TINGGI</h3>
-        <p>Tombol ini memicu <code>approve</code> dengan jumlah <b>tak terbatas (Unlimited)</b>.</p>
-        <button onclick="testUnlimitedAllowance()">JALANKAN UJI ALLOWANCE</button>
+        <h3>[!] CONTEXT SEPARATION AUDIT</h3>
+        <p>Uji apakah dompet memiliki kebijakan otorisasi yang berbeda antara transaksi (on-chain) dan tanda tangan (off-chain).</p>
+        
+        <button onclick="testTransaction()">1. Test On-Chain Transaction</button>
+        <button onclick="testSignature()">2. Test Off-Chain Signature</button>
+        
         <div id="log">Status: Menunggu aksi...</div>
     </div>
 
     <script>
         const log = (m) => document.getElementById('log').innerText = m;
 
-        async function testUnlimitedAllowance() {
+        // Uji apakah transaksi on-chain meminta otorisasi lebih ketat
+        async function testTransaction() {
+            log("Mengirim transaksi trivial...");
             try {
-                // Alamat WETH di Sepolia
-                const tokenAddress = "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14";
-                const spenderAddress = "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC";
-                
-                // Data hex untuk approve(spender, maxUint256)
-                const data = "0x095ea7b3" + 
-                             spenderAddress.replace('0x', '').padStart(64, '0') + 
-                             "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-                
-                log("Mengirim permintaan Approve Unlimited...");
-                
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 await window.ethereum.request({ 
                     method: 'eth_sendTransaction', 
-                    params: [{ from: accounts[0], to: tokenAddress, data: data }] 
+                    params: [{ from: accounts[0], to: accounts[0], value: '0x0' }] 
                 });
-                
-                log("Transaksi dikirim. Perhatikan apakah dompet memberi peringatan risiko!");
-            } catch (err) {
-                log("Error: " + err.message);
-            }
+                log("Transaksi on-chain berhasil.");
+            } catch (err) { log("Error: " + err.message); }
+        }
+
+        // Uji apakah tanda tangan off-chain (sering jadi celah) meminta otorisasi
+        async function testSignature() {
+            log("Mengirim permintaan tanda tangan...");
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const signature = await window.ethereum.request({ 
+                    method: 'personal_sign', 
+                    params: ["Security Audit: Off-chain Signature Test", accounts[0]] 
+                });
+                log("Tanda tangan berhasil: " + signature.substring(0, 20) + "...");
+            } catch (err) { log("Error: " + err.message); }
         }
     </script>
 </body>
