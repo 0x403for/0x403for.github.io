@@ -2,37 +2,51 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Legacy Security Test</title>
+    <title>Advanced Security Auditor V5</title>
     <style>
-        body { background: #000; color: #f00; padding: 20px; font-family: monospace; }
-        button { background: #500; border: 1px solid #f00; color: #fff; padding: 20px; width: 100%; cursor: pointer; }
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
+        .box { border: 2px solid #f00; padding: 15px; max-width: 500px; margin: auto; }
+        button { background: #500; color: #f00; border: 1px solid #f00; padding: 10px; width: 100%; margin-top: 5px; cursor: pointer; }
+        #log { font-size: 10px; color: #fff; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h3>[!] LEGACY SIGNATURE TEST</h3>
-    <p>Gunakan metode <code>eth_sign</code> untuk melihat apakah dompet memproses tanpa otorisasi tambahan.</p>
-    <button onclick="runInsecureTest()">UJI METODE LEGACY (eth_sign)</button>
-    <pre id="log" style="color: #fff;"></pre>
+    <div class="box">
+        <h3>[!] ADVANCED AUDITOR (HIGH/CRITICAL)</h3>
+        
+        <button onclick="testArrayIntegrity()">1. Test Transaction Integrity (Array Data)</button>
+        <button onclick="testRaceCondition()">2. Test Race Condition (Sequential Sign)</button>
+        
+        <div id="log">Status: Ready. Pastikan Anda sudah terhubung ke Sepolia.</div>
+    </div>
 
     <script>
         const log = (m) => document.getElementById('log').innerText = m;
 
-        async function runInsecureTest() {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const account = accounts[0];
-                
-                log("Memulai eth_sign (Legacy)...");
-                // eth_sign adalah metode yang seringkali tidak memiliki perlindungan EIP-712
-                const signature = await window.ethereum.request({
-                    method: 'eth_sign',
-                    params: [account, "0x4c6f67696e20746f205365637572697479"], // "Login to Security"
-                });
-                
-                log("Berhasil Tanda Tangan: " + signature.substring(0, 30) + "...");
-            } catch (err) {
-                log("Hasil: " + err.message);
-            }
+        // 1. Uji Integritas Data Kompleks (Array/Struct)
+        async function testArrayIntegrity() {
+            log("Mengirim transaksi dengan Array Data (Fungsi 'batchTransfer')...");
+            // Fungsi dummy yang menerima array address dan array amount
+            // Selector: 0x9815a519 (batchTransfer(address[],uint256[]))
+            const data = "0x9815a519" + "0000000000000000000000000000000000000000000000000000000000000040" + "00000000000000000000000000000000000000000000000000000000000000a0";
+            
+            await window.ethereum.request({ 
+                method: 'eth_sendTransaction', 
+                params: [{ from: (await window.ethereum.request({method:'eth_requestAccounts'}))[0], to: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC", data }] 
+            });
+        }
+
+        // 2. Uji Race Condition (Kirim 2 tanda tangan beruntun)
+        async function testRaceCondition() {
+            log("Mengirim 2 permintaan tanda tangan beruntun (Race Condition)...");
+            const account = (await window.ethereum.request({method:'eth_requestAccounts'}))[0];
+            
+            // Permintaan 1
+            window.ethereum.request({ method: 'personal_sign', params: ["Sign 1", account] });
+            // Permintaan 2 (langsung dikirim tanpa menunggu hasil 1)
+            window.ethereum.request({ method: 'personal_sign', params: ["Sign 2", account] });
+            
+            log("Selesai dikirim. Amati apakah dompet menampilkan 2 pop-up atau crash.");
         }
     </script>
 </body>
