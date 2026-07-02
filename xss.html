@@ -2,64 +2,58 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Advanced Security Auditor (V4)</title>
+    <title>Security Auditor: Unauthenticated Signature Test</title>
     <style>
-        body { font-family: monospace; background: #0b0b0b; color: #00ff00; padding: 20px; }
-        .box { border: 1px solid #00ff00; padding: 20px; max-width: 500px; margin: auto; border-radius: 8px; }
-        input { width: 100%; background: #111; color: #00ff00; border: 1px solid #333; padding: 8px; margin: 8px 0; box-sizing: border-box; }
-        button { background: #050; color: #0f0; border: 1px solid #0f0; padding: 10px; width: 100%; cursor: pointer; margin-top: 5px; font-weight: bold; }
-        #log { margin-top: 15px; color: #fff; font-size: 11px; height: 120px; overflow-y: auto; border-top: 1px solid #333; padding-top: 10px; }
+        body { font-family: monospace; background: #000; color: #fff; padding: 20px; }
+        .box { border: 1px solid #ff00ff; padding: 20px; max-width: 500px; margin: auto; }
+        button { background: #300; color: #f00; border: 1px solid #f00; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; }
+        #log { margin-top: 15px; color: #0f0; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h3>[!] SECURITY AUDITOR V4</h3>
-        <input type="text" id="tokenAddress" placeholder="Token Contract (Sepolia)">
-        <input type="text" id="spenderAddress" placeholder="Spender Address (Attacker)">
-        <input type="text" id="amount" placeholder="Amount (e.g. 1000000000000000000)">
+        <h3>[!] TEST: UNAUTHENTICATED SIGNATURE</h3>
+        <p>Tombol ini memicu <code>eth_signTypedData_v4</code>. Amati apakah dompet meminta Passcode/Biometric.</p>
         
-        <button onclick="testTransactionIntegrity()">[1] Test Approve Integrity</button>
-        <button onclick="testPermit()">[2] Test Permit Bypass</button>
-        <button onclick="revoke()" style="border-color: #f00; color: #f00;">[3] Revoke All Approvals</button>
+        <button onclick="testUnauthenticatedSignature()">JALANKAN UJI TANDA TANGAN</button>
         
-        <div id="log">Status: Awaiting action...</div>
+        <div id="log">Status: Menunggu aksi...</div>
     </div>
 
     <script>
         const log = (m) => document.getElementById('log').innerText = m;
 
-        async function testTransactionIntegrity() {
+        async function testUnauthenticatedSignature() {
             try {
-                const token = document.getElementById('tokenAddress').value;
-                const spender = document.getElementById('spenderAddress').value.replace('0x', '');
-                const amount = BigInt(document.getElementById('amount').value).toString(16).padStart(64, '0');
-                const data = "0x095ea7b3" + spender.padStart(64, '0') + amount;
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const account = accounts[0];
                 
-                log("Executing Approve... Check UI for transparency!");
-                await window.ethereum.request({ 
-                    method: 'eth_sendTransaction', 
-                    params: [{ from: (await window.ethereum.request({method:'eth_requestAccounts'}))[0], to: token, data }] 
+                log("Memulai proses tanda tangan EIP-712...");
+
+                // Payload EIP-712 yang memicu otorisasi
+                const msgParams = JSON.stringify({
+                    domain: {
+                        name: "Security Audit Test",
+                        version: "1",
+                        chainId: 1, // Mainnet (gunakan 11155111 untuk Sepolia)
+                    },
+                    types: {
+                        EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }],
+                        TestMessage: [{ name: "data", type: "string" }]
+                    },
+                    primaryType: "TestMessage",
+                    message: { data: "UJI KEAMANAN TANPA OTORISASI" }
                 });
-            } catch (err) { log("Error: " + err.message); }
-        }
 
-        async function testPermit() {
-            log("Testing EIP-712 Permit...");
-            const msg = {
-                domain: { name: "AuditToken", version: "1", chainId: 11155111, verifyingContract: document.getElementById('tokenAddress').value },
-                types: { Permit: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }, { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" }, { name: "deadline", type: "uint256" }] },
-                primaryType: "Permit",
-                message: { owner: (await window.ethereum.request({method:'eth_requestAccounts'}))[0], spender: document.getElementById('spenderAddress').value, value: 0, nonce: 0, deadline: 9999999999 }
-            };
-            await window.ethereum.request({ method: 'eth_signTypedData_v4', params: [(await window.ethereum.request({method:'eth_requestAccounts'}))[0], JSON.stringify(msg)] });
-        }
+                const signature = await window.ethereum.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [account, msgParams],
+                });
 
-        async function revoke() {
-            log("Revoking... Sending 0 allowance.");
-            const token = document.getElementById('tokenAddress').value;
-            const spender = document.getElementById('spenderAddress').value.replace('0x', '');
-            const data = "0x095ea7b3" + spender.padStart(64, '0') + "0".repeat(64);
-            await window.ethereum.request({ method: 'eth_sendTransaction', params: [{ from: (await window.ethereum.request({method:'eth_requestAccounts'}))[0], to: token, data }] });
+                log("Tanda tangan berhasil dibuat: " + signature.substring(0, 20) + "...");
+            } catch (err) {
+                log("Error: " + err.message);
+            }
         }
     </script>
 </body>
