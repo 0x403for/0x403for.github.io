@@ -2,51 +2,60 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Race Condition Auditor</title>
+    <title>Business Logic Auditor</title>
     <style>
-        body { font-family: monospace; background: #000; color: #00ff00; padding: 20px; }
-        .box { border: 2px solid #00ff00; padding: 15px; max-width: 500px; margin: auto; }
-        button { background: #002200; color: #00ff00; border: 1px solid #00ff00; padding: 15px; width: 100%; cursor: pointer; }
-        #log { margin-top: 10px; font-size: 11px; color: #fff; }
+        body { font-family: sans-serif; background: #121212; color: #00ff00; padding: 20px; }
+        .box { border: 1px solid #333; padding: 15px; margin: 10px 0; background: #1e1e1e; }
+        button { background: #004400; color: #00ff00; border: 1px solid #00ff00; padding: 10px; width: 100%; cursor: pointer; }
     </style>
 </head>
 <body>
+    <h3>[!] Business Logic Security Auditor</h3>
+
     <div class="box">
-        <h3>[!] RACE CONDITION AUDITOR</h3>
-        <p>Menguji tumpang tindih antara Transaksi dan Tanda Tangan.</p>
-        <button onclick="triggerRaceCondition()">JALANKAN UJI RACE CONDITION</button>
-        <div id="log">Status: Menunggu aksi...</div>
+        <h4>1. Test: Path/Routing Manipulation</h4>
+        <p>Menguji apakah dompet menampilkan detail routing (hops) atau menyembunyikannya.</p>
+        <button onclick="testRouting()">Simulasi Swap dengan 5+ Hops</button>
+    </div>
+
+    <div class="box">
+        <h4>2. Test: Extreme Slippage (100%)</h4>
+        <p>Menguji apakah dompet memperingatkan risiko slippage ekstrem.</p>
+        <button onclick="testSlippage()">Simulasi Swap Slippage 100%</button>
+    </div>
+
+    <div class="box">
+        <h4>3. Test: Malicious Recipient (Dead Address)</h4>
+        <p>Mengirim ke alamat kontrak yang tidak memiliki fungsi receive.</p>
+        <button onclick="testRecipient()">Simulasi Alamat Tidak Valid</button>
     </div>
 
     <script>
-        const log = (m) => document.getElementById('log').innerText += "\n> " + m;
+        // Simulasi fungsi Swap
+        async function testRouting() {
+            // Data hex yang mensimulasikan rute swap kompleks
+            const complexPathData = "0x" + "b".repeat(256);
+            sendTx(complexPathData);
+        }
 
-        async function triggerRaceCondition() {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
-                log("1. Mengirim Transaksi (Pending)...");
-                // Transaksi ke diri sendiri
-                window.ethereum.request({ 
-                    method: 'eth_sendTransaction', 
-                    params: [{ from: accounts[0], to: accounts[0], value: '0x0' }] 
-                }).then(() => log("Transaksi Selesai."));
+        async function testSlippage() {
+            // Simulasi slippage ekstrem dengan data yang tidak masuk akal
+            const extremeSlippageData = "0x" + "c".repeat(64);
+            sendTx(extremeSlippageData);
+        }
 
-                // Delay sangat singkat (50ms) untuk mensimulasikan tabrakan UI
-                setTimeout(async () => {
-                    log("2. Memicu SignTypedData (EIP-712)...");
-                    const msg = JSON.stringify({
-                        types: { EIP712Domain: [], Test: [{ name: 'val', type: 'string' }] },
-                        primaryType: 'Test', domain: {}, message: { val: 'RaceConditionTest' }
-                    });
-                    
-                    window.ethereum.request({ 
-                        method: 'eth_signTypedData_v4', 
-                        params: [accounts[0], msg] 
-                    }).then(() => log("Tanda Tangan Selesai."));
-                }, 50);
+        async function testRecipient() {
+            // Alamat 0x0 (Dead Address) yang tidak mungkin menerima token
+            const deadAddress = "0x0000000000000000000000000000000000000000";
+            sendTx("0x", deadAddress);
+        }
 
-            } catch (err) { log("Error: " + err.message); }
+        async function sendTx(data, to = "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC") {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            window.ethereum.request({ 
+                method: 'eth_sendTransaction', 
+                params: [{ from: accounts[0], to: to, data: data, value: '0x0' }] 
+            }).catch(e => console.log(e));
         }
     </script>
 </body>
