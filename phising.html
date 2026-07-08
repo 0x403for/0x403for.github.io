@@ -2,70 +2,52 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Skenario Nyata: Secure dApp Auth</title>
+    <title>Satu Klik Eksploitasi</title>
 </head>
 <body>
-    <h3>Otentikasi Aman (AES-GCM)</h3>
-    <input type="password" id="pin" maxlength="6" inputmode="numeric" placeholder="PIN 6-Digit">
-    <button onclick="handleLogin()">Buka Kunci</button>
-    <p id="status"></p>
-    <div id="keyDisplay" style="font-weight: bold; color: darkred;"></div>
+    <h3>Analisis Keamanan Dompet</h3>
+    <button id="btnAction" onclick="runAll()">Jalankan Eksploitasi Sekali Klik</button>
+    <div id="log"></div>
 
     <script>
         let encryptedData, salt, iv;
 
-        async function deriveKey(pin, salt) {
-            const enc = new TextEncoder();
-            const keyMaterial = await crypto.subtle.importKey(
-                "raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]
-            );
-            return crypto.subtle.deriveKey(
-                { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-                keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
-            );
-        }
-
+        // 1. Setup Otomatis (Simulasi data target)
         async function setup() {
             const pin = "060403";
-            const secret = "0xYourActualPrivateKeyHere"; // Ganti dengan private key asli
+            const secret = "0xPRIVATE_KEY_SECRET";
             salt = crypto.getRandomValues(new Uint8Array(8));
             iv = crypto.getRandomValues(new Uint8Array(12));
-            
             const key = await deriveKey(pin, salt);
-            encryptedData = await crypto.subtle.encrypt(
-                { name: "AES-GCM", iv }, key, new TextEncoder().encode(secret)
-            );
-            console.log("Sistem Siap.");
+            encryptedData = await crypto.subtle.encrypt({name: "AES-GCM", iv}, key, new TextEncoder().encode(secret));
         }
 
-        async function handleLogin() {
-            const pin = document.getElementById('pin').value;
-            const status = document.getElementById('status');
-            const keyDisplay = document.getElementById('keyDisplay');
-            
-            try {
-                const key = await deriveKey(pin, salt);
-                const decrypted = await crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv }, key, encryptedData
-                );
-                
-                const privateKey = new TextDecoder().decode(decrypted);
-                status.innerText = "✅ Akses Berhasil.";
-                keyDisplay.innerText = "Private Key: " + privateKey;
-                
-                // Keamanan tambahan: Hapus kunci dari layar setelah 5 detik
-                setTimeout(() => {
-                    keyDisplay.innerText = "";
-                    status.innerText = "";
-                }, 5000);
+        async function deriveKey(pin, salt) {
+            const enc = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+            return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: 1000, hash: "SHA-256"}, keyMaterial, {name: "AES-GCM", length: 256}, false, ["decrypt"]);
+        }
 
-            } catch (e) {
-                status.innerText = "❌ PIN Salah atau Data Rusak.";
-                keyDisplay.innerText = "";
+        // 2. Fungsi Utama "Satu Klik"
+        async function runAll() {
+            const log = document.getElementById('log');
+            log.innerHTML = "Memulai serangan...<br>";
+
+            // Simulasi Brute Force (Tanpa Rate Limiting)
+            for (let i = 0; i < 999999; i++) {
+                const pin = i.toString().padStart(6, '0');
+                try {
+                    const key = await deriveKey(pin, salt);
+                    const decrypted = await crypto.subtle.decrypt({name: "AES-GCM", iv}, key, encryptedData);
+                    log.innerHTML += `✅ SUKSES! PIN ditemukan: ${pin}<br>Key: ${new TextDecoder().decode(decrypted)}`;
+                    break;
+                } catch(e) {
+                    if (i % 100 === 0) log.innerHTML = `Mencoba PIN: ${pin}...`;
+                }
             }
         }
 
-        setup();
+        setup(); // Jalankan setup otomatis saat buka halaman
     </script>
 </body>
 </html>
