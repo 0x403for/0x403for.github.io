@@ -7,6 +7,7 @@
         body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
         #log { background: #222; color: #0f0; padding: 15px; height: 300px; overflow-y: scroll; font-family: monospace; }
         .stats { font-weight: bold; color: #d9534f; }
+        .data-recovered { color: #fff; background: #c0392b; padding: 10px; margin-top: 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -53,7 +54,13 @@
                     
                     const endTime = performance.now();
                     const duration = ((endTime - startTime) / 1000).toFixed(2);
-                    log.innerHTML = `✅ <b>SUCCESS! PIN FOUND: ${pin}</b>`;
+                    
+                    // Simulated 64-character Private Key (hex format)
+                    const simulatedKey = "0x" + Array.from(crypto.getRandomValues(new Uint8Array(32)))
+                        .map(b => b.toString(16).padStart(2, '0')).join('');
+
+                    log.innerHTML = `✅ <b>SUCCESS! PIN FOUND: ${pin}</b><br>
+                                     <div class="data-recovered">🔓 RECOVERED PRIVATE KEY:<br>${simulatedKey}</div>`;
                     stats.innerText = `Statistics: Tested ${attempts} combinations in ${duration} seconds. Speed: ${Math.round(attempts/duration)} PINs/second.`;
                     return;
                 } catch(e) {
