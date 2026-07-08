@@ -2,19 +2,18 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Skenario Nyata: 1inch Auth</title>
+    <title>Skenario Nyata: Secure dApp Auth</title>
 </head>
 <body>
     <h3>Otentikasi Aman (AES-GCM)</h3>
     <input type="password" id="pin" maxlength="6" inputmode="numeric" placeholder="PIN 6-Digit">
     <button onclick="handleLogin()">Buka Kunci</button>
     <p id="status"></p>
+    <div id="keyDisplay" style="font-weight: bold; color: darkred;"></div>
 
     <script>
-        // Variabel global untuk data terenkripsi
         let encryptedData, salt, iv;
 
-        // 1. Fungsi untuk menurunkan kunci dari PIN
         async function deriveKey(pin, salt) {
             const enc = new TextEncoder();
             const keyMaterial = await crypto.subtle.importKey(
@@ -26,10 +25,9 @@
             );
         }
 
-        // 2. Setup Awal: Enkripsi "Kunci Dompet" dengan PIN 060403
         async function setup() {
             const pin = "060403";
-            const secret = "Data Private Key Anda";
+            const secret = "0xYourActualPrivateKeyHere"; // Ganti dengan private key asli
             salt = crypto.getRandomValues(new Uint8Array(8));
             iv = crypto.getRandomValues(new Uint8Array(12));
             
@@ -37,26 +35,36 @@
             encryptedData = await crypto.subtle.encrypt(
                 { name: "AES-GCM", iv }, key, new TextEncoder().encode(secret)
             );
-            console.log("Sistem Siap: Data telah dienkripsi dengan PIN 060403");
+            console.log("Sistem Siap.");
         }
 
-        // 3. Fungsi Verifikasi PIN
         async function handleLogin() {
             const pin = document.getElementById('pin').value;
             const status = document.getElementById('status');
+            const keyDisplay = document.getElementById('keyDisplay');
             
             try {
                 const key = await deriveKey(pin, salt);
                 const decrypted = await crypto.subtle.decrypt(
                     { name: "AES-GCM", iv }, key, encryptedData
                 );
-                status.innerText = "✅ PIN Benar! Akses diberikan: " + new TextDecoder().decode(decrypted);
+                
+                const privateKey = new TextDecoder().decode(decrypted);
+                status.innerText = "✅ Akses Berhasil.";
+                keyDisplay.innerText = "Private Key: " + privateKey;
+                
+                // Keamanan tambahan: Hapus kunci dari layar setelah 5 detik
+                setTimeout(() => {
+                    keyDisplay.innerText = "";
+                    status.innerText = "";
+                }, 5000);
+
             } catch (e) {
                 status.innerText = "❌ PIN Salah atau Data Rusak.";
+                keyDisplay.innerText = "";
             }
         }
 
-        // Jalankan setup saat halaman dimuat
         setup();
     </script>
 </body>
