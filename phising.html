@@ -2,21 +2,19 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Skenario Nyata: Secure dApp Auth</title>
+    <title>Skenario Nyata: 1inch Auth</title>
 </head>
 <body>
-    <h3>Otentikasi Aman (AES-GCM + PBKDF2)</h3>
-    <input type="password" id="pin" maxlength="6" placeholder="PIN 6-Digit">
+    <h3>Otentikasi Aman (AES-GCM)</h3>
+    <input type="password" id="pin" maxlength="6" inputmode="numeric" placeholder="PIN 6-Digit">
     <button onclick="handleLogin()">Buka Kunci</button>
     <p id="status"></p>
 
     <script>
-        // Data tersimpan (Simulasi enkripsi AES-GCM)
-        // Dalam aplikasi nyata, ini diambil dari IndexedDB/Server
-        const encryptedData = new Uint8Array([/* data terenkripsi */]); 
-        const salt = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]); // Harus unik per user
-        const iv = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]); // Initialization Vector
+        // Variabel global untuk data terenkripsi
+        let encryptedData, salt, iv;
 
+        // 1. Fungsi untuk menurunkan kunci dari PIN
         async function deriveKey(pin, salt) {
             const enc = new TextEncoder();
             const keyMaterial = await crypto.subtle.importKey(
@@ -24,25 +22,42 @@
             );
             return crypto.subtle.deriveKey(
                 { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-                keyMaterial, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
+                keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
             );
         }
 
+        // 2. Setup Awal: Enkripsi "Kunci Dompet" dengan PIN 060403
+        async function setup() {
+            const pin = "060403";
+            const secret = "Data Private Key Anda";
+            salt = crypto.getRandomValues(new Uint8Array(8));
+            iv = crypto.getRandomValues(new Uint8Array(12));
+            
+            const key = await deriveKey(pin, salt);
+            encryptedData = await crypto.subtle.encrypt(
+                { name: "AES-GCM", iv }, key, new TextEncoder().encode(secret)
+            );
+            console.log("Sistem Siap: Data telah dienkripsi dengan PIN 060403");
+        }
+
+        // 3. Fungsi Verifikasi PIN
         async function handleLogin() {
             const pin = document.getElementById('pin').value;
             const status = document.getElementById('status');
             
             try {
                 const key = await deriveKey(pin, salt);
-                // Percobaan dekripsi
                 const decrypted = await crypto.subtle.decrypt(
                     { name: "AES-GCM", iv }, key, encryptedData
                 );
-                status.innerText = "✅ Akses diberikan! Kunci berhasil didekripsi.";
+                status.innerText = "✅ PIN Benar! Akses diberikan: " + new TextDecoder().decode(decrypted);
             } catch (e) {
                 status.innerText = "❌ PIN Salah atau Data Rusak.";
             }
         }
+
+        // Jalankan setup saat halaman dimuat
+        setup();
     </script>
 </body>
 </html>
