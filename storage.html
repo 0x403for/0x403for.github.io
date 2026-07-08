@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Storage Reconnaissance Tool</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        .box { border: 1px solid #333; padding: 10px; margin-bottom: 20px; }
+        pre { color: #fff; overflow-x: auto; }
+        h3 { color: #ff9900; }
+    </style>
+</head>
+<body>
+    <h3>[+] Storage Reconnaissance Scan</h3>
+    
+    <div class="box">
+        <h4>LocalStorage Scan:</h4>
+        <pre id="ls-output"></pre>
+    </div>
+
+    <div class="box">
+        <h4>SessionStorage Scan:</h4>
+        <pre id="ss-output"></pre>
+    </div>
+
+    <script>
+        // 1. Scan LocalStorage
+        const lsOutput = document.getElementById('ls-output');
+        if (localStorage.length === 0) {
+            lsOutput.innerText = "No data found.";
+        } else {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const val = localStorage.getItem(key);
+                lsOutput.innerHTML += `<b>Key:</b> ${key} <br><b>Value:</b> ${val.substring(0, 50)}...<br><br>`;
+            }
+        }
+
+        // 2. Scan SessionStorage
+        const ssOutput = document.getElementById('ss-output');
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            const val = sessionStorage.getItem(key);
+            ssOutput.innerHTML += `<b>Key:</b> ${key} <br><b>Value:</b> ${val.substring(0, 50)}...<br><br>`;
+        }
+    </script>
+</body>
+</html>
