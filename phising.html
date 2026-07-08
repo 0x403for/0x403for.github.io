@@ -2,36 +2,45 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>dApp Pin Verification</title>
-    <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding-top: 50px; }
-        input { font-size: 20px; letter-spacing: 10px; width: 150px; text-align: center; }
-    </style>
+    <title>Skenario Nyata: Secure dApp Auth</title>
 </head>
 <body>
-    <h3>Input PIN (6-Digit)</h3>
-    <input type="password" id="pin" maxlength="6" inputmode="numeric" pattern="[0-9]*">
-    <button onclick="checkPin()">Verifikasi</button>
-    <p id="result"></p>
+    <h3>Otentikasi Aman (AES-GCM + PBKDF2)</h3>
+    <input type="password" id="pin" maxlength="6" placeholder="PIN 6-Digit">
+    <button onclick="handleLogin()">Buka Kunci</button>
+    <p id="status"></p>
 
     <script>
-        // Dalam skenario nyata, jangan simpan PIN/Hash di JS. 
-        // Gunakan Web Crypto API atau Keychain di perangkat.
-        const STORED_HASH = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"; // Hash SHA-256 dari '123456'
+        // Data tersimpan (Simulasi enkripsi AES-GCM)
+        // Dalam aplikasi nyata, ini diambil dari IndexedDB/Server
+        const encryptedData = new Uint8Array([/* data terenkripsi */]); 
+        const salt = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]); // Harus unik per user
+        const iv = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]); // Initialization Vector
 
-        async function checkPin() {
+        async function deriveKey(pin, salt) {
+            const enc = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey(
+                "raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]
+            );
+            return crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+                keyMaterial, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
+            );
+        }
+
+        async function handleLogin() {
             const pin = document.getElementById('pin').value;
-            const encoder = new TextEncoder();
-            const data = encoder.encode(pin);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-            if (hashHex === STORED_HASH) {
-                document.getElementById('result').innerText = "✅ PIN Benar! Akses diberikan.";
-            } else {
-                document.getElementById('result').innerText = "❌ PIN Salah!";
+            const status = document.getElementById('status');
+            
+            try {
+                const key = await deriveKey(pin, salt);
+                // Percobaan dekripsi
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv }, key, encryptedData
+                );
+                status.innerText = "✅ Akses diberikan! Kunci berhasil didekripsi.";
+            } catch (e) {
+                status.innerText = "❌ PIN Salah atau Data Rusak.";
             }
         }
     </script>
