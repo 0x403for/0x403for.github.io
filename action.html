@@ -2,41 +2,50 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Anti-Reentrancy UI Test</title>
+    <title>Uji Stress: Race Condition</title>
     <style>
         body { font-family: sans-serif; padding: 20px; text-align: center; }
-        button { padding: 15px 30px; font-size: 16px; cursor: pointer; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        .log { margin-top: 20px; color: #555; }
+        .test-box { border: 1px solid #ccc; padding: 20px; margin: 10px; border-radius: 10px; }
+        button { padding: 15px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h3>Uji Pertahanan Klik Ganda</h3>
-    <button id="withdrawBtn">Tarik Dana (Withdraw)</button>
-    <div id="log" class="log">Siap melakukan aksi...</div>
+    <div class="test-box">
+        <h3>1. Versi BUGGY (Tanpa Proteksi)</h3>
+        <button id="btnBuggy" style="background: #fca5a5;">Kirim Transaksi (Akan Spam!)</button>
+        <p>Klik berkali-kali secepat mungkin.</p>
+    </div>
+
+    <div class="test-box">
+        <h3>2. Versi FIXED (Dengan Anti-Spam)</h3>
+        <button id="btnFixed" style="background: #86efac;">Kirim Transaksi (Aman)</button>
+        <p>Tombol terkunci saat ditekan.</p>
+    </div>
 
     <script>
-        const btn = document.getElementById('withdrawBtn');
-        const log = document.getElementById('log');
+        // Simulasi fungsi blockchain yang lambat (3 detik)
+        const simulateBlockchain = () => new Promise(resolve => setTimeout(resolve, 3000));
 
-        btn.onclick = async () => {
-            // 1. KUNCI tombol agar tidak bisa ditekan lagi
-            btn.disabled = true;
-            btn.innerText = "Memproses...";
-            log.innerText = "Aksi dimulai, menunggu konfirmasi blockchain...";
+        // VERSI BUGGY: Tidak ada `disabled`, memicu race condition
+        document.getElementById('btnBuggy').onclick = async () => {
+            console.log("Buggy: Transaksi dikirim ke dompet...");
+            await simulateBlockchain();
+            console.log("Buggy: Transaksi selesai.");
+        };
 
-            try {
-                // Simulasi interaksi blockchain (asynchronous)
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                log.innerText = "Transaksi sukses!";
-            } catch (err) {
-                log.innerText = "Transaksi gagal.";
-            } finally {
-                // 2. BUKA kembali tombol setelah proses selesai
-                btn.disabled = false;
-                btn.innerText = "Tarik Dana (Withdraw)";
-            }
+        // VERSI FIXED: Menggunakan `disabled` untuk mencegah spam
+        const btnFixed = document.getElementById('btnFixed');
+        btnFixed.onclick = async () => {
+            btnFixed.disabled = true; // KUNCI!
+            btnFixed.innerText = "Memproses...";
+            
+            console.log("Fixed: Transaksi dikirim ke dompet...");
+            await simulateBlockchain();
+            
+            btnFixed.disabled = false; // BUKA!
+            btnFixed.innerText = "Kirim Transaksi (Aman)";
+            console.log("Fixed: Transaksi selesai.");
         };
     </script>
 </body>
