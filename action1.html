@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Storage Auditor</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+        .audit-box { border: 1px solid #333; padding: 20px; margin-top: 20px; background: #000; word-wrap: break-word; }
+        button { padding: 10px; cursor: pointer; background: #444; color: white; border: none; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <h3>Audit LocalStorage & SessionStorage</h3>
+    <p>Gunakan ini untuk mengecek apakah dApp menyimpan data sensitif secara plaintext.</p>
+    
+    <button onclick="runAudit()">Jalankan Audit Keamanan</button>
+    <div id="auditResult" class="audit-box">Hasil audit akan muncul di sini...</div>
+
+    <script>
+        function runAudit() {
+            let report = "<strong>Audit Report:</strong><br>";
+            
+            // 1. Cek LocalStorage
+            report += "<br>--- LocalStorage ---<br>";
+            if (localStorage.length === 0) {
+                report += "Kosong.<br>";
+            } else {
+                for (let i = 0; i < localStorage.length; i++) {
+                    let key = localStorage.key(i);
+                    let val = localStorage.getItem(key);
+                    report += `Key: <b>${key}</b> | Value: ${val}<br>`;
+                }
+            }
+
+            // 2. Cek SessionStorage
+            report += "<br>--- SessionStorage ---<br>";
+            if (sessionStorage.length === 0) {
+                report += "Kosong.<br>";
+            } else {
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    let key = sessionStorage.key(i);
+                    let val = sessionStorage.getItem(key);
+                    report += `Key: <b>${key}</b> | Value: ${val}<br>`;
+                }
+            }
+
+            document.getElementById('auditResult').innerHTML = report;
+        }
+    </script>
+</body>
+</html>
