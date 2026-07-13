@@ -2,61 +2,59 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Pro Security Auditor</title>
+    <title>Pro Security Auditor V2</title>
     <style>
         body { font-family: 'Courier New', monospace; padding: 20px; background: #0f172a; color: #38bdf8; }
-        .audit-box { border: 1px solid #334155; padding: 20px; margin-top: 20px; background: #1e293b; border-radius: 8px; }
+        .audit-box { border: 1px solid #334155; padding: 20px; margin-top: 20px; background: #1e293b; border-radius: 8px; min-height: 200px; }
         .danger { color: #f87171; font-weight: bold; }
-        button { padding: 10px 15px; cursor: pointer; background: #0ea5e9; color: white; border: none; border-radius: 4px; margin-right: 10px; }
-        button.clear { background: #64748b; }
+        button { padding: 10px 15px; cursor: pointer; background: #0ea5e9; color: white; border: none; border-radius: 4px; margin-bottom: 10px; }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
     </style>
 </head>
 <body>
 
-    <h3>🛡️ Web3 Storage Security Auditor</h3>
-    <p>Mendeteksi paparan data sensitif di browser storage.</p>
+    <h3>🛡️ Real-Time Storage Auditor</h3>
+    <p>Memantau kebocoran data di browser storage secara otomatis.</p>
     
-    <button onclick="runAudit()">Jalankan Audit</button>
-    <button class="clear" onclick="clearStorage()">Bersihkan Storage</button>
+    <button onclick="runAudit()">Audit Sekarang</button>
+    <button onclick="clearStorage()" style="background: #64748b;">Bersihkan Storage</button>
     
-    <div id="auditResult" class="audit-box">Klik "Jalankan Audit" untuk mulai...</div>
+    <div id="auditResult" class="audit-box">
+        </div>
 
     <script>
+        const sensitiveKeywords = ['secret', 'token', 'key', 'private', 'password', 'session', 'account'];
+
         function runAudit() {
-            let report = "<strong>[LOGGING AUDIT...]</strong><br><br>";
-            let findings = 0;
-            const sensitiveKeywords = ['secret', 'token', 'key', 'private', 'password', 'session'];
-
-            // Fungsi helper untuk cek data
-            function scanStorage(storage, name) {
-                let section = `--- ${name} ---<br>`;
-                if (storage.length === 0) return section + "Kosong.<br><br>";
+            const container = document.getElementById('auditResult');
+            container.innerHTML = "<strong>[AUDIT LOG...]</strong><br><br>";
+            
+            const storages = [{s: localStorage, n: "LocalStorage"}, {s: sessionStorage, n: "SessionStorage"}];
+            
+            storages.forEach(item => {
+                container.innerHTML += `<u>--- ${item.n} ---</u><br>`;
+                if (item.s.length === 0) container.innerHTML += "Kosong.<br><br>";
                 
-                for (let i = 0; i < storage.length; i++) {
-                    let key = storage.key(i);
-                    let val = storage.getItem(key);
-                    
-                    // Deteksi otomatis bug
+                for (let i = 0; i < item.s.length; i++) {
+                    let key = item.s.key(i);
+                    let val = item.s.getItem(key);
                     let isSensitive = sensitiveKeywords.some(word => key.toLowerCase().includes(word));
-                    if (isSensitive) findings++;
                     
-                    section += `${isSensitive ? '<span class="danger">⚠ ALERT:</span> ' : ''} <b>${key}</b>: ${val}<br>`;
+                    container.innerHTML += `<div class="log-entry">
+                        ${isSensitive ? '<span class="danger">⚠ ALERT:</span> ' : ''} 
+                        <b>${key}</b>: ${val}
+                    </div>`;
                 }
-                return section + "<br>";
-            }
-
-            report += scanStorage(localStorage, "LocalStorage");
-            report += scanStorage(sessionStorage, "SessionStorage");
-            
-            report += (findings > 0) ? `<br><span class="danger">STATUS: ${findings} Celah Keamanan Ditemukan!</span>` : "<br>STATUS: Tidak ada data sensitif yang mencurigakan.";
-            
-            document.getElementById('auditResult').innerHTML = report;
+            });
         }
+
+        // Auto-refresh: Pantau perubahan storage secara berkala
+        setInterval(runAudit, 3000); 
 
         function clearStorage() {
             localStorage.clear();
             sessionStorage.clear();
-            document.getElementById('auditResult').innerHTML = "Storage dibersihkan.";
+            runAudit();
         }
     </script>
 </body>
