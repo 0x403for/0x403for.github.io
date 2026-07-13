@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koneksi Otomatis 1inch</title>
+</head>
+<body>
+
+    <div id="app">
+        <h1>Mendeteksi Dompet...</h1>
+        <p id="status">Memeriksa ketersediaan dompet...</p>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+
+        async function initWeb3() {
+            // 1. Cek apakah provider Web3 tersedia
+            if (typeof window.ethereum !== 'undefined') {
+                
+                // 2. Validasi apakah ini 1inch Wallet
+                // Biasanya 1inch menyuntikkan flag is1InchWallet
+                const is1Inch = window.ethereum.is1InchWallet || window.ethereum.isOneInch;
+
+                if (is1Inch) {
+                    statusEl.innerText = "1inch Wallet terdeteksi. Menghubungkan...";
+                    
+                    try {
+                        // 3. Pemicu koneksi otomatis (Auto-connect)
+                        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        statusEl.innerText = "Berhasil terhubung: " + accounts[0];
+                    } catch (error) {
+                        statusEl.innerText = "Koneksi dibatalkan oleh pengguna.";
+                    }
+                } else {
+                    statusEl.innerText = "Harap gunakan 1inch Wallet Browser untuk mengakses dApp ini.";
+                }
+            } else {
+                statusEl.innerText = "Browser Web3 tidak ditemukan. Buka di DApp Browser.";
+            }
+        }
+
+        // Jalankan fungsi otomatis saat halaman dimuat
+        window.addEventListener('load', initWeb3);
+    </script>
+</body>
+</html>
