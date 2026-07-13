@@ -3,68 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure DApp Interface</title>
+    <title>Secure DApp | Network & Account Test</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f0f2f5; }
-        .container { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-        .status { margin: 20px 0; padding: 12px; border-radius: 8px; font-size: 14px; background: #eef2ff; border: 1px solid #c7d2fe; }
-        button { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #3b82f6; color: white; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        button:disabled { background: #94a3b8; }
-        button:hover { background: #2563eb; }
+        body { font-family: sans-serif; padding: 20px; background: #f8fafc; }
+        .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        #status { margin: 15px 0; color: #334155; font-weight: bold; }
+        .log { font-size: 0.85em; color: #64748b; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h3>Secure dApp</h3>
-    <div id="status" class="status">Status: Menunggu koneksi...</div>
-    <button id="btnConnect">Hubungkan Dompet</button>
-</div>
+    <div class="box">
+        <h3>Sync Test</h3>
+        <div id="status">Menunggu koneksi...</div>
+        <button id="connectBtn">Hubungkan Wallet</button>
+        <div class="log" id="log"></div>
+    </div>
 
-<script>
-    const statusEl = document.getElementById('status');
-    const btnConnect = document.getElementById('btnConnect');
-    
-    // Inisialisasi variabel privat untuk mencegah modifikasi luar
-    let provider = window.ethereum;
+    <script>
+        const statusEl = document.getElementById('status');
+        const logEl = document.getElementById('log');
 
-    async function updateStatus(msg, isError = false) {
-        statusEl.innerText = msg;
-        statusEl.style.borderColor = isError ? '#fecaca' : '#c7d2fe';
-        statusEl.style.background = isError ? '#fef2f2' : '#eef2ff';
-    }
-
-    btnConnect.addEventListener('click', async () => {
-        if (!provider) {
-            updateStatus("Error: DApp Browser tidak terdeteksi.", true);
-            return;
+        function updateLog(msg) {
+            logEl.innerHTML += `<div>> ${msg}</div>`;
         }
 
-        try {
-            btnConnect.disabled = true;
-            updateStatus("Meminta izin akses...");
-            
-            // Request akun
-            const accounts = await provider.request({ method: 'eth_requestAccounts' });
-            
-            // Verifikasi setelah terhubung
-            if (accounts.length > 0) {
-                updateStatus("Terhubung: " + accounts[0].substring(0, 8) + "...");
-                btnConnect.innerText = "Terhubung";
+        async function initListeners() {
+            if (!window.ethereum) return;
+
+            // 1. Deteksi Perubahan Akun
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length > 0) {
+                    updateLog("Akun berubah! Melakukan sinkronisasi...");
+                    window.location.reload(); // Refresh untuk memastikan state dApp sinkron
+                } else {
+                    updateLog("Dompet terputus.");
+                    statusEl.innerText = "Wallet terputus.";
+                }
+            });
+
+            // 2. Deteksi Perubahan Jaringan (Chain)
+            window.ethereum.on('chainChanged', (chainId) => {
+                updateLog("Jaringan berubah ke: " + chainId + ". Refreshing...");
+                window.location.reload(); // Wajib refresh saat network pindah
+            });
+        }
+
+        document.getElementById('connectBtn').onclick = async () => {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                statusEl.innerText = "Terhubung: " + accounts[0].substring(0,6) + "...";
+                updateLog("Koneksi sukses.");
+                initListeners(); // Pasang monitor setelah sukses terhubung
+            } catch (err) {
+                updateLog("Error: " + err.message);
             }
-        } catch (err) {
-            updateStatus("Ditolak: " + (err.message || "User membatalkan"), true);
-            btnConnect.disabled = false;
-        }
-    });
-
-    // Pengecekan awal ketersediaan provider
-    window.addEventListener('load', () => {
-        if (!provider) {
-            updateStatus("Mohon buka di DApp Browser (1inch/MetaMask).", true);
-            btnConnect.disabled = true;
-        }
-    });
-</script>
+        };
+    </script>
 </body>
 </html>
