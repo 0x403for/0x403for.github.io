@@ -1,48 +1,33 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Koneksi Otomatis 1inch</title>
-</head>
-<body>
+<script>
+    const statusEl = document.getElementById('status');
 
-    <div id="app">
-        <h1>Mendeteksi Dompet...</h1>
-        <p id="status">Memeriksa ketersediaan dompet...</p>
-    </div>
+    async function initWeb3() {
+        // Beri jeda 500ms untuk memastikan dompet selesai melakukan injeksi ke window
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-    <script>
-        const statusEl = document.getElementById('status');
+        if (typeof window.ethereum !== 'undefined') {
+            // Kita coba deteksi dengan beberapa kemungkinan properti yang digunakan 1inch
+            const is1Inch = window.ethereum.is1InchWallet || 
+                            window.ethereum.isOneInch || 
+                            (window.ethereum.providers && window.ethereum.providers.find(p => p.is1InchWallet || p.isOneInch));
 
-        async function initWeb3() {
-            // 1. Cek apakah provider Web3 tersedia
-            if (typeof window.ethereum !== 'undefined') {
-                
-                // 2. Validasi apakah ini 1inch Wallet
-                // Biasanya 1inch menyuntikkan flag is1InchWallet
-                const is1Inch = window.ethereum.is1InchWallet || window.ethereum.isOneInch;
-
-                if (is1Inch) {
-                    statusEl.innerText = "1inch Wallet terdeteksi. Menghubungkan...";
-                    
-                    try {
-                        // 3. Pemicu koneksi otomatis (Auto-connect)
-                        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                        statusEl.innerText = "Berhasil terhubung: " + accounts[0];
-                    } catch (error) {
-                        statusEl.innerText = "Koneksi dibatalkan oleh pengguna.";
-                    }
-                } else {
-                    statusEl.innerText = "Harap gunakan 1inch Wallet Browser untuk mengakses dApp ini.";
+            if (is1Inch) {
+                statusEl.innerText = "1inch Wallet terdeteksi. Menghubungkan...";
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    statusEl.innerText = "Berhasil terhubung: " + accounts[0];
+                } catch (error) {
+                    statusEl.innerText = "Koneksi dibatalkan.";
                 }
             } else {
-                statusEl.innerText = "Browser Web3 tidak ditemukan. Buka di DApp Browser.";
+                // Jika bukan 1inch, tampilkan apa yang sebenarnya terdeteksi untuk debugging
+                statusEl.innerText = "Terdeteksi dompet lain (Bukan 1inch).";
+                console.log("Ethereum provider:", window.ethereum);
             }
+        } else {
+            statusEl.innerText = "Browser Web3 tidak ditemukan.";
         }
+    }
 
-        // Jalankan fungsi otomatis saat halaman dimuat
-        window.addEventListener('load', initWeb3);
-    </script>
-</body>
-</html>
+    window.addEventListener('load', initWeb3);
+</script>
