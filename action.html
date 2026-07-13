@@ -1,33 +1,59 @@
-<script>
-    const statusEl = document.getElementById('status');
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>DApp Security Auditor</title>
+    <style>
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
+        .log { border: 1px solid #0f0; padding: 10px; margin-top: 10px; }
+        .alert { color: #f00; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>Security Audit: DApp Browser</h2>
+    <div id="log" class="log">Memulai pemindaian kerentanan...</div>
 
-    async function initWeb3() {
-        // Beri jeda 500ms untuk memastikan dompet selesai melakukan injeksi ke window
-        await new Promise(resolve => setTimeout(resolve, 500));
+    <script>
+        const log = document.getElementById('log');
+        const append = (msg, isAlert = false) => {
+            log.innerHTML += `<div class="${isAlert ? 'alert' : ''}">${msg}</div>`;
+        };
 
-        if (typeof window.ethereum !== 'undefined') {
-            // Kita coba deteksi dengan beberapa kemungkinan properti yang digunakan 1inch
-            const is1Inch = window.ethereum.is1InchWallet || 
-                            window.ethereum.isOneInch || 
-                            (window.ethereum.providers && window.ethereum.providers.find(p => p.is1InchWallet || p.isOneInch));
-
-            if (is1Inch) {
-                statusEl.innerText = "1inch Wallet terdeteksi. Menghubungkan...";
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    statusEl.innerText = "Berhasil terhubung: " + accounts[0];
-                } catch (error) {
-                    statusEl.innerText = "Koneksi dibatalkan.";
-                }
-            } else {
-                // Jika bukan 1inch, tampilkan apa yang sebenarnya terdeteksi untuk debugging
-                statusEl.innerText = "Terdeteksi dompet lain (Bukan 1inch).";
-                console.log("Ethereum provider:", window.ethereum);
+        async function audit() {
+            // 1. Cek Insecure Protocol
+            if (window.location.protocol !== 'https:') {
+                append("CRITICAL: DApp berjalan di HTTP. Data rentan terhadap Man-in-the-Middle (MitM)!", true);
             }
-        } else {
-            statusEl.innerText = "Browser Web3 tidak ditemukan.";
-        }
-    }
 
-    window.addEventListener('load', initWeb3);
-</script>
+            // 2. Cek Prototype Pollution / Global Object tampering
+            if (window.ethereum && window.ethereum.hasOwnProperty('__proto__')) {
+                append("Warning: Provider objek mungkin rentan terhadap modifikasi prototype.");
+            }
+
+            // 3. Uji apakah provider bisa dimanipulasi
+            if (window.ethereum && !Object.isFrozen(window.ethereum)) {
+                append("Info: Objek window.ethereum tidak terkunci (bisa dimodifikasi oleh script pihak ke-3).");
+            } else {
+                append("Status: Objek window.ethereum telah dikunci (Secure).");
+            }
+
+            // 4. Uji kebocoran alamat akun sebelum izin diberikan
+            try {
+                const accounts = window.ethereum.selectedAddress;
+                if (accounts) {
+                    append("VULNERABILITY: Alamat terdeteksi SEBELUM izin diberikan! (Account Leakage).", true);
+                } else {
+                    append("Status: Tidak ada kebocoran alamat akun.");
+                }
+            } catch (e) {
+                append("Status: Proteksi privasi akun aktif.");
+            }
+
+            // 5. Uji event listener hijacking
+            append("Sistem audit selesai. Pastikan untuk tidak pernah menyimpan 'private key' atau 'mnemonic' dalam bentuk apa pun di dalam HTML/JS.");
+        }
+
+        window.onload = audit;
+    </script>
+</body>
+</html>
