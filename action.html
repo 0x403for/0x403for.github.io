@@ -1,28 +1,62 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <title>dApp Rentan (Vulnerable)</title>
+    <meta charset="UTF-8">
+    <title>Pro Security Auditor</title>
+    <style>
+        body { font-family: 'Courier New', monospace; padding: 20px; background: #0f172a; color: #38bdf8; }
+        .audit-box { border: 1px solid #334155; padding: 20px; margin-top: 20px; background: #1e293b; border-radius: 8px; }
+        .danger { color: #f87171; font-weight: bold; }
+        button { padding: 10px 15px; cursor: pointer; background: #0ea5e9; color: white; border: none; border-radius: 4px; margin-right: 10px; }
+        button.clear { background: #64748b; }
+    </style>
 </head>
 <body>
-    <h3>Sistem Login dApp</h3>
-    <button onclick="login()">Simulasi Login Web3</button>
+
+    <h3>🛡️ Web3 Storage Security Auditor</h3>
+    <p>Mendeteksi paparan data sensitif di browser storage.</p>
+    
+    <button onclick="runAudit()">Jalankan Audit</button>
+    <button class="clear" onclick="clearStorage()">Bersihkan Storage</button>
+    
+    <div id="auditResult" class="audit-box">Klik "Jalankan Audit" untuk mulai...</div>
 
     <script>
-        function login() {
-            // SKENARIO NYATA: dApp menyimpan token JWT dan alamat dompet plaintext
-            // Ini adalah praktek buruk yang sering dieksploitasi
-            const mockToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.some_secret_signature";
-            const mockAddress = "0x23907fd2b12f2faa5c1bdb12465d896b4bba3ffe";
+        function runAudit() {
+            let report = "<strong>[LOGGING AUDIT...]</strong><br><br>";
+            let findings = 0;
+            const sensitiveKeywords = ['secret', 'token', 'key', 'private', 'password', 'session'];
 
-            localStorage.setItem('web3_session', JSON.stringify({ 
-                account: mockAddress, 
-                timestamp: Date.now() 
-            }));
+            // Fungsi helper untuk cek data
+            function scanStorage(storage, name) {
+                let section = `--- ${name} ---<br>`;
+                if (storage.length === 0) return section + "Kosong.<br><br>";
+                
+                for (let i = 0; i < storage.length; i++) {
+                    let key = storage.key(i);
+                    let val = storage.getItem(key);
+                    
+                    // Deteksi otomatis bug
+                    let isSensitive = sensitiveKeywords.some(word => key.toLowerCase().includes(word));
+                    if (isSensitive) findings++;
+                    
+                    section += `${isSensitive ? '<span class="danger">⚠ ALERT:</span> ' : ''} <b>${key}</b>: ${val}<br>`;
+                }
+                return section + "<br>";
+            }
+
+            report += scanStorage(localStorage, "LocalStorage");
+            report += scanStorage(sessionStorage, "SessionStorage");
             
-            // Penyimpanan kunci akses yang seharusnya di memori, malah di localStorage
-            localStorage.setItem('secret_key', mockToken);
+            report += (findings > 0) ? `<br><span class="danger">STATUS: ${findings} Celah Keamanan Ditemukan!</span>` : "<br>STATUS: Tidak ada data sensitif yang mencurigakan.";
             
-            alert("Login berhasil! Data sensitif tersimpan di LocalStorage.");
+            document.getElementById('auditResult').innerHTML = report;
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.getElementById('auditResult').innerHTML = "Storage dibersihkan.";
         }
     </script>
 </body>
