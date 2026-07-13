@@ -2,67 +2,61 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Real Gas Estimator</title>
+    <title>Robust Gas Estimator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
-        .box { background: white; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; }
-        .gas-info { background: #e0f2fe; padding: 10px; border-radius: 6px; margin: 10px 0; }
-        button { width: 100%; padding: 12px; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer; }
-        button:disabled { background: #94a3b8; }
+        body { font-family: sans-serif; padding: 20px; background: #f8fafc; }
+        .box { background: white; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .status { padding: 10px; margin: 10px 0; border-radius: 6px; font-size: 0.9em; }
+        .info { background: #dbeafe; color: #1e40af; }
+        .error { background: #fee2e2; color: #991b1b; }
+        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h3>Real Gas Estimation</h3>
-    <div id="gas-info" class="gas-info">Menunggu koneksi...</div>
-    <button id="sendBtn" disabled>Kirim dengan Gas Dinamis</button>
+    <h3>Uji Transaksi Nyata</h3>
+    <div id="status-box" class="status info">Memeriksa estimasi jaringan...</div>
+    <button id="sendBtn" disabled>Kirim Transaksi</button>
 </div>
 
 <script>
-    let provider, signer;
+    let signer;
 
-    async function connect() {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
+    async function init() {
+        if (!window.ethereum) return alert("Instal dompet Web3!");
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
-        document.getElementById('sendBtn').disabled = false;
-        estimateGas();
-    }
-
-    async function estimateGas() {
-        const info = document.getElementById('gas-info');
+        
         try {
-            // Skenario Nyata: Mengirim transaksi kosong (0 ETH) ke diri sendiri untuk tes
-            const tx = {
-                to: await signer.getAddress(),
-                value: ethers.utils.parseEther("0.0")
-            };
-
-            // INI ADALAH KUNCI: Jangan hardcode gasLimit!
-            // Kita minta estimasi langsung ke node jaringan
-            const gasLimit = await provider.estimateGas(tx);
-            const gasPrice = await provider.getGasPrice();
+            // Kita coba simulasi transfer kecil ke diri sendiri untuk estimasi
+            const address = await signer.getAddress();
+            const tx = { to: address, value: 0 };
+            const gas = await provider.estimateGas(tx);
             
-            info.innerHTML = `
-                Estimasi Gas Limit: ${gasLimit.toString()}<br>
-                Gas Price: ${ethers.utils.formatUnits(gasPrice, 'gwei')} Gwei
-            `;
+            document.getElementById('status-box').innerHTML = `Estimasi Gas Limit: ${gas.toString()}`;
+            document.getElementById('sendBtn').disabled = false;
         } catch (err) {
-            info.innerText = "Error Estimasi: " + err.message;
+            document.getElementById('status-box').className = 'status error';
+            document.getElementById('status-box').innerText = "Gagal Estimasi: " + err.message;
         }
     }
 
     document.getElementById('sendBtn').onclick = async () => {
-        const tx = { to: await signer.getAddress(), value: ethers.utils.parseEther("0.0") };
-        
-        // Mengirim transaksi dengan gas yang didapat dari estimasi tadi
-        const txResponse = await signer.sendTransaction(tx);
-        alert("Transaksi terkirim! Hash: " + txResponse.hash);
+        try {
+            const tx = { to: await signer.getAddress(), value: 0 };
+            const txResponse = await signer.sendTransaction(tx);
+            alert("Transaksi dikirim! Hash: " + txResponse.hash);
+        } catch (err) {
+            // Menangkap pesan error asli dari blockchain
+            const msg = err.data?.message || err.message;
+            alert("Transaksi Gagal! Alasan: " + msg);
+        }
     };
 
-    window.ethereum ? connect() : alert("Instal dompet!");
+    init();
 </script>
 
 </body>
