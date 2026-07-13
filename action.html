@@ -2,58 +2,69 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>DApp Security Auditor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure DApp Interface</title>
     <style>
-        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
-        .log { border: 1px solid #0f0; padding: 10px; margin-top: 10px; }
-        .alert { color: #f00; font-weight: bold; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f0f2f5; }
+        .container { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        .status { margin: 20px 0; padding: 12px; border-radius: 8px; font-size: 14px; background: #eef2ff; border: 1px solid #c7d2fe; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #3b82f6; color: white; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        button:disabled { background: #94a3b8; }
+        button:hover { background: #2563eb; }
     </style>
 </head>
 <body>
-    <h2>Security Audit: DApp Browser</h2>
-    <div id="log" class="log">Memulai pemindaian kerentanan...</div>
 
-    <script>
-        const log = document.getElementById('log');
-        const append = (msg, isAlert = false) => {
-            log.innerHTML += `<div class="${isAlert ? 'alert' : ''}">${msg}</div>`;
-        };
+<div class="container">
+    <h3>Secure dApp</h3>
+    <div id="status" class="status">Status: Menunggu koneksi...</div>
+    <button id="btnConnect">Hubungkan Dompet</button>
+</div>
 
-        async function audit() {
-            // 1. Cek Insecure Protocol
-            if (window.location.protocol !== 'https:') {
-                append("CRITICAL: DApp berjalan di HTTP. Data rentan terhadap Man-in-the-Middle (MitM)!", true);
-            }
+<script>
+    const statusEl = document.getElementById('status');
+    const btnConnect = document.getElementById('btnConnect');
+    
+    // Inisialisasi variabel privat untuk mencegah modifikasi luar
+    let provider = window.ethereum;
 
-            // 2. Cek Prototype Pollution / Global Object tampering
-            if (window.ethereum && window.ethereum.hasOwnProperty('__proto__')) {
-                append("Warning: Provider objek mungkin rentan terhadap modifikasi prototype.");
-            }
+    async function updateStatus(msg, isError = false) {
+        statusEl.innerText = msg;
+        statusEl.style.borderColor = isError ? '#fecaca' : '#c7d2fe';
+        statusEl.style.background = isError ? '#fef2f2' : '#eef2ff';
+    }
 
-            // 3. Uji apakah provider bisa dimanipulasi
-            if (window.ethereum && !Object.isFrozen(window.ethereum)) {
-                append("Info: Objek window.ethereum tidak terkunci (bisa dimodifikasi oleh script pihak ke-3).");
-            } else {
-                append("Status: Objek window.ethereum telah dikunci (Secure).");
-            }
-
-            // 4. Uji kebocoran alamat akun sebelum izin diberikan
-            try {
-                const accounts = window.ethereum.selectedAddress;
-                if (accounts) {
-                    append("VULNERABILITY: Alamat terdeteksi SEBELUM izin diberikan! (Account Leakage).", true);
-                } else {
-                    append("Status: Tidak ada kebocoran alamat akun.");
-                }
-            } catch (e) {
-                append("Status: Proteksi privasi akun aktif.");
-            }
-
-            // 5. Uji event listener hijacking
-            append("Sistem audit selesai. Pastikan untuk tidak pernah menyimpan 'private key' atau 'mnemonic' dalam bentuk apa pun di dalam HTML/JS.");
+    btnConnect.addEventListener('click', async () => {
+        if (!provider) {
+            updateStatus("Error: DApp Browser tidak terdeteksi.", true);
+            return;
         }
 
-        window.onload = audit;
-    </script>
+        try {
+            btnConnect.disabled = true;
+            updateStatus("Meminta izin akses...");
+            
+            // Request akun
+            const accounts = await provider.request({ method: 'eth_requestAccounts' });
+            
+            // Verifikasi setelah terhubung
+            if (accounts.length > 0) {
+                updateStatus("Terhubung: " + accounts[0].substring(0, 8) + "...");
+                btnConnect.innerText = "Terhubung";
+            }
+        } catch (err) {
+            updateStatus("Ditolak: " + (err.message || "User membatalkan"), true);
+            btnConnect.disabled = false;
+        }
+    });
+
+    // Pengecekan awal ketersediaan provider
+    window.addEventListener('load', () => {
+        if (!provider) {
+            updateStatus("Mohon buka di DApp Browser (1inch/MetaMask).", true);
+            btnConnect.disabled = true;
+        }
+    });
+</script>
 </body>
 </html>
