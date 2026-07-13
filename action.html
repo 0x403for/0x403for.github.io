@@ -2,50 +2,67 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Address Validator</title>
+    <title>Real Gas Estimator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
         .box { background: white; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        #error-msg { color: red; font-size: 0.85em; display: none; }
-        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .gas-info { background: #e0f2fe; padding: 10px; border-radius: 6px; margin: 10px 0; }
+        button { width: 100%; padding: 12px; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        button:disabled { background: #94a3b8; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h3>Pengiriman Dana</h3>
-    <input type="text" id="addressInput" placeholder="Masukkan alamat tujuan (0x...)">
-    <div id="error-msg">⚠️ Alamat tidak valid! Pastikan format benar.</div>
-    <button id="sendBtn">Kirim Transaksi</button>
+    <h3>Real Gas Estimation</h3>
+    <div id="gas-info" class="gas-info">Menunggu koneksi...</div>
+    <button id="sendBtn" disabled>Kirim dengan Gas Dinamis</button>
 </div>
 
 <script>
-    // Fungsi validasi alamat (Regex standar Ethereum/EVM)
-    function isValidAddress(address) {
-        return /^0x[a-fA-F0-9]{40}$/.test(address);
+    let provider, signer;
+
+    async function connect() {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        document.getElementById('sendBtn').disabled = false;
+        estimateGas();
     }
 
-    const input = document.getElementById('addressInput');
-    const errorMsg = document.getElementById('error-msg');
-    const sendBtn = document.getElementById('sendBtn');
+    async function estimateGas() {
+        const info = document.getElementById('gas-info');
+        try {
+            // Skenario Nyata: Mengirim transaksi kosong (0 ETH) ke diri sendiri untuk tes
+            const tx = {
+                to: await signer.getAddress(),
+                value: ethers.utils.parseEther("0.0")
+            };
 
-    sendBtn.onclick = async () => {
-        const address = input.value;
-
-        if (!isValidAddress(address)) {
-            errorMsg.style.display = 'block';
-            input.style.borderColor = 'red';
-            return;
+            // INI ADALAH KUNCI: Jangan hardcode gasLimit!
+            // Kita minta estimasi langsung ke node jaringan
+            const gasLimit = await provider.estimateGas(tx);
+            const gasPrice = await provider.getGasPrice();
+            
+            info.innerHTML = `
+                Estimasi Gas Limit: ${gasLimit.toString()}<br>
+                Gas Price: ${ethers.utils.formatUnits(gasPrice, 'gwei')} Gwei
+            `;
+        } catch (err) {
+            info.innerText = "Error Estimasi: " + err.message;
         }
+    }
 
-        // Jika valid, hapus error dan lanjut
-        errorMsg.style.display = 'none';
-        input.style.borderColor = '#ddd';
+    document.getElementById('sendBtn').onclick = async () => {
+        const tx = { to: await signer.getAddress(), value: ethers.utils.parseEther("0.0") };
         
-        alert("Alamat valid! Membuka dompet...");
-        // Di sini Anda bisa memanggil window.ethereum.request(...)
+        // Mengirim transaksi dengan gas yang didapat dari estimasi tadi
+        const txResponse = await signer.sendTransaction(tx);
+        alert("Transaksi terkirim! Hash: " + txResponse.hash);
     };
+
+    window.ethereum ? connect() : alert("Instal dompet!");
 </script>
 
 </body>
