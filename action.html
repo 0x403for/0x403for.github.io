@@ -2,51 +2,45 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Stress: Race Condition</title>
+    <title>Storage Auditor</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; text-align: center; }
-        .test-box { border: 1px solid #ccc; padding: 20px; margin: 10px; border-radius: 10px; }
-        button { padding: 15px; cursor: pointer; }
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+        .audit-box { border: 1px solid #333; padding: 20px; margin-top: 20px; background: #000; }
+        button { padding: 10px; cursor: pointer; background: #444; color: white; border: none; }
     </style>
 </head>
 <body>
 
-    <div class="test-box">
-        <h3>1. Versi BUGGY (Tanpa Proteksi)</h3>
-        <button id="btnBuggy" style="background: #fca5a5;">Kirim Transaksi (Akan Spam!)</button>
-        <p>Klik berkali-kali secepat mungkin.</p>
-    </div>
-
-    <div class="test-box">
-        <h3>2. Versi FIXED (Dengan Anti-Spam)</h3>
-        <button id="btnFixed" style="background: #86efac;">Kirim Transaksi (Aman)</button>
-        <p>Tombol terkunci saat ditekan.</p>
-    </div>
+    <h3>Audit LocalStorage & SessionStorage</h3>
+    <p>Gunakan ini untuk mengecek apakah dApp menyimpan data sensitif secara plaintext.</p>
+    
+    <button onclick="runAudit()">Jalankan Audit Keamanan</button>
+    <div id="auditResult" class="audit-box">Hasil audit akan muncul di sini...</div>
 
     <script>
-        // Simulasi fungsi blockchain yang lambat (3 detik)
-        const simulateBlockchain = () => new Promise(resolve => setTimeout(resolve, 3000));
-
-        // VERSI BUGGY: Tidak ada `disabled`, memicu race condition
-        document.getElementById('btnBuggy').onclick = async () => {
-            console.log("Buggy: Transaksi dikirim ke dompet...");
-            await simulateBlockchain();
-            console.log("Buggy: Transaksi selesai.");
-        };
-
-        // VERSI FIXED: Menggunakan `disabled` untuk mencegah spam
-        const btnFixed = document.getElementById('btnFixed');
-        btnFixed.onclick = async () => {
-            btnFixed.disabled = true; // KUNCI!
-            btnFixed.innerText = "Memproses...";
+        function runAudit() {
+            let report = "<strong>Audit Report:</strong><br>";
             
-            console.log("Fixed: Transaksi dikirim ke dompet...");
-            await simulateBlockchain();
-            
-            btnFixed.disabled = false; // BUKA!
-            btnFixed.innerText = "Kirim Transaksi (Aman)";
-            console.log("Fixed: Transaksi selesai.");
-        };
+            // 1. Cek LocalStorage
+            report += "<br>--- LocalStorage ---<br>";
+            if (localStorage.length === 0) report += "Kosong.<br>";
+            for (let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                let val = localStorage.getItem(key);
+                report += `Key: ${key} | Value: ${val}<br>`;
+            }
+
+            // 2. Cek SessionStorage
+            report += "<br>--- SessionStorage ---<br>";
+            if (sessionStorage.length === 0) report += "Kosong.<br>";
+            for (let i = 0; i < sessionStorage.length; i++) {
+                let key = sessionStorage.key(i);
+                let val = sessionStorage.getItem(key);
+                report += `Key: ${key} | Value: ${val}<br>`;
+            }
+
+            document.getElementById('auditResult').innerHTML = report;
+        }
     </script>
 </body>
 </html>
