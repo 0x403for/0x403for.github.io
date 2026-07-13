@@ -2,63 +2,60 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure DApp | Network & Account Test</title>
+    <title>Network Switching Auditor</title>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f8fafc; }
         .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-        #status { margin: 15px 0; color: #334155; font-weight: bold; }
-        .log { font-size: 0.85em; color: #64748b; margin-top: 10px; }
+        .alert { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 8px; margin: 10px 0; display: none; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #2563eb; color: white; cursor: pointer; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-    <div class="box">
-        <h3>Sync Test</h3>
-        <div id="status">Menunggu koneksi...</div>
-        <button id="connectBtn">Hubungkan Wallet</button>
-        <div class="log" id="log"></div>
-    </div>
+<div class="box">
+    <h3>Network Security Test</h3>
+    <div id="network-alert" class="alert">⚠️ Salah Jaringan! Harap pindah ke BSC (Chain ID: 56)</div>
+    <div id="status">Memeriksa jaringan...</div>
+    <button id="actionBtn" disabled>Lakukan Transaksi</button>
+</div>
 
-    <script>
+<script>
+    // Konfigurasi jaringan yang diizinkan (Contoh: BSC Mainnet adalah 56)
+    const REQUIRED_CHAIN_ID = '0x38'; // 56 dalam format Hex
+
+    async function checkNetwork() {
+        const networkAlert = document.getElementById('network-alert');
+        const actionBtn = document.getElementById('actionBtn');
         const statusEl = document.getElementById('status');
-        const logEl = document.getElementById('log');
 
-        function updateLog(msg) {
-            logEl.innerHTML += `<div>> ${msg}</div>`;
-        }
-
-        async function initListeners() {
-            if (!window.ethereum) return;
-
-            // 1. Deteksi Perubahan Akun
-            window.ethereum.on('accountsChanged', (accounts) => {
-                if (accounts.length > 0) {
-                    updateLog("Akun berubah! Melakukan sinkronisasi...");
-                    window.location.reload(); // Refresh untuk memastikan state dApp sinkron
-                } else {
-                    updateLog("Dompet terputus.");
-                    statusEl.innerText = "Wallet terputus.";
-                }
-            });
-
-            // 2. Deteksi Perubahan Jaringan (Chain)
-            window.ethereum.on('chainChanged', (chainId) => {
-                updateLog("Jaringan berubah ke: " + chainId + ". Refreshing...");
-                window.location.reload(); // Wajib refresh saat network pindah
-            });
-        }
-
-        document.getElementById('connectBtn').onclick = async () => {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                statusEl.innerText = "Terhubung: " + accounts[0].substring(0,6) + "...";
-                updateLog("Koneksi sukses.");
-                initListeners(); // Pasang monitor setelah sukses terhubung
-            } catch (err) {
-                updateLog("Error: " + err.message);
+        try {
+            const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+            
+            if (currentChainId !== REQUIRED_CHAIN_ID) {
+                networkAlert.style.display = 'block';
+                actionBtn.disabled = true;
+                statusEl.innerText = "Jaringan saat ini: " + currentChainId;
+            } else {
+                networkAlert.style.display = 'none';
+                actionBtn.disabled = false;
+                statusEl.innerText = "Jaringan: BSC Mainnet (Terhubung)";
             }
-        };
-    </script>
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // Listener untuk deteksi pindah jaringan secara real-time
+    if (window.ethereum) {
+        window.ethereum.on('chainChanged', (chainId) => {
+            checkNetwork();
+        });
+
+        // Jalankan pengecekan pertama kali
+        checkNetwork();
+    }
+</script>
+
 </body>
 </html>
