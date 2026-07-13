@@ -2,62 +2,42 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Robust Gas Estimator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <title>Anti-Reentrancy UI Test</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f8fafc; }
-        .box { background: white; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .status { padding: 10px; margin: 10px 0; border-radius: 6px; font-size: 0.9em; }
-        .info { background: #dbeafe; color: #1e40af; }
-        .error { background: #fee2e2; color: #991b1b; }
-        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        body { font-family: sans-serif; padding: 20px; text-align: center; }
+        button { padding: 15px 30px; font-size: 16px; cursor: pointer; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log { margin-top: 20px; color: #555; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h3>Uji Transaksi Nyata</h3>
-    <div id="status-box" class="status info">Memeriksa estimasi jaringan...</div>
-    <button id="sendBtn" disabled>Kirim Transaksi</button>
-</div>
+    <h3>Uji Pertahanan Klik Ganda</h3>
+    <button id="withdrawBtn">Tarik Dana (Withdraw)</button>
+    <div id="log" class="log">Siap melakukan aksi...</div>
 
-<script>
-    let signer;
+    <script>
+        const btn = document.getElementById('withdrawBtn');
+        const log = document.getElementById('log');
 
-    async function init() {
-        if (!window.ethereum) return alert("Instal dompet Web3!");
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        
-        try {
-            // Kita coba simulasi transfer kecil ke diri sendiri untuk estimasi
-            const address = await signer.getAddress();
-            const tx = { to: address, value: 0 };
-            const gas = await provider.estimateGas(tx);
-            
-            document.getElementById('status-box').innerHTML = `Estimasi Gas Limit: ${gas.toString()}`;
-            document.getElementById('sendBtn').disabled = false;
-        } catch (err) {
-            document.getElementById('status-box').className = 'status error';
-            document.getElementById('status-box').innerText = "Gagal Estimasi: " + err.message;
-        }
-    }
+        btn.onclick = async () => {
+            // 1. KUNCI tombol agar tidak bisa ditekan lagi
+            btn.disabled = true;
+            btn.innerText = "Memproses...";
+            log.innerText = "Aksi dimulai, menunggu konfirmasi blockchain...";
 
-    document.getElementById('sendBtn').onclick = async () => {
-        try {
-            const tx = { to: await signer.getAddress(), value: 0 };
-            const txResponse = await signer.sendTransaction(tx);
-            alert("Transaksi dikirim! Hash: " + txResponse.hash);
-        } catch (err) {
-            // Menangkap pesan error asli dari blockchain
-            const msg = err.data?.message || err.message;
-            alert("Transaksi Gagal! Alasan: " + msg);
-        }
-    };
-
-    init();
-</script>
-
+            try {
+                // Simulasi interaksi blockchain (asynchronous)
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                log.innerText = "Transaksi sukses!";
+            } catch (err) {
+                log.innerText = "Transaksi gagal.";
+            } finally {
+                // 2. BUKA kembali tombol setelah proses selesai
+                btn.disabled = false;
+                btn.innerText = "Tarik Dana (Withdraw)";
+            }
+        };
+    </script>
 </body>
 </html>
