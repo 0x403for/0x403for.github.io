@@ -2,59 +2,44 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Pro Security Auditor V2</title>
+    <title>Storage Auditor</title>
     <style>
-        body { font-family: 'Courier New', monospace; padding: 20px; background: #0f172a; color: #38bdf8; }
-        .audit-box { border: 1px solid #334155; padding: 20px; margin-top: 20px; background: #1e293b; border-radius: 8px; min-height: 200px; }
-        .danger { color: #f87171; font-weight: bold; }
-        button { padding: 10px 15px; cursor: pointer; background: #0ea5e9; color: white; border: none; border-radius: 4px; margin-bottom: 10px; }
-        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+        .audit-box { border: 1px solid #333; padding: 20px; margin-top: 20px; background: #000; }
+        button { padding: 10px; cursor: pointer; background: #444; color: white; border: none; }
     </style>
 </head>
 <body>
 
-    <h3>🛡️ Real-Time Storage Auditor</h3>
-    <p>Memantau kebocoran data di browser storage secara otomatis.</p>
+    <h3>Audit LocalStorage & SessionStorage</h3>
+    <p>Gunakan ini untuk mengecek apakah dApp menyimpan data sensitif secara plaintext.</p>
     
-    <button onclick="runAudit()">Audit Sekarang</button>
-    <button onclick="clearStorage()" style="background: #64748b;">Bersihkan Storage</button>
-    
-    <div id="auditResult" class="audit-box">
-        </div>
+    <button onclick="runAudit()">Jalankan Audit Keamanan</button>
+    <div id="auditResult" class="audit-box">Hasil audit akan muncul di sini...</div>
 
     <script>
-        const sensitiveKeywords = ['secret', 'token', 'key', 'private', 'password', 'session', 'account'];
-
         function runAudit() {
-            const container = document.getElementById('auditResult');
-            container.innerHTML = "<strong>[AUDIT LOG...]</strong><br><br>";
+            let report = "<strong>Audit Report:</strong><br>";
             
-            const storages = [{s: localStorage, n: "LocalStorage"}, {s: sessionStorage, n: "SessionStorage"}];
-            
-            storages.forEach(item => {
-                container.innerHTML += `<u>--- ${item.n} ---</u><br>`;
-                if (item.s.length === 0) container.innerHTML += "Kosong.<br><br>";
-                
-                for (let i = 0; i < item.s.length; i++) {
-                    let key = item.s.key(i);
-                    let val = item.s.getItem(key);
-                    let isSensitive = sensitiveKeywords.some(word => key.toLowerCase().includes(word));
-                    
-                    container.innerHTML += `<div class="log-entry">
-                        ${isSensitive ? '<span class="danger">⚠ ALERT:</span> ' : ''} 
-                        <b>${key}</b>: ${val}
-                    </div>`;
-                }
-            });
-        }
+            // 1. Cek LocalStorage
+            report += "<br>--- LocalStorage ---<br>";
+            if (localStorage.length === 0) report += "Kosong.<br>";
+            for (let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                let val = localStorage.getItem(key);
+                report += `Key: ${key} | Value: ${val}<br>`;
+            }
 
-        // Auto-refresh: Pantau perubahan storage secara berkala
-        setInterval(runAudit, 3000); 
+            // 2. Cek SessionStorage
+            report += "<br>--- SessionStorage ---<br>";
+            if (sessionStorage.length === 0) report += "Kosong.<br>";
+            for (let i = 0; i < sessionStorage.length; i++) {
+                let key = sessionStorage.key(i);
+                let val = sessionStorage.getItem(key);
+                report += `Key: ${key} | Value: ${val}<br>`;
+            }
 
-        function clearStorage() {
-            localStorage.clear();
-            sessionStorage.clear();
-            runAudit();
+            document.getElementById('auditResult').innerHTML = report;
         }
     </script>
 </body>
