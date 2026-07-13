@@ -1,45 +1,28 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>Storage Auditor</title>
-    <style>
-        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
-        .audit-box { border: 1px solid #333; padding: 20px; margin-top: 20px; background: #000; }
-        button { padding: 10px; cursor: pointer; background: #444; color: white; border: none; }
-    </style>
+    <title>dApp Rentan (Vulnerable)</title>
 </head>
 <body>
-
-    <h3>Audit LocalStorage & SessionStorage</h3>
-    <p>Gunakan ini untuk mengecek apakah dApp menyimpan data sensitif secara plaintext.</p>
-    
-    <button onclick="runAudit()">Jalankan Audit Keamanan</button>
-    <div id="auditResult" class="audit-box">Hasil audit akan muncul di sini...</div>
+    <h3>Sistem Login dApp</h3>
+    <button onclick="login()">Simulasi Login Web3</button>
 
     <script>
-        function runAudit() {
-            let report = "<strong>Audit Report:</strong><br>";
+        function login() {
+            // SKENARIO NYATA: dApp menyimpan token JWT dan alamat dompet plaintext
+            // Ini adalah praktek buruk yang sering dieksploitasi
+            const mockToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.some_secret_signature";
+            const mockAddress = "0x23907fd2b12f2faa5c1bdb12465d896b4bba3ffe";
+
+            localStorage.setItem('web3_session', JSON.stringify({ 
+                account: mockAddress, 
+                timestamp: Date.now() 
+            }));
             
-            // 1. Cek LocalStorage
-            report += "<br>--- LocalStorage ---<br>";
-            if (localStorage.length === 0) report += "Kosong.<br>";
-            for (let i = 0; i < localStorage.length; i++) {
-                let key = localStorage.key(i);
-                let val = localStorage.getItem(key);
-                report += `Key: ${key} | Value: ${val}<br>`;
-            }
-
-            // 2. Cek SessionStorage
-            report += "<br>--- SessionStorage ---<br>";
-            if (sessionStorage.length === 0) report += "Kosong.<br>";
-            for (let i = 0; i < sessionStorage.length; i++) {
-                let key = sessionStorage.key(i);
-                let val = sessionStorage.getItem(key);
-                report += `Key: ${key} | Value: ${val}<br>`;
-            }
-
-            document.getElementById('auditResult').innerHTML = report;
+            // Penyimpanan kunci akses yang seharusnya di memori, malah di localStorage
+            localStorage.setItem('secret_key', mockToken);
+            
+            alert("Login berhasil! Data sensitif tersimpan di LocalStorage.");
         }
     </script>
 </body>
