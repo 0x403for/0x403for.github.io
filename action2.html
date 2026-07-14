@@ -2,35 +2,42 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Advanced Security Exploitation Tool</title>
+    <title>Deep Storage Inspector</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #0a0a0a; color: #00ff00; }
+        .log-panel { background: #000; border: 1px solid #333; padding: 15px; height: 400px; overflow: scroll; }
+        .token { color: #ff00ff; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <h3>System Integrity Auditor</h3>
-    <button onclick="runExploit()">Jalankan Eksploitasi Data</button>
-    <pre id="output"></pre>
+    <h3>Deep Storage Inspector</h3>
+    <button onclick="inspect()">Jalankan Inspeksi Mendalam</button>
+    <div id="log" class="log-panel"></div>
 
     <script>
-        async function runExploit() {
-            const output = document.getElementById('output');
-            output.innerText = "Scanning for sensitive keys...\n";
+        const logDiv = document.getElementById('log');
+        function write(msg) { logDiv.innerHTML += msg + "<br>"; }
 
-            // 1. Mencoba LocalStorage
-            try {
-                for (let i = 0; i < localStorage.length; i++) {
-                    let k = localStorage.key(i);
-                    output.innerText += `[LocalStorage] Found: ${k} = ${localStorage.getItem(k)}\n`;
-                }
-            } catch(e) { output.innerText += "[LocalStorage] Access Restricted.\n"; }
+        function inspect() {
+            logDiv.innerHTML = "--- Memulai Inspeksi ---\n";
+            
+            // Mencari kata kunci yang sering digunakan untuk menyimpan JWT/Token
+            const keywords = ['token', 'auth', 'jwt', 'session', 'access', 'secret', 'key'];
 
-            // 2. Mencoba IndexedDB (Pusat data dApp modern)
-            try {
-                const dbs = await indexedDB.databases();
-                for (let dbInfo of dbs) {
-                    output.innerText += `[IndexedDB] Found Database: ${dbInfo.name}\n`;
-                    // Jika Anda ingin mengambil data dari DB ini, Anda perlu membuka koneksi
-                    // Ini adalah tahap dimana data asli dApp "dicuri"
-                }
-            } catch(e) { output.innerText += "[IndexedDB] Access Restricted.\n"; }
+            write("<br><strong>[LocalStorage]</strong>");
+            for (let i = 0; i < localStorage.length; i++) {
+                let k = localStorage.key(i);
+                let v = localStorage.getItem(k);
+                let isSensitive = keywords.some(word => k.toLowerCase().includes(word));
+                write(`${k} : <span class="${isSensitive ? 'token' : ''}">${v}</span>`);
+            }
+
+            write("<br><strong>[SessionStorage]</strong>");
+            for (let i = 0; i < sessionStorage.length; i++) {
+                let k = sessionStorage.key(i);
+                let v = sessionStorage.getItem(k);
+                write(`${k} : ${v}`);
+            }
         }
     </script>
 </body>
