@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h3>Alat Penyerang</h3>
+    <button onclick="curiData()">Jalankan Serangan</button>
+    <p>Hasil curian:</p>
+    <pre id="hasil"></pre>
+
+    <script>
+        function curiData() {
+            // Skenario: Penyerang mencoba membaca localStorage domain korban
+            // CATATAN: Dalam peramban nyata, ini akan gagal karena SOP,
+            // kecuali jika penyerang berhasil menyuntikkan kode di dalam domain korban.
+            const token = localStorage.getItem("session_token");
+            if (token) {
+                document.getElementById("hasil").innerText = "Token dicuri: " + token;
+                console.log("Mengirim token ke server penyerang: " + token);
+            } else {
+                document.getElementById("hasil").innerText = "Token tidak ditemukan.";
+            }
+        }
+    </script>
+</body>
+</html>
