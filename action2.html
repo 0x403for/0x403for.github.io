@@ -2,55 +2,56 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Advanced Storage Security Auditor</title>
+    <title>Security Storage Auditor</title>
     <style>
         body { font-family: 'Courier New', monospace; padding: 20px; background: #0d0d0d; color: #00ff41; }
-        .audit-box { border: 1px solid #00ff41; padding: 15px; margin-top: 20px; background: #000; overflow-wrap: break-word; font-size: 14px; }
-        button { padding: 12px 20px; cursor: pointer; background: #004400; color: #00ff41; border: 1px solid #00ff41; font-weight: bold; }
-        button:hover { background: #00ff41; color: #000; }
-        h3 { border-bottom: 1px solid #00ff41; padding-bottom: 10px; }
+        .audit-box { border: 1px solid #00ff41; padding: 15px; margin-top: 20px; background: #000; word-break: break-all; font-size: 13px; }
+        button { padding: 10px 20px; cursor: pointer; background: #004400; color: #00ff41; border: 1px solid #00ff41; font-weight: bold; }
+        h3 { color: #fff; }
     </style>
 </head>
 <body>
 
-    <h3>Advanced Storage Security Auditor</h3>
-    <p>Target Origin: <span id="origin"></span></p>
+    <h3>Storage Security Auditor</h3>
+    <p>Origin: <code><script>document.write(window.location.origin)</script></code></p>
     
-    <button onclick="runFullAudit()">Jalankan Audit Keamanan Mendalam</button>
+    <button onclick="runAudit()">Jalankan Audit Keamanan</button>
     <div id="auditResult" class="audit-box">Hasil audit akan muncul di sini...</div>
 
     <script>
-        document.getElementById('origin').innerText = window.location.origin;
-
-        async function runFullAudit() {
-            let report = "<strong>Audit Report:</strong><br>";
+        async function runAudit() {
+            let report = "<strong>Audit Report Execution:</strong><br>";
             
-            // 1. LocalStorage
-            report += "<br><strong>[LocalStorage]</strong><br>";
-            if (localStorage.length === 0) report += "Kosong.<br>";
-            for (let i = 0; i < localStorage.length; i++) {
-                let k = localStorage.key(i);
-                report += `Key: <b>${k}</b> | Val: ${localStorage.getItem(k)}<br>`;
-            }
+            // 1. Audit LocalStorage
+            report += "<br>[LocalStorage]<br>";
+            try {
+                if (localStorage.length === 0) report += "Kosong.<br>";
+                for (let i = 0; i < localStorage.length; i++) {
+                    let k = localStorage.key(i);
+                    report += `Key: <b>${k}</b> | Value: ${localStorage.getItem(k)}<br>`;
+                }
+            } catch(e) { report += "Akses ditolak.<br>"; }
 
-            // 2. SessionStorage
-            report += "<br><strong>[SessionStorage]</strong><br>";
-            if (sessionStorage.length === 0) report += "Kosong.<br>";
-            for (let i = 0; i < sessionStorage.length; i++) {
-                let k = sessionStorage.key(i);
-                report += `Key: <b>${k}</b> | Val: ${sessionStorage.getItem(k)}<br>`;
-            }
+            // 2. Audit SessionStorage
+            report += "<br>[SessionStorage]<br>";
+            try {
+                if (sessionStorage.length === 0) report += "Kosong.<br>";
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    let k = sessionStorage.key(i);
+                    report += `Key: <b>${k}</b> | Value: ${sessionStorage.getItem(k)}<br>`;
+                }
+            } catch(e) { report += "Akses ditolak.<br>"; }
 
-            // 3. IndexedDB (Krusial untuk dApp modern)
-            report += "<br><strong>[IndexedDB Databases]</strong><br>";
+            // 3. Audit IndexedDB
+            report += "<br>[IndexedDB Databases]<br>";
             try {
                 const dbs = await indexedDB.databases();
-                if (dbs.length === 0) report += "Tidak ditemukan.<br>";
+                if (dbs.length === 0) report += "Tidak ada database ditemukan.<br>";
                 dbs.forEach(db => {
-                    report += `Found DB: <b>${db.name}</b> (v${db.version})<br>`;
+                    report += `DB Name: <b>${db.name}</b><br>`;
                 });
             } catch (e) {
-                report += "Akses IndexedDB dibatasi.<br>";
+                report += "Fitur tidak didukung atau akses ditolak.<br>";
             }
 
             document.getElementById('auditResult').innerHTML = report;
