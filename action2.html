@@ -2,58 +2,48 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Security Audit Tool</title>
+    <title>Cross-Origin Storage Auditor</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f4f4f9; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; word-break: break-all; }
-        th { background-color: #333; color: white; }
-        button { padding: 12px 20px; cursor: pointer; background: #e74c3c; color: white; border: none; border-radius: 4px; font-weight: bold; }
-        #reportArea { margin-top: 20px; white-space: pre-wrap; background: #eee; padding: 15px; font-family: monospace; display: none; }
+        body { font-family: sans-serif; padding: 20px; background: #000; color: #0f0; }
+        .log { border: 1px solid #0f0; padding: 10px; margin-top: 10px; font-size: 12px; }
+        button { padding: 15px; width: 100%; background: #0f0; color: #000; font-weight: bold; border: none; }
     </style>
 </head>
 <body>
-
-    <div class="card">
-        <h3>Storage Security Audit</h3>
-        <button onclick="runAudit()">Jalankan Audit & Format Laporan</button>
-        
-        <table id="auditTable">
-            <thead><tr><th>Source</th><th>Key</th><th>Value</th></tr></thead>
-            <tbody id="resultBody"></tbody>
-        </table>
-
-        <div id="reportArea"></div>
-    </div>
+    <h3>Audit Lintas Origin (Skenario Nyata)</h3>
+    <button onclick="runAggressiveAudit()">Deteksi Storage Lintas Origin</button>
+    <div id="result" class="log">Menunggu eksekusi...</div>
 
     <script>
-        function runAudit() {
-            const body = document.getElementById('resultBody');
-            const reportArea = document.getElementById('reportArea');
-            body.innerHTML = "";
-            let reportText = "Evidence for Triage Team:\n\n";
+        async function runAggressiveAudit() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = "Memindai...<br>";
 
-            // Audit Logic
-            const sources = [
-                {name: 'LocalStorage', data: localStorage},
-                {name: 'SessionStorage', data: sessionStorage}
-            ];
+            // 1. Coba baca LocalStorage (Domain sendiri)
+            resultDiv.innerHTML += "<br><strong>[LocalStorage Saya]</strong><br>";
+            for (let i = 0; i < localStorage.length; i++) {
+                let k = localStorage.key(i);
+                resultDiv.innerHTML += `K: ${k} | V: ${localStorage.getItem(k).substring(0, 20)}...<br>`;
+            }
 
-            sources.forEach(src => {
-                for (let i = 0; i < src.data.length; i++) {
-                    let k = src.data.key(i);
-                    let v = src.data.getItem(k);
-                    
-                    // Update Table
-                    body.innerHTML += `<tr><td>${src.name}</td><td>${k}</td><td>${v}</td></tr>`;
-                    // Build Report
-                    reportText += `[${src.name}] Key: ${k} | Value: ${v}\n`;
+            // 2. Eksperimen: Mencoba mengakses database global (Jika ada celah WebView)
+            // Ini adalah cara untuk melihat apakah kita bisa mengakses database 
+            // yang dibuat oleh domain lain di folder yang sama
+            resultDiv.innerHTML += "<br><strong>[Mencoba IndexedDB Global]</strong><br>";
+            try {
+                const databases = await indexedDB.databases();
+                if (databases.length === 0) {
+                    resultDiv.innerHTML += "Tidak ada DB ditemukan di origin ini.<br>";
+                } else {
+                    databases.forEach(db => {
+                        resultDiv.innerHTML += `Ditemukan DB: <b>${db.name}</b> (Versi: ${db.version})<br>`;
+                    });
                 }
-            });
+            } catch(e) {
+                resultDiv.innerHTML += "Akses ditolak: " + e.message + "<br>";
+            }
 
-            reportArea.style.display = 'block';
-            reportArea.textContent = reportText + "\n(Data extracted via security audit tool)";
+            resultDiv.innerHTML += "<br>--- Audit Selesai ---";
         }
     </script>
 </body>
