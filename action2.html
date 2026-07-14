@@ -2,48 +2,35 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Cross-Origin Storage Auditor</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; background: #000; color: #0f0; }
-        .log { border: 1px solid #0f0; padding: 10px; margin-top: 10px; font-size: 12px; }
-        button { padding: 15px; width: 100%; background: #0f0; color: #000; font-weight: bold; border: none; }
-    </style>
+    <title>Advanced Security Exploitation Tool</title>
 </head>
 <body>
-    <h3>Audit Lintas Origin (Skenario Nyata)</h3>
-    <button onclick="runAggressiveAudit()">Deteksi Storage Lintas Origin</button>
-    <div id="result" class="log">Menunggu eksekusi...</div>
+    <h3>System Integrity Auditor</h3>
+    <button onclick="runExploit()">Jalankan Eksploitasi Data</button>
+    <pre id="output"></pre>
 
     <script>
-        async function runAggressiveAudit() {
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = "Memindai...<br>";
+        async function runExploit() {
+            const output = document.getElementById('output');
+            output.innerText = "Scanning for sensitive keys...\n";
 
-            // 1. Coba baca LocalStorage (Domain sendiri)
-            resultDiv.innerHTML += "<br><strong>[LocalStorage Saya]</strong><br>";
-            for (let i = 0; i < localStorage.length; i++) {
-                let k = localStorage.key(i);
-                resultDiv.innerHTML += `K: ${k} | V: ${localStorage.getItem(k).substring(0, 20)}...<br>`;
-            }
-
-            // 2. Eksperimen: Mencoba mengakses database global (Jika ada celah WebView)
-            // Ini adalah cara untuk melihat apakah kita bisa mengakses database 
-            // yang dibuat oleh domain lain di folder yang sama
-            resultDiv.innerHTML += "<br><strong>[Mencoba IndexedDB Global]</strong><br>";
+            // 1. Mencoba LocalStorage
             try {
-                const databases = await indexedDB.databases();
-                if (databases.length === 0) {
-                    resultDiv.innerHTML += "Tidak ada DB ditemukan di origin ini.<br>";
-                } else {
-                    databases.forEach(db => {
-                        resultDiv.innerHTML += `Ditemukan DB: <b>${db.name}</b> (Versi: ${db.version})<br>`;
-                    });
+                for (let i = 0; i < localStorage.length; i++) {
+                    let k = localStorage.key(i);
+                    output.innerText += `[LocalStorage] Found: ${k} = ${localStorage.getItem(k)}\n`;
                 }
-            } catch(e) {
-                resultDiv.innerHTML += "Akses ditolak: " + e.message + "<br>";
-            }
+            } catch(e) { output.innerText += "[LocalStorage] Access Restricted.\n"; }
 
-            resultDiv.innerHTML += "<br>--- Audit Selesai ---";
+            // 2. Mencoba IndexedDB (Pusat data dApp modern)
+            try {
+                const dbs = await indexedDB.databases();
+                for (let dbInfo of dbs) {
+                    output.innerText += `[IndexedDB] Found Database: ${dbInfo.name}\n`;
+                    // Jika Anda ingin mengambil data dari DB ini, Anda perlu membuka koneksi
+                    // Ini adalah tahap dimana data asli dApp "dicuri"
+                }
+            } catch(e) { output.innerText += "[IndexedDB] Access Restricted.\n"; }
         }
     </script>
 </body>
