@@ -2,49 +2,57 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Storage Check</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Origin Test</title>
     <style>
-        body { font-family: system-ui, sans-serif; background:#0c0c14; color:#ddd; padding:15px; }
-        button { width:100%; padding:14px; margin:10px 0; background:#1e1e2b; color:#4ade80; border:1px solid #334155; border-radius:8px; }
-        pre { background:#16161f; padding:12px; border-radius:6px; overflow:auto; font-size:0.9rem; }
+        body { font-family: system-ui; background: #0a0a12; color: #ddd; padding: 15px; }
+        pre { background: #111; padding: 12px; border-radius: 6px; }
+        button { width: 100%; padding: 14px; margin: 10px 0; background: #1e2a44; color: #60a5fa; border: none; border-radius: 8px; }
     </style>
 </head>
 <body>
-    <h1>Storage & Context Check</h1>
-    <button onclick="fullScan()">Full Scan</button>
-
-    <h2>Hasil:</h2>
-    <pre id="result">Menunggu...</pre>
+    <h1>Cross-Origin Test</h1>
+    <button onclick="testCrossOrigin()">Test Cross-Origin Access</button>
+    <pre id="log">Hasil akan muncul di sini...</pre>
 
     <script>
-        async function fullScan() {
-            let report = "=== Origin ===\n" + window.location.origin + "\n\n";
-
-            // Storage biasa
-            report += "=== localStorage ===\n";
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                report += `${k}: ${localStorage.getItem(k).substring(0,120)}...\n`;
-            }
-
-            // Coba akses parent / top (jika di-iframe)
-            try {
-                if (window.parent !== window) {
-                    report += "\n=== Parent Window Access Possible ===\n";
-                }
-            } catch(e) {
-                report += "\nParent access blocked (Good)\n";
-            }
-
-            // PostMessage test (hanya log)
-            report += "\n=== PostMessage Test ===\nCek console untuk postMessage attempt.";
-
-            document.getElementById('result').textContent = report;
-            console.log("=== Full Scan Complete ===", window.location);
+        function log(msg) {
+            document.getElementById('log').textContent += msg + "\n\n";
         }
 
-        window.onload = fullScan;
+        async function testCrossOrigin() {
+            let report = `Origin Saat Ini: ${location.origin}\n\n`;
+
+            // Test parent access
+            try {
+                if (window.parent !== window) {
+                    report += "✅ Inside iframe\n";
+                    report += "Parent origin attempt: " + (window.parent.location.origin || "Blocked") + "\n";
+                } else {
+                    report += "Not inside iframe\n";
+                }
+            } catch (e) {
+                report += "❌ window.parent blocked (Good)\n";
+            }
+
+            // postMessage ke top
+            try {
+                window.top.postMessage({type: "test", from: location.origin}, "*");
+                report += "✅ postMessage ke top dikirim\n";
+            } catch (e) {
+                report += "❌ postMessage gagal\n";
+            }
+
+            // Coba baca localStorage via trick (biasanya gagal)
+            try {
+                report += "localStorage.length: " + localStorage.length + "\n";
+            } catch (e) {}
+
+            document.getElementById('log').textContent = report;
+            console.log("Cross-Origin Test Report:", report);
+        }
+
+        window.onload = testCrossOrigin;
     </script>
 </body>
 </html>
