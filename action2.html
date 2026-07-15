@@ -3,52 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diagnostic Tool</title>
+    <title>Advanced Check</title>
     <style>
-        body { font-family: system-ui; background: #0a0a12; color: #ddd; padding: 16px; line-height: 1.5; }
-        button { width: 100%; padding: 14px; margin: 10px 0; background: #1f2937; color: #67e8f9; border: 1px solid #475569; border-radius: 8px; }
-        pre { background: #111827; padding: 14px; border-radius: 6px; overflow: auto; font-size: 0.9rem; }
+        body { font-family: system-ui, sans-serif; background: #0a0a12; color: #ddd; padding: 15px; }
+        button { width: 100%; padding: 15px; margin: 12px 0; background: #1e2937; color: #93c5fd; border: 1px solid #334155; border-radius: 8px; font-size: 1rem; }
+        pre { background: #111827; padding: 14px; border-radius: 6px; overflow: auto; white-space: pre-wrap; }
     </style>
 </head>
 <body>
-    <h1>Diagnostic Tool</h1>
-    <button onclick="runAllTests()">Jalankan Semua Test</button>
-    <pre id="result">Hasil akan muncul di sini...</pre>
+    <h1>Advanced Check</h1>
+    <button onclick="runAdvancedTest()">Jalankan Advanced Test</button>
+    <pre id="output">Menunggu perintah...</pre>
 
     <script>
-        const log = (msg) => {
-            document.getElementById('result').textContent += msg + "\n";
-        };
-
-        async function runAllTests() {
-            let report = `Origin: ${location.origin}\nTime: ${new Date().toISOString()}\n\n`;
-
-            // BroadcastChannel
-            try {
-                const bc = new BroadcastChannel('test_channel');
-                bc.postMessage({test: "from_dapp"});
-                report += "✅ BroadcastChannel aktif\n";
-            } catch(e) { report += "❌ BroadcastChannel error\n"; }
-
-            // localStorage & sessionStorage
-            report += `\nlocalStorage items: ${localStorage.length}\n`;
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                report += `• ${k}\n`;
-            }
-
-            // iframe / parent
-            try {
-                report += window.parent === window ? "Not in iframe\n" : "Inside iframe\n";
-            } catch(e) {
-                report += "Cross-origin blocked\n";
-            }
-
-            document.getElementById('result').textContent = report;
-            console.log("=== Diagnostic Complete ===", report);
+        function log(text) {
+            document.getElementById('output').textContent += text + "\n";
         }
 
-        window.onload = runAllTests;
+        async function runAdvancedTest() {
+            let report = `Origin: ${location.origin}\n\n`;
+
+            // 1. BroadcastChannel
+            try {
+                new BroadcastChannel('1inch_test').postMessage({action: "test"});
+                report += "✅ BroadcastChannel berhasil\n";
+            } catch(e) { report += "❌ BroadcastChannel gagal\n"; }
+
+            // 2. SharedWorker (jika support)
+            try {
+                if (typeof SharedWorker !== "undefined") {
+                    report += "✅ SharedWorker tersedia\n";
+                }
+            } catch(e) { report += "❌ SharedWorker tidak tersedia\n"; }
+
+            // 3. localStorage detail
+            report += `\nlocalStorage (${localStorage.length} items):\n`;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                report += `- ${key}\n`;
+            }
+
+            // 4. Coba akses top level
+            try {
+                report += window !== window.top ? "Inside iframe detected\n" : "Top level window\n";
+            } catch(e) {
+                report += "Cross-origin protection aktif\n";
+            }
+
+            // 5. Clipboard permission test
+            try {
+                const perm = await navigator.permissions.query({name: "clipboard-read"});
+                report += `Clipboard permission: ${perm.state}\n`;
+            } catch(e) {
+                report += "Clipboard permission tidak bisa dicek\n";
+            }
+
+            document.getElementById('output').textContent = report;
+            console.log(report);
+        }
+
+        // Auto run
+        window.onload = () => setTimeout(runAdvancedTest, 800);
     </script>
 </body>
 </html>
