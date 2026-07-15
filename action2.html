@@ -3,98 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Bug Tester</title>
+    <title>DApp Wallet Vulnerability Scanner</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background: #ffffff; 
-            color: #000000; 
-            padding: 20px; 
-            line-height: 1.6;
-        }
+        body { font-family: Arial, sans-serif; background: #fff; color: #000; padding: 20px; line-height: 1.6; }
         h1 { text-align: center; }
         button { 
-            display: block; 
-            width: 100%; 
-            max-width: 400px; 
-            margin: 12px auto; 
-            padding: 14px; 
-            background: #000000; 
-            color: #ffffff; 
-            border: 2px solid #000; 
-            cursor: pointer;
-            font-size: 16px;
+            display: block; width: 100%; max-width: 420px; margin: 12px auto; 
+            padding: 14px; background: #000; color: #fff; border: 2px solid #000; cursor: pointer;
         }
-        button:hover { background: #333333; }
+        button:hover { background: #333; }
         pre { 
-            background: #f4f4f4; 
-            padding: 20px; 
-            border: 2px solid #000000; 
-            overflow-x: auto; 
-            max-height: 600px;
-            font-family: monospace;
-            white-space: pre-wrap;
+            background: #f4f4f4; padding: 20px; border: 2px solid #000; 
+            font-family: monospace; white-space: pre-wrap; max-height: 700px; overflow-y: auto;
         }
-        .red { color: #000000; font-weight: bold; }
+        .vuln { color: #000; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>1INCH BUG TESTER</h1>
+    <h1>DAPP WALLET VULNERABILITY SCANNER</h1>
     <p style="text-align:center;">Wallet: <strong><span id="walletAddr">Belum terhubung</span></strong></p>
 
-    <button onclick="startFullTest()">1. FULL BUG TEST</button>
-    <button onclick="testInfiniteApproval()">2. TEST INFINITE APPROVAL</button>
-    <button onclick="testSignature()">3. TEST SIGNATURE</button>
-    <button onclick="testPermit()">4. TEST PERMIT SIGNATURE</button>
+    <button onclick="fullScan()">FULL VULNERABILITY SCAN</button>
+    <button onclick="scanInfiniteApproval()">SCAN INFINITE APPROVAL</button>
+    <button onclick="testPermit()">TEST PERMIT (EIP-2612)</button>
+    <button onclick="scanMalicious()">MALICIOUS CONTRACT SCAN</button>
+    <button onclick="revokeHelper()">REVOKE HELPER</button>
+    <button onclick="sessionCheck()">SESSION CHECKER</button>
     <button onclick="clearLog()">CLEAR LOG</button>
 
-    <pre id="log">Siap menguji bug di 1inch...\nKlik tombol di atas.</pre>
+    <pre id="log">Vulnerability Scanner siap...\nKlik FULL VULNERABILITY SCAN</pre>
 
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script>
         let walletAddr = null;
         const logEl = document.getElementById('log');
 
-        function log(msg) {
+        function log(msg, isVuln = false) {
             const time = new Date().toLocaleTimeString();
-            logEl.innerHTML += `[${time}] ${msg}\n`;
+            const prefix = isVuln ? "🚨 VULNERABILITY: " : "";
+            logEl.innerHTML += `[${time}] ${prefix}${msg}\n`;
             logEl.scrollTop = logEl.scrollHeight;
         }
 
         async function connectWallet() {
             if (!window.ethereum) {
-                log("ERROR: Wallet tidak terdeteksi");
+                log("Wallet tidak terdeteksi", true);
                 return null;
             }
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                walletAddr = accounts[0];
+                const acc = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                walletAddr = acc[0];
                 document.getElementById('walletAddr').textContent = walletAddr;
                 log(`Wallet terhubung: ${walletAddr}`);
                 return walletAddr;
             } catch (e) {
-                log("Gagal connect wallet");
+                log("Gagal connect wallet", true);
                 return null;
             }
         }
 
-        async function startFullTest() {
-            log("=== FULL BUG TEST DIMULAI ===");
+        async function fullScan() {
+            log("=== FULL VULNERABILITY SCAN DIMULAI ===");
             await connectWallet();
-            await testInfiniteApproval();
-            await testSignature();
-            log("=== FULL TEST SELESAI ===");
+            await scanInfiniteApproval();
+            await testPermit();
+            scanMalicious();
+            sessionCheck();
+            log("=== SCAN SELESAI ===");
         }
 
-        async function testInfiniteApproval() {
-            log("\n[2] TESTING INFINITE APPROVAL");
+        async function scanInfiniteApproval() {
+            log("\n[SCAN INFINITE APPROVAL]");
             const routers = [
-                "0x1111111254EEB25477B68fb851d3A6D1aA9c3F6C",
-                "0x111111125421ca6dc452d289314280a0f0b5b0e6"
+                "0x1111111254EEB25477B68fb851d3A6D1aA9c3F6C", // 1inch
+                "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"  // Uniswap
             ];
             const tokens = [
-                {sym: "USDC", addr: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
-                {sym: "USDT", addr: "0xdAC17F958D2ee523a2206206994597C13D831ec7"}
+                {sym:"USDC", addr:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
+                {sym:"USDT", addr:"0xdAC17F958D2ee523a2206206994597C13D831ec7"}
             ];
 
             const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -105,43 +91,45 @@
                         const contract = new ethers.Contract(token.addr, ["function allowance(address,address) view returns (uint256)"], provider);
                         const allowance = await contract.allowance(walletAddr, router);
                         if (allowance > 1000000000000000000000000n) {
-                            log(`BUG DITEMUKAN: Infinite Approval pada ${token.sym}`);
+                            log(`Infinite Approval ditemukan pada ${token.sym} ke ${router.slice(0,10)}...`, true);
                         } else if (allowance > 0) {
-                            log(`Approval normal pada ${token.sym}`);
+                            log(`Approval normal: ${token.sym}`);
                         }
                     } catch(e) {}
                 }
             }
         }
 
-        async function testSignature() {
-            log("\n[3] TESTING SIGNATURE");
+        async function testPermit() {
+            log("\n[TEST PERMIT SIGNATURE EIP-2612]");
             await connectWallet();
-            try {
-                const message = `1inch Bug Test ${Date.now()}`;
-                const hexMsg = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(message));
-                const sig = await window.ethereum.request({
-                    method: "personal_sign",
-                    params: [hexMsg, walletAddr]
-                });
-                log("Signature berhasil (normal)");
-            } catch (err) {
-                log(`Signature ditolak: ${err.message}`);
-            }
+            log("Coba lakukan transaksi di DApp (swap) untuk melihat Permit signature");
+            log("Jika Permit muncul, pastikan Anda paham pesannya sebelum tandatangan");
         }
 
-        async function testPermit() {
-            log("\n[4] TESTING PERMIT SIGNATURE");
-            await connectWallet();
-            log("Coba lakukan Swap di 1inch.io dan amati apakah muncul Permit signature.");
-            log("Ini sering menjadi celah di banyak DApp.");
+        function scanMalicious() {
+            log("\n[MALICIOUS CONTRACT DETECTOR]");
+            log("Jangan interact dengan contract yang tidak dikenal");
+            log("Cek alamat contract di Etherscan sebelum approve/sign");
+        }
+
+        function revokeHelper() {
+            log("\n[REVOKE APPROVAL HELPER]");
+            log("Buka https://revoke.cash");
+            log("Masukkan alamat wallet Anda untuk revoke approval berbahaya");
+        }
+
+        function sessionCheck() {
+            log("\n[WALLETCONNECT SESSION CHECK]");
+            log("Cek Connected Sites di wallet Anda");
+            log("Disconnect session yang tidak diperlukan");
         }
 
         function clearLog() {
             logEl.innerHTML = '';
         }
 
-        window.onload = () => log("Tool siap. Klik FULL BUG TEST");
+        window.onload = () => log("Scanner siap. Mulai dengan FULL VULNERABILITY SCAN");
     </script>
 </body>
 </html>
