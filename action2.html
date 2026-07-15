@@ -2,49 +2,114 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Ultimate Storage Auditor v2.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Session & Multitask Test</title>
     <style>
-        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
-        .box { border: 1px solid #0f0; padding: 15px; margin-top: 10px; }
-        .token { color: #f0f; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0f0f23; color: #fff; }
+        .status { padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .connected { background: #28a745; }
+        .disconnected { background: #dc3545; }
+        button { padding: 12px 20px; margin: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
-    <h3>Ultimate Security Auditor</h3>
-    <button onclick="runUltimateAudit()">Jalankan Full Audit Lintas Origin</button>
-    <div id="result" class="box">Status: Menunggu eksekusi...</div>
+    <h1>🔍 1inch dApp Browser Test - Session & Multitasking</h1>
+    
+    <div id="status" class="status disconnected">Status: Disconnected</div>
+    
+    <button onclick="connectWallet()">Connect Wallet (WalletConnect / Injected)</button>
+    <button onclick="signMessage()">Sign Test Message</button>
+    <button onclick="refreshPage()">Pull-to-Refresh Simulation (Reload)</button>
+    
+    <h2>Session Info</h2>
+    <pre id="sessionData">Belum ada session...</pre>
 
     <script>
-        async function runUltimateAudit() {
-            const res = document.getElementById('result');
-            res.innerHTML = "Memindai seluruh penyimpanan...<br>";
+        let isConnected = false;
+        let account = null;
 
-            
-            res.innerHTML += "<br>[LocalStorage]:<br>";
-            for (let i = 0; i < localStorage.length; i++) {
-                let k = localStorage.key(i);
-                res.innerHTML += `${k} = <span class="token">${localStorage.getItem(k)}</span><br>`;
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    account = accounts[0];
+                    isConnected = true;
+                    updateStatus();
+                    saveSession();
+                } catch (error) {
+                    alert('Connect gagal: ' + error.message);
+                }
+            } else {
+                alert('WalletConnect / Injected provider tidak terdeteksi. Coba di 1inch Browser.');
             }
+        }
 
-            
-            res.innerHTML += "<br>[SessionStorage]:<br>";
-            for (let i = 0; i < sessionStorage.length; i++) {
-                let k = sessionStorage.key(i);
-                res.innerHTML += `${k} = ${sessionStorage.getItem(k)}<br>`;
+        async function signMessage() {
+            if (!isConnected) {
+                alert('Connect wallet dulu!');
+                return;
             }
-
-            
-            res.innerHTML += "<br>[IndexedDB Probing]:<br>";
             try {
-                
-                const dbs = await indexedDB.databases();
-                if (dbs.length === 0) res.innerHTML += "Tidak ada DB ditemukan.<br>";
-                dbs.forEach(db => {
-                    res.innerHTML += `Database Terdeteksi: <b>${db.name}</b><br>`;
+                const message = "Test session restore dari 1inch dApp Browser - " + new Date().toISOString();
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [message, account]
                 });
-            } catch (err) {
-                res.innerHTML += "Akses ditolak oleh kebijakan peramban: " + err.message + "<br>";
+                alert('Signature berhasil:\n' + signature.substring(0, 30) + '...');
+                console.log('Signature:', signature);
+            } catch (error) {
+                alert('Sign gagal: ' + error.message);
             }
+        }
+
+        function updateStatus() {
+            const statusEl = document.getElementById('status');
+            if (isConnected && account) {
+                statusEl.className = 'status connected';
+                statusEl.textContent = `Connected: ${account.substring(0,6)}...${account.substring(38)}`;
+            } else {
+                statusEl.className = 'status disconnected';
+                statusEl.textContent = 'Status: Disconnected';
+            }
+        }
+
+        function saveSession() {
+            const session = {
+                connected: isConnected,
+                account: account,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('testSession1inch', JSON.stringify(session));
+            document.getElementById('sessionData').textContent = JSON.stringify(session, null, 2);
+        }
+
+        // Load session saat halaman dibuka
+        window.onload = function() {
+            const saved = localStorage.getItem('testSession1inch');
+            if (saved) {
+                const data = JSON.parse(saved);
+                document.getElementById('sessionData').textContent = 
+                    'Session tersimpan (localStorage):\n' + JSON.stringify(data, null, 2);
+                
+                // Coba restore otomatis (simulasi)
+                if (data.connected) {
+                    document.getElementById('status').innerHTML += '<br><strong>Session ditemukan dari localStorage!</strong>';
+                }
+            }
+        }
+
+        function refreshPage() {
+            location.reload();
+        }
+
+        // Listen network change
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    isConnected = false;
+                    updateStatus();
+                }
+            });
         }
     </script>
 </body>
