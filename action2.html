@@ -3,67 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Check</title>
+    <title>Session Check</title>
     <style>
-        body { font-family: system-ui, sans-serif; background: #0a0a12; color: #ddd; padding: 15px; }
-        button { width: 100%; padding: 15px; margin: 12px 0; background: #1e2937; color: #93c5fd; border: 1px solid #334155; border-radius: 8px; font-size: 1rem; }
-        pre { background: #111827; padding: 14px; border-radius: 6px; overflow: auto; white-space: pre-wrap; }
+        body { font-family: system-ui; background:#0a0a12; color:#ddd; padding:15px; }
+        button { width:100%; padding:14px; margin:10px 0; background:#1f2937; color:#67e8f9; border:none; border-radius:8px; }
+        pre { background:#111827; padding:12px; border-radius:6px; }
     </style>
 </head>
 <body>
-    <h1>Advanced Check</h1>
-    <button onclick="runAdvancedTest()">Jalankan Advanced Test</button>
-    <pre id="output">Menunggu perintah...</pre>
+    <h1>Session Check</h1>
+    <button onclick="check()">Cek Storage</button>
+    <pre id="log">Tekan tombol...</pre>
 
     <script>
-        function log(text) {
-            document.getElementById('output').textContent += text + "\n";
-        }
-
-        async function runAdvancedTest() {
-            let report = `Origin: ${location.origin}\n\n`;
-
-            // 1. BroadcastChannel
-            try {
-                new BroadcastChannel('1inch_test').postMessage({action: "test"});
-                report += "✅ BroadcastChannel berhasil\n";
-            } catch(e) { report += "❌ BroadcastChannel gagal\n"; }
-
-            // 2. SharedWorker (jika support)
-            try {
-                if (typeof SharedWorker !== "undefined") {
-                    report += "✅ SharedWorker tersedia\n";
-                }
-            } catch(e) { report += "❌ SharedWorker tidak tersedia\n"; }
-
-            // 3. localStorage detail
-            report += `\nlocalStorage (${localStorage.length} items):\n`;
+        function check() {
+            let text = `Origin: ${location.origin}\n\n`;
+            text += `localStorage items (${localStorage.length}):\n`;
+            
             for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                report += `- ${key}\n`;
+                let k = localStorage.key(i);
+                text += `- ${k}\n`;
             }
-
-            // 4. Coba akses top level
-            try {
-                report += window !== window.top ? "Inside iframe detected\n" : "Top level window\n";
-            } catch(e) {
-                report += "Cross-origin protection aktif\n";
-            }
-
-            // 5. Clipboard permission test
-            try {
-                const perm = await navigator.permissions.query({name: "clipboard-read"});
-                report += `Clipboard permission: ${perm.state}\n`;
-            } catch(e) {
-                report += "Clipboard permission tidak bisa dicek\n";
-            }
-
-            document.getElementById('output').textContent = report;
-            console.log(report);
+            
+            document.getElementById('log').textContent = text;
         }
-
-        // Auto run
-        window.onload = () => setTimeout(runAdvancedTest, 800);
+        window.onload = check;
     </script>
 </body>
 </html>
