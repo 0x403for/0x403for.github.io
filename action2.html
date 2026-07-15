@@ -5,45 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>1inch Wallet Audit Tool</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0f172a; color: #67e8f9; padding: 20px; }
-        h1 { color: #22d3ee; text-align: center; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #ffffff; 
+            color: #000000; 
+            padding: 20px; 
+            line-height: 1.6;
+        }
+        h1 { text-align: center; }
         .container { max-width: 900px; margin: auto; }
         button { 
             padding: 12px 24px; 
             font-size: 16px; 
-            background: #0891b2; 
-            color: white; 
-            border: none; 
-            border-radius: 6px; 
+            background: #000000; 
+            color: #ffffff; 
+            border: 2px solid #000; 
             cursor: pointer; 
             margin: 8px 5px;
         }
-        button:hover { background: #22d3ee; color: #0f172a; }
+        button:hover { background: #333333; }
         pre { 
-            background: #1e2937; 
-            padding: 18px; 
-            border-radius: 8px; 
+            background: #f4f4f4; 
+            padding: 20px; 
+            border: 2px solid #000000; 
             overflow-x: auto; 
-            max-height: 700px;
+            max-height: 600px;
             font-family: monospace;
+            white-space: pre-wrap;
         }
-        .danger { color: #f87171; }
-        .warning { color: #fbbf24; }
-        .success { color: #4ade80; }
+        .danger { color: #000000; font-weight: bold; }
+        .warning { color: #000000; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 1inch DApp Wallet Audit Tool</h1>
+        <h1>1INCH WALLET AUDIT TOOL</h1>
         <p style="text-align:center;">Wallet Address: <strong><span id="walletAddr">Belum terhubung</span></strong></p>
 
         <div style="text-align:center; margin:20px 0;">
-            <button onclick="start1inchAudit()">🚀 Audit Lengkap 1inch</button>
-            <button onclick="testSignature()">✍️ Test Signature (Blind Sign)</button>
-            <button onclick="clearLog()">🗑️ Clear Log</button>
+            <button onclick="start1inchAudit()">AUDIT LENGKAP 1INCH</button>
+            <button onclick="testSignature()">TEST SIGNATURE</button>
+            <button onclick="clearLog()">CLEAR LOG</button>
         </div>
 
-        <pre id="log">Siap mengaudit wallet untuk 1inch...</pre>
+        <pre id="log">Siap mengaudit wallet untuk 1inch...\n\nKlik tombol di atas.</pre>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
@@ -51,117 +56,10 @@
         let currentWallet = null;
         const logElement = document.getElementById('log');
 
-        function log(msg, type = '') {
+        function log(msg) {
             const time = new Date().toLocaleTimeString();
-            let prefix = type === 'danger' ? '🚨 ' : type === 'warning' ? '⚠️ ' : type === 'success' ? '✅ ' : '';
-            logElement.innerHTML += `<span class="${type}">[${time}] ${prefix}${msg}</span><br>`;
+            logElement.innerHTML += `[${time}] ${msg}\n`;
             logElement.scrollTop = logElement.scrollHeight;
         }
 
         async function connectWallet() {
-            if (!window.ethereum) {
-                log("❌ Wallet tidak terdeteksi. Gunakan MetaMask / Rabby", "danger");
-                return null;
-            }
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                currentWallet = accounts[0];
-                document.getElementById('walletAddr').textContent = currentWallet;
-                log(`✅ Wallet terhubung: ${currentWallet}`, "success");
-                return currentWallet;
-            } catch (e) {
-                log("Gagal menghubungkan wallet", "danger");
-                return null;
-            }
-        }
-
-        async function start1inchAudit() {
-            log("=== 1INCH WALLET AUDIT DIMULAI ===", "warning");
-            const wallet = await connectWallet();
-            if (!wallet) return;
-
-            await check1inchApprovals(wallet);
-            check1inchSession();
-            log("=== Audit 1inch selesai ===", "success");
-        }
-
-        async function check1inchApprovals(wallet) {
-            log("\n[1] Pengecekan Infinite Approval (1inch Router)");
-            
-            // 1inch Router v5 & v6
-            const oneInchRouters = [
-                "0x1111111254EEB25477B68fb851d3A6D1aA9c3F6C", // 1inch Router v5
-                "0x111111125421ca6dc452d289314280a0f0b5b0e6"  // 1inch Router v6
-            ];
-
-            const commonTokens = [
-                {sym:"USDC", addr:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
-                {sym:"USDT", addr:"0xdAC17F958D2ee523a2206206994597C13D831ec7"},
-                {sym:"DAI",  addr:"0x6B175474E89094C44Da98b954EedeAC495271d0F"},
-                {sym:"WETH", addr:"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"},
-            ];
-
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-
-            for (let router of oneInchRouters) {
-                log(`   Mengecek approval ke Router: ${router.substring(0,8)}...`, "warning");
-                
-                for (let token of commonTokens) {
-                    try {
-                        const contract = new ethers.Contract(token.addr, [
-                            "function allowance(address owner, address spender) view returns (uint256)"
-                        ], provider);
-
-                        const allowance = await contract.allowance(wallet, router);
-                        
-                        if (allowance.gt(ethers.BigNumber.from("100000000000000000000000000"))) {
-                            log(`   🚨 INFINITE APPROVAL ditemukan di ${token.sym} → 1inch Router`, "danger");
-                        } else if (allowance.gt(0)) {
-                            log(`   Approval aktif ${token.sym}: ${ethers.utils.formatUnits(allowance, 18)}`);
-                        }
-                    } catch (e) {}
-                }
-            }
-        }
-
-        function check1inchSession() {
-            log("\n[2] Session & Authorization Check (1inch)");
-            log("   • Pastikan hanya connect ke https://app.1inch.io");
-            log("   • Cek 'Connected Sites' di wallet Anda");
-            log("   • Jangan biarkan session tetap aktif di situs palsu");
-            log("   • Perhatikan setiap permintaan signature saat swap");
-        }
-
-        async function testSignature() {
-            log("\n[3] Blind Signature Test (1inch Style)");
-            const wallet = await connectWallet();
-            if (!wallet) return;
-
-            try {
-                const message = `1inch Audit Test - ${new Date().toISOString()}`;
-                log("Mengirim permintaan signature...");
-
-                const signature = await window.ethereum.request({
-                    method: "personal_sign",
-                    params: [ethers.utils.toUtf8Bytes(message), wallet]
-                });
-
-                log(`✅ Signature berhasil dibuat`, "success");
-                log(`   Signature: ${signature.substring(0, 30)}...`, "success");
-                log("   Catatan: Di 1inch, signature biasanya untuk Permit / Order. Jangan tanda tangani jika tidak mengerti!", "warning");
-            } catch (err) {
-                log(`❌ Signature ditolak: ${err.message}`, "danger");
-            }
-        }
-
-        function clearLog() {
-            logElement.innerHTML = 'Log dibersihkan...<br>';
-        }
-
-        // Auto ready
-        window.onload = () => {
-            log("✅ 1inch Wallet Audit Tool siap.\nKlik 'Audit Lengkap 1inch' setelah connect ke 1inch.io");
-        };
-    </script>
-</body>
-</html>
