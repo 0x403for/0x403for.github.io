@@ -12,16 +12,19 @@
             padding: 20px; 
             line-height: 1.6;
         }
-        h1 { text-align: center; }
+        h1 { text-align: center; margin-bottom: 5px; }
         .container { max-width: 900px; margin: auto; }
         button { 
-            padding: 12px 24px; 
-            font-size: 16px; 
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 12px auto;
+            padding: 14px;
+            font-size: 17px;
             background: #000000; 
             color: #ffffff; 
             border: 2px solid #000; 
-            cursor: pointer; 
-            margin: 8px 5px;
+            cursor: pointer;
         }
         button:hover { background: #333333; }
         pre { 
@@ -29,12 +32,11 @@
             padding: 20px; 
             border: 2px solid #000000; 
             overflow-x: auto; 
-            max-height: 600px;
+            max-height: 500px;
             font-family: monospace;
             white-space: pre-wrap;
+            font-size: 15px;
         }
-        .danger { color: #000000; font-weight: bold; }
-        .warning { color: #000000; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -42,13 +44,11 @@
         <h1>1INCH WALLET AUDIT TOOL</h1>
         <p style="text-align:center;">Wallet Address: <strong><span id="walletAddr">Belum terhubung</span></strong></p>
 
-        <div style="text-align:center; margin:20px 0;">
-            <button onclick="start1inchAudit()">AUDIT LENGKAP 1INCH</button>
-            <button onclick="testSignature()">TEST SIGNATURE</button>
-            <button onclick="clearLog()">CLEAR LOG</button>
-        </div>
+        <button onclick="start1inchAudit()">AUDIT LENGKAP 1INCH</button>
+        <button onclick="testSignature()">TEST SIGNATURE</button>
+        <button onclick="clearLog()">CLEAR LOG</button>
 
-        <pre id="log">Siap mengaudit wallet untuk 1inch...\n\nKlik tombol di atas.</pre>
+        <pre id="log">Siap mengaudit wallet untuk 1inch...\n\nKlik tombol "AUDIT LENGKAP 1INCH" di atas.</pre>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
@@ -63,3 +63,86 @@
         }
 
         async function connectWallet() {
+            if (!window.ethereum) {
+                log("ERROR: Wallet tidak terdeteksi. Pastikan MetaMask/Rabby aktif.");
+                return null;
+            }
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                currentWallet = accounts[0];
+                document.getElementById('walletAddr').textContent = currentWallet;
+                log(`Wallet terhubung: ${currentWallet}`);
+                return currentWallet;
+            } catch (e) {
+                log("Gagal connect wallet.");
+                return null;
+            }
+        }
+
+        async function start1inchAudit() {
+            log("=== 1INCH AUDIT DIMULAI ===");
+            const wallet = await connectWallet();
+            if (!wallet) return;
+
+            await checkApprovals(wallet);
+            checkSession();
+            log("=== AUDIT SELESAI ===");
+        }
+
+        async function checkApprovals(wallet) {
+            log("\n[1] PENGECEKAN APPROVAL KE 1INCH");
+            const routers = ["0x1111111254EEB25477B68fb851d3A6D1aA9c3F6C", "0x111111125421ca6dc452d289314280a0f0b5b0e6"];
+            const tokens = [
+                {sym:"USDC", addr:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
+                {sym:"USDT", addr:"0xdAC17F958D2ee523a2206206994597C13D831ec7"},
+                {sym:"DAI",  addr:"0x6B175474E89094C44Da98b954EedeAC495271d0F"}
+            ];
+
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+
+            for (let router of routers) {
+                log(`Router: ${router}`);
+                for (let token of tokens) {
+                    try {
+                        const contract = new ethers.Contract(token.addr, ["function allowance(address,address) view returns (uint256)"], provider);
+                        const allowance = await contract.allowance(wallet, router);
+                        if (allowance > 1000000000000000000000000n) {
+                            log(`!!! INFINITE APPROVAL pada ${token.sym}`);
+                        } else if (allowance > 0) {
+                            log(`Approval ${token.sym} aktif`);
+                        }
+                    } catch(e) {}
+                }
+            }
+        }
+
+        function checkSession() {
+            log("\n[2] SESSION CHECK");
+            log("Hanya connect ke situs resmi 1inch.io");
+            log("Cek Connected Sites di wallet");
+        }
+
+        async function testSignature() {
+            log("\n[3] TEST SIGNATURE");
+            const wallet = await connectWallet();
+            if (!wallet) return;
+
+            try {
+                const message = `1inch Audit Test ${Date.now()}`;
+                const hexMessage = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(message));
+                const signature = await window.ethereum.request({
+                    method: "personal_sign",
+                    params: [hexMessage, wallet]
+                });
+                log("SIGNATURE BERHASIL");
+            } catch (err) {
+                log(`Signature DITOLAK: ${err.message || err}`);
+            }
+        }
+
+        function clearLog() {
+            logElement.innerHTML = '';
+        }
+    </script>
+</body>
+</html>
