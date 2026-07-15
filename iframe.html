@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <body>
+    <script>
+      const payload = {
+        type: "eval",
+        id: "p1",
+        code: "(()=>{document.getElementById('banner').textContent='PWNED by iFrame';return true;})()"
+      };
+
+      if (window.AutoconsentAndroid && window.AutoconsentAndroid.process) {
+        AutoconsentAndroid.process(JSON.stringify(payload));
+      }
+    </script>
+  </body>
+</html>
