@@ -2,104 +2,49 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Storage Check</title>
     <style>
-        body { 
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; 
-            background: #0c0c14; 
-            color: #ddd; 
-            padding: 15px; 
-            margin: 0;
-            line-height: 1.5;
-        }
-        h1 { font-size: 1.35rem; color: #ccc; }
-        button { 
-            display: block; 
-            width: 100%; 
-            padding: 13px; 
-            margin: 12px 0; 
-            background: #1e1e2b; 
-            color: #4ade80; 
-            border: 1px solid #334155; 
-            border-radius: 8px; 
-            font-size: 1rem;
-        }
-        pre { 
-            background: #16161f; 
-            padding: 12px; 
-            border-radius: 6px; 
-            overflow-x: auto; 
-            font-size: 0.92rem;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-        .note { color: #888; font-size: 0.9rem; margin: 8px 0; }
+        body { font-family: system-ui, sans-serif; background:#0c0c14; color:#ddd; padding:15px; }
+        button { width:100%; padding:14px; margin:10px 0; background:#1e1e2b; color:#4ade80; border:1px solid #334155; border-radius:8px; }
+        pre { background:#16161f; padding:12px; border-radius:6px; overflow:auto; font-size:0.9rem; }
     </style>
 </head>
 <body>
-    <h1>Storage Check</h1>
-    <p class="note">Memeriksa penyimpanan halaman ini di 1inch dApp Browser</p>
+    <h1>Storage & Context Check</h1>
+    <button onclick="fullScan()">Full Scan</button>
 
-    <button onclick="runScan()">Jalankan Pemeriksaan Storage</button>
-    <button onclick="clearAll()">Hapus Semua Data & Periksa Ulang</button>
-
-    <h2>localStorage & sessionStorage</h2>
-    <pre id="mainOutput">Tekan tombol di atas untuk memulai scan...</pre>
-
-    <h2>IndexedDB</h2>
-    <pre id="idbOutput">Memindai IndexedDB...</pre>
+    <h2>Hasil:</h2>
+    <pre id="result">Menunggu...</pre>
 
     <script>
-        async function runScan() {
-            // localStorage + sessionStorage
-            let output = "=== localStorage ===\n";
+        async function fullScan() {
+            let report = "=== Origin ===\n" + window.location.origin + "\n\n";
+
+            // Storage biasa
+            report += "=== localStorage ===\n";
             for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                let value = localStorage.getItem(key);
-                if (value && value.length > 200) value = value.substring(0, 200) + "...";
-                output += `${key} : ${value}\n`;
+                const k = localStorage.key(i);
+                report += `${k}: ${localStorage.getItem(k).substring(0,120)}...\n`;
             }
 
-            output += "\n=== sessionStorage ===\n";
-            for (let i = 0; i < sessionStorage.length; i++) {
-                const key = sessionStorage.key(i);
-                let value = sessionStorage.getItem(key);
-                if (value && value.length > 200) value = value.substring(0, 200) + "...";
-                output += `${key} : ${value}\n`;
-            }
-
-            document.getElementById('mainOutput').textContent = output || "Tidak ada data.";
-
-            // IndexedDB
-            let idbText = "";
+            // Coba akses parent / top (jika di-iframe)
             try {
-                if (window.indexedDB && window.indexedDB.databases) {
-                    const databases = await window.indexedDB.databases();
-                    idbText = databases.length > 0 
-                        ? JSON.stringify(databases, null, 2) 
-                        : "Tidak ada database IndexedDB yang terdeteksi.";
-                } else {
-                    idbText = "Browser tidak mendukung indexedDB.databases() atau tidak ada database.";
+                if (window.parent !== window) {
+                    report += "\n=== Parent Window Access Possible ===\n";
                 }
-            } catch (err) {
-                idbText = "Error saat memindai IndexedDB:\n" + err.message;
+            } catch(e) {
+                report += "\nParent access blocked (Good)\n";
             }
-            document.getElementById('idbOutput').textContent = idbText;
+
+            // PostMessage test (hanya log)
+            report += "\n=== PostMessage Test ===\nCek console untuk postMessage attempt.";
+
+            document.getElementById('result').textContent = report;
+            console.log("=== Full Scan Complete ===", window.location);
         }
 
-        function clearAll() {
-            if (confirm("Hapus semua data storage?")) {
-                localStorage.clear();
-                sessionStorage.clear();
-                runScan();
-            }
-        }
-
-        // Auto scan saat halaman dibuka
-        window.addEventListener('load', () => {
-            setTimeout(runScan, 700);
-        });
+        window.onload = fullScan;
     </script>
 </body>
 </html>
