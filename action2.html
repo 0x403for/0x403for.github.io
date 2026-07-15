@@ -3,56 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cross-Origin Test</title>
+    <title>Diagnostic Tool</title>
     <style>
-        body { font-family: system-ui; background: #0a0a12; color: #ddd; padding: 15px; }
-        pre { background: #111; padding: 12px; border-radius: 6px; }
-        button { width: 100%; padding: 14px; margin: 10px 0; background: #1e2a44; color: #60a5fa; border: none; border-radius: 8px; }
+        body { font-family: system-ui; background: #0a0a12; color: #ddd; padding: 16px; line-height: 1.5; }
+        button { width: 100%; padding: 14px; margin: 10px 0; background: #1f2937; color: #67e8f9; border: 1px solid #475569; border-radius: 8px; }
+        pre { background: #111827; padding: 14px; border-radius: 6px; overflow: auto; font-size: 0.9rem; }
     </style>
 </head>
 <body>
-    <h1>Cross-Origin Test</h1>
-    <button onclick="testCrossOrigin()">Test Cross-Origin Access</button>
-    <pre id="log">Hasil akan muncul di sini...</pre>
+    <h1>Diagnostic Tool</h1>
+    <button onclick="runAllTests()">Jalankan Semua Test</button>
+    <pre id="result">Hasil akan muncul di sini...</pre>
 
     <script>
-        function log(msg) {
-            document.getElementById('log').textContent += msg + "\n\n";
-        }
+        const log = (msg) => {
+            document.getElementById('result').textContent += msg + "\n";
+        };
 
-        async function testCrossOrigin() {
-            let report = `Origin Saat Ini: ${location.origin}\n\n`;
+        async function runAllTests() {
+            let report = `Origin: ${location.origin}\nTime: ${new Date().toISOString()}\n\n`;
 
-            // Test parent access
+            // BroadcastChannel
             try {
-                if (window.parent !== window) {
-                    report += "✅ Inside iframe\n";
-                    report += "Parent origin attempt: " + (window.parent.location.origin || "Blocked") + "\n";
-                } else {
-                    report += "Not inside iframe\n";
-                }
-            } catch (e) {
-                report += "❌ window.parent blocked (Good)\n";
+                const bc = new BroadcastChannel('test_channel');
+                bc.postMessage({test: "from_dapp"});
+                report += "✅ BroadcastChannel aktif\n";
+            } catch(e) { report += "❌ BroadcastChannel error\n"; }
+
+            // localStorage & sessionStorage
+            report += `\nlocalStorage items: ${localStorage.length}\n`;
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                report += `• ${k}\n`;
             }
 
-            // postMessage ke top
+            // iframe / parent
             try {
-                window.top.postMessage({type: "test", from: location.origin}, "*");
-                report += "✅ postMessage ke top dikirim\n";
-            } catch (e) {
-                report += "❌ postMessage gagal\n";
+                report += window.parent === window ? "Not in iframe\n" : "Inside iframe\n";
+            } catch(e) {
+                report += "Cross-origin blocked\n";
             }
 
-            // Coba baca localStorage via trick (biasanya gagal)
-            try {
-                report += "localStorage.length: " + localStorage.length + "\n";
-            } catch (e) {}
-
-            document.getElementById('log').textContent = report;
-            console.log("Cross-Origin Test Report:", report);
+            document.getElementById('result').textContent = report;
+            console.log("=== Diagnostic Complete ===", report);
         }
 
-        window.onload = testCrossOrigin;
+        window.onload = runAllTests;
     </script>
 </body>
 </html>
