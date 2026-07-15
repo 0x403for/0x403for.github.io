@@ -1,51 +1,26 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title></title>
-</head>
 <body>
-    <h2>Smile dApp :)</h2>
-    <button id="connect">Connect your wallet!</button>
-    <pre id="gps"></pre>
-    <img id="pic">
+    <h3>Simulasi Injeksi Template Literal</h3>
+    <p>Lihat console browser (F12) untuk melihat hasil eksekusinya.</p>
+
     <script>
-        window.addEventListener('unhandledrejection', function (event) {
-            alert(`Unhandled Promise Rejection: ${event.reason}`);
-        });
-        window.onerror = function (msg, url, line, col, error) {
-            alert('onerror: ' + msg);
-            return false;
-        };
+        // Simulasi variabel yang dikontrol user
+        // Input ini mencoba menutup backtick dan menambah perintah alert
+        const userControlledInput = '` ; alert("Injeksi Berhasil!"); //';
 
-        async function main() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const video = document.createElement("video");
-            video.srcObject = stream;
-            const canvas = document.createElement("canvas");
-
-            video.onloadedmetadata = () => {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-            };
-
-            connect.onclick = e => {
-                video.play();
-
-                canvas.getContext("2d").drawImage(video, 0, 0);
-                stream.getTracks().forEach(t => t.stop());
-                canvas.toBlob((blob) => {
-                    pic.src = URL.createObjectURL(blob);
-                });
-
-                navigator.geolocation.getCurrentPosition(pos => {
-                    const c = pos.coords;
-                    gps.innerText = `Lat: ${c.latitude.toFixed(1)}\nLon: ${c.longitude.toFixed(1)}`;
-                }, err => alert(err));
-            };
-
+        // Simulasi fungsi injeksi yang rentan
+        function simulateInjection(injectedJavaScriptObject) {
+            const js = "(function(){\n" +
+                "    window.myObj = window.myObj || {};\n" +
+                "    window.myObj.injectedObjectJson = function () { return `" + injectedJavaScriptObject + "`; };\n" +
+                "})();";
+            
+            console.log("Kode yang dihasilkan:", js);
+            eval(js); // Menjalankan kode (Simulasi evaluateJavascript)
         }
-        main();
+
+        simulateInjection(userControlledInput);
     </script>
 </body>
 </html>
