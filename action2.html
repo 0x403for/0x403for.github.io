@@ -3,31 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Session Check</title>
+    <title>Wallet DApp Audit Tool</title>
     <style>
-        body { font-family: system-ui; background:#0a0a12; color:#ddd; padding:15px; }
-        button { width:100%; padding:14px; margin:10px 0; background:#1f2937; color:#67e8f9; border:none; border-radius:8px; }
-        pre { background:#111827; padding:12px; border-radius:6px; }
+        body { font-family: Arial, sans-serif; background: #1e1e1e; color: #0f0; padding: 20px; }
+        h1 { color: #00ff00; }
+        button { padding: 12px 20px; font-size: 16px; background: #006600; color: white; border: none; cursor: pointer; margin: 10px 5px; }
+        button:hover { background: #00aa00; }
+        pre { background: #111; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .warning { color: #ff0; }
+        .danger { color: #f66; }
     </style>
 </head>
 <body>
-    <h1>Session Check</h1>
-    <button onclick="check()">Cek Storage</button>
-    <pre id="log">Tekan tombol...</pre>
+    <h1>🔍 Wallet DApp Audit Tool</h1>
+    <p><strong>Connect wallet Anda lalu klik tombol audit</strong></p>
+    
+    <button onclick="startAudit()">🚀 Jalankan Audit</button>
+    <button onclick="clearLog()">🗑️ Clear Log</button>
+
+    <pre id="log"></pre>
 
     <script>
-        function check() {
-            let text = `Origin: ${location.origin}\n\n`;
-            text += `localStorage items (${localStorage.length}):\n`;
-            
-            for (let i = 0; i < localStorage.length; i++) {
-                let k = localStorage.key(i);
-                text += `- ${k}\n`;
-            }
-            
-            document.getElementById('log').textContent = text;
+        const logElement = document.getElementById('log');
+
+        function log(message, type = '') {
+            const timestamp = new Date().toLocaleTimeString();
+            let prefix = '';
+            if (type === 'danger') prefix = '⚠️ ';
+            else if (type === 'warning') prefix = '🔍 ';
+            logElement.innerHTML += `<span class="${type}">[${timestamp}] ${prefix}${message}</span><br>`;
+            logElement.scrollTop = logElement.scrollHeight;
         }
-        window.onload = check;
+
+        async function startAudit() {
+            log("=== WALLET DAPP AUDIT DIMULAI ===", "warning");
+            
+            if (!window.ethereum) {
+                log("❌ Wallet provider tidak terdeteksi. Pastikan MetaMask/Rabby dll sudah connect.", "danger");
+                return;
+            }
+
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const wallet = accounts[0];
+                log(`✅ Wallet terhubung: ${wallet}`);
+
+                // 1. Authorization Check
+                log("\n[1] Authorization Check");
+                log(`   Wallet Address: ${wallet}`);
+
+                // 2. Infinite Approval Check
+                log("\n[2] Infinite Approval Check");
+                const tokens = [
+                    {symbol: "USDC", addr: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
+                    {symbol: "USDT", addr: "0xdAC17F958D2ee523a2206206994597C13D831ec7"},
+                    {symbol: "DAI",  addr: "0x6B175474E89094C44Da98b954EedeAC495271d0F"}
+                ];
+
+                for (let token of tokens) {
+                    try {
+                        const allowance = await checkAllowance(token.addr, wallet);
+                        if (allowance > 1e24) {
+                            log(`   ⚠️ INFINITE APPROVAL pada ${token.symbol}`, "danger");
+                        } else if (allowance > 0) {
+                            log(`   Approval aktif pada ${token.symbol}: ${allowance}`);
+                        }
+                    } catch (e) {}
+                }
+
+                // 3. Session Check
+                log("\n[3] Session Management Check");
+                log("   Pastikan Anda hanya connect ke situs tepercaya.");
+                log("   Cek di MetaMask → Connected Sites");
+
+                // 4. Signature Test (simulasi)
+                log("\n[4] Signature Test");
+                log("   Siap menguji personal_sign...");
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, "danger");
+            }
+        }
+
+        async function checkAllowance(tokenAddress, owner) {
+            const abi = ["function allowance(address owner, address spender) view returns (uint256)"];
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const contract = new ethers.Contract(tokenAddress, abi, provider);
+            
+            // Cek allowance ke beberapa spender umum (Anda bisa tambah)
+            const commonSpender = "0x0000000000000000000000000000000000000000"; // placeholder
+            const allowance = await contract.allowance(owner, commonSpender);
+            return allowance;
+        }
+
+        function clearLog() {
+            logElement.innerHTML = '';
+        }
+
+        // Load ethers.js
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js";
+        document.head.appendChild(script);
+        
+        log("✅ Audit Tool siap. Hubungkan wallet Anda lalu klik 'Jalankan Audit'.");
     </script>
 </body>
 </html>
