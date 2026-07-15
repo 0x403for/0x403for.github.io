@@ -3,105 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>1inch Storage PoC - Android Test</title>
+    <title>Storage Check</title>
     <style>
         body { 
-            font-family: monospace; 
-            background: #0a0a0f; 
-            color: #00ff9d; 
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: #0c0c14; 
+            color: #ddd; 
             padding: 15px; 
-            margin: 0; 
-            line-height: 1.4;
+            margin: 0;
+            line-height: 1.5;
         }
+        h1 { font-size: 1.35rem; color: #ccc; }
         button { 
+            display: block; 
             width: 100%; 
-            padding: 15px; 
-            margin: 8px 0; 
-            font-size: 16px; 
-            background: #00cc77; 
-            color: black; 
-            border: none; 
-            border-radius: 8px;
+            padding: 13px; 
+            margin: 12px 0; 
+            background: #1e1e2b; 
+            color: #4ade80; 
+            border: 1px solid #334155; 
+            border-radius: 8px; 
+            font-size: 1rem;
         }
         pre { 
-            background: #111; 
+            background: #16161f; 
             padding: 12px; 
             border-radius: 6px; 
-            overflow: auto; 
+            overflow-x: auto; 
+            font-size: 0.92rem;
             white-space: pre-wrap;
-            max-height: 55vh;
+            word-break: break-all;
         }
-        .warning { color: #ffcc00; font-weight: bold; }
+        .note { color: #888; font-size: 0.9rem; margin: 8px 0; }
     </style>
 </head>
 <body>
-    <h1>1inch Wallet dApp Browser<br>Storage Access PoC</h1>
-    <p class="warning">⚠️ Test ini dijalankan di dalam 1inch dApp Browser (Android)</p>
+    <h1>Storage Check</h1>
+    <p class="note">Memeriksa penyimpanan halaman ini di 1inch dApp Browser</p>
 
-    <button onclick="scanAllStorage()">🔍 SCAN SEMUA STORAGE SEKARANG</button>
-    <button onclick="clearStorage()">🗑️ Clear All Storage & Rescan</button>
+    <button onclick="runScan()">Jalankan Pemeriksaan Storage</button>
+    <button onclick="clearAll()">Hapus Semua Data & Periksa Ulang</button>
 
-    <h2>Hasil Scan localStorage + sessionStorage:</h2>
-    <pre id="output">Menunggu scan...</pre>
+    <h2>localStorage & sessionStorage</h2>
+    <pre id="mainOutput">Tekan tombol di atas untuk memulai scan...</pre>
 
-    <h2>Sensitive / 1inch Related Keys:</h2>
-    <pre id="sensitive">Belum ada data sensitif terdeteksi...</pre>
+    <h2>IndexedDB</h2>
+    <pre id="idbOutput">Memindai IndexedDB...</pre>
 
     <script>
-        async function scanAllStorage() {
-            const output = document.getElementById('output');
-            const sensitiveEl = document.getElementById('sensitive');
-            let result = "";
-            let sensitive = "";
-
-            // localStorage
-            result += "=== localStorage ===\n";
+        async function runScan() {
+            // localStorage + sessionStorage
+            let output = "=== localStorage ===\n";
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 let value = localStorage.getItem(key);
-                if (value && value.length > 200) value = value.substring(0, 200) + '...';
-                result += `${key}: ${value}\n`;
-
-                const k = key.toLowerCase();
-                if (k.includes('1inch') || k.includes('wallet') || k.includes('private') || 
-                    k.includes('seed') || k.includes('session') || k.includes('token') || 
-                    k.includes('auth') || k.includes('account') || k.includes('provider') || 
-                    k.includes('key') || k.includes('mnemonic')) {
-                    sensitive += `🔴 ${key}\n   Value: ${value}\n\n`;
-                }
+                if (value && value.length > 200) value = value.substring(0, 200) + "...";
+                output += `${key} : ${value}\n`;
             }
 
-            // sessionStorage
-            result += "\n=== sessionStorage ===\n";
+            output += "\n=== sessionStorage ===\n";
             for (let i = 0; i < sessionStorage.length; i++) {
                 const key = sessionStorage.key(i);
                 let value = sessionStorage.getItem(key);
-                if (value && value.length > 200) value = value.substring(0, 200) + '...';
-                result += `${key}: ${value}\n`;
+                if (value && value.length > 200) value = value.substring(0, 200) + "...";
+                output += `${key} : ${value}\n`;
             }
 
-            output.textContent = result || "Storage kosong.";
+            document.getElementById('mainOutput').textContent = output || "Tidak ada data.";
 
-            sensitiveEl.textContent = sensitive || "Tidak ditemukan kunci sensitif yang jelas dari origin ini.";
-
-            console.log("=== 1inch Android PoC Scan selesai ===");
+            // IndexedDB
+            let idbText = "";
+            try {
+                if (window.indexedDB && window.indexedDB.databases) {
+                    const databases = await window.indexedDB.databases();
+                    idbText = databases.length > 0 
+                        ? JSON.stringify(databases, null, 2) 
+                        : "Tidak ada database IndexedDB yang terdeteksi.";
+                } else {
+                    idbText = "Browser tidak mendukung indexedDB.databases() atau tidak ada database.";
+                }
+            } catch (err) {
+                idbText = "Error saat memindai IndexedDB:\n" + err.message;
+            }
+            document.getElementById('idbOutput').textContent = idbText;
         }
 
-        function clearStorage() {
-            if (confirm("Clear semua storage?")) {
+        function clearAll() {
+            if (confirm("Hapus semua data storage?")) {
                 localStorage.clear();
                 sessionStorage.clear();
-                alert("Storage dibersihkan. Scan lagi.");
-                scanAllStorage();
+                runScan();
             }
         }
 
-        // Auto scan saat halaman load
-        window.onload = () => {
-            setTimeout(() => {
-                scanAllStorage();
-            }, 600);
-        };
+        // Auto scan saat halaman dibuka
+        window.addEventListener('load', () => {
+            setTimeout(runScan, 700);
+        });
     </script>
 </body>
 </html>
