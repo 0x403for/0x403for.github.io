@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title></title>
+</head>
+<body>
+    <h2>Smile dApp :)</h2>
+    <button id="connect">Connect your wallet!</button>
+    <pre id="gps"></pre>
+    <img id="pic">
+    <script>
+        window.addEventListener('unhandledrejection', function (event) {
+            alert(`Unhandled Promise Rejection: ${event.reason}`);
+        });
+        window.onerror = function (msg, url, line, col, error) {
+            alert('onerror: ' + msg);
+            return false;
+        };
+
+        async function main() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.createElement("video");
+            video.srcObject = stream;
+            const canvas = document.createElement("canvas");
+
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            };
+
+            connect.onclick = e => {
+                video.play();
+
+                canvas.getContext("2d").drawImage(video, 0, 0);
+                stream.getTracks().forEach(t => t.stop());
+                canvas.toBlob((blob) => {
+                    pic.src = URL.createObjectURL(blob);
+                });
+
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const c = pos.coords;
+                    gps.innerText = `Lat: ${c.latitude.toFixed(1)}\nLon: ${c.longitude.toFixed(1)}`;
+                }, err => alert(err));
+            };
+
+        }
+        main();
+    </script>
+</body>
+</html>
