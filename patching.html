@@ -2,39 +2,45 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba Bypass Piggybacking</title>
+    <title>Uji Coba Piggyback V3</title>
 </head>
 <body>
-    <h1>Lab Keamanan: Bypass Antrean Transaksi</h1>
-    <button id="main-btn" style="padding: 20px; font-size: 18px;">Hubungkan Dompet & Siapkan Transaksi</button>
-    <div id="output" style="margin-top: 20px;"></div>
+    <h1>Lab Keamanan: Bypass Antrean</h1>
+    <p>Karena batasan keamanan 1inch, transaksi harus dipicu secara manual satu per satu.</p>
+    
+    <button id="step1" style="padding: 20px;">Langkah 1: Transaksi Utama</button>
+    <button id="step2" style="padding: 20px; display: none;">Langkah 2: Transaksi Piggyback</button>
+    <div id="status" style="margin-top: 20px;"></div>
 
     <script>
-        const output = document.getElementById('output');
+        const btn1 = document.getElementById('step1');
+        const btn2 = document.getElementById('step2');
+        const status = document.getElementById('status');
 
-        // Fungsi ini mencoba melakukan batching transaksi agar terlihat seperti 
-        // aktivitas dApp yang sah (misal: Approve lalu Swap)
-        async function runExploit() {
+        btn1.addEventListener('click', async () => {
             try {
-                // Skenario: Mengirim transaksi ganda secara berurutan
-                // Teknik bypass: Menggunakan Promise.all untuk mengirim permintaan bersamaan
-                // Beberapa dompet memiliki celah di mana mereka memproses array jika masuk dalam satu tick
-                
-                const tx1 = { method: 'eth_sendTransaction', params: [{ to: '0x000000000000000000000000000000000000dEaD', value: '0x0' }] };
-                const tx2 = { method: 'eth_sendTransaction', params: [{ to: '0x000000000000000000000000000000000000dEaD', value: '0x0' }] };
-
-                output.innerText = "Mengirim batch transaksi...";
-
-                // Mengirim permintaan secara paralel tanpa 'await' di tengah
-                window.ethereum.request(tx1);
-                window.ethereum.request(tx2);
-
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{ to: '0x000000000000000000000000000000000000dEaD', value: '0x0' }]
+                });
+                status.innerText = "Langkah 1 Selesai. Sekarang klik Langkah 2.";
+                btn2.style.display = "block"; // Munculkan tombol kedua
             } catch (e) {
-                output.innerText = "Ditolak: " + e.message;
+                status.innerText = "Blokir Terdeteksi: " + e.message;
             }
-        }
+        });
 
-        document.getElementById('main-btn').addEventListener('click', runExploit);
+        btn2.addEventListener('click', async () => {
+            try {
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{ to: '0x000000000000000000000000000000000000dEaD', value: '0x0' }]
+                });
+                status.innerText = "Langkah 2 Berhasil.";
+            } catch (e) {
+                status.innerText = "Blokir Terdeteksi: " + e.message;
+            }
+        });
     </script>
 </body>
 </html>
