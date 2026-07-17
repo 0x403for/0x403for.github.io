@@ -2,41 +2,61 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>High Severity: Signature Exploit Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoC: Cross-Chain Signature Replay</title>
     <style>
-        body { font-family: -apple-system, Arial, sans-serif; background: #f0f0f0; padding: 20px; }
-        .container { background: white; padding: 20px; border-radius: 16px; }
-        button { background: #d9534f; color: white; padding: 18px; margin: 12px 0; width: 100%; border: none; border-radius: 12px; font-weight: bold; }
-        .log { margin-top: 20px; padding: 15px; background: #222; color: #0f0; border-radius: 12px; font-family: monospace; font-size: 13px; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
+        .container { background: white; padding: 20px; border-radius: 12px; border: 2px solid #333; }
+        button { background: #555; color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; margin: 10px 0; }
+        .log { background: #000; color: #0f0; padding: 15px; border-radius: 8px; font-family: monospace; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Security Audit: Signature Exploit</h2>
-        <button id="exploitSign">Attempt Malicious Sign (Chain Mismatch)</button>
-        <div class="log" id="logs">Ready to test...</div>
+        <h2>Cross-Chain Replay Test</h2>
+        <button id="signBtn">Generate Cross-Chain Signature</button>
+        <div class="log" id="logs">Ready...</div>
     </div>
 
     <script>
-        function log(msg) { document.getElementById('logs').innerHTML += `<br>> ${msg}`; }
+        function log(msg) { document.getElementById('logs').innerHTML += `<br>${msg}`; }
 
-        document.getElementById('exploitSign').onclick = async () => {
-            const malAddress = '0x1111111254eeb25477b68fb85ed929f73a960582';
-            const message = "0x5369676e207468697320746f20617070726f7665207472616e73666572"; // "Sign this to approve transfer"
-            
-            log("Attempting personal_sign with mismatched Chain ID...");
+        document.getElementById('signBtn').onclick = async () => {
+            const domain = {
+                name: "1inch Exchange",
+                version: "1",
+                chainId: 137, // Target Chain ID (Polygon)
+                verifyingContract: "0x1111111254eeb25477b68fb85ed929f73a960582"
+            };
+
+            const message = {
+                action: "ApproveTransfer",
+                amount: 1000
+            };
+
+            const data = JSON.stringify({
+                types: {
+                    EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }],
+                    Action: [{ name: "action", type: "string" }, { name: "amount", type: "uint256" }]
+                },
+                primaryType: "Action",
+                domain,
+                message
+            });
+
+            log("Requesting signature for ChainID 137 (Polygon)...");
             
             try {
-                // Mencoba memicu tanda tangan dengan asumsi browser tidak memvalidasi konteks chain
                 const signature = await window.ethereum.request({
-                    method: 'personal_sign',
-                    params: [message, malAddress] 
+                    method: 'eth_signTypedData_v4',
+                    params: [window.ethereum.selectedAddress, data]
                 });
-                log("SIGNATURE CAPTURED: " + signature.substring(0,20) + "...");
-                log("CRITICAL: Browser allowed signature without chain validation!");
+                
+                log("Signature Received: " + signature.substring(0, 20) + "...");
+                log("<b>Check:</b> Can this signature be replayed on Mainnet (ChainID 1)?");
+                log("If the backend verifies this signature without checking the domain.chainId, this is a CRITICAL vulnerability.");
             } catch (e) {
-                log("Blocked: " + e.message);
+                log("Error: " + e.message);
             }
         };
     </script>
