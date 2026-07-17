@@ -2,66 +2,90 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Audit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>1inch Security Audit</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #F2F2F7; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .btn { display: block; width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: 600; margin-bottom: 10px; cursor: pointer; }
-        #connect { background: #007AFF; color: white; }
-        #logs { font-family: monospace; background: #000; color: #32D74B; padding: 15px; border-radius: 10px; height: 200px; overflow-y: auto; font-size: 12px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background: #F2F2F7; padding: 20px; }
+        .card { background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .btn { display: block; width: 100%; padding: 16px; border-radius: 14px; border: none; font-weight: 600; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+        #connect { background: #007AFF; color: #fff; }
+        #test { background: #34C759; color: #fff; opacity: 0.5; pointer-events: none; }
+        #logs { font-family: 'SF Mono', monospace; background: #000; color: #32D74B; padding: 15px; border-radius: 12px; height: 250px; overflow-y: auto; font-size: 11px; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h3>TxSecurity Monitor</h3>
-    <p id="status" style="color:red">Status: Menunggu Wallet...</p>
-    <button id="connect" class="btn">Connect Wallet</button>
-    <button id="test" class="btn" style="background:#ddd">Run Security Test</button>
+    <h3>1inch Security Monitor</h3>
+    <small id="status">Status: Initializing SDK...</small>
+    <button id="connect" class="btn">Connect 1inch Wallet</button>
+    <button id="test" class="btn">Run Real Audit</button>
     <div id="logs"></div>
 </div>
 
 <script>
     const logger = document.getElementById('logs');
-    const log = (msg) => { logger.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`; logger.scrollTop = logger.scrollHeight; };
+    const btnTest = document.getElementById('test');
+    const log = (msg) => { 
+        const t = new Date().toLocaleTimeString().split(' ')[0];
+        logger.innerHTML += `<div>[${t}] ${msg}</div>`; 
+        logger.scrollTop = logger.scrollHeight; 
+    };
 
-    // DETEKSI PROVIDER
-    const getProvider = () => window.ethereum || (window.web3 && window.web3.currentProvider);
+    // Deteksi provider spesifik 1inch atau global Ethereum
+    const getProvider = () => window.ethereum || window.injectedProvider;
 
-    if (getProvider()) {
-        document.getElementById('status').innerText = "Status: Provider Detected";
-        document.getElementById('status').style.color = "green";
-        
+    async function init() {
         const provider = getProvider();
-        const originalRequest = provider.request;
+        if (!provider) {
+            document.getElementById('status').innerText = "Status: 1inch Provider not found";
+            return;
+        }
 
+        document.getElementById('status').innerText = "Status: Provider Ready";
+        btnTest.style.opacity = "1";
+        btnTest.style.pointerEvents = "auto";
+
+        // Intercepting Request
+        const originalRequest = provider.request;
         provider.request = async (args) => {
             if (args.method === 'eth_sendTransaction') {
                 const tx = args.params[0];
-                log(`Check: ${tx.to.slice(0,8)}...`);
+                log(`Audit: ${tx.to.slice(0,10)}...`);
                 
-                // Deteksi Approve (0x095ea7b3)
-                if (tx.data?.toLowerCase().startsWith('0x095ea7b3')) {
-                    const code = await originalRequest.call(provider, {method: 'eth_getCode', params: [tx.to, 'latest']});
-                    if (code === '0x') {
-                        log("<span style='color:red'>BLOCK: EOA Approval!</span>");
-                        throw new Error("Security Policy: Cannot approve to EOA");
-                    }
+                // Real Audit: Cek Bytecode Contract
+                const code = await originalRequest.call(provider, {method: 'eth_getCode', params: [tx.to, 'latest']});
+                
+                // Jika address adalah EOA (tidak ada code) dan method adalah approve
+                if (code === '0x' && tx.data?.toLowerCase().startsWith('0x095ea7b3')) {
+                    log("<span style='color:red'>ALERT: EOA Approval Blocked!</span>");
+                    throw new Error("Security Violation: Target is EOA");
                 }
             }
             return originalRequest.apply(provider, [args]);
         };
-    } else {
-        log("ERROR: Harap buka di DApp Browser 1inch/MetaMask.");
     }
 
     document.getElementById('connect').onclick = async () => {
         try {
-            const accounts = await getProvider().request({method: 'eth_requestAccounts'});
-            log("Connected: " + accounts[0].slice(0,8) + "...");
-        } catch (e) { log("Gagal: " + e.message); }
+            const accs = await getProvider().request({method: 'eth_requestAccounts'});
+            log("Session Active: " + accs[0].slice(0,8) + "...");
+        } catch (e) { log("Conn Error: " + e.message); }
     };
+
+    document.getElementById('test').onclick = async () => {
+        try {
+            await getProvider().request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    to: "0x7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a", // EOA Address
+                    data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                }]
+            });
+        } catch(e) { log("Block: " + e.message); }
+    };
+
+    window.addEventListener('load', init);
 </script>
 </body>
 </html>
