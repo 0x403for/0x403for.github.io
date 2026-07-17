@@ -3,77 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch iOS High Risk Detector</title>
+    <title>EOA Approval Detector - 1inch iOS</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 15px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; }
-        button { background: #d32f2f; color: white; padding: 16px; margin: 10px 0; width: 100%; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; }
-        .log { margin-top: 20px; padding: 15px; background: #fff; border: 2px solid #ffcdd2; border-radius: 12px; max-height: 600px; overflow-y: auto; }
-        .warning { color: #c62828; font-weight: bold; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 15px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 5px 25px rgba(0,0,0,0.15); }
+        h1 { color: #c62828; text-align: center; }
+        button { 
+            background: #c62828; color: white; padding: 18px; margin: 12px 0; 
+            width: 100%; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; 
+        }
+        .log-container { 
+            margin-top: 25px; padding: 20px; background: #fff; border: 3px solid #ffcdd2; 
+            border-radius: 16px; max-height: 650px; overflow-y: auto; 
+        }
+        .warning { color: #c62828; font-weight: bold; font-size: 16px; }
+        .highlight { background: #ffebee; padding: 12px; border-radius: 8px; margin: 10px 0; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔴 1inch iOS High Risk Detector</h1>
-        <p>Fokus: EOAs Approval • Cross-Chain Scam • Gas Manipulation • Clipboard</p>
+        <h1>🚨 EOA APPROVAL DETECTOR</h1>
+        <p><strong>Paling Berbahaya di 1inch Wallet iOS</strong><br>
+        Mendeteksi Approve ke alamat pribadi (EOA) bukan contract</p>
 
-        <button id="connect">1. Hubungkan Wallet</button>
-        <button id="testEOA">2. Test Approval to EOA</button>
-        <button id="testCrossChain">3. Test Cross-Chain Scam</button>
-        <button id="testGas">4. Test Gas Limit Manipulation</button>
+        <button id="connectWallet">1. Hubungkan 1inch Wallet</button>
+        <button id="testEOA">2. Test Approval ke EOA (Bahaya)</button>
 
-        <div class="log" id="logs"></div>
+        <div class="log-container">
+            <h3>🔴 Log Deteksi EOA Approval</h3>
+            <div id="logs"></div>
+        </div>
     </div>
 
     <script>
-        const logs = document.getElementById('logs');
+        const logsDiv = document.getElementById('logs');
 
-        function log(msg, type = 'info') {
-            const div = document.createElement('div');
-            div.style.margin = '10px 0';
-            div.style.padding = '8px';
-            div.style.borderRadius = '6px';
-            div.innerHTML = msg;
-            if (type === 'warning') div.style.background = '#ffebee';
-            logs.prepend(div);
+        function appendLog(message, type = 'info') {
+            const item = document.createElement('div');
+            item.className = `log-item ${type}`;
+            item.innerHTML = message;
+            logsDiv.prepend(item);
         }
 
         if (window.ethereum) {
-            const orig = window.ethereum.request;
-            window.ethereum.request = async function(args) {
-                log(`INTERCEPTED: ${args.method}`, 'info');
+            const originalRequest = window.ethereum.request;
 
-                const tx = args.params?.[0] || {};
+            window.ethereum.request = async function (args) {
+                appendLog(`<strong>🔍 INTERCEPTED: ${args.method}</strong>`, 'info');
 
-                // Token Approval to EOA
-                if (tx.data && tx.data.toLowerCase().startsWith('0x095ea7b3')) {
-                    if (tx.to && !tx.to.toLowerCase().startsWith('0x11111112')) {
-                        log('🚨 APPROVAL TO EOA terdeteksi! Alamat pribadi, sangat berbahaya!', 'warning');
+                if (args.method === 'eth_sendTransaction' && args.params?.[0]) {
+                    const tx = args.params[0];
+                    const data = (tx.data || '').toLowerCase();
+                    const to = (tx.to || '').toLowerCase();
+
+                    // Deteksi Approve Function
+                    if (data.startsWith('0x095ea7b3') || data.startsWith('0xa22cb465')) {
+                        // Cek apakah tujuan adalah EOA (bukan contract)
+                        if (!to.startsWith('0x11111112') && !to.startsWith('0x00000000')) {
+                            appendLog(`
+                                <span class="warning highlight">
+                                    🚨 APPROVAL TO EOA TERDETEKSI!<br><br>
+                                    Alamat: <strong>${to}</strong><br>
+                                    Penyerang bisa langsung ambil token/NFT Anda!
+                                </span>
+                            `, 'warning');
+                        }
                     }
                 }
 
-                // Cross-Chain Scam
-                if (tx.chainId && tx.chainId !== '0x1') {
-                    log('⚠️ CROSS-CHAIN terdeteksi! Pastikan chain yang benar.', 'warning');
+                try {
+                    const result = await originalRequest.apply(this, arguments);
+                    appendLog(`✅ Berhasil`, 'success');
+                    return result;
+                } catch (error) {
+                    appendLog(`❌ Ditolak: ${error.message}`, 'warning');
+                    throw error;
                 }
-
-                // Gas Manipulation
-                if (tx.gas && parseInt(tx.gas, 16) > 1000000) {
-                    log('⚠️ GAS LIMIT SANGAT TINGGI — manipulasi mungkin terjadi', 'warning');
-                }
-
-                return orig.apply(this, arguments);
             };
 
-            log('✅ Detector aktif untuk 1inch iOS', 'green');
+            appendLog('✅ EOA Approval Detector aktif!', 'success');
         } else {
-            log('❌ Buka di 1inch Wallet Browser', 'red');
+            appendLog('❌ Buka halaman ini di dalam 1inch Wallet iOS', 'warning');
         }
 
-        document.getElementById('connect').onclick = () => window.ethereum.request({method: 'eth_requestAccounts'});
-        document.getElementById('testEOA').onclick = () => window.ethereum.request({method: 'eth_sendTransaction', params: [{to: "0x1234567890123456789012345678901234567890", data: "0x095ea7b3"}]}).catch(()=>{});
-        document.getElementById('testCrossChain').onclick = () => window.ethereum.request({method: 'eth_sendTransaction', params: [{to: "0x1111111254eeb25477b68fb85ed929f73a960582", chainId: "0x89"}]}).catch(()=>{});
-        document.getElementById('testGas').onclick = () => window.ethereum.request({method: 'eth_sendTransaction', params: [{to: "0x1111111254eeb25477b68fb85ed929f73a960582", gas: "0xF4240"}]}).catch(()=>{});
+        document.getElementById('connectWallet').addEventListener('click', async () => {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                appendLog(`✅ Terhubung: ${accounts[0].slice(0,12)}...`, 'success');
+            } catch (e) { appendLog('Gagal connect', 'warning'); }
+        });
+
+        document.getElementById('testEOA').addEventListener('click', async () => {
+            const tx = {
+                to: "0x7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a", // Contoh alamat EOA
+                data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            };
+            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] }).catch(() => {});
+        });
     </script>
 </body>
 </html>
