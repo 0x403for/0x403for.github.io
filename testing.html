@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch iOS High Risk Detector</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 15px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; }
+        button { background: #d32f2f; color: white; padding: 16px; margin: 10px 0; width: 100%; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; }
+        .log { margin-top: 20px; padding: 15px; background: #fff; border: 2px solid #ffcdd2; border-radius: 12px; max-height: 600px; overflow-y: auto; }
+        .warning { color: #c62828; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔴 1inch iOS High Risk Detector</h1>
+        <p>Fokus: EOAs Approval • Cross-Chain Scam • Gas Manipulation • Clipboard</p>
+
+        <button id="connect">1. Hubungkan Wallet</button>
+        <button id="testEOA">2. Test Approval to EOA</button>
+        <button id="testCrossChain">3. Test Cross-Chain Scam</button>
+        <button id="testGas">4. Test Gas Limit Manipulation</button>
+
+        <div class="log" id="logs"></div>
+    </div>
+
+    <script>
+        const logs = document.getElementById('logs');
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.style.margin = '10px 0';
+            div.style.padding = '8px';
+            div.style.borderRadius = '6px';
+            div.innerHTML = msg;
+            if (type === 'warning') div.style.background = '#ffebee';
+            logs.prepend(div);
+        }
+
+        if (window.ethereum) {
+            const orig = window.ethereum.request;
+            window.ethereum.request = async function(args) {
+                log(`INTERCEPTED: ${args.method}`, 'info');
+
+                const tx = args.params?.[0] || {};
+
+                // Token Approval to EOA
+                if (tx.data && tx.data.toLowerCase().startsWith('0x095ea7b3')) {
+                    if (tx.to && !tx.to.toLowerCase().startsWith('0x11111112')) {
+                        log('🚨 APPROVAL TO EOA terdeteksi! Alamat pribadi, sangat berbahaya!', 'warning');
+                    }
+                }
+
+                // Cross-Chain Scam
+                if (tx.chainId && tx.chainId !== '0x1') {
+                    log('⚠️ CROSS-CHAIN terdeteksi! Pastikan chain yang benar.', 'warning');
+                }
+
+                // Gas Manipulation
+                if (tx.gas && parseInt(tx.gas, 16) > 1000000) {
+                    log('⚠️ GAS LIMIT SANGAT TINGGI — manipulasi mungkin terjadi', 'warning');
+                }
+
+                return orig.apply(this, arguments);
+            };
+
+            log('✅ Detector aktif untuk 1inch iOS', 'green');
+        } else {
+            log('❌ Buka di 1inch Wallet Browser', 'red');
+        }
+
+        document.getElementById('connect').onclick = () => window.ethereum.request({method: 'eth_requestAccounts'});
+        document.getElementById('testEOA').onclick = () => window.ethereum.request({method: 'eth_sendTransaction', params: [{to: "0x1234567890123456789012345678901234567890", data: "0x095ea7b3"}]}).catch(()=>{});
+        document.getElementById('testCrossChain').onclick = () => window.ethereum.request({method: 'eth_sendTransaction', params: [{to: "0x1111111254eeb25477b68fb85ed929f73a960582", chainId: "0x89"}]}).catch(()=>{});
+        document.getElementById('testGas').onclick = () => window.ethereum.request({method: 'eth_sendTransaction', params: [{to: "0x1111111254eeb25477b68fb85ed929f73a960582", gas: "0xF4240"}]}).catch(()=>{});
+    </script>
+</body>
+</html>
