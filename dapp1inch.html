@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>dApp Security Inspector</title>
+    <title>1inch dApp Security Inspector</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -63,11 +63,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>dApp Security Inspector</h1>
-        <p>Buka konsol browser (F12) untuk melihat log intersepsi dan peringatan keamanan.</p>
+        <h1>🔍 1inch dApp Security Inspector</h1>
+        <p><strong>Tools khusus untuk mendeteksi kerentanan di 1inch Swap / Limit Order / Fusion.</strong><br>
+        Buka konsol browser (F12) untuk log lengkap.</p>
+        
         <button id="connectWallet">1. Hubungkan Wallet</button>
-        <button id="sendTransaction">2. Kirim Transaksi (Simulasi)</button>
-        <button id="signMessage">3. Tanda Tangan Pesan (Simulasi)</button>
+        <button id="sendTransaction">2. Simulasi Swap / Approve</button>
+        <button id="signMessage">3. Simulasi Signature (Permit/EIP-712)</button>
 
         <div class="log-container">
             <h3>Log Intersepsi Wallet:</h3>
@@ -82,7 +84,7 @@
             const logItem = document.createElement('div');
             logItem.className = `log-item ${type}`;
             logItem.innerHTML = message;
-            logsDiv.prepend(logItem); // Tambahkan ke atas
+            logsDiv.prepend(logItem);
         }
 
         // --- Hooking window.ethereum.request ---
@@ -94,43 +96,59 @@
                 appendLog(`<strong>Method:</strong> ${args.method}`);
                 appendLog(`<strong>Params:</strong> <pre>${JSON.stringify(args.params, null, 2)}</pre>`);
 
-                // --- Logika Deteksi Bug --- 
+                // --- 1INCH-SPECIFIC VULNERABILITY DETECTION ---
                 let potentialBug = false;
 
-                // Deteksi pesan eth_sign / personal_sign yang tidak jelas
-                if (args.method === 'eth_sign' || args.method === 'personal_sign') {
-                    const message = args.params[0];
-                    if (message && message.startsWith('0x') && message.length > 66) { // Heuristik untuk hex string panjang
-                        appendLog(`<strong><span class="warning">POTENSI BUG:</span></strong> Permintaan tanda tangan pesan yang tidak jelas (hex string panjang). Ini bisa jadi serangan phishing!`, 'warning');
+                // 1. Unlimited Approval Detection
+                if (args.method === 'eth_sendTransaction' && args.params?.[0]?.data) {
+                    const data = args.params[0].data.toLowerCase();
+                    const to = args.params[0].to?.toLowerCase();
+
+                    if (data.startsWith('0x095ea7b3')) {
+                        if (data.includes('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')) {
+                            appendLog(`<strong><span class="warning">🚨 1INCH RISK:</span></strong> Unlimited Token Approval detected to <code>${to}</code>. Sangat berbahaya!`, 'warning');
+                            potentialBug = true;
+                        }
+                    }
+
+                    if (data.startsWith('0xa22cb465')) {
+                        appendLog(`<strong><span class="warning">🚨 1INCH RISK:</span></strong> setApprovalForAll detected. Pastikan contract 1inch resmi!`, 'warning');
+                    }
+                }
+
+                // 2. Signature Phishing
+                if (args.method === 'personal_sign' || args.method === 'eth_sign') {
+                    const msg = args.params[0];
+                    if (typeof msg === 'string' && msg.length > 100) {
+                        appendLog(`<strong><span class="warning">🚨 PHISHING RISK:</span></strong> Pesan signature panjang. Bisa jadi malicious Permit atau Order di 1inch.`, 'warning');
                         potentialBug = true;
                     }
                 }
 
-                // Deteksi approve token tidak wajar (unlimited approval)
-                if (args.method === 'eth_sendTransaction' && args.params && args.params[0] && args.params[0].data) {
-                    const data = args.params[0].data;
-                    const to = args.params[0].to;
-                    // Fungsi approve dimulai dengan 0x095ea7b3
-                    if (data.startsWith('0x095ea7b3')) {
-                        // Cek apakah jumlah yang di-approve sangat besar (misal, 2^256 - 1)
-                        // Ini adalah contoh sederhana, deteksi sebenarnya lebih kompleks
-                        if (data.includes('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')) {
-                            appendLog(`<strong><span class="warning">POTENSI BUG:</span></strong> Permintaan 'approve' token dengan jumlah tak terbatas ke alamat: ${to}. Sangat berisiko!`, 'warning');
-                            potentialBug = true;
+                if (args.method === 'eth_signTypedData_v4' || args.method === 'eth_signTypedData_v3') {
+                    try {
+                        const typedData = typeof args.params[1] === 'string' ? JSON.parse(args.params[1]) : args.params[1];
+                        if (typedData.domain?.name?.toLowerCase().includes('1inch') || 
+                            typedData.primaryType === 'Permit' || 
+                            typedData.primaryType === 'Order') {
+                            appendLog(`<strong><span class="info">1INCH SIGNATURE:</span></strong> EIP-712 Permit / Order detected. Periksa domain dan spender.`, 'info');
+                        } else {
+                            appendLog(`<strong><span class="warning">🚨 SUSPICIOUS TYPED DATA:</span></strong> eth_signTypedData_v4 dari domain tidak dikenal.`, 'warning');
                         }
-                    }
+                    } catch(e) {}
                 }
 
-                // Deteksi perbedaan alamat tujuan (membutuhkan UI dApp untuk perbandingan)
-                // Ini adalah contoh konseptual, karena kita tidak memiliki UI dApp nyata di sini.
-                // Dalam skenario nyata, Anda akan membandingkan `args.params[0].to` dengan apa yang ditampilkan di UI dApp.
-                // if (args.method === 'eth_sendTransaction' && args.params && args.params[0] && args.params[0].to) {
-                //     const displayedAddress = "0x..." // Alamat yang ditampilkan di UI dApp
-                //     if (args.params[0].to.toLowerCase() !== displayedAddress.toLowerCase()) {
-                //         appendLog(`<strong><span class="warning">POTENSI BUG:</span></strong> Alamat tujuan transaksi berbeda dari yang ditampilkan di UI dApp!`, 'warning');
-                //         potentialBug = true;
-                //     }
-                // }
+                // 3. Suspicious Router
+                if (args.method === 'eth_sendTransaction' && args.params?.[0]?.to) {
+                    const known1inchRouters = [
+                        '0x1111111254eeb25477b68fb85ed929f73a960582',
+                        '0x111111125421ca6dc452d289314280a0f8842a65'
+                    ];
+                    const target = args.params[0].to.toLowerCase();
+                    if (!known1inchRouters.some(r => r === target) && target !== '0x' && !target.startsWith('0x0000')) {
+                        appendLog(`<strong><span class="warning">⚠️ ROUTER CHECK:</span></strong> Transaksi ke contract <code>${target}</code> yang bukan 1inch resmi. Hati-hati!`, 'warning');
+                    }
+                }
 
                 // Melanjutkan request asli
                 try {
@@ -142,73 +160,67 @@
                     throw error;
                 }
             };
-            appendLog('<strong>window.ethereum.request berhasil di-hook!</strong>', 'success');
+            appendLog('<strong>window.ethereum.request berhasil di-hook untuk 1inch analysis!</strong>', 'success');
         } else {
-            appendLog('<strong>Wallet (e.g., MetaMask) tidak terdeteksi. Silakan instal dan refresh halaman.</strong>', 'warning');
+            appendLog('<strong>Wallet (e.g., MetaMask) tidak terdeteksi.</strong>', 'warning');
         }
 
-        // --- Fungsi untuk Interaksi Wallet (Simulasi) ---
+        // --- Button Handlers ---
         document.getElementById('connectWallet').addEventListener('click', async () => {
-            if (!window.ethereum) {
-                appendLog('Wallet tidak terdeteksi.', 'warning');
-                return;
-            }
+            if (!window.ethereum) return appendLog('Wallet tidak terdeteksi.', 'warning');
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 appendLog(`Wallet terhubung. Akun: ${accounts[0]}`, 'success');
             } catch (error) {
-                appendLog(`Gagal menghubungkan wallet: ${error.message}`, 'warning');
+                appendLog(`Gagal menghubungkan: ${error.message}`, 'warning');
             }
         });
 
         document.getElementById('sendTransaction').addEventListener('click', async () => {
             if (!window.ethereum || !window.ethereum.selectedAddress) {
-                appendLog('Wallet tidak terhubung. Silakan hubungkan wallet terlebih dahulu.', 'warning');
-                return;
+                return appendLog('Wallet tidak terhubung.', 'warning');
             }
-            // Contoh transaksi: transfer 0.001 ETH ke alamat dummy
+
             const transactionParameters = {
-                nonce: '0x00', // Diperlukan untuk transaksi nyata, tapi bisa diabaikan untuk simulasi sederhana
-                gasPrice: '0x09184e72a000', // 100 Gwei
-                gas: '0x2710', // 10000 gas
-                to: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', // Alamat dummy
                 from: window.ethereum.selectedAddress,
-                value: '0xDE0B6B3A7640000', // 0.001 ETH (dalam wei)
-                data: '0x' // Data kosong
+                to: '0x1111111254eeb25477b68fb85ed929f73a960582',
+                value: '0x0',
+                data: '0x095ea7b3' + '0000000000000000000000001111111254eeb25477b68fb85ed929f73a960582' + 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+                gas: '0x493e0',
             };
 
             try {
-                appendLog('Mengirim permintaan transaksi...', 'info');
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [transactionParameters],
-                });
-                appendLog(`Transaksi dikirim. Hash: ${txHash}`, 'success');
+                appendLog('<strong>🔄 Simulasi 1inch Approve + Swap...</strong>', 'info');
+                const txHash = await window.ethereum.request({ method: 'eth_sendTransaction', params: [transactionParameters] });
+                appendLog(`✅ Transaksi 1inch terkirim. Hash: ${txHash}`, 'success');
             } catch (error) {
-                appendLog(`Gagal mengirim transaksi: ${error.message}`, 'warning');
+                appendLog(`❌ Gagal: ${error.message}`, 'warning');
             }
         });
 
         document.getElementById('signMessage').addEventListener('click', async () => {
             if (!window.ethereum || !window.ethereum.selectedAddress) {
-                appendLog('Wallet tidak terhubung. Silakan hubungkan wallet terlebih dahulu.', 'warning');
-                return;
+                return appendLog('Wallet tidak terhubung.', 'warning');
             }
-            const message = '0x4578616d706c65206d65737361676520666f72207369676e696e672e205468697320697320612074657374206f66206120706f74656e7469616c207068697368696e672061747461636b2e'; // Contoh pesan hex string panjang
-            const from = window.ethereum.selectedAddress;
+
+            const typedData = {
+                types: { EIP712Domain: [...], Permit: [...] },
+                domain: { name: "1inch", version: "1", chainId: 1, verifyingContract: "0x1111111254eeb25477b68fb85ed929f73a960582" },
+                primaryType: "Permit",
+                message: { owner: window.ethereum.selectedAddress, spender: "0x1111111254eeb25477b68fb85ed929f73a960582", value: "115792...", nonce: 0, deadline: Math.floor(Date.now() / 1000) + 3600 }
+            };
 
             try {
-                appendLog('Mengirim permintaan tanda tangan pesan...', 'info');
+                appendLog('<strong>📝 Simulasi 1inch Permit Signature...</strong>', 'info');
                 const signature = await window.ethereum.request({
-                    method: 'personal_sign',
-                    params: [message, from],
+                    method: 'eth_signTypedData_v4',
+                    params: [window.ethereum.selectedAddress, JSON.stringify(typedData)],
                 });
-                appendLog(`Pesan ditandatangani. Signature: ${signature}`, 'success');
+                appendLog(`✅ Signature berhasil: ${signature.slice(0, 20)}...`, 'success');
             } catch (error) {
-                appendLog(`Gagal menandatangani pesan: ${error.message}`, 'warning');
+                appendLog(`❌ Gagal sign: ${error.message}`, 'warning');
             }
         });
-
     </script>
 </body>
 </html>
