@@ -3,32 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced dApp Tampering Detector</title>
+    <title>Critical Bug Detector - Transaction Tampering & NFT Drain</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 15px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        h1 { color: #c62828; text-align: center; }
-        button { background: #c62828; color: white; padding: 15px; margin: 10px 0; width: 100%; border: none; border-radius: 8px; font-size: 17px; font-weight: bold; }
+        body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 15px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 25px rgba(0,0,0,0.15); }
+        h1 { color: #c62828; text-align: center; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #d32f2f; font-weight: bold; margin-bottom: 20px; }
+        button { 
+            background: #c62828; color: white; padding: 16px; margin: 12px 0; 
+            width: 100%; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; 
+        }
         button:hover { background: #b71c1c; }
-        .log-container { margin-top: 25px; padding: 18px; background: #f8f9fa; border-radius: 10px; max-height: 700px; overflow-y: auto; border: 1px solid #ddd; }
-        .warning { color: #d32f2f; font-weight: bold; }
+        .log-container { 
+            margin-top: 25px; padding: 20px; background: #fff; border: 2px solid #ffcdd2; 
+            border-radius: 12px; max-height: 650px; overflow-y: auto; 
+        }
+        .warning { color: #c62828; font-weight: bold; font-size: 15px; }
         .success { color: #2e7d32; }
-        .info { color: #1565c0; }
+        .highlight { background: #ffebee; padding: 8px; border-radius: 6px; margin: 8px 0; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🛡️ Advanced Tampering Detector</h1>
-        <p><strong>Fokus Uji Coba:</strong> Transaction Tampering • High Gas • New Contract • Batch Approval • NFT Approval • Chain Manipulation</p>
+        <h1>🚨 CRITICAL BUG DETECTOR</h1>
+        <p class="subtitle">Fokus: Transaction Tampering & NFT setApprovalForAll</p>
+        <p><strong>Ini dua bug paling berbahaya yang sering dipakai untuk menguras wallet.</strong></p>
 
         <button id="connectWallet">1. Hubungkan Wallet</button>
         <button id="testTampering">2. Test Transaction Tampering</button>
-        <button id="testHighGas">3. Test High Gas Price (MEV)</button>
-        <button id="testNFT">4. Test NFT setApprovalForAll</button>
-        <button id="testBatch">5. Test Batch Approval</button>
+        <button id="testNFT">3. Test NFT setApprovalForAll (Paling Berbahaya)</button>
 
         <div class="log-container">
-            <h3>🔴 Log Deteksi Bug Realistis</h3>
+            <h3>🔴 Log Deteksi Bug Kritis</h3>
             <div id="logs"></div>
         </div>
     </div>
@@ -51,36 +57,22 @@
 
                 const tx = args.params?.[0] || {};
 
-                // Transaction Tampering
-                if (args.method === 'eth_sendTransaction') {
-                    if (tx.to && tx.to.toLowerCase() !== "0x1111111254eeb25477b68fb85ed929f73a960582") {
-                        appendLog(`<span class="warning">🚨 TRANSACTION TAMPERING: Alamat 'to' berbeda dari UI!</span>`, 'warning');
+                // === BUG 1: Transaction Tampering ===
+                if (args.method === 'eth_sendTransaction' && tx.to) {
+                    const to = tx.to.toLowerCase();
+                    if (!to.includes('11111112') && !to.includes('1inch')) {
+                        appendLog(`<span class="warning">🚨 TRANSACTION TAMPERING TERDETEKSI!<br>Alamat tujuan berbeda dari yang ditampilkan di UI.</span>`, 'warning');
                     }
                 }
 
-                // High Gas Price (indikasi front-running)
-                if (tx.gasPrice && parseInt(tx.gasPrice, 16) > 50000000000) { // > 50 Gwei
-                    appendLog(`<span class="warning">⚠️ GAS PRICE TERLALU TINGGI → Kemungkinan Front-running / MEV</span>`, 'warning');
-                }
-
-                // NFT Approval
+                // === BUG 2: NFT setApprovalForAll ===
                 if (tx.data && tx.data.toLowerCase().startsWith('0xa22cb465')) {
-                    appendLog(`<span class="warning">🚨 NFT setApprovalForAll terdeteksi! Bisa curi semua NFT Anda.</span>`, 'warning');
-                }
-
-                // Batch / Multiple Approval
-                if (tx.data && (tx.data.toLowerCase().includes('095ea7b3') || tx.data.toLowerCase().includes('a22cb465'))) {
-                    appendLog(`<span class="warning">⚠️ BATCH APPROVAL terdeteksi (banyak token sekaligus)</span>`, 'warning');
-                }
-
-                // Chain ID Manipulation
-                if (args.method === 'eth_sendTransaction' && tx.chainId) {
-                    appendLog(`<span class="info">⚠️ Chain ID: ${tx.chainId} (Periksa apakah sesuai dengan network Anda)</span>`, 'info');
+                    appendLog(`<span class="warning highlight">🚨 NFT DRAIN RISK!<br>setApprovalForAll terdeteksi. Penyerang bisa curi SEMUA NFT Anda!</span>`, 'warning');
                 }
 
                 try {
                     const result = await originalRequest.apply(this, arguments);
-                    appendLog(`✅ Berhasil dieksekusi`, 'success');
+                    appendLog(`✅ Berhasil`, 'success');
                     return result;
                 } catch (error) {
                     appendLog(`❌ Ditolak: ${error.message}`, 'warning');
@@ -88,51 +80,30 @@
                 }
             };
 
-            appendLog('✅ Advanced Detector aktif!', 'success');
+            appendLog('✅ Detector kritis aktif. Siap mendeteksi bug paling berbahaya!', 'success');
         } else {
             appendLog('❌ Wallet tidak terdeteksi. Buka di 1inch Wallet iOS.', 'warning');
         }
 
-        // Button Handlers (Realistic Scenarios)
+        // Buttons
         document.getElementById('connectWallet').addEventListener('click', async () => {
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                appendLog(`✅ Terhubung: ${accounts[0].slice(0,12)}...`, 'success');
+                const acc = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                appendLog(`✅ Terhubung: ${acc[0].slice(0,12)}...`, 'success');
             } catch (e) { appendLog('Gagal connect', 'warning'); }
         });
 
         document.getElementById('testTampering').addEventListener('click', async () => {
-            const tx = {
-                to: "0x7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a", // Alamat palsu (tampering)
-                value: "0x0",
-                data: "0x"
-            };
-            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
-        });
-
-        document.getElementById('testHighGas').addEventListener('click', async () => {
-            const tx = {
-                to: "0x1111111254eeb25477b68fb85ed929f73a960582",
-                gasPrice: "0x174876e800", // ~100 Gwei (tinggi)
-                data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-            };
-            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+            const tx = { to: "0x7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a", data: "0x" };
+            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] }).catch(() => {});
         });
 
         document.getElementById('testNFT').addEventListener('click', async () => {
-            const tx = {
-                to: "0x1111111254eeb25477b68fb85ed929f73a960582",
-                data: "0xa22cb4650000000000000000000000000000000000000000000000000000000000000001"
+            const tx = { 
+                to: "0x1111111254eeb25477b68fb85ed929f73a960582", 
+                data: "0xa22cb4650000000000000000000000000000000000000000000000000000000000000001" 
             };
-            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
-        });
-
-        document.getElementById('testBatch').addEventListener('click', async () => {
-            const tx = {
-                to: "0x1111111254eeb25477b68fb85ed929f73a960582",
-                data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-            };
-            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] }).catch(() => {});
         });
     </script>
 </body>
