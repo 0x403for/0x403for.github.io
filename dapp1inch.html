@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dApp Security Inspector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background-color: #e9e9e9;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: scroll;
+        }
+        .log-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ccc;
+        }
+        .log-item:last-child {
+            border-bottom: none;
+        }
+        .warning {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #007bff;
+        }
+        .success {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>dApp Security Inspector</h1>
+        <p>Buka konsol browser (F12) untuk melihat log intersepsi dan peringatan keamanan.</p>
+        <button id="connectWallet">1. Hubungkan Wallet</button>
+        <button id="sendTransaction">2. Kirim Transaksi (Simulasi)</button>
+        <button id="signMessage">3. Tanda Tangan Pesan (Simulasi)</button>
+
+        <div class="log-container">
+            <h3>Log Intersepsi Wallet:</h3>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        const logsDiv = document.getElementById('logs');
+
+        function appendLog(message, type = 'info') {
+            const logItem = document.createElement('div');
+            logItem.className = `log-item ${type}`;
+            logItem.innerHTML = message;
+            logsDiv.prepend(logItem); // Tambahkan ke atas
+        }
+
+        // --- Hooking window.ethereum.request ---
+        if (window.ethereum) {
+            const originalRequest = window.ethereum.request;
+
+            window.ethereum.request = async function (args) {
+                appendLog(`<strong>--- INTERCEPTED WALLET REQUEST ---</strong>`, 'info');
+                appendLog(`<strong>Method:</strong> ${args.method}`);
+                appendLog(`<strong>Params:</strong> <pre>${JSON.stringify(args.params, null, 2)}</pre>`);
+
+                // --- Logika Deteksi Bug --- 
+                let potentialBug = false;
+
+                // Deteksi pesan eth_sign / personal_sign yang tidak jelas
+                if (args.method === 'eth_sign' || args.method === 'personal_sign') {
+                    const message = args.params[0];
+                    if (message && message.startsWith('0x') && message.length > 66) { // Heuristik untuk hex string panjang
+                        appendLog(`<strong><span class="warning">POTENSI BUG:</span></strong> Permintaan tanda tangan pesan yang tidak jelas (hex string panjang). Ini bisa jadi serangan phishing!`, 'warning');
+                        potentialBug = true;
+                    }
+                }
+
+                // Deteksi approve token tidak wajar (unlimited approval)
+                if (args.method === 'eth_sendTransaction' && args.params && args.params[0] && args.params[0].data) {
+                    const data = args.params[0].data;
+                    const to = args.params[0].to;
+                    // Fungsi approve dimulai dengan 0x095ea7b3
+                    if (data.startsWith('0x095ea7b3')) {
+                        // Cek apakah jumlah yang di-approve sangat besar (misal, 2^256 - 1)
+                        // Ini adalah contoh sederhana, deteksi sebenarnya lebih kompleks
+                        if (data.includes('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')) {
+                            appendLog(`<strong><span class="warning">POTENSI BUG:</span></strong> Permintaan 'approve' token dengan jumlah tak terbatas ke alamat: ${to}. Sangat berisiko!`, 'warning');
+                            potentialBug = true;
+                        }
+                    }
+                }
+
+                // Deteksi perbedaan alamat tujuan (membutuhkan UI dApp untuk perbandingan)
+                // Ini adalah contoh konseptual, karena kita tidak memiliki UI dApp nyata di sini.
+                // Dalam skenario nyata, Anda akan membandingkan `args.params[0].to` dengan apa yang ditampilkan di UI dApp.
+                // if (args.method === 'eth_sendTransaction' && args.params && args.params[0] && args.params[0].to) {
+                //     const displayedAddress = "0x..." // Alamat yang ditampilkan di UI dApp
+                //     if (args.params[0].to.toLowerCase() !== displayedAddress.toLowerCase()) {
+                //         appendLog(`<strong><span class="warning">POTENSI BUG:</span></strong> Alamat tujuan transaksi berbeda dari yang ditampilkan di UI dApp!`, 'warning');
+                //         potentialBug = true;
+                //     }
+                // }
+
+                // Melanjutkan request asli
+                try {
+                    const result = await originalRequest.apply(this, arguments);
+                    appendLog(`<strong>Result:</strong> ${JSON.stringify(result)}`, 'success');
+                    return result;
+                } catch (error) {
+                    appendLog(`<strong>Error:</strong> ${error.message}`, 'warning');
+                    throw error;
+                }
+            };
+            appendLog('<strong>window.ethereum.request berhasil di-hook!</strong>', 'success');
+        } else {
+            appendLog('<strong>Wallet (e.g., MetaMask) tidak terdeteksi. Silakan instal dan refresh halaman.</strong>', 'warning');
+        }
+
+        // --- Fungsi untuk Interaksi Wallet (Simulasi) ---
+        document.getElementById('connectWallet').addEventListener('click', async () => {
+            if (!window.ethereum) {
+                appendLog('Wallet tidak terdeteksi.', 'warning');
+                return;
+            }
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                appendLog(`Wallet terhubung. Akun: ${accounts[0]}`, 'success');
+            } catch (error) {
+                appendLog(`Gagal menghubungkan wallet: ${error.message}`, 'warning');
+            }
+        });
+
+        document.getElementById('sendTransaction').addEventListener('click', async () => {
+            if (!window.ethereum || !window.ethereum.selectedAddress) {
+                appendLog('Wallet tidak terhubung. Silakan hubungkan wallet terlebih dahulu.', 'warning');
+                return;
+            }
+            // Contoh transaksi: transfer 0.001 ETH ke alamat dummy
+            const transactionParameters = {
+                nonce: '0x00', // Diperlukan untuk transaksi nyata, tapi bisa diabaikan untuk simulasi sederhana
+                gasPrice: '0x09184e72a000', // 100 Gwei
+                gas: '0x2710', // 10000 gas
+                to: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', // Alamat dummy
+                from: window.ethereum.selectedAddress,
+                value: '0xDE0B6B3A7640000', // 0.001 ETH (dalam wei)
+                data: '0x' // Data kosong
+            };
+
+            try {
+                appendLog('Mengirim permintaan transaksi...', 'info');
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [transactionParameters],
+                });
+                appendLog(`Transaksi dikirim. Hash: ${txHash}`, 'success');
+            } catch (error) {
+                appendLog(`Gagal mengirim transaksi: ${error.message}`, 'warning');
+            }
+        });
+
+        document.getElementById('signMessage').addEventListener('click', async () => {
+            if (!window.ethereum || !window.ethereum.selectedAddress) {
+                appendLog('Wallet tidak terhubung. Silakan hubungkan wallet terlebih dahulu.', 'warning');
+                return;
+            }
+            const message = '0x4578616d706c65206d65737361676520666f72207369676e696e672e205468697320697320612074657374206f66206120706f74656e7469616c207068697368696e672061747461636b2e'; // Contoh pesan hex string panjang
+            const from = window.ethereum.selectedAddress;
+
+            try {
+                appendLog('Mengirim permintaan tanda tangan pesan...', 'info');
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [message, from],
+                });
+                appendLog(`Pesan ditandatangani. Signature: ${signature}`, 'success');
+            } catch (error) {
+                appendLog(`Gagal menandatangani pesan: ${error.message}`, 'warning');
+            }
+        });
+
+    </script>
+</body>
+</html>
