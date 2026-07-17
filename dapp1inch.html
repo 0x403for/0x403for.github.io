@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch dApp Security Inspector</title>
+    <title>1inch Wallet iOS Bug Detector</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; color: #333; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        button { background: #0066ff; color: white; padding: 14px; border: none; border-radius: 8px; font-size: 16px; margin: 8px 0; width: 100%; font-weight: bold; }
-        button:hover { background: #0052cc; }
-        .log-container { margin-top: 20px; border: 1px solid #ddd; padding: 15px; background: #f8f9fa; border-radius: 8px; max-height: 600px; overflow-y: auto; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #d32f2f; }
+        button { background: #d32f2f; color: white; padding: 14px; margin: 8px 0; width: 100%; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; }
+        button:hover { background: #b71c1c; }
+        .log-container { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; max-height: 650px; overflow-y: auto; border: 1px solid #ddd; }
         .warning { color: #d32f2f; font-weight: bold; }
         .success { color: #2e7d32; }
         .info { color: #1976d2; }
@@ -17,93 +18,110 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔍 1inch dApp Security Inspector</h1>
-        <p>Tools untuk mendeteksi kerentanan di 1inch (Unlimited Approval, Permit Signature, dll)</p>
+        <h1>🛡️ 1inch Wallet iOS Detector</h1>
+        <p><strong>Fokus Deteksi Bug:</strong> Phishing personal_sign • Drainer • Fake Token • Old Router • MEV</p>
+        <p><strong>Untuk 1inch Wallet di iOS</strong></p>
         
-        <button id="connectWallet">1. Hubungkan Wallet</button>
-        <button id="sendTransaction">2. Simulasi Swap / Approve (Real)</button>
-        <button id="signMessage">3. Simulasi Permit Signature (Real)</button>
+        <button id="connectWallet">1. Hubungkan 1inch Wallet</button>
+        <button id="sendTransaction">2. Simulasi Swap / Approve</button>
+        <button id="signMessage">3. Simulasi Personal Sign (Phishing)</button>
 
         <div class="log-container">
-            <h3>Log Intersepsi Wallet:</h3>
+            <h3>🔴 Log Deteksi Bug</h3>
             <div id="logs"></div>
         </div>
     </div>
 
     <script>
         const logsDiv = document.getElementById('logs');
-        function appendLog(msg, type = 'info') {
-            const div = document.createElement('div');
-            div.className = `log-item ${type}`;
-            div.innerHTML = msg;
-            logsDiv.prepend(div);
+
+        function appendLog(message, type = 'info') {
+            const item = document.createElement('div');
+            item.className = `log-item ${type}`;
+            item.innerHTML = message;
+            logsDiv.prepend(item);
         }
 
-        let hooked = false;
-
+        // Hook Wallet Request
         if (window.ethereum) {
-            const original = window.ethereum.request;
-            window.ethereum.request = async function(args) {
-                appendLog(`<strong>🔍 INTERCEPTED ${args.method}</strong>`, 'info');
+            const originalRequest = window.ethereum.request;
+            window.ethereum.request = async function (args) {
+                appendLog(`<strong>🔍 INTERCEPTED: ${args.method}</strong>`, 'info');
 
-                // 1inch Detection Engine
-                if (args.method === 'eth_sendTransaction' && args.params?.[0]) {
-                    const data = (args.params[0].data || '').toLowerCase();
-                    if (data.includes('095ea7b3') && data.includes('ffffffffffffffff')) {
-                        appendLog(`<span class="warning">🚨 Unlimited Approval ke 1inch terdeteksi!</span>`, 'warning');
+                // Deteksi Bug Khusus 1inch
+                if (args.method === 'personal_sign' || args.method === 'eth_sign') {
+                    const msg = args.params[0];
+                    if (typeof msg === 'string' && msg.startsWith('0x') && msg.length > 80) {
+                        appendLog(`<span class="warning">🚨 PHISHING: Pesan hex panjang via personal_sign!</span>`, 'warning');
                     }
                 }
 
-                if (args.method === 'eth_signTypedData_v4') {
-                    appendLog(`<span class="warning">⚠️ EIP-712 Permit Signature (1inch) terdeteksi</span>`, 'warning');
+                if (args.method === 'eth_sendTransaction' && args.params?.[0]) {
+                    const tx = args.params[0];
+                    const to = (tx.to || '').toLowerCase();
+                    const data = (tx.data || '').toLowerCase();
+
+                    if (data.includes('095ea7b3') && data.includes('ffffffffffffffff')) {
+                        appendLog(`<span class="warning">🚨 DRAINER RISK: Unlimited Approval terdeteksi!</span>`, 'warning');
+                    }
+
+                    const oldRouters = ['0x11111111', '0x00000000', '0xdeadbeef'];
+                    if (oldRouters.some(r => to.startsWith(r))) {
+                        appendLog(`<span class="warning">⚠️ OLD ROUTER VERSION terdeteksi!</span>`, 'warning');
+                    }
+                }
+
+                if (args.method === 'eth_sendTransaction') {
+                    appendLog(`<span class="info">⚠️ MEV / Front-running Risk</span>`, 'info');
                 }
 
                 try {
-                    const res = await original.apply(this, arguments);
-                    appendLog(`✅ Success`, 'success');
-                    return res;
-                } catch (e) {
-                    appendLog(`❌ Error: ${e.message}`, 'warning');
-                    throw e;
+                    const result = await originalRequest.apply(this, arguments);
+                    appendLog(`✅ Berhasil`, 'success');
+                    return result;
+                } catch (error) {
+                    appendLog(`❌ Ditolak: ${error.message}`, 'warning');
+                    throw error;
                 }
             };
-            hooked = true;
-            appendLog('✅ Wallet hook aktif untuk 1inch analysis!', 'success');
+
+            appendLog('✅ Detector siap untuk 1inch Wallet iOS!', 'success');
         } else {
-            appendLog('❌ MetaMask tidak terdeteksi', 'warning');
+            appendLog('❌ window.ethereum tidak terdeteksi. Buka halaman ini di dalam 1inch Wallet Browser.', 'warning');
         }
 
-        // Buttons
-        document.getElementById('connectWallet').onclick = async () => {
-            if (!window.ethereum) return appendLog('Wallet tidak ada', 'warning');
+        // Button Actions
+        document.getElementById('connectWallet').addEventListener('click', async () => {
+            if (!window.ethereum) return appendLog('Wallet tidak terdeteksi', 'warning');
             try {
-                const acc = await window.ethereum.request({method: 'eth_requestAccounts'});
-                appendLog(`✅ Terhubung: ${acc[0].slice(0,8)}...`, 'success');
-            } catch(e) { appendLog('Gagal connect', 'warning'); }
-        };
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                appendLog(`✅ Terhubung: ${accounts[0].slice(0,10)}...`, 'success');
+            } catch (e) {
+                appendLog('Gagal menghubungkan', 'warning');
+            }
+        });
 
-        document.getElementById('sendTransaction').onclick = async () => {
+        document.getElementById('sendTransaction').addEventListener('click', async () => {
             if (!window.ethereum) return;
-            const tx = {
-                to: "0x1111111254eeb25477b68fb85ed929f73a960582",
-                data: "0x095ea7b3" + "0000000000000000000000001111111254eeb25477b68fb85ed929f73a960582" + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            const tx = { 
+                to: "0x1111111254eeb25477b68fb85ed929f73a960582", 
+                data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" 
             };
             try {
-                await window.ethereum.request({method: 'eth_sendTransaction', params: [tx]});
-            } catch(e) {}
-        };
+                await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+            } catch (e) {}
+        });
 
-        document.getElementById('signMessage').onclick = async () => {
+        document.getElementById('signMessage').addEventListener('click', async () => {
             if (!window.ethereum) return;
-            const typedData = JSON.stringify({
-                domain: {name: "1inch", version: "1", chainId: "1", verifyingContract: "0x1111111254eeb25477b68fb85ed929f73a960582"},
-                primaryType: "Permit",
-                message: {owner: "0x...", spender: "0x1111111254eeb25477b68fb85ed929f73a960582", value: "115792089237316195423570985008687907853269984665640564039457584007913129639935"}
-            });
+            const longHex = "0x" + "This is a phishing test message. Jangan pernah sign pesan yang tidak jelas.".split('').map(c => c.charCodeAt(0).toString(16)).join('');
             try {
-                await window.ethereum.request({method: 'eth_signTypedData_v4', params: [window.ethereum.selectedAddress || "0x0", typedData]});
-            } catch(e) {}
-        };
+                await window.ethereum.request({ 
+                    method: 'personal_sign', 
+                    params: [longHex, window.ethereum.selectedAddress || "0x0"] 
+                });
+            } catch (e) {}
+        });
     </script>
 </body>
 </html>
