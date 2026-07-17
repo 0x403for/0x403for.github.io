@@ -31,11 +31,7 @@
         logger.scrollTop = logger.scrollHeight; 
     };
 
-    // DAFTAR BYPASS (Tambahkan alamat EOA di sini agar tidak diblokir)
-    const whitelist = [
-        "0x7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a" 
-    ];
-
+    const whitelist = ["0x7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a"];
     const getProvider = () => window.ethereum || window.injectedProvider;
 
     async function init() {
@@ -50,7 +46,6 @@
                 const tx = args.params[0];
                 const target = tx.to.toLowerCase();
                 
-                // Logika Bypass
                 if (whitelist.includes(target)) {
                     log(`<span style='color:cyan'>BYPASS: Address ${target.slice(0,6)}... Whitelisted</span>`);
                 } else {
@@ -68,21 +63,28 @@
     }
 
     document.getElementById('connect').onclick = async () => {
-        const accs = await getProvider().request({method: 'eth_requestAccounts'});
-        log("Connected: " + accs[0].slice(0,8) + "...");
+        try {
+            const accs = await getProvider().request({method: 'eth_requestAccounts'});
+            log("Connected: " + accs[0].slice(0,8) + "...");
+        } catch (e) { log("Conn Error: " + e.message); }
     };
 
+    // FUNGSI TEST DENGAN GAS PARAMETER
     document.getElementById('test').onclick = async () => {
         try {
             await getProvider().request({
                 method: 'eth_sendTransaction',
                 params: [{
                     to: "0x7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
-                    data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                    data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                    gas: "0x5208", // 21000 gas
+                    value: "0x0"
                 }]
             });
             log("Test Berhasil (Bypassed)");
-        } catch(e) { log("Block: " + e.message); }
+        } catch(e) { 
+            log("Block: " + e.message); 
+        }
     };
 
     window.onload = init;
