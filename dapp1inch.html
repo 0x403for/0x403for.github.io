@@ -5,71 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>1inch dApp Security Inspector</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        .container {
-            max-width: 800px;
-            margin: auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-right: 10px;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .log-container {
-            margin-top: 20px;
-            border: 1px solid #ddd;
-            padding: 15px;
-            background-color: #e9e9e9;
-            border-radius: 5px;
-            max-height: 400px;
-            overflow-y: scroll;
-        }
-        .log-item {
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #ccc;
-        }
-        .log-item:last-child {
-            border-bottom: none;
-        }
-        .warning {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .info {
-            color: #007bff;
-        }
-        .success {
-            color: #28a745;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { background-color: #007bff; color: white; padding: 12px 16px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 5px; width: 100%; }
+        button:hover { background-color: #0056b3; }
+        .log-container { margin-top: 20px; border: 1px solid #ddd; padding: 15px; background-color: #e9e9e9; border-radius: 5px; max-height: 500px; overflow-y: scroll; }
+        .log-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
+        .warning { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        .success { color: #28a745; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔍 1inch dApp Security Inspector</h1>
-        <p><strong>Tools khusus untuk mendeteksi kerentanan di 1inch Swap / Limit Order / Fusion.</strong><br>
-        Buka konsol browser (F12) untuk log lengkap.</p>
+        <p><strong>Tools khusus mendeteksi kerentanan 1inch.</strong><br>Buka konsol (F12) untuk detail.</p>
         
         <button id="connectWallet">1. Hubungkan Wallet</button>
         <button id="sendTransaction">2. Simulasi Swap / Approve</button>
-        <button id="signMessage">3. Simulasi Signature (Permit/EIP-712)</button>
+        <button id="signMessage">3. Simulasi Signature (Permit)</button>
 
         <div class="log-container">
             <h3>Log Intersepsi Wallet:</h3>
@@ -87,139 +41,55 @@
             logsDiv.prepend(logItem);
         }
 
-        // --- Hooking window.ethereum.request ---
         if (window.ethereum) {
             const originalRequest = window.ethereum.request;
-
             window.ethereum.request = async function (args) {
-                appendLog(`<strong>--- INTERCEPTED WALLET REQUEST ---</strong>`, 'info');
-                appendLog(`<strong>Method:</strong> ${args.method}`);
-                appendLog(`<strong>Params:</strong> <pre>${JSON.stringify(args.params, null, 2)}</pre>`);
+                appendLog(`<strong>--- INTERCEPTED ---</strong>`, 'info');
+                appendLog(`Method: ${args.method}`, 'info');
 
-                // --- 1INCH-SPECIFIC VULNERABILITY DETECTION ---
-                let potentialBug = false;
-
-                // 1. Unlimited Approval Detection
+                // Deteksi Kerentanan 1inch
                 if (args.method === 'eth_sendTransaction' && args.params?.[0]?.data) {
                     const data = args.params[0].data.toLowerCase();
-                    const to = args.params[0].to?.toLowerCase();
-
-                    if (data.startsWith('0x095ea7b3')) {
-                        if (data.includes('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')) {
-                            appendLog(`<strong><span class="warning">🚨 1INCH RISK:</span></strong> Unlimited Token Approval detected to <code>${to}</code>. Sangat berbahaya!`, 'warning');
-                            potentialBug = true;
-                        }
-                    }
-
-                    if (data.startsWith('0xa22cb465')) {
-                        appendLog(`<strong><span class="warning">🚨 1INCH RISK:</span></strong> setApprovalForAll detected. Pastikan contract 1inch resmi!`, 'warning');
+                    if (data.includes('095ea7b3') && data.includes('ffffffffffffffff')) {
+                        appendLog(`<span class="warning">🚨 Unlimited Approval terdeteksi!</span>`, 'warning');
                     }
                 }
 
-                // 2. Signature Phishing
-                if (args.method === 'personal_sign' || args.method === 'eth_sign') {
-                    const msg = args.params[0];
-                    if (typeof msg === 'string' && msg.length > 100) {
-                        appendLog(`<strong><span class="warning">🚨 PHISHING RISK:</span></strong> Pesan signature panjang. Bisa jadi malicious Permit atau Order di 1inch.`, 'warning');
-                        potentialBug = true;
-                    }
+                if (args.method.includes('signTypedData')) {
+                    appendLog(`<span class="warning">⚠️ EIP-712 Signature (Permit) terdeteksi</span>`, 'warning');
                 }
 
-                if (args.method === 'eth_signTypedData_v4' || args.method === 'eth_signTypedData_v3') {
-                    try {
-                        const typedData = typeof args.params[1] === 'string' ? JSON.parse(args.params[1]) : args.params[1];
-                        if (typedData.domain?.name?.toLowerCase().includes('1inch') || 
-                            typedData.primaryType === 'Permit' || 
-                            typedData.primaryType === 'Order') {
-                            appendLog(`<strong><span class="info">1INCH SIGNATURE:</span></strong> EIP-712 Permit / Order detected. Periksa domain dan spender.`, 'info');
-                        } else {
-                            appendLog(`<strong><span class="warning">🚨 SUSPICIOUS TYPED DATA:</span></strong> eth_signTypedData_v4 dari domain tidak dikenal.`, 'warning');
-                        }
-                    } catch(e) {}
-                }
-
-                // 3. Suspicious Router
-                if (args.method === 'eth_sendTransaction' && args.params?.[0]?.to) {
-                    const known1inchRouters = [
-                        '0x1111111254eeb25477b68fb85ed929f73a960582',
-                        '0x111111125421ca6dc452d289314280a0f8842a65'
-                    ];
-                    const target = args.params[0].to.toLowerCase();
-                    if (!known1inchRouters.some(r => r === target) && target !== '0x' && !target.startsWith('0x0000')) {
-                        appendLog(`<strong><span class="warning">⚠️ ROUTER CHECK:</span></strong> Transaksi ke contract <code>${target}</code> yang bukan 1inch resmi. Hati-hati!`, 'warning');
-                    }
-                }
-
-                // Melanjutkan request asli
                 try {
                     const result = await originalRequest.apply(this, arguments);
-                    appendLog(`<strong>Result:</strong> ${JSON.stringify(result)}`, 'success');
+                    appendLog(`Result: ${JSON.stringify(result).slice(0,100)}...`, 'success');
                     return result;
-                } catch (error) {
-                    appendLog(`<strong>Error:</strong> ${error.message}`, 'warning');
-                    throw error;
+                } catch (e) {
+                    appendLog(`Error: ${e.message}`, 'warning');
+                    throw e;
                 }
             };
-            appendLog('<strong>window.ethereum.request berhasil di-hook untuk 1inch analysis!</strong>', 'success');
+            appendLog('✅ Wallet hook berhasil!', 'success');
         } else {
-            appendLog('<strong>Wallet (e.g., MetaMask) tidak terdeteksi.</strong>', 'warning');
+            appendLog('❌ Wallet tidak terdeteksi. Gunakan MetaMask.', 'warning');
         }
 
-        // --- Button Handlers ---
+        // Button Handlers
         document.getElementById('connectWallet').addEventListener('click', async () => {
-            if (!window.ethereum) return appendLog('Wallet tidak terdeteksi.', 'warning');
+            if (!window.ethereum) return appendLog('Wallet tidak ada.', 'warning');
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                appendLog(`Wallet terhubung. Akun: ${accounts[0]}`, 'success');
-            } catch (error) {
-                appendLog(`Gagal menghubungkan: ${error.message}`, 'warning');
-            }
+                appendLog(`✅ Terhubung: ${accounts[0]}`, 'success');
+            } catch (e) { appendLog('Gagal connect: ' + e.message, 'warning'); }
         });
 
-        document.getElementById('sendTransaction').addEventListener('click', async () => {
-            if (!window.ethereum || !window.ethereum.selectedAddress) {
-                return appendLog('Wallet tidak terhubung.', 'warning');
-            }
-
-            const transactionParameters = {
-                from: window.ethereum.selectedAddress,
-                to: '0x1111111254eeb25477b68fb85ed929f73a960582',
-                value: '0x0',
-                data: '0x095ea7b3' + '0000000000000000000000001111111254eeb25477b68fb85ed929f73a960582' + 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-                gas: '0x493e0',
-            };
-
-            try {
-                appendLog('<strong>🔄 Simulasi 1inch Approve + Swap...</strong>', 'info');
-                const txHash = await window.ethereum.request({ method: 'eth_sendTransaction', params: [transactionParameters] });
-                appendLog(`✅ Transaksi 1inch terkirim. Hash: ${txHash}`, 'success');
-            } catch (error) {
-                appendLog(`❌ Gagal: ${error.message}`, 'warning');
-            }
+        document.getElementById('sendTransaction').addEventListener('click', () => {
+            appendLog('🔄 Simulasi Approve 1inch dijalankan...', 'info');
+            appendLog('<span class="warning">🚨 Unlimited Approval terdeteksi (simulasi)</span>', 'warning');
         });
 
-        document.getElementById('signMessage').addEventListener('click', async () => {
-            if (!window.ethereum || !window.ethereum.selectedAddress) {
-                return appendLog('Wallet tidak terhubung.', 'warning');
-            }
-
-            const typedData = {
-                types: { EIP712Domain: [...], Permit: [...] },
-                domain: { name: "1inch", version: "1", chainId: 1, verifyingContract: "0x1111111254eeb25477b68fb85ed929f73a960582" },
-                primaryType: "Permit",
-                message: { owner: window.ethereum.selectedAddress, spender: "0x1111111254eeb25477b68fb85ed929f73a960582", value: "115792...", nonce: 0, deadline: Math.floor(Date.now() / 1000) + 3600 }
-            };
-
-            try {
-                appendLog('<strong>📝 Simulasi 1inch Permit Signature...</strong>', 'info');
-                const signature = await window.ethereum.request({
-                    method: 'eth_signTypedData_v4',
-                    params: [window.ethereum.selectedAddress, JSON.stringify(typedData)],
-                });
-                appendLog(`✅ Signature berhasil: ${signature.slice(0, 20)}...`, 'success');
-            } catch (error) {
-                appendLog(`❌ Gagal sign: ${error.message}`, 'warning');
-            }
+        document.getElementById('signMessage').addEventListener('click', () => {
+            appendLog('📝 Simulasi Permit Signature dijalankan...', 'info');
+            appendLog('<span class="warning">⚠️ EIP-712 Permit Signature (1inch)</span>', 'warning');
         });
     </script>
 </body>
