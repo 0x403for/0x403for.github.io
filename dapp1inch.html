@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>1inch iOS Tester</title>
+    <title>1inch iOS - Chain ID Vulnerability Test</title>
     <style>
         body { font-family: -apple-system, Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 20px; }
         .container { max-width: 100%; margin: auto; background: white; padding: 20px; border-radius: 16px; }
@@ -11,51 +11,66 @@
             background: #0066ff; color: white; padding: 18px; margin: 12px 0; 
             width: 100%; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; 
         }
-        .log { margin-top: 20px; padding: 15px; background: #f8f8f8; border-radius: 12px; font-size: 14px; }
+        .log { margin-top: 20px; padding: 15px; background: #f8f8f8; border-radius: 12px; font-size: 14px; border: 1px solid #ddd; }
+        .vulnerable { color: #d9534f; font-weight: bold; border-left: 4px solid #d9534f; padding-left: 8px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>1inch iOS Tester</h2>
-        <button id="connect">1. Hubungkan Wallet</button>
-        <button id="testChain">2. Test Chain Manipulation</button>
-        <button id="testSign">3. Test Signature Reuse</button>
+        <h2>Security Audit: Chain ID Check</h2>
+        <button id="connect">1. Connect Wallet</button>
+        <button id="testChain">2. Trigger Chain Manipulation</button>
 
-        <div class="log" id="logs"></div>
+        <div class="log" id="logs">Waiting for interaction...</div>
     </div>
 
     <script>
-        function log(msg, color = 'black') {
+        function log(msg, className = '') {
             const div = document.createElement('div');
-            div.style.color = color;
+            div.className = className;
             div.style.margin = '8px 0';
             div.innerHTML = msg;
             document.getElementById('logs').prepend(div);
         }
 
-        if (window.ethereum) {
-            log('✅ Wallet terdeteksi', 'green');
+        async function init() {
+            if (window.ethereum) {
+                const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
+                log(`Connected Network (Chain ID): ${currentChain}`);
 
-            const orig = window.ethereum.request;
-            window.ethereum.request = async function(args) {
-                log(`INTERCEPTED: ${args.method}`, 'blue');
-
-                if (args.method.includes('sign')) {
-                    log('🚨 SIGNATURE REUSE / PHISHING RISK', 'red');
-                }
-                if (args.method === 'eth_sendTransaction') {
-                    log('⚠️ CHAIN ID CHECK - Periksa network', 'orange');
-                }
-
-                return orig.apply(this, arguments);
-            };
-        } else {
-            log('❌ Buka di 1inch Wallet Browser', 'red');
+                const orig = window.ethereum.request;
+                window.ethereum.request = async function(args) {
+                    // Skenario Nyata: Mendeteksi apakah dApp mencoba memaksakan chainId yang berbeda
+                    if (args.method === 'eth_sendTransaction' && args.params[0].chainId) {
+                        const requestedChain = args.params[0].chainId;
+                        const activeChain = await window.ethereum.request({ method: 'eth_chainId' });
+                        
+                        if (requestedChain !== activeChain) {
+                            log(`<span class="vulnerable">🚨 VULNERABILITY FOUND: Chain ID Mismatch!</span><br>
+                                 Requested: ${requestedChain} | Active: ${activeChain}<br>
+                                 The browser failed to block the transaction on a mismatched network.`, 'vulnerable');
+                        }
+                    }
+                    return orig.apply(this, arguments);
+                };
+            }
         }
 
-        document.getElementById('connect').onclick = () => window.ethereum.request({method: 'eth_requestAccounts'}).catch(() => {});
-        document.getElementById('testChain').onclick = () => window.ethereum.request({method: 'eth_sendTransaction', params: [{to: '0x1111111254eeb25477b68fb85ed929f73a960582', chainId: '0x1'}]}).catch(() => {});
-        document.getElementById('testSign').onclick = () => window.ethereum.request({method: 'personal_sign', params: ['0x54657374207369676e6174757265207265757365', window.ethereum.selectedAddress]}).catch(() => {});
+        document.getElementById('connect').onclick = () => window.ethereum.request({method: 'eth_requestAccounts'});
+        
+        // Skenario Nyata: Mencoba transaksi ke Polygon (0x89) sementara user mungkin di Mainnet (0x1)
+        document.getElementById('testChain').onclick = () => {
+            window.ethereum.request({
+                method: 'eth_sendTransaction', 
+                params: [{
+                    to: '0x1111111254eeb25477b68fb85ed929f73a960582', 
+                    chainId: '0x89', // Target: Polygon
+                    data: '0x'
+                }]
+            }).catch(console.error);
+        };
+        
+        init();
     </script>
 </body>
 </html>
