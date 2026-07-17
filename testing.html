@@ -1,105 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EOA Approval Detector - 1inch iOS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Transaction Security Monitor</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 15px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 5px 25px rgba(0,0,0,0.15); }
-        h1 { color: #c62828; text-align: center; }
-        button { 
-            background: #c62828; color: white; padding: 18px; margin: 12px 0; 
-            width: 100%; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; 
-        }
-        .log-container { 
-            margin-top: 25px; padding: 20px; background: #fff; border: 3px solid #ffcdd2; 
-            border-radius: 16px; max-height: 650px; overflow-y: auto; 
-        }
-        .warning { color: #c62828; font-weight: bold; font-size: 16px; }
-        .highlight { background: #ffebee; padding: 12px; border-radius: 8px; margin: 10px 0; }
+        :root { --accent: #007AFF; --danger: #FF3B30; --bg: #F2F2F7; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .header { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .btn { display: block; width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
+        #connect { background: var(--accent); color: white; }
+        #test { background: #34C759; color: white; }
+        #logs { font-family: monospace; font-size: 12px; height: 300px; overflow-y: auto; background: #000; color: #0f0; padding: 15px; border-radius: 10px; margin-top: 15px; }
+        .warn-box { border-left: 4px solid var(--danger); padding: 10px; background: #fff5f5; margin: 10px 0; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🚨 EOA APPROVAL DETECTOR</h1>
-        <p><strong>Paling Berbahaya di 1inch Wallet iOS</strong><br>
-        Mendeteksi Approve ke alamat pribadi (EOA) bukan contract</p>
 
-        <button id="connectWallet">1. Hubungkan 1inch Wallet</button>
-        <button id="testEOA">2. Test Approval ke EOA (Bahaya)</button>
-
-        <div class="log-container">
-            <h3>🔴 Log Deteksi EOA Approval</h3>
-            <div id="logs"></div>
-        </div>
+<div class="card">
+    <div class="header">
+        <h3>Security Transaction Hook</h3>
+        <small id="status">Status: Initializing...</small>
     </div>
+    <button id="connect" class="btn">Connect Wallet</button>
+    <button id="test" class="btn">Simulate Risky Approval</button>
+    <div id="logs"></div>
+</div>
 
-    <script>
-        const logsDiv = document.getElementById('logs');
+<script>
+    const logger = document.getElementById('logs');
+    const log = (msg) => {
+        const time = new Date().toLocaleTimeString().split(' ')[0];
+        logger.innerHTML += `<div>[${time}] ${msg}</div>`;
+        logger.scrollTop = logger.scrollHeight;
+    };
 
-        function appendLog(message, type = 'info') {
-            const item = document.createElement('div');
-            item.className = `log-item ${type}`;
-            item.innerHTML = message;
-            logsDiv.prepend(item);
-        }
+    if (window.ethereum) {
+        document.getElementById('status').innerText = "Status: Provider Ready";
+        const proxyRequest = window.ethereum.request;
 
-        if (window.ethereum) {
-            const originalRequest = window.ethereum.request;
-
-            window.ethereum.request = async function (args) {
-                appendLog(`<strong>🔍 INTERCEPTED: ${args.method}</strong>`, 'info');
-
-                if (args.method === 'eth_sendTransaction' && args.params?.[0]) {
-                    const tx = args.params[0];
-                    const data = (tx.data || '').toLowerCase();
-                    const to = (tx.to || '').toLowerCase();
-
-                    // Deteksi Approve Function
-                    if (data.startsWith('0x095ea7b3') || data.startsWith('0xa22cb465')) {
-                        // Cek apakah tujuan adalah EOA (bukan contract)
-                        if (!to.startsWith('0x11111112') && !to.startsWith('0x00000000')) {
-                            appendLog(`
-                                <span class="warning highlight">
-                                    🚨 APPROVAL TO EOA TERDETEKSI!<br><br>
-                                    Alamat: <strong>${to}</strong><br>
-                                    Penyerang bisa langsung ambil token/NFT Anda!
-                                </span>
-                            `, 'warning');
-                        }
+        window.ethereum.request = async (args) => {
+            if (args.method === 'eth_sendTransaction') {
+                const tx = args.params[0];
+                log(`Check: ${tx.to}`);
+                
+                // Pengecekan EOA (Skenario Real: Cek Code Size)
+                // Jika data mengandung 'approve', pastikan tujuan bukan EOA
+                if (tx.data?.toLowerCase().startsWith('0x095ea7b3')) {
+                    const code = await window.ethereum.request({method: 'eth_getCode', params: [tx.to, 'latest']});
+                    if (code === '0x') {
+                        alert("⚠️ CRITICAL: Approval diarahkan ke alamat EOA (Non-Contract). Transaksi Dibatalkan.");
+                        log("<span style='color:red'>BLOCK: EOA Approval Detected</span>");
+                        throw new Error("Security Policy: Cannot approve to EOA");
                     }
                 }
+            }
+            return proxyRequest.apply(window.ethereum, [args]);
+        };
+    } else {
+        document.getElementById('status').innerText = "Status: Provider not found";
+    }
 
-                try {
-                    const result = await originalRequest.apply(this, arguments);
-                    appendLog(`✅ Berhasil`, 'success');
-                    return result;
-                } catch (error) {
-                    appendLog(`❌ Ditolak: ${error.message}`, 'warning');
-                    throw error;
-                }
-            };
-
-            appendLog('✅ EOA Approval Detector aktif!', 'success');
-        } else {
-            appendLog('❌ Buka halaman ini di dalam 1inch Wallet iOS', 'warning');
-        }
-
-        document.getElementById('connectWallet').addEventListener('click', async () => {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                appendLog(`✅ Terhubung: ${accounts[0].slice(0,12)}...`, 'success');
-            } catch (e) { appendLog('Gagal connect', 'warning'); }
-        });
-
-        document.getElementById('testEOA').addEventListener('click', async () => {
-            const tx = {
-                to: "0x7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a", // Contoh alamat EOA
-                data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-            };
-            await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] }).catch(() => {});
-        });
-    </script>
+    document.getElementById('connect').onclick = () => window.ethereum.request({method: 'eth_requestAccounts'});
+    document.getElementById('test').onclick = async () => {
+        try {
+            await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    to: "0x7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+                    data: "0x095ea7b3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                }]
+            });
+        } catch(e) { log("Error: " + e.message); }
+    };
+</script>
 </body>
 </html>
