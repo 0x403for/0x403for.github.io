@@ -5,25 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>1inch dApp Security Inspector</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { background-color: #007bff; color: white; padding: 12px 16px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 5px; width: 100%; }
-        button:hover { background-color: #0056b3; }
-        .log-container { margin-top: 20px; border: 1px solid #ddd; padding: 15px; background-color: #e9e9e9; border-radius: 5px; max-height: 500px; overflow-y: scroll; }
-        .log-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
-        .warning { color: #dc3545; font-weight: bold; }
-        .info { color: #007bff; }
-        .success { color: #28a745; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; color: #333; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        button { background: #0066ff; color: white; padding: 14px; border: none; border-radius: 8px; font-size: 16px; margin: 8px 0; width: 100%; font-weight: bold; }
+        button:hover { background: #0052cc; }
+        .log-container { margin-top: 20px; border: 1px solid #ddd; padding: 15px; background: #f8f9fa; border-radius: 8px; max-height: 600px; overflow-y: auto; }
+        .warning { color: #d32f2f; font-weight: bold; }
+        .success { color: #2e7d32; }
+        .info { color: #1976d2; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔍 1inch dApp Security Inspector</h1>
-        <p><strong>Tools khusus mendeteksi kerentanan 1inch.</strong><br>Buka konsol (F12) untuk detail.</p>
+        <p>Tools untuk mendeteksi kerentanan di 1inch (Unlimited Approval, Permit Signature, dll)</p>
         
         <button id="connectWallet">1. Hubungkan Wallet</button>
-        <button id="sendTransaction">2. Simulasi Swap / Approve</button>
-        <button id="signMessage">3. Simulasi Signature (Permit)</button>
+        <button id="sendTransaction">2. Simulasi Swap / Approve (Real)</button>
+        <button id="signMessage">3. Simulasi Permit Signature (Real)</button>
 
         <div class="log-container">
             <h3>Log Intersepsi Wallet:</h3>
@@ -33,64 +32,78 @@
 
     <script>
         const logsDiv = document.getElementById('logs');
-
-        function appendLog(message, type = 'info') {
-            const logItem = document.createElement('div');
-            logItem.className = `log-item ${type}`;
-            logItem.innerHTML = message;
-            logsDiv.prepend(logItem);
+        function appendLog(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log-item ${type}`;
+            div.innerHTML = msg;
+            logsDiv.prepend(div);
         }
 
-        if (window.ethereum) {
-            const originalRequest = window.ethereum.request;
-            window.ethereum.request = async function (args) {
-                appendLog(`<strong>--- INTERCEPTED ---</strong>`, 'info');
-                appendLog(`Method: ${args.method}`, 'info');
+        let hooked = false;
 
-                // Deteksi Kerentanan 1inch
-                if (args.method === 'eth_sendTransaction' && args.params?.[0]?.data) {
-                    const data = args.params[0].data.toLowerCase();
+        if (window.ethereum) {
+            const original = window.ethereum.request;
+            window.ethereum.request = async function(args) {
+                appendLog(`<strong>🔍 INTERCEPTED ${args.method}</strong>`, 'info');
+
+                // 1inch Detection Engine
+                if (args.method === 'eth_sendTransaction' && args.params?.[0]) {
+                    const data = (args.params[0].data || '').toLowerCase();
                     if (data.includes('095ea7b3') && data.includes('ffffffffffffffff')) {
-                        appendLog(`<span class="warning">🚨 Unlimited Approval terdeteksi!</span>`, 'warning');
+                        appendLog(`<span class="warning">🚨 Unlimited Approval ke 1inch terdeteksi!</span>`, 'warning');
                     }
                 }
 
-                if (args.method.includes('signTypedData')) {
-                    appendLog(`<span class="warning">⚠️ EIP-712 Signature (Permit) terdeteksi</span>`, 'warning');
+                if (args.method === 'eth_signTypedData_v4') {
+                    appendLog(`<span class="warning">⚠️ EIP-712 Permit Signature (1inch) terdeteksi</span>`, 'warning');
                 }
 
                 try {
-                    const result = await originalRequest.apply(this, arguments);
-                    appendLog(`Result: ${JSON.stringify(result).slice(0,100)}...`, 'success');
-                    return result;
+                    const res = await original.apply(this, arguments);
+                    appendLog(`✅ Success`, 'success');
+                    return res;
                 } catch (e) {
-                    appendLog(`Error: ${e.message}`, 'warning');
+                    appendLog(`❌ Error: ${e.message}`, 'warning');
                     throw e;
                 }
             };
-            appendLog('✅ Wallet hook berhasil!', 'success');
+            hooked = true;
+            appendLog('✅ Wallet hook aktif untuk 1inch analysis!', 'success');
         } else {
-            appendLog('❌ Wallet tidak terdeteksi. Gunakan MetaMask.', 'warning');
+            appendLog('❌ MetaMask tidak terdeteksi', 'warning');
         }
 
-        // Button Handlers
-        document.getElementById('connectWallet').addEventListener('click', async () => {
-            if (!window.ethereum) return appendLog('Wallet tidak ada.', 'warning');
+        // Buttons
+        document.getElementById('connectWallet').onclick = async () => {
+            if (!window.ethereum) return appendLog('Wallet tidak ada', 'warning');
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                appendLog(`✅ Terhubung: ${accounts[0]}`, 'success');
-            } catch (e) { appendLog('Gagal connect: ' + e.message, 'warning'); }
-        });
+                const acc = await window.ethereum.request({method: 'eth_requestAccounts'});
+                appendLog(`✅ Terhubung: ${acc[0].slice(0,8)}...`, 'success');
+            } catch(e) { appendLog('Gagal connect', 'warning'); }
+        };
 
-        document.getElementById('sendTransaction').addEventListener('click', () => {
-            appendLog('🔄 Simulasi Approve 1inch dijalankan...', 'info');
-            appendLog('<span class="warning">🚨 Unlimited Approval terdeteksi (simulasi)</span>', 'warning');
-        });
+        document.getElementById('sendTransaction').onclick = async () => {
+            if (!window.ethereum) return;
+            const tx = {
+                to: "0x1111111254eeb25477b68fb85ed929f73a960582",
+                data: "0x095ea7b3" + "0000000000000000000000001111111254eeb25477b68fb85ed929f73a960582" + "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            };
+            try {
+                await window.ethereum.request({method: 'eth_sendTransaction', params: [tx]});
+            } catch(e) {}
+        };
 
-        document.getElementById('signMessage').addEventListener('click', () => {
-            appendLog('📝 Simulasi Permit Signature dijalankan...', 'info');
-            appendLog('<span class="warning">⚠️ EIP-712 Permit Signature (1inch)</span>', 'warning');
-        });
+        document.getElementById('signMessage').onclick = async () => {
+            if (!window.ethereum) return;
+            const typedData = JSON.stringify({
+                domain: {name: "1inch", version: "1", chainId: "1", verifyingContract: "0x1111111254eeb25477b68fb85ed929f73a960582"},
+                primaryType: "Permit",
+                message: {owner: "0x...", spender: "0x1111111254eeb25477b68fb85ed929f73a960582", value: "115792089237316195423570985008687907853269984665640564039457584007913129639935"}
+            });
+            try {
+                await window.ethereum.request({method: 'eth_signTypedData_v4', params: [window.ethereum.selectedAddress || "0x0", typedData]});
+            } catch(e) {}
+        };
     </script>
 </body>
 </html>
