@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Router Impersonation Firewall Test</title>
+    <title>🛡️ Router Impersonation Firewall Test (Enhanced)</title>
     <style>
         :root {
             --primary: #1252ee;
@@ -152,7 +152,7 @@
 <body>
     <div class="container">
         <h2>🛡️ Live Test: Router Impersonation</h2>
-        <p class="desc">Uji coba interaksi kontrak langsung di dApp Browser dengan Auto-Block Sistem</p>
+        <p class="desc">Uji coba interaksi kontrak langsung dengan Firewall Keamanan Lanjutan</p>
 
         <div id="walletInfo" class="wallet-status">Status Wallet: Memeriksa Koneksi...</div>
 
@@ -196,7 +196,7 @@
             "0x111111125421ca6dc452d289314280a0f8842a65"
         ].map(addr => addr.toLowerCase());
 
-        // Inisialisasi Interceptor Provider Web3 dengan Mekanisme Blokir
+        // Interceptor Provider Web3 yang Diperbarui
         if (window.ethereum) {
             const originalRequest = window.ethereum.request;
             
@@ -204,31 +204,30 @@
                 log(`Method dipanggil: <strong>${args.method}</strong>`, 'info');
 
                 const tx = args.params?.[0] || args.params || {};
-                const recipient = tx.to || tx.dataReceiver;
+                const recipient = tx.to || tx.dataReceiver || tx.spender;
 
                 if (recipient && typeof recipient === 'string') {
                     const toAddress = recipient.toLowerCase();
                     const isOfficial = realRouters.includes(toAddress);
 
-                    // Deteksi pola awalan 1inch (Vanity Address Attack)
+                    // Deteksi pola awalan 1inch tiruan (Vanity Address Spoofing)
                     if (toAddress.startsWith("0x11111112") && !isOfficial) {
-                        log(`<span class="warning">🚨 BLOCK ACTION: ROUTER IMPERSONATION TERDETEKSI!<br>Alamat Target: ${toAddress}<br>Tindakan: Permintaan transaksi digagalkan secara paksa demi keamanan dana.</span>`, 'warning');
+                        log(`<span class="warning">🚨 FIREWALL BLOCK: ROUTER IMPERSONATION TERDETEKSI!<br>Target: ${toAddress}<br>Aksi: Menghentikan eksekusi transaksi secara otomatis.</span>`, 'warning');
                         
-                        // Melempar error secara paksa (Membatalkan eksekusi ke dApp browser/wallet)
-                        throw new Error("Transaksi diblokir otomatis: Terdeteksi Alamat Router Palsu!");
+                        throw new Error("Keamanan DApp: Transaksi diblokir karena mengarah ke alamat router palsu/impersonasi.");
                     } else if (isOfficial) {
-                        log(`<span class="safe">✅ VERIFIED: Mengarah ke Router Resmi 1inch (${toAddress})</span>`, 'safe');
+                        log(`<span class="safe">✅ VERIFIED: Terhubung ke Router Resmi 1inch (${toAddress})</span>`, 'safe');
                     }
                 }
 
                 return originalRequest.apply(this, arguments);
             };
 
-            // Otomatis minta akun saat halaman dimuat
+            // Inisialisasi Akun Wallet
             window.ethereum.request({ method: 'eth_requestAccounts' })
                 .then(accounts => {
                     walletInfo.innerText = `Connected: ${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
-                    log(`Wallet terhubung: ${accounts[0]}`, 'safe');
+                    log(`Wallet berhasil terhubung: ${accounts[0]}`, 'safe');
                 })
                 .catch(err => {
                     walletInfo.innerText = `Koneksi Wallet Ditolak`;
@@ -237,10 +236,10 @@
 
         } else {
             walletInfo.innerText = `Provider Web3 Tidak Ditemukan`;
-            log(`❌ window.ethereum tidak aktif. Buka halaman ini di dalam dApp Browser 1inch Wallet.`, 'warning');
+            log(`❌ window.ethereum tidak terdeteksi. Pastikan dibuka di dApp Browser 1inch Wallet.`, 'warning');
         }
 
-        // Tombol 1: Skenario Transaksi Resmi
+        // Tombol 1: Uji Transaksi Resmi
         document.getElementById('btnReal').onclick = async () => {
             if (!window.ethereum) return alert("Wallet tidak ditemukan!");
             try {
@@ -257,11 +256,11 @@
                     }]
                 });
             } catch (err) {
-                log(`Info: ${err.message}`, 'info');
+                log(`Info Resmi: ${err.message}`, 'info');
             }
         };
 
-        // Tombol 2: Skenario Transaksi Palsu (Akan langsung ditolak oleh interceptor baru)
+        // Tombol 2: Uji Transaksi Palsu (Dicegat oleh Firewall)
         document.getElementById('btnFake').onclick = async () => {
             if (!window.ethereum) return alert("Wallet tidak ditemukan!");
             try {
@@ -278,8 +277,7 @@
                     }]
                 });
             } catch (err) {
-                // Menangkap pesan error dari throw Error di atas
-                log(`Sistem Keamanan: ${err.message}`, 'warning');
+                log(`Peringatan Sistem: ${err.message}`, 'warning');
             }
         };
 
