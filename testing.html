@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skenario Uji Nyata - Router Impersonation Detector</title>
+    <title>🛡️ Router Impersonation Firewall Test</title>
     <style>
         :root {
             --primary: #1252ee;
@@ -129,7 +129,7 @@
             background: #0b0f19; 
             border: 1px solid var(--border-color); 
             border-radius: 10px; 
-            max-height: 300px; 
+            max-height: 350px; 
             overflow-y: auto; 
             font-family: monospace;
             font-size: 13px;
@@ -144,35 +144,35 @@
             word-break: break-all;
         }
 
-        .warning { color: #fca5a5; border-left-color: #ef4444; background: rgba(239, 68, 68, 0.1) !important; }
-        .safe { color: #86efac; border-left-color: #22c55e; background: rgba(34, 197, 94, 0.1) !important; }
+        .warning { color: #fca5a5; border-left-color: #ef4444; background: rgba(239, 68, 68, 0.15) !important; }
+        .safe { color: #86efac; border-left-color: #22c55e; background: rgba(34, 197, 94, 0.15) !important; }
         .info { color: #7dd3fc; border-left-color: #0ea5e9; background: rgba(14, 165, 233, 0.1) !important; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>🛡️ Live Test: 1inch Router Detector</h2>
-        <p class="desc">Uji coba interaksi kontrak langsung di dApp Browser 1inch Wallet</p>
+        <h2>🛡️ Live Test: Router Impersonation</h2>
+        <p class="desc">Uji coba interaksi kontrak langsung di dApp Browser dengan Auto-Block Sistem</p>
 
-        <div id="walletInfo" class="wallet-status">Status Wallet: Belum Terhubung</div>
+        <div id="walletInfo" class="wallet-status">Status Wallet: Memeriksa Koneksi...</div>
 
         <!-- Skenario 1: Router Resmi -->
         <div class="section-box">
-            <h4>1. Skenario Kontrak Resmi (Valid)</h4>
-            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Mengirim transaksi dummy ke Router Resmi V6 1inch.</p>
+            <h4>1. Jalur Kontrak Resmi (Aman)</h4>
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Mengirim transaksi uji ke Router Resmi V6 milik 1inch.</p>
             <button id="btnReal">Kirim ke Router Resmi</button>
         </div>
 
         <!-- Skenario 2: Router Palsu / Impersonation -->
         <div class="section-box">
-            <h4>2. Skenario Router Palsu (Impersonation)</h4>
-            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Mengirim transaksi ke alamat *vanity spoofing* yang menyerupai awalan 1inch.</p>
+            <h4>2. Jalur Kontrak Palsu (Impersonation)</h4>
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Memicu transaksi ke alamat vanity tiruan yang menyerupai awalan 1inch.</p>
             <button id="btnFake" class="danger">Kirim ke Router PALSU</button>
         </div>
 
         <div class="log-container">
             <div class="log-header">
-                <span>Real-time Interceptor Log</span>
+                <span>Eksekusi Interceptor Firewall</span>
                 <button id="clear-log">Bersihkan</button>
             </div>
             <div class="log" id="log"></div>
@@ -196,7 +196,7 @@
             "0x111111125421ca6dc452d289314280a0f8842a65"
         ].map(addr => addr.toLowerCase());
 
-        // Inisialisasi Interceptor Provider Web3
+        // Inisialisasi Interceptor Provider Web3 dengan Mekanisme Blokir
         if (window.ethereum) {
             const originalRequest = window.ethereum.request;
             
@@ -210,22 +210,25 @@
                     const toAddress = recipient.toLowerCase();
                     const isOfficial = realRouters.includes(toAddress);
 
-                    // Deteksi pola awalan 1inch
+                    // Deteksi pola awalan 1inch (Vanity Address Attack)
                     if (toAddress.startsWith("0x11111112") && !isOfficial) {
-                        log(`<span class="warning">🚨 PERINGATAN KERAS: ROUTER IMPERSONATION TERDETEKSI!<br>Alamat Tujuan: ${toAddress}<br>Status: BUKAN router resmi 1inch! Potensi kontrak phising/drainer.</span>`, 'warning');
+                        log(`<span class="warning">🚨 BLOCK ACTION: ROUTER IMPERSONATION TERDETEKSI!<br>Alamat Target: ${toAddress}<br>Tindakan: Permintaan transaksi digagalkan secara paksa demi keamanan dana.</span>`, 'warning');
+                        
+                        // Melempar error secara paksa (Membatalkan eksekusi ke dApp browser/wallet)
+                        throw new Error("Transaksi diblokir otomatis: Terdeteksi Alamat Router Palsu!");
                     } else if (isOfficial) {
-                        log(`<span class="safe">✅ Terverifikasi: Mengarah ke Router Resmi 1inch (${toAddress})</span>`, 'safe');
+                        log(`<span class="safe">✅ VERIFIED: Mengarah ke Router Resmi 1inch (${toAddress})</span>`, 'safe');
                     }
                 }
 
                 return originalRequest.apply(this, arguments);
             };
 
-            // Otomatis minta akun saat halaman dimuat di dApp browser
+            // Otomatis minta akun saat halaman dimuat
             window.ethereum.request({ method: 'eth_requestAccounts' })
                 .then(accounts => {
                     walletInfo.innerText = `Connected: ${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
-                    log(`Wallet berhasil tersambung: ${accounts[0]}`, 'safe');
+                    log(`Wallet terhubung: ${accounts[0]}`, 'safe');
                 })
                 .catch(err => {
                     walletInfo.innerText = `Koneksi Wallet Ditolak`;
@@ -234,36 +237,35 @@
 
         } else {
             walletInfo.innerText = `Provider Web3 Tidak Ditemukan`;
-            log(`❌ window.ethereum tidak aktif. Harap buka halaman ini di dalam dApp Browser 1inch Wallet.`, 'warning');
+            log(`❌ window.ethereum tidak aktif. Buka halaman ini di dalam dApp Browser 1inch Wallet.`, 'warning');
         }
 
-        // Tombol 1: Skenario Transaksi ke Router Resmi (Contoh ke Router V6 di jaringan aktif)
+        // Tombol 1: Skenario Transaksi Resmi
         document.getElementById('btnReal').onclick = async () => {
             if (!window.ethereum) return alert("Wallet tidak ditemukan!");
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                const officialRouter = "0x111111125421ca6dc452d289314280a0f8842a65"; // 1inch Aggregation Router V6
+                const officialRouter = "0x111111125421ca6dc452d289314280a0f8842a65";
                 
                 await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: accounts[0],
                         to: officialRouter,
-                        value: '0x0', // 0 ETH test
+                        value: '0x0',
                         data: '0x'
                     }]
                 });
             } catch (err) {
-                log(`Transaksi resmi ditutup/dibatalkan pengguna: ${err.message}`, 'info');
+                log(`Info: ${err.message}`, 'info');
             }
         };
 
-        // Tombol 2: Skenario Transaksi ke Router Palsu (Impersonation / Vanity Spoofing)
+        // Tombol 2: Skenario Transaksi Palsu (Akan langsung ditolak oleh interceptor baru)
         document.getElementById('btnFake').onclick = async () => {
             if (!window.ethereum) return alert("Wallet tidak ditemukan!");
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                // Alamat sengaja dibuat mirip di awal (0x11111112...) tapi byte belakangnya diubah
                 const fakeRouter = "0x1111111200000000000000000000000000000001";
                 
                 await window.ethereum.request({
@@ -276,7 +278,8 @@
                     }]
                 });
             } catch (err) {
-                log(`Skenario uji palsu selesai/dibatalkan: ${err.message}`, 'info');
+                // Menangkap pesan error dari throw Error di atas
+                log(`Sistem Keamanan: ${err.message}`, 'warning');
             }
         };
 
