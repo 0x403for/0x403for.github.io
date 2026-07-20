@@ -3,285 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skenario Uji Nyata - Router Impersonation Detector</title>
+    <title>Deep Link Phishing Tester - 1inch iOS</title>
     <style>
-        :root {
-            --primary: #1252ee;
-            --primary-hover: #0d3dbd;
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-        }
-
-        body { 
-            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
-            background: var(--bg-color); 
-            color: var(--text-main);
-            margin: 0; 
-            padding: 20px; 
-        }
-
-        .container { 
-            max-width: 600px; 
-            margin: auto; 
-            background: var(--card-bg); 
-            padding: 24px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); 
-            border: 1px solid var(--border-color);
-        }
-
-        h2 { 
-            color: #60a5fa; 
-            text-align: center; 
-            margin-top: 0;
-            font-size: 22px;
-        }
-
-        p.desc {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        .section-box {
-            background: #0f172a;
-            border: 1px solid var(--border-color);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-        }
-
-        .section-box h4 {
-            margin: 0 0 10px 0;
-            color: #e2e8f0;
-            font-size: 15px;
-        }
-
-        button { 
-            background: var(--primary); 
-            color: white; 
-            padding: 14px; 
-            width: 100%; 
-            border: none; 
-            border-radius: 10px; 
-            font-size: 15px; 
-            font-weight: 600; 
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            margin-top: 8px;
-        }
-
-        button:hover { background: var(--primary-hover); }
-        button:active { transform: scale(0.98); }
-
-        button.danger {
-            background: #dc2626;
-        }
-        button.danger:hover {
-            background: #b91c1c;
-        }
-
-        .wallet-status {
-            font-size: 13px;
-            color: #38bdf8;
-            word-break: break-all;
-            margin-bottom: 15px;
-            background: rgba(56, 189, 248, 0.1);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid rgba(56, 189, 248, 0.2);
-        }
-
-        .log-container {
-            margin-top: 20px;
-        }
-
-        .log-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .log-header span {
-            font-size: 13px;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        #clear-log {
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border-color);
-            padding: 4px 10px;
-            font-size: 12px;
-            border-radius: 6px;
-            width: auto;
-            margin: 0;
-        }
-
-        .log { 
-            padding: 12px; 
-            background: #0b0f19; 
-            border: 1px solid var(--border-color); 
-            border-radius: 10px; 
-            max-height: 300px; 
-            overflow-y: auto; 
-            font-family: monospace;
-            font-size: 13px;
-        }
-
-        .log-item {
-            margin: 6px 0; 
-            padding: 8px 10px; 
-            border-radius: 6px; 
-            border-left: 3px solid #64748b;
-            background: #1e293b;
-            word-break: break-all;
-        }
-
-        .warning { color: #fca5a5; border-left-color: #ef4444; background: rgba(239, 68, 68, 0.1) !important; }
-        .safe { color: #86efac; border-left-color: #22c55e; background: rgba(34, 197, 94, 0.1) !important; }
-        .info { color: #7dd3fc; border-left-color: #0ea5e9; background: rgba(14, 165, 233, 0.1) !important; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); }
+        h1 { color: #c62828; text-align: center; }
+        button { background: #c62828; color: white; padding: 16px; margin: 12px 0; width: 100%; border: none; border-radius: 12px; font-size: 17px; font-weight: bold; }
+        .log { margin-top: 25px; padding: 20px; background: #fff; border: 2px solid #ffcdd2; border-radius: 16px; max-height: 500px; overflow-y: auto; }
+        .warning { color: #c62828; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>🛡️ Live Test: 1inch Router Detector</h2>
-        <p class="desc">Uji coba interaksi kontrak langsung di dApp Browser 1inch Wallet</p>
+        <h1>🚨 Deep Link Phishing Tester</h1>
+        <p><strong>Uji coba link eksternal yang langsung memicu aksi di wallet</strong></p>
 
-        <div id="walletInfo" class="wallet-status">Status Wallet: Belum Terhubung</div>
+        <button id="connect">1. Hubungkan Wallet</button>
+        <button id="testDeepLink">2. Test Deep Link Phishing</button>
 
-        <!-- Skenario 1: Router Resmi -->
-        <div class="section-box">
-            <h4>1. Skenario Kontrak Resmi (Valid)</h4>
-            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Mengirim transaksi dummy ke Router Resmi V6 1inch.</p>
-            <button id="btnReal">Kirim ke Router Resmi</button>
-        </div>
-
-        <!-- Skenario 2: Router Palsu / Impersonation -->
-        <div class="section-box">
-            <h4>2. Skenario Router Palsu (Impersonation)</h4>
-            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Mengirim transaksi ke alamat *vanity spoofing* yang menyerupai awalan 1inch.</p>
-            <button id="btnFake" class="danger">Kirim ke Router PALSU</button>
-        </div>
-
-        <div class="log-container">
-            <div class="log-header">
-                <span>Real-time Interceptor Log</span>
-                <button id="clear-log">Bersihkan</button>
-            </div>
-            <div class="log" id="log"></div>
-        </div>
+        <div class="log" id="log"></div>
     </div>
 
     <script>
         const logDiv = document.getElementById('log');
-        const walletInfo = document.getElementById('walletInfo');
 
-        function log(text, type = 'info') {
+        function log(text) {
             const div = document.createElement('div');
-            div.className = `log-item ${type}`;
-            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${text}`;
+            div.style.margin = '10px 0';
+            div.style.padding = '12px';
+            div.style.borderRadius = '8px';
+            div.innerHTML = text;
             logDiv.prepend(div);
         }
 
-        // Daftar resmi router 1inch (V5 & V6)
-        const realRouters = [
-            "0x1111111254eeb25477b68fb85ed929f73a960582",
-            "0x111111125421ca6dc452d289314280a0f8842a65"
-        ].map(addr => addr.toLowerCase());
-
-        // Inisialisasi Interceptor Provider Web3
         if (window.ethereum) {
-            const originalRequest = window.ethereum.request;
-            
+            log('✅ Wallet terdeteksi');
+
+            const orig = window.ethereum.request;
             window.ethereum.request = async function (args) {
-                log(`Method dipanggil: <strong>${args.method}</strong>`, 'info');
+                log(`INTERCEPTED: ${args.method}`);
 
-                const tx = args.params?.[0] || args.params || {};
-                const recipient = tx.to || tx.dataReceiver;
-
-                if (recipient && typeof recipient === 'string') {
-                    const toAddress = recipient.toLowerCase();
-                    const isOfficial = realRouters.includes(toAddress);
-
-                    // Deteksi pola awalan 1inch
-                    if (toAddress.startsWith("0x11111112") && !isOfficial) {
-                        log(`<span class="warning">🚨 PERINGATAN KERAS: ROUTER IMPERSONATION TERDETEKSI!<br>Alamat Tujuan: ${toAddress}<br>Status: BUKAN router resmi 1inch! Potensi kontrak phising/drainer.</span>`, 'warning');
-                    } else if (isOfficial) {
-                        log(`<span class="safe">✅ Terverifikasi: Mengarah ke Router Resmi 1inch (${toAddress})</span>`, 'safe');
-                    }
+                if (args.method === 'eth_sendTransaction' || args.method.includes('sign')) {
+                    log('🚨 DEEP LINK / AUTO ACTION terdeteksi! Potensi phishing.', 'warning');
                 }
 
-                return originalRequest.apply(this, arguments);
+                return orig.apply(this, arguments);
             };
-
-            // Otomatis minta akun saat halaman dimuat di dApp browser
-            window.ethereum.request({ method: 'eth_requestAccounts' })
-                .then(accounts => {
-                    walletInfo.innerText = `Connected: ${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
-                    log(`Wallet berhasil tersambung: ${accounts[0]}`, 'safe');
-                })
-                .catch(err => {
-                    walletInfo.innerText = `Koneksi Wallet Ditolak`;
-                    log(`Gagal menghubungkan wallet: ${err.message}`, 'warning');
-                });
-
         } else {
-            walletInfo.innerText = `Provider Web3 Tidak Ditemukan`;
-            log(`❌ window.ethereum tidak aktif. Harap buka halaman ini di dalam dApp Browser 1inch Wallet.`, 'warning');
+            log('❌ Buka di 1inch Wallet Browser');
         }
 
-        // Tombol 1: Skenario Transaksi ke Router Resmi (Contoh ke Router V6 di jaringan aktif)
-        document.getElementById('btnReal').onclick = async () => {
-            if (!window.ethereum) return alert("Wallet tidak ditemukan!");
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                const officialRouter = "0x111111125421ca6dc452d289314280a0f8842a65"; // 1inch Aggregation Router V6
-                
-                await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        from: accounts[0],
-                        to: officialRouter,
-                        value: '0x0', // 0 ETH test
-                        data: '0x'
-                    }]
-                });
-            } catch (err) {
-                log(`Transaksi resmi ditutup/dibatalkan pengguna: ${err.message}`, 'info');
-            }
-        };
+        document.getElementById('connect').onclick = () => window.ethereum.request({method: 'eth_requestAccounts'}).catch(()=>{});
 
-        // Tombol 2: Skenario Transaksi ke Router Palsu (Impersonation / Vanity Spoofing)
-        document.getElementById('btnFake').onclick = async () => {
-            if (!window.ethereum) return alert("Wallet tidak ditemukan!");
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                // Alamat sengaja dibuat mirip di awal (0x11111112...) tapi byte belakangnya diubah
-                const fakeRouter = "0x1111111200000000000000000000000000000001";
-                
-                await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        from: accounts[0],
-                        to: fakeRouter,
-                        value: '0x0',
-                        data: '0x'
-                    }]
-                });
-            } catch (err) {
-                log(`Skenario uji palsu selesai/dibatalkan: ${err.message}`, 'info');
-            }
-        };
-
-        document.getElementById('clear-log').onclick = () => {
-            logDiv.innerHTML = '';
+        document.getElementById('testDeepLink').onclick = () => {
+            log('Simulasi Deep Link Phishing dijalankan...', 'warning');
+            // Simulasi auto action
+            window.ethereum.request({method: 'personal_sign', params: ['0x44656570204c696e6b205068697368696e672054657374', window.ethereum.selectedAddress]}).catch(()=>{});
         };
     </script>
 </body>
