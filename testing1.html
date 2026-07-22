@@ -3,146 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch DApp - Transaction History Reader</title>
+    <title>1inch Wallet WebView Test PoC</title>
     <style>
-        body {
-            background-color: #0b0e14;
-            color: #f0f6fc;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-            padding: 16px;
-            margin: 0;
-        }
-        h2 {
-            color: #58a6ff;
-            font-size: 18px;
-            margin-bottom: 8px;
-        }
-        p {
-            color: #8b949e;
-            font-size: 13px;
-        }
-        .card {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 12px;
-        }
-        .input-box {
-            width: 100%;
-            height: 60px;
-            background-color: #0d1117;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            resize: none;
-            box-sizing: border-box;
-            margin-bottom: 8px;
-        }
-        .btn {
-            width: 100%;
-            background-color: #238636;
-            color: #fff;
-            padding: 12px;
-            font-weight: bold;
-            font-size: 14px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-bottom: 8px;
-        }
-        .btn-secondary {
-            background-color: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-        }
-        .output-box {
-            background-color: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
-            word-break: break-all;
-            color: #7ee787;
-            max-height: 250px;
-            overflow-y: auto;
-        }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a2e; color: #fff; }
+        button { padding: 12px 20px; margin: 10px 0; width: 100%; font-size: 16px; background: #007bff; border: none; border-radius: 8px; color: white; }
+        button:hover { background: #0056b3; }
+        pre { background: #16213e; padding: 15px; border-radius: 8px; overflow-x: auto; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
+    <h1>🧪 1inch Wallet dApp Browser Test</h1>
+    <p><strong>Untuk Security Research Only</strong> — Gunakan wallet testnet / kosong!</p>
 
-    <h2>DApp Wallet History Inspector</h2>
-    <p>Membaca konteks transaksi dan akun aktif langsung melalui provider dompet di dalam DApp browser.</p>
+    <button onclick="connectWallet()">1. Connect Wallet (eth_requestAccounts)</button>
+    <button onclick="getAccount()">2. Get Current Account</button>
+    <button onclick="sendTestTx()">3. Send Test Transaction (0.0001 ETH ke test address)</button>
+    <button onclick="signMessage()">4. Sign Message</button>
+    <button onclick="testBridge()">5. Test WebView Bridge / PostMessage</button>
+    <button onclick="requestPermissions()">6. Request Permissions (jika ada)</button>
 
-    <div class="card">
-        <label style="font-size: 12px; color: #8b949e;">Target Hash Transaksi:</label>
-        <textarea id="txHashInput" class="input-box" placeholder="Tempel Hash Transaksi (Contoh: 0xe171...)">0xe1718412fcbc5f83797bb769042332d00182122110307072a667af0b1c18b44c</textarea>
-        
-        <button class="btn" onclick="hubungkanDanAmbilData()">Hubungkan Dompet & Ambil Detail</button>
-    </div>
-
-    <div class="card">
-        <label style="font-size: 12px; color: #8b949e;">Hasil Ekstraksi Konteks Dompet:</label>
-        <div id="resultOutput" class="output-box">[+] Menunggu interaksi dompet...</div>
-    </div>
+    <h2>Status & Log</h2>
+    <pre id="log"></pre>
 
     <script>
-        async function hubungkanDanAmbilData() {
-            const output = document.getElementById('resultOutput');
-            const txHash = document.getElementById('txHashInput').value.trim();
+        const logEl = document.getElementById('log');
 
-            if (typeof window.ethereum === 'undefined') {
-                output.innerText = "[-] Error: Objek window.ethereum tidak ditemukan. Pastikan halaman ini dibuka di dalam DApp Browser dompet.";
-                return;
-            }
+        function log(msg, isError = false) {
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<span style="color:${isError ? 'red' : 'lime'}">[${time}] ${msg}</span><br>`;
+            console.log(msg);
+        }
 
+        async function connectWallet() {
             try {
-                output.innerText = "[*] Meminta izin koneksi akun dompet...";
-                
-                // Meminta akses akun aktif dari dApp browser
+                log("Meminta koneksi wallet...");
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const activeAccount = accounts[0];
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-
-                output.innerText = `[+] Dompet Terhubung!\n- Akun Aktif: ${activeAccount}\n- Chain ID: ${chainId}\n\n[*] Mengambil data transaksi dari node...`;
-
-                if (!txHash) {
-                    output.innerText += "\n[-] Hash transaksi kosong.";
-                    return;
-                }
-
-                // Mengambil detail tanda terima transaksi (Transaction Receipt) via provider web3
-                const receipt = await window.ethereum.request({
-                    method: 'eth_getTransactionReceipt',
-                    params: [txHash]
-                });
-
-                const txDetails = await window.ethereum.request({
-                    method: 'eth_getTransactionByHash',
-                    params: [txHash]
-                });
-
-                if (receipt && txDetails) {
-                    output.innerText += `\n\n[+] Detail Transaksi Berhasil Dimuat:\n` +
-                        `- Status: ${receipt.status === '0x1' ? 'Sukses (Dieksekusi)' : 'Gagal'}\n` +
-                        `- Blok: ${parseInt(receipt.blockNumber, 16)}\n` +
-                        `- Pengirim (From): ${txDetails.from}\n` +
-                        `- Penerima (To): ${txDetails.to}\n` +
-                        `- Nilai (Value): ${parseInt(txDetails.value, 16) / 1e18} ETH\n` +
-                        `- Hash: ${txHash}`;
-                } else {
-                    output.innerText += `\n[-] Transaksi tidak ditemukan di jaringan saat ini atau hash tidak valid.`;
-                }
-
-            } catch (error) {
-                output.innerText = `[-] Terjadi kesalahan: ${error.message}`;
+                log("✅ Connected: " + accounts[0]);
+            } catch (e) {
+                log("❌ Error: " + e.message, true);
             }
         }
+
+        async function getAccount() {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                log("Current account: " + (accounts[0] || "Tidak ada"));
+            } catch (e) {
+                log("Error: " + e.message, true);
+            }
+        }
+
+        async function sendTestTx() {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (!accounts[0]) return log("Wallet belum connect", true);
+
+                const tx = {
+                    from: accounts[0],
+                    to: "0x0000000000000000000000000000000000000000", // Ganti dengan test address milikmu
+                    value: "0x16345785d8a0000", // ~0.0001 ETH
+                    gas: "0x5208"
+                };
+
+                log("Mengirim test transaction...");
+                const txHash = await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+                log("✅ Transaction sent: " + txHash);
+            } catch (e) {
+                log("❌ " + e.message, true);
+            }
+        }
+
+        async function signMessage() {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (!accounts[0]) return log("Wallet belum connect", true);
+
+                const msg = "Test signature from 1inch WebView PoC - " + Date.now();
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [msg, accounts[0]]
+                });
+                log("✅ Signature: " + signature);
+            } catch (e) {
+                log("❌ " + e.message, true);
+            }
+        }
+
+        function testBridge() {
+            log("Mengirim test message ke bridge...");
+            window.postMessage({ type: "TEST_BRIDGE", data: "Hello from malicious dApp test" }, "*");
+            
+            // Test React Native WebView bridge (umum di RN wallets)
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: "TEST", payload: "Bridge injection test" }));
+                log("✅ ReactNativeWebView bridge terdeteksi");
+            } else {
+                log("ReactNativeWebView tidak ditemukan");
+            }
+        }
+
+        function requestPermissions() {
+            log("Mencoba request permission...");
+            // Contoh umum untuk camera/location (bisa test inheritance)
+            if (navigator.mediaDevices) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(() => log("✅ Camera permission granted"))
+                    .catch(e => log("Camera: " + e.message));
+            }
+        }
+
+        // Listen events
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (acc) => log("Accounts changed: " + acc));
+            window.ethereum.on('chainChanged', (chain) => log("Chain changed: " + chain));
+            log("✅ window.ethereum terdeteksi");
+        } else {
+            log("window.ethereum tidak ditemukan", true);
+        }
+
+        console.log("%c1inch WebView Test PoC loaded", "color: cyan; font-size: 16px");
     </script>
 </body>
 </html>
