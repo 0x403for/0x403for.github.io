@@ -3,144 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch DApp Browser - Real Transaction & Storage Auditor</title>
+    <title>1inch DApp - Transaction History Reader</title>
     <style>
         body {
-            background-color: #0d1117;
-            color: #58a6ff;
-            font-family: monospace;
-            padding: 20px;
+            background-color: #0b0e14;
+            color: #f0f6fc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+            padding: 16px;
+            margin: 0;
         }
         h2 {
-            color: #39d353;
+            color: #58a6ff;
+            font-size: 18px;
+            margin-bottom: 8px;
         }
         p {
             color: #8b949e;
+            font-size: 13px;
+        }
+        .card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
         }
         .input-box {
             width: 100%;
-            max-width: 600px;
-            height: 80px;
-            background-color: #161b22;
+            height: 60px;
+            background-color: #0d1117;
             color: #c9d1d9;
             border: 1px solid #30363d;
-            padding: 10px;
+            border-radius: 8px;
+            padding: 8px;
             font-family: monospace;
-            font-size: 14px;
-            resize: vertical;
+            font-size: 12px;
+            resize: none;
             box-sizing: border-box;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .btn {
-            display: inline-block;
+            width: 100%;
             background-color: #238636;
             color: #fff;
-            padding: 10px 16px;
+            padding: 12px;
             font-weight: bold;
+            font-size: 14px;
             border: none;
+            border-radius: 8px;
             cursor: pointer;
-            margin-right: 5px;
-            margin-bottom: 10px;
-            text-align: center;
+            margin-bottom: 8px;
         }
         .btn-secondary {
             background-color: #21262d;
             color: #c9d1d9;
             border: 1px solid #30363d;
         }
-        .report-box {
-            background-color: #161b22;
+        .output-box {
+            background-color: #0d1117;
             border: 1px solid #30363d;
-            padding: 15px;
-            margin-top: 20px;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
             white-space: pre-wrap;
             word-break: break-all;
-            color: #c9d1d9;
+            color: #7ee787;
+            max-height: 250px;
+            overflow-y: auto;
         }
     </style>
 </head>
 <body>
 
-    <h2>1inch DApp Browser - Real Transaction & Storage Auditor</h2>
-    <p>Alat pengujian nyata untuk mendeteksi interaksi dompet, parameter transaksi aktif, dan rekam jejak LocalStorage pada DApp browser.</p>
+    <h2>DApp Wallet History Inspector</h2>
+    <p>Membaca konteks transaksi dan akun aktif langsung melalui provider dompet di dalam DApp browser.</p>
 
-    <textarea id="targetInput" class="input-box" placeholder="Tempel URL Etherscan atau Hash transaksi nyata di sini..."></textarea>
-    
-    <div>
-        <button class="btn" onclick="hubungkanDompet()">1. Hubungkan / Deteksi Provider Web3</button>
-        <button class="btn" onclick="jalankanAuditNyata()">2. Jalankan Audit Riwayat & Storage Nyata</button>
-        <button class="btn btn-secondary" onclick="eksporJSON()">Ekspor Bukti (JSON)</button>
+    <div class="card">
+        <label style="font-size: 12px; color: #8b949e;">Target Hash Transaksi:</label>
+        <textarea id="txHashInput" class="input-box" placeholder="Tempel Hash Transaksi (Contoh: 0xe171...)">0xe1718412fcbc5f83797bb769042332d00182122110307072a667af0b1c18b44c</textarea>
+        
+        <button class="btn" onclick="hubungkanDanAmbilData()">Hubungkan Dompet & Ambil Detail</button>
     </div>
 
-    <div id="reportOutput" class="report-box">
-[+] Siap melakukan audit nyata. Klik tombol di atas untuk memulai...
+    <div class="card">
+        <label style="font-size: 12px; color: #8b949e;">Hasil Ekstraksi Konteks Dompet:</label>
+        <div id="resultOutput" class="output-box">[+] Menunggu interaksi dompet...</div>
     </div>
 
     <script>
-        let providerInfo = "Belum terhubung ke provider web3.";
+        async function hubungkanDanAmbilData() {
+            const output = document.getElementById('resultOutput');
+            const txHash = document.getElementById('txHashInput').value.trim();
 
-        async function hubungkanDompet() {
-            const output = document.getElementById('reportOutput');
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                    providerInfo = `[+] Provider Web3 Terdeteksi!\n- Akun Aktif: ${accounts[0]}\n- Chain ID: ${chainId}`;
-                    output.innerText = providerInfo;
-                } catch (error) {
-                    output.innerText = `[-] Gagal terhubung ke dompet: ${error.message}`;
+            if (typeof window.ethereum === 'undefined') {
+                output.innerText = "[-] Error: Objek window.ethereum tidak ditemukan. Pastikan halaman ini dibuka di dalam DApp Browser dompet.";
+                return;
+            }
+
+            try {
+                output.innerText = "[*] Meminta izin koneksi akun dompet...";
+                
+                // Meminta akses akun aktif dari dApp browser
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const activeAccount = accounts[0];
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+                output.innerText = `[+] Dompet Terhubung!\n- Akun Aktif: ${activeAccount}\n- Chain ID: ${chainId}\n\n[*] Mengambil data transaksi dari node...`;
+
+                if (!txHash) {
+                    output.innerText += "\n[-] Hash transaksi kosong.";
+                    return;
                 }
-            } else {
-                providerInfo = "[-] Tidak ada objek window.ethereum yang terdeteksi di lingkungan DApp browser ini.";
-                output.innerText = providerInfo;
-            }
-        }
 
-        function jalankanAuditNyata() {
-            const inputVal = document.getElementById('targetInput').value.trim();
-            const origin = window.location.origin;
-            
-            let storageData = "";
-            
-            // Membaca LocalStorage asli secara aktual tanpa data tiruan/dummy
-            if (localStorage.length === 0) {
-                storageData = "LocalStorage pada origin ini kosong.\n";
-            } else {
-                for (let i = 0; i < localStorage.length; i++) {
-                    let key = localStorage.key(i);
-                    let val = localStorage.getItem(key);
-                    storageData += `Key: ${key}\nValue: ${val}\n\n`;
+                // Mengambil detail tanda terima transaksi (Transaction Receipt) via provider web3
+                const receipt = await window.ethereum.request({
+                    method: 'eth_getTransactionReceipt',
+                    params: [txHash]
+                });
+
+                const txDetails = await window.ethereum.request({
+                    method: 'eth_getTransactionByHash',
+                    params: [txHash]
+                });
+
+                if (receipt && txDetails) {
+                    output.innerText += `\n\n[+] Detail Transaksi Berhasil Dimuat:\n` +
+                        `- Status: ${receipt.status === '0x1' ? 'Sukses (Dieksekusi)' : 'Gagal'}\n` +
+                        `- Blok: ${parseInt(receipt.blockNumber, 16)}\n` +
+                        `- Pengirim (From): ${txDetails.from}\n` +
+                        `- Penerima (To): ${txDetails.to}\n` +
+                        `- Nilai (Value): ${parseInt(txDetails.value, 16) / 1e18} ETH\n` +
+                        `- Hash: ${txHash}`;
+                } else {
+                    output.innerText += `\n[-] Transaksi tidak ditemukan di jaringan saat ini atau hash tidak valid.`;
                 }
+
+            } catch (error) {
+                output.innerText = `[-] Terjadi kesalahan: ${error.message}`;
             }
-
-            let report = `${providerInfo}\n\n`;
-            report += `[+] Real Audit Report - Origin: ${origin}\n`;
-            if(inputVal) {
-                report += `[+] Input Hash / URL Target: ${inputVal}\n\n`;
-            }
-            report += `--- LocalStorage Aktif ---\n${storageData}`;
-            report += `--- SessionStorage Aktif ---\n`;
-            report += sessionStorage.length === 0 ? "SessionStorage Kosong.\n\n" : "Ada data di SessionStorage.\n\n";
-            report += `--- Cookies Aktif ---\n`;
-            report += document.cookie ? document.cookie : "Cookies Kosong.";
-
-            document.getElementById('reportOutput').innerText = report;
-        }
-
-        function eksporJSON() {
-            const data = {
-                origin: window.location.origin,
-                localStorage: { ...localStorage },
-                sessionStorage: { ...sessionStorage },
-                cookie: document.cookie,
-                timestamp: new Date().toISOString()
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'real-audit-report.json';
-            a.click();
         }
     </script>
 </body>
