@@ -3,28 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deep Link Test</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <style> body { padding:20px; text-align:center; background:#000; color:#0f0; } </style>
+    <title>WalletConnect Advanced Test</title>
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <style>
+        body { font-family: Arial; background:#0a0a0f; color:#0f0; padding:20px; text-align:center; }
+        button { padding:18px; margin:12px 0; width:90%; background:#0066ff; color:white; border:none; border-radius:10px; font-size:17px; }
+    </style>
 </head>
 <body>
-    <h1>1inch Deep Link Test</h1>
+    <h1>WalletConnect Test</h1>
+    <button onclick="connectWC()">1. Connect WalletConnect</button>
+    <button onclick="signMessageWC()">2. Sign Message</button>
+    <button onclick="sendTxWC()">3. Send Transaction</button>
+    <button onclick="approveWC()">4. Infinite Approval Test</button>
 
-    <div id="qrcode"></div>
-
-    <p><strong>Link:</strong></p>
-    <a href="1inch://test" id="deeplink">1inch://test</a><br><br>
-    <a href="1inch://connect">1inch://connect</a><br>
-    <a href="1inch://sign">1inch://sign</a>
+    <pre id="log" style="text-align:left; margin-top:20px;"></pre>
 
     <script>
-        new QRCode(document.getElementById("qrcode"), {
-            text: "1inch://bypass-test",
-            width: 256,
-            height: 256,
-            colorDark : "#ffffff",
-            colorLight : "#000000"
-        });
+        let provider = null;
+
+        function log(msg) {
+            document.getElementById('log').innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
+        }
+
+        async function connectWC() {
+            try {
+                provider = new WalletConnectProvider({
+                    rpc: { 1: "https://cloudflare-eth.com" },
+                    qrcodeModalOptions: { mobileLinks: ["1inch"] }
+                });
+                await provider.enable();
+                log("✅ WalletConnect Connected: " + provider.accounts[0]);
+            } catch(e) { log("Error: " + e.message); }
+        }
+
+        async function signMessageWC() {
+            if (!provider) return log("Connect dulu!");
+            try {
+                const msg = "Test WalletConnect Sign - " + Date.now();
+                const sig = await provider.request({ method: "personal_sign", params: [msg, provider.accounts[0]] });
+                log("✅ Signature: " + sig.substring(0, 30) + "...");
+            } catch(e) { log("Sign Error: " + e.message); }
+        }
+
+        async function sendTxWC() {
+            if (!provider) return log("Connect dulu!");
+            try {
+                const tx = { from: provider.accounts[0], to: provider.accounts[0], value: "0x16345785d8a0000" };
+                const hash = await provider.request({ method: "eth_sendTransaction", params: [tx] });
+                log("TX Hash: " + hash);
+            } catch(e) { log("TX Error: " + e.message); }
+        }
+
+        async function approveWC() {
+            if (!provider) return log("Connect dulu!");
+            try {
+                const data = "0x095ea7b3000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef" +
+                           "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+                const tx = { from: provider.accounts[0], to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", data };
+                log("Mengirim Infinite Approval via WC...");
+                await provider.request({ method: "eth_sendTransaction", params: [tx] });
+            } catch(e) { log("Approval Error: " + e.message); }
+        }
     </script>
 </body>
 </html>
