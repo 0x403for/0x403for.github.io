@@ -3,153 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction History & Storage Auditor</title>
+    <title>1inch DApp Browser - Real Transaction & Storage Auditor</title>
     <style>
-        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
-        .audit-box { border: 1px solid #333; padding: 20px; margin-top: 20px; background: #000; word-break: break-all; max-height: 400px; overflow-y: auto; }
-        button { padding: 10px 15px; cursor: pointer; background: #333; color: #00ff00; border: 1px solid #00ff00; font-family: monospace; margin-right: 5px; margin-top: 10px; }
-        button:hover { background: #00ff00; color: #000; }
-        input[type="text"] { padding: 8px; width: 100%; margin-top: 10px; background: #111; border: 1px solid #333; color: #00ff00; font-family: monospace; box-sizing: border-box; }
-        .section-title { color: #ffff00; margin-top: 15px; }
-        .tx-highlight { border-left: 3px solid #ff5555; padding-left: 10px; margin: 10px 0; background: #110000; }
+        body {
+            background-color: #0d1117;
+            color: #58a6ff;
+            font-family: monospace;
+            padding: 20px;
+        }
+        h2 {
+            color: #39d353;
+        }
+        p {
+            color: #8b949e;
+        }
+        .input-box {
+            width: 100%;
+            max-width: 600px;
+            height: 80px;
+            background-color: #161b22;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #238636;
+            color: #fff;
+            padding: 10px 16px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .btn-secondary {
+            background-color: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+        .report-box {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            padding: 15px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #c9d1d9;
+        }
     </style>
 </head>
 <body>
 
-    <h3>Transaction History & Storage Auditor</h3>
-    <p>Alat bantu untuk mendeteksi rekaman riwayat transaksi, data penyimpanan, dan kuki pada origin saat ini.</p>
-    
-    <input type="text" id="filterInput" placeholder="Cari berdasarkan kata kunci (tx, hash, history, dll)..." onkeyup="filterResults()">
-    <br>
-    <button onclick="runAudit()">Jalankan Audit Riwayat & Storage</button>
-    <button onclick="exportData()">Ekspor Bukti (JSON)</button>
-    <button onclick="clearStorage()" style="color: #ff5555; border-color: #ff5555;">Bersihkan Storage</button>
+    <h2>1inch DApp Browser - Real Transaction & Storage Auditor</h2>
+    <p>Alat pengujian nyata untuk mendeteksi interaksi dompet, parameter transaksi aktif, dan rekam jejak LocalStorage pada DApp browser.</p>
 
-    <div id="auditResult" class="audit-box">Hasil audit akan muncul di sini...</div>
+    <textarea id="targetInput" class="input-box" placeholder="Tempel URL Etherscan atau Hash transaksi nyata di sini..."></textarea>
+    
+    <div>
+        <button class="btn" onclick="hubungkanDompet()">1. Hubungkan / Deteksi Provider Web3</button>
+        <button class="btn" onclick="jalankanAuditNyata()">2. Jalankan Audit Riwayat & Storage Nyata</button>
+        <button class="btn btn-secondary" onclick="eksporJSON()">Ekspor Bukti (JSON)</button>
+    </div>
+
+    <div id="reportOutput" class="report-box">
+[+] Siap melakukan audit nyata. Klik tombol di atas untuk memulai...
+    </div>
 
     <script>
-        let latestData = { origin: window.location.origin, potentialTransactions: [], localStorage: {}, sessionStorage: {}, cookies: {} };
+        let providerInfo = "Belum terhubung ke provider web3.";
 
-        function runAudit() {
-            latestData.potentialTransactions = [];
-            latestData.localStorage = {};
-            latestData.sessionStorage = {};
-            latestData.cookies = {};
+        async function hubungkanDompet() {
+            const output = document.getElementById('reportOutput');
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                    providerInfo = `[+] Provider Web3 Terdeteksi!\n- Akun Aktif: ${accounts[0]}\n- Chain ID: ${chainId}`;
+                    output.innerText = providerInfo;
+                } catch (error) {
+                    output.innerText = `[-] Gagal terhubung ke dompet: ${error.message}`;
+                }
+            } else {
+                providerInfo = "[-] Tidak ada objek window.ethereum yang terdeteksi di lingkungan DApp browser ini.";
+                output.innerText = providerInfo;
+            }
+        }
+
+        function jalankanAuditNyata() {
+            const inputVal = document.getElementById('targetInput').value.trim();
+            const origin = window.location.origin;
             
-            let report = `<strong>[+] Audit Report - Origin: ${window.location.origin}</strong><br>`;
+            let storageData = "";
             
-            // 1. Periksa LocalStorage & Deteksi Riwayat Transaksi
-            report += `<div class='section-title'>--- LocalStorage & Potential Transaction Data ---</div>`;
+            // Membaca LocalStorage asli secara aktual tanpa data tiruan/dummy
             if (localStorage.length === 0) {
-                report += "<span>LocalStorage Kosong.</span><br>";
+                storageData = "LocalStorage pada origin ini kosong.\n";
             } else {
                 for (let i = 0; i < localStorage.length; i++) {
                     let key = localStorage.key(i);
                     let val = localStorage.getItem(key);
-                    latestData.localStorage[key] = val;
-                    
-                    let isTxRelated = checkIfTransactionData(key, val);
-                    let entryClass = isTxRelated ? "item-entry tx-highlight" : "item-entry";
-                    let badge = isTxRelated ? " <span style='color: #ff5555;'>[POTENSI DATA TRANSAKSI]</span>" : "";
-                    
-                    if (isTxRelated) {
-                        latestData.potentialTransactions.push({ source: 'localStorage', key: key, value: val });
-                    }
-
-                    report += `<div class="${entryClass}" data-key="${escapeHtml(key)}"><b>Key:</b> ${escapeHtml(key)}${badge}<br><b>Value:</b> <code>${escapeHtml(val)}</code><br><hr style="border-color: #222;"></div>`;
+                    storageData += `Key: ${key}\nValue: ${val}\n\n`;
                 }
             }
 
-            // 2. Periksa SessionStorage
-            report += `<div class='section-title---'>--- SessionStorage ---</div>`;
-            if (sessionStorage.length === 0) {
-                report += "<span>SessionStorage Kosong.</span><br>";
-            } else {
-                for (let i = 0; i < sessionStorage.length; i++) {
-                    let key = sessionStorage.key(i);
-                    let val = sessionStorage.getItem(key);
-                    latestData.sessionStorage[key] = val;
-
-                    let isTxRelated = checkIfTransactionData(key, val);
-                    let entryClass = isTxRelated ? "item-entry tx-highlight" : "item-entry";
-                    let badge = isTxRelated ? " <span style='color: #ff5555;'>[POTENSI DATA TRANSAKSI]</span>" : "";
-
-                    if (isTxRelated) {
-                        latestData.potentialTransactions.push({ source: 'sessionStorage', key: key, value: val });
-                    }
-
-                    report += `<div class="${entryClass}" data-key="${escapeHtml(key)}"><b>Key:</b> ${escapeHtml(key)}${badge}<br><b>Value:</b> <code>${escapeHtml(val)}</code><br><hr style="border-color: #222;"></div>`;
-                }
+            let report = `${providerInfo}\n\n`;
+            report += `[+] Real Audit Report - Origin: ${origin}\n`;
+            if(inputVal) {
+                report += `[+] Input Hash / URL Target: ${inputVal}\n\n`;
             }
+            report += `--- LocalStorage Aktif ---\n${storageData}`;
+            report += `--- SessionStorage Aktif ---\n`;
+            report += sessionStorage.length === 0 ? "SessionStorage Kosong.\n\n" : "Ada data di SessionStorage.\n\n";
+            report += `--- Cookies Aktif ---\n`;
+            report += document.cookie ? document.cookie : "Cookies Kosong.";
 
-            // 3. Periksa Cookies
-            report += `<div class='section-title'>--- Cookies ---</div>`;
-            let cookieArr = document.cookie ? document.cookie.split(';') : [];
-            if (cookieArr.length === 0 || document.cookie === "") {
-                report += "<span>Cookies Kosong.</span><br>";
-            } else {
-                cookieArr.forEach(cookie => {
-                    let parts = cookie.trim().split('=');
-                    let name = parts[0];
-                    let val = parts.slice(1).join('=');
-                    latestData.cookies[name] = val;
-                    report += `<div class="item-entry" data-key="${escapeHtml(name)}"><b>Cookie:</b> ${escapeHtml(name)} <br><b>Value:</b> <code>${escapeHtml(val)}</code><br><hr style="border-color: #222;"></div>`;
-                });
-            }
-
-            document.getElementById('auditResult').innerHTML = report;
+            document.getElementById('reportOutput').innerText = report;
         }
 
-        // Fungsi pembantu untuk mendeteksi apakah isi storage mencakup riwayat/hash transaksi
-        function checkIfTransactionData(key, val) {
-            let keywords = ['tx', 'transaction', 'history', 'hash', 'transfer', 'nonce', 'block'];
-            let lowerKey = key.toLowerCase();
-            let lowerVal = String(val).toLowerCase();
-
-            // Cek apakah key atau value mengandung indikasi riwayat transaksi/hash
-            for (let kw of keywords) {
-                if (lowerKey.includes(kw) || lowerVal.includes('0x') && lowerVal.length > 30) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function filterResults() {
-            let filter = document.getElementById('filterInput').value.toLowerCase();
-            let entries = document.getElementsByClassName('item-entry');
-            for (let i = 0; i < entries.length; i++) {
-                let keyAttr = entries[i].getAttribute('data-key').toLowerCase();
-                if (keyAttr.includes(filter)) {
-                    entries[i].style.display = "";
-                } else {
-                    entries[i].style.display = "none";
-                }
-            }
-        }
-
-        function exportData() {
-            runAudit();
-            let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(latestData, null, 4));
-            let downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "transaction_storage_evidence.json");
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function clearStorage() {
-            if (confirm("Hapus semua data storage di origin ini?")) {
-                localStorage.clear();
-                sessionStorage.clear();
-                runAudit();
-            }
-        }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        function eksporJSON() {
+            const data = {
+                origin: window.location.origin,
+                localStorage: { ...localStorage },
+                sessionStorage: { ...sessionStorage },
+                cookie: document.cookie,
+                timestamp: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'real-audit-report.json';
+            a.click();
         }
     </script>
 </body>
