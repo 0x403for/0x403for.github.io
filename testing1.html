@@ -3,67 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WalletConnect Advanced Test</title>
-    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <title>1inch WalletConnect Test</title>
+    <script src="https://unpkg.com/@walletconnect/modal@2.6.2/dist/index.min.js"></script>
     <style>
-        body { font-family: Arial; background:#0a0a0f; color:#0f0; padding:20px; text-align:center; }
-        button { padding:18px; margin:12px 0; width:90%; background:#0066ff; color:white; border:none; border-radius:10px; font-size:17px; }
+        body { font-family: Arial; background:#111; color:#0f0; padding:20px; text-align:center; }
+        button { padding:18px; margin:15px 0; width:90%; background:#0066ff; color:white; border:none; border-radius:10px; font-size:17px; }
+        pre { text-align:left; background:#1a1a2e; padding:15px; border-radius:8px; margin-top:20px; }
     </style>
 </head>
 <body>
-    <h1>WalletConnect Test</h1>
-    <button onclick="connectWC()">1. Connect WalletConnect</button>
-    <button onclick="signMessageWC()">2. Sign Message</button>
-    <button onclick="sendTxWC()">3. Send Transaction</button>
-    <button onclick="approveWC()">4. Infinite Approval Test</button>
+    <h1>WalletConnect Test - 1inch</h1>
+    <button onclick="connectWC()">🔗 Connect via WalletConnect</button>
+    <button onclick="signMessage()">✍️ Sign Message</button>
+    <button onclick="sendTestTx()">💸 Send Test Transaction</button>
+    <button onclick="approveTest()">⚠️ Infinite Approval Test</button>
 
-    <pre id="log" style="text-align:left; margin-top:20px;"></pre>
+    <pre id="log"></pre>
 
     <script>
-        let provider = null;
-
-        function log(msg) {
-            document.getElementById('log').innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
-        }
+        let web3Modal, provider;
 
         async function connectWC() {
             try {
-                provider = new WalletConnectProvider({
-                    rpc: { 1: "https://cloudflare-eth.com" },
-                    qrcodeModalOptions: { mobileLinks: ["1inch"] }
+                const { Web3Modal } = window.Web3Modal;
+                web3Modal = new Web3Modal({
+                    projectId: "d59f98058a72a02f7ea2c489bc97f899",
+                    chains: [1],
+                    themeMode: "dark"
                 });
-                await provider.enable();
-                log("✅ WalletConnect Connected: " + provider.accounts[0]);
-            } catch(e) { log("Error: " + e.message); }
+                provider = await web3Modal.connect();
+                log("✅ WalletConnect Connected!");
+                console.log("Accounts:", provider.accounts || provider);
+            } catch (e) {
+                log("Error Connect: " + e.message);
+            }
         }
 
-        async function signMessageWC() {
+        async function signMessage() {
             if (!provider) return log("Connect dulu!");
             try {
-                const msg = "Test WalletConnect Sign - " + Date.now();
-                const sig = await provider.request({ method: "personal_sign", params: [msg, provider.accounts[0]] });
-                log("✅ Signature: " + sig.substring(0, 30) + "...");
-            } catch(e) { log("Sign Error: " + e.message); }
+                const signer = provider.getSigner ? provider.getSigner() : provider;
+                const sig = await signer.signMessage("Test WalletConnect from 1inch dApp Browser");
+                log("✅ Signature OK: " + sig.substring(0, 40) + "...");
+            } catch (e) {
+                log("Sign Error: " + e.message);
+            }
         }
 
-        async function sendTxWC() {
+        async function sendTestTx() {
             if (!provider) return log("Connect dulu!");
             try {
-                const tx = { from: provider.accounts[0], to: provider.accounts[0], value: "0x16345785d8a0000" };
-                const hash = await provider.request({ method: "eth_sendTransaction", params: [tx] });
-                log("TX Hash: " + hash);
-            } catch(e) { log("TX Error: " + e.message); }
+                const signer = provider.getSigner ? provider.getSigner() : provider;
+                const tx = await signer.sendTransaction({
+                    to: "0x0000000000000000000000000000000000000000",
+                    value: "0x16345785d8a0000"
+                });
+                log("✅ TX Sent! Hash: " + tx.hash);
+            } catch (e) {
+                log("TX Error: " + e.message);
+            }
         }
 
-        async function approveWC() {
+        async function approveTest() {
             if (!provider) return log("Connect dulu!");
             try {
-                const data = "0x095ea7b3000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef" +
-                           "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-                const tx = { from: provider.accounts[0], to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", data };
-                log("Mengirim Infinite Approval via WC...");
-                await provider.request({ method: "eth_sendTransaction", params: [tx] });
-            } catch(e) { log("Approval Error: " + e.message); }
+                log("Mengirim Infinite Approval Test...");
+                // Contoh approval USDC
+                const tx = {
+                    to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    data: "0x095ea7b3000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                };
+                const result = await provider.request({ method: "eth_sendTransaction", params: [tx] });
+                log("Approval Result: " + result);
+            } catch (e) {
+                log("Approval Error: " + e.message);
+            }
+        }
+
+        function log(msg) {
+            document.getElementById('log').innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
         }
     </script>
 </body>
