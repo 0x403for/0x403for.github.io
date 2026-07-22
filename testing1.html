@@ -3,126 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Wallet WebView Test PoC</title>
+    <title>1inch Wallet Advanced Test</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a2e; color: #fff; }
-        button { padding: 12px 20px; margin: 10px 0; width: 100%; font-size: 16px; background: #007bff; border: none; border-radius: 8px; color: white; }
-        button:hover { background: #0056b3; }
-        pre { background: #16213e; padding: 15px; border-radius: 8px; overflow-x: auto; }
-        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        body { font-family: Arial; padding: 20px; background: #0f0f1e; color: #0f0; }
+        button { padding: 15px; margin: 8px 0; width: 100%; background: #00cc66; border: none; border-radius: 8px; font-size: 15px; }
+        pre { background: #1a1a2e; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; }
     </style>
 </head>
 <body>
-    <h1>🧪 1inch Wallet dApp Browser Test</h1>
-    <p><strong>Untuk Security Research Only</strong> — Gunakan wallet testnet / kosong!</p>
+    <h1>🔬 1inch Wallet Advanced PoC</h1>
+    <p>Gunakan wallet testnet!</p>
 
-    <button onclick="connectWallet()">1. Connect Wallet (eth_requestAccounts)</button>
-    <button onclick="getAccount()">2. Get Current Account</button>
-    <button onclick="sendTestTx()">3. Send Test Transaction (0.0001 ETH ke test address)</button>
-    <button onclick="signMessage()">4. Sign Message</button>
-    <button onclick="testBridge()">5. Test WebView Bridge / PostMessage</button>
-    <button onclick="requestPermissions()">6. Request Permissions (jika ada)</button>
+    <button onclick="testAll()">🚀 Jalankan Semua Test</button>
+    <button onclick="testTxParams()">1. Test Parameter Tampering Simulation</button>
+    <button onclick="testMaliciousSign()">2. Malicious Sign Request</button>
+    <button onclick="testIframeBridge()">3. Iframe + Bridge Test</button>
+    <button onclick="testDeepLinkSimulation()">4. Deep Link Simulation</button>
+    <button onclick="testPermissionLeak()">5. Permission Inheritance Test</button>
 
-    <h2>Status & Log</h2>
+    <h2>Log</h2>
     <pre id="log"></pre>
 
     <script>
         const logEl = document.getElementById('log');
 
-        function log(msg, isError = false) {
-            const time = new Date().toLocaleTimeString();
-            logEl.innerHTML += `<span style="color:${isError ? 'red' : 'lime'}">[${time}] ${msg}</span><br>`;
+        function log(msg, error = false) {
+            const ts = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<span style="color:${error?'#ff6666':'#66ff99'}">[${ts}] ${msg}</span><br>`;
             console.log(msg);
         }
 
-        async function connectWallet() {
-            try {
-                log("Meminta koneksi wallet...");
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                log("✅ Connected: " + accounts[0]);
-            } catch (e) {
-                log("❌ Error: " + e.message, true);
-            }
+        async function testAll() {
+            await connect();
+            await getChain();
+            testTxParams();
         }
 
-        async function getAccount() {
+        async function connect() {
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                log("Current account: " + (accounts[0] || "Tidak ada"));
-            } catch (e) {
-                log("Error: " + e.message, true);
-            }
+                const acc = await ethereum.request({method: 'eth_requestAccounts'});
+                log(`✅ Connected: ${acc[0]}`);
+            } catch(e) { log(e.message, true); }
         }
 
-        async function sendTestTx() {
+        async function getChain() {
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (!accounts[0]) return log("Wallet belum connect", true);
+                const chain = await ethereum.request({method: 'eth_chainId'});
+                log(`Chain ID: ${chain}`);
+            } catch(e) { log(e.message, true); }
+        }
 
+        async function testTxParams() {
+            try {
+                const accounts = await ethereum.request({method: 'eth_accounts'});
                 const tx = {
                     from: accounts[0],
-                    to: "0x0000000000000000000000000000000000000000", // Ganti dengan test address milikmu
-                    value: "0x16345785d8a0000", // ~0.0001 ETH
-                    gas: "0x5208"
+                    to: "0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A", // ganti dengan address kamu
+                    value: "0x16345785d8a0000", // 0.0001 ETH
+                    data: "0x" // bisa dicoba inject calldata berbahaya
                 };
-
-                log("Mengirim test transaction...");
-                const txHash = await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
-                log("✅ Transaction sent: " + txHash);
-            } catch (e) {
-                log("❌ " + e.message, true);
+                log("Mengirim TX dengan parameter test...");
+                const hash = await ethereum.request({method: 'eth_sendTransaction', params: [tx]});
+                log("TX Hash: " + hash);
+            } catch(e) {
+                log("TX ditolak / error: " + e.message, true);
             }
         }
 
-        async function signMessage() {
+        async function testMaliciousSign() {
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (!accounts[0]) return log("Wallet belum connect", true);
-
-                const msg = "Test signature from 1inch WebView PoC - " + Date.now();
-                const signature = await window.ethereum.request({
+                const msg = `\x19Ethereum Signed Message:\n${"Test malicious signature".length}Test malicious signature - ${Date.now()}`;
+                const sig = await ethereum.request({
                     method: 'personal_sign',
-                    params: [msg, accounts[0]]
+                    params: [msg, (await ethereum.request({method:'eth_accounts'}))[0]]
                 });
-                log("✅ Signature: " + signature);
-            } catch (e) {
-                log("❌ " + e.message, true);
-            }
+                log("Signature berhasil: " + sig.substring(0, 20) + "...");
+            } catch(e) { log(e.message, true); }
         }
 
-        function testBridge() {
-            log("Mengirim test message ke bridge...");
-            window.postMessage({ type: "TEST_BRIDGE", data: "Hello from malicious dApp test" }, "*");
+        function testIframeBridge() {
+            log("Membuat iframe test...");
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
             
-            // Test React Native WebView bridge (umum di RN wallets)
-            if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({ type: "TEST", payload: "Bridge injection test" }));
-                log("✅ ReactNativeWebView bridge terdeteksi");
-            } else {
-                log("ReactNativeWebView tidak ditemukan");
+            iframe.contentWindow.postMessage({type: "TEST_IFRAME_BRIDGE", data: "Iframe injection test"}, "*");
+            log("Iframe bridge test dikirim");
+        }
+
+        function testDeepLinkSimulation() {
+            log("Simulasi deep link...");
+            // Coba buka scheme wallet (mungkin tidak jalan di dalam WebView)
+            window.location.href = "1inch://test"; 
+            setTimeout(() => {
+                window.location.href = "https://1inch.io"; // fallback
+            }, 500);
+        }
+
+        async function testPermissionLeak() {
+            log("Test permission (camera/microphone)...");
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                log("✅ Permission granted tanpa prompt ulang (mungkin inheritance!)");
+                stream.getTracks().forEach(t => t.stop());
+            } catch(e) {
+                log("Permission ditolak: " + e.message);
             }
         }
 
-        function requestPermissions() {
-            log("Mencoba request permission...");
-            // Contoh umum untuk camera/location (bisa test inheritance)
-            if (navigator.mediaDevices) {
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then(() => log("✅ Camera permission granted"))
-                    .catch(e => log("Camera: " + e.message));
-            }
-        }
-
-        // Listen events
+        // Auto detect provider
         if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (acc) => log("Accounts changed: " + acc));
-            window.ethereum.on('chainChanged', (chain) => log("Chain changed: " + chain));
             log("✅ window.ethereum terdeteksi");
-        } else {
-            log("window.ethereum tidak ditemukan", true);
+            ethereum.on('accountsChanged', a => log("Accounts changed: " + a));
         }
-
-        console.log("%c1inch WebView Test PoC loaded", "color: cyan; font-size: 16px");
     </script>
 </body>
 </html>
