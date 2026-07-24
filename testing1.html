@@ -1,12 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v8 - OneInchIOSWallet Hook</title>
+    <title>1inch Hijack Test v9 - Function Bridge Intercept</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch-v8] " + msg);
+            console.log("[1inch-v9] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -18,54 +17,59 @@
             document.body.prepend(div);
         }
 
-        function hookWalletBridge(walletObjName) {
-            const walletObj = window[walletObjName];
-            if (!walletObj) return;
+        function hookFunctionBridge(walletObjName) {
+            const target = window[walletObjName];
+            if (typeof target === 'function') {
+                log(`[!] Hooking function window.${walletObjName}(...)`, "blue");
+                
+                const originalFunc = target;
+                window[walletObjName] = function(...args) {
+                    log(`🚨 CALLED window.${walletObjName} -> Args: ${JSON.stringify(args)}`, "#d00");
+                    
+                    // Cek jika argumen mengandung string transaksi/swap/sign
+                    try {
+                        const str = JSON.stringify(args);
+                        if (str.includes('sign') || str.includes('transaction') || str.includes('swap') || str.includes('eth_')) {
+                            log(`🔥 MATCH TRANSACTION/SIGN PAYLOAD!`, "red");
+                        }
+                    } catch(e) {}
 
-            log(`[+] Found & hooking target: window.${walletObjName}`, "blue");
-
-            // Loop semua properti/metode di dalam objek bridge tersebut
-            for (let key in walletObj) {
-                try {
-                    const val = walletObj[key];
-                    if (typeof val === 'function') {
-                        log(`[FUN] ${walletObjName}.${key}(...)`, "purple");
-                        const originalMethod = val;
-                        walletObj[key] = function(...args) {
-                            log(`🚨 INTERCEPTED ${walletObjName}.${key} -> Args: ${JSON.stringify(args)}`, "#d00");
-                            return originalMethod.apply(this, args);
-                        };
-                    }
-                } catch (e) {}
-            }
-
-            // Jika objek itu sendiri adalah fungsi atau punya mekanisme postMessage/send
-            if (typeof walletObj === 'function') {
-                log(`[!] window.${walletObjName} is a function itself!`, "red");
+                    return originalFunc.apply(this, args);
+                };
+                
+                log(`[+] Successfully hooked window.${walletObjName}`, "green");
             }
         }
 
         function runHooks() {
-            log("[+] Initializing OneInch Bridge Hooking...", "blue");
-            hookWalletBridge('OneInchIOSWallet');
-            hookWalletBridge('OneInchSolanaWallet');
+            log("[+] Initializing Function-Level Hooking...", "blue");
+            hookFunctionBridge('OneInchIOSWallet');
+            hookFunctionBridge('OneInchSolanaWallet');
 
-            // Jaga-jaga jika objeknya dimuat secara asynchronous
-            setTimeout(() => {
-                hookWalletBridge('OneInchIOSWallet');
-                hookWalletBridge('OneInchSolanaWallet');
-            }, 1500);
+            // Interval untuk memastikan jika objek di-overwrite atau dibuat belakangan oleh native
+            setInterval(() => {
+                if (typeof window.OneInchIOSWallet === 'function' && !window.OneInchIOSWallet.isHooked) {
+                    // Tandai agar tidak hook berulang-ulang
+                    const orig = window.OneInchIOSWallet;
+                    window.OneInchIOSWallet = function(...args) {
+                        log(`🚨 CALLED OneInchIOSWallet -> ${JSON.stringify(args)}`, "#d00");
+                        return orig.apply(this, args);
+                    };
+                    window.OneInchIOSWallet.isHooked = true;
+                    log(`[+] Re-hooked OneInchIOSWallet dynamically`, "green");
+                }
+            }, 500);
         }
 
         window.onload = function() {
-            log("1inch Full Coverage Test v8 Loaded");
-            setTimeout(runHooks, 500);
+            log("1inch Full Coverage Test v9 Loaded");
+            setTimeout(runHooks, 200);
         };
     </script>
 </head>
 <body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v8</h3>
-    <p style="color: #555; font-size: 13px;">Targeting window.OneInchIOSWallet...</p>
+    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v9</h3>
+    <p style="color: #555; font-size: 13px;">Function-level hooking for OneInch native bridge...</p>
     <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
 </body>
 </html>
