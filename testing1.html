@@ -1,11 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v7 - Deep Enumeration</title>
+    <title>1inch Hijack Test v8 - OneInchIOSWallet Hook</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch-v7] " + msg);
+            console.log("[1inch-v8] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -17,86 +18,54 @@
             document.body.prepend(div);
         }
 
-        // Fungsi untuk membongkar isi objek secara mendalam (mencari fungsi tersembunyi)
-        function inspectObject(name, obj, depth = 0) {
-            if (depth > 2 || !obj) return;
-            try {
-                for (let key in obj) {
-                    try {
-                        const val = obj[key];
-                        const type = typeof val;
-                        if (type === 'function') {
-                            log(`[FUN] ${name}.${key}(...)`, "purple");
-                            // Hook otomatis fungsi yang ditemukan
-                            const orig = val;
-                            obj[key] = function(...args) {
-                                log(`🚨 CALLED ${name}.${key} -> Args: ${JSON.stringify(args)}`, "#d00");
-                                return orig.apply(this, args);
-                            };
-                        } else if (type === 'object' && val !== null && depth < 1) {
-                            // Jangan scan objek global bawaan yang terlalu besar/berbahaya
-                            if (key !== 'window' && key !== 'document' && key !== 'parent') {
-                                inspectObject(`${name}.${key}`, val, depth + 1);
-                            }
-                        }
-                    } catch (e) {}
-                }
-            } catch (e) {}
-        }
+        function hookWalletBridge(walletObjName) {
+            const walletObj = window[walletObjName];
+            if (!walletObj) return;
 
-        function deepScan() {
-            log("[+] Starting Deep Property Enumeration...", "blue");
-            
-            // Scan window properties yang mencurigakan
-            for (let key in window) {
+            log(`[+] Found & hooking target: window.${walletObjName}`, "blue");
+
+            // Loop semua properti/metode di dalam objek bridge tersebut
+            for (let key in walletObj) {
                 try {
-                    if (
-                        key.toLowerCase().includes('webkit') || 
-                        key.toLowerCase().includes('bridge') || 
-                        key.toLowerCase().includes('native') || 
-                        key.toLowerCase().includes('inch') || 
-                        key.toLowerCase().includes('ethereum') ||
-                        key.toLowerCase().includes('solana') ||
-                        key.toLowerCase().includes('wallet')
-                    ) {
-                        log(`[!] Found target object: window.${key}`, "blue");
-                        inspectObject(`window.${key}`, window[key], 0);
+                    const val = walletObj[key];
+                    if (typeof val === 'function') {
+                        log(`[FUN] ${walletObjName}.${key}(...)`, "purple");
+                        const originalMethod = val;
+                        walletObj[key] = function(...args) {
+                            log(`🚨 INTERCEPTED ${walletObjName}.${key} -> Args: ${JSON.stringify(args)}`, "#d00");
+                            return originalMethod.apply(this, args);
+                        };
                     }
                 } catch (e) {}
             }
+
+            // Jika objek itu sendiri adalah fungsi atau punya mekanisme postMessage/send
+            if (typeof walletObj === 'function') {
+                log(`[!] window.${walletObjName} is a function itself!`, "red");
+            }
         }
 
-        // Intercept fungsi fetch & XMLHttpRequest (siapa tahu komunikasi dApp via API/RPC internal)
-        function hookNetwork() {
-            const origFetch = window.fetch;
-            window.fetch = async function(...args) {
-                const url = args[0];
-                log(`[FETCH] ${url}`, "green");
-                try {
-                    const response = await origFetch.apply(this, args);
-                    const clone = response.clone();
-                    clone.text().then(text => {
-                        if (text.includes("swap") || text.includes("transaction") || text.includes("eth_send")) {
-                            log(`🚨 FETCH RESPONSE match: ${text.substring(0, 100)}...`, "#d00");
-                        }
-                    }).catch(()=>{});
-                    return response;
-                } catch (e) {
-                    throw e;
-                }
-            };
+        function runHooks() {
+            log("[+] Initializing OneInch Bridge Hooking...", "blue");
+            hookWalletBridge('OneInchIOSWallet');
+            hookWalletBridge('OneInchSolanaWallet');
+
+            // Jaga-jaga jika objeknya dimuat secara asynchronous
+            setTimeout(() => {
+                hookWalletBridge('OneInchIOSWallet');
+                hookWalletBridge('OneInchSolanaWallet');
+            }, 1500);
         }
 
         window.onload = function() {
-            log("1inch Full Coverage Test v7 Loaded");
-            setTimeout(deepScan, 1000);
-            hookNetwork();
+            log("1inch Full Coverage Test v8 Loaded");
+            setTimeout(runHooks, 500);
         };
     </script>
 </head>
 <body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v7</h3>
-    <p style="color: #555; font-size: 13px;">Deep scanning native objects & hooks...</p>
+    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v8</h3>
+    <p style="color: #555; font-size: 13px;">Targeting window.OneInchIOSWallet...</p>
     <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
 </body>
 </html>
