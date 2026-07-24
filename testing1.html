@@ -2,58 +2,116 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v5 - Full Coverage</title>
+    <title>1inch Hijack Test v6 - Native Bridge & PostMessage</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch] " + msg);
+            console.log("[1inch-v6] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "6px 0";
+            div.style.fontFamily = "monospace";
+            div.style.fontSize = "13px";
             div.style.fontWeight = (color === "red" || color === "#d00") ? "bold" : "normal";
-            div.textContent = msg;
-            document.body.appendChild(div);
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.body.prepend(div);
         }
 
-        function hookAll() {
-            if (!window.ethereum) {
-                log("No ethereum object", "red");
-                return;
-            }
+        function hookNativeBridges() {
+            log("[+] Scanning for native injection objects...", "blue");
 
-            log("[+] Hooking all ethereum methods...", "blue");
+            // Deteksi objek native umum yang sering di-inject ke WebView
+            const potentialBridges = [
+                'ReactNativeWebView', 
+                'flutter_inappwebview', 
+                'AndroidBridge', 
+                'webkit', 
+                'OneInchBridge', 
+                'ethereum', 
+                'web3'
+            ];
 
-            const methods = ['request', 'send', 'sendAsync', 'enable'];
-            methods.forEach(methodName => {
-                if (typeof window.ethereum[methodName] === 'function') {
-                    const original = window.ethereum[methodName];
-                    window.ethereum[methodName] = function(...args) {
-                        const firstArg = args[0];
-                        const method = typeof firstArg === 'string' ? firstArg : (firstArg && firstArg.method);
-                        
-                        if (method) {
-                            log(`INTERCEPTED ${methodName} → ${method}`, "#d00");
-                            
-                            if (method.includes("sendTransaction") || method.includes("signTransaction")) {
-                                log("🚨 CRITICAL: Transaction Signing Flow Detected!", "red");
-                            }
-                        }
-                        return original.apply(this, args);
-                    };
-                    log(`[+] Hooked ${methodName}`, "green");
+            potentialBridges.forEach(bridgeName => {
+                if (window[bridgeName]) {
+                    log(`[!] Found potential bridge: window.${bridgeName}`, "purple");
+                    
+                    // Jika postMessage tersedia di bridge
+                    if (window[bridgeName].postMessage && typeof window[bridgeName].postMessage === 'function') {
+                        const origPost = window[bridgeName].postMessage;
+                        window[bridgeName].postMessage = function(...args) {
+                            log(`🚨 BRIDGE postMessage intercepted on ${bridgeName}: ${JSON.stringify(args)}`, "#d00");
+                            return origPost.apply(this, args);
+                        };
+                        log(`[+] Hooked ${bridgeName}.postMessage`, "green");
+                    }
                 }
             });
 
-            log("[+] All hooks installed. Coba Swap lagi sekarang!", "blue");
+            // Tangkap semua window.postMessage dari/ke iframe atau native container
+            const origWindowPostMessage = window.postMessage;
+            window.postMessage = function(message, targetOrigin, transfer) {
+                try {
+                    const msgStr = typeof message === 'object' ? JSON.stringify(message) : message;
+                    if (msgStr && (msgStr.includes('sign') || msgStr.includes('transaction') || msgStr.includes('swap') || msgStr.includes('eth_'))) {
+                        log(`🚨 WINDOW.POSTMESSAGE: ${msgStr}`, "#d00");
+                    }
+                } catch(e) {}
+                return origWindowPostMessage.apply(this, arguments);
+            };
+
+            // Mendengarkan event postMessage masuk
+            window.addEventListener('message', function(event) {
+                try {
+                    const data = JSON.stringify(event.data);
+                    if (data && (data.includes('sign') || data.includes('transaction') || data.includes('swap'))) {
+                        log(`🚨 INBOUND MESSAGE EVENT: ${data}`, "red");
+                    }
+                } catch(e) {}
+            }, true);
+        }
+
+        function hookProvider() {
+            if (!window.ethereum) {
+                log("No window.ethereum object found yet...", "orange");
+                return;
+            }
+
+            log("[+] Hooking window.ethereum request methods...", "blue");
+            const originalRequest = window.ethereum.request;
+            if (originalRequest) {
+                window.ethereum.request = function(requestArgs) {
+                    const payload = JSON.stringify(requestArgs);
+                    log(`INTERCEPTED ethereum.request: ${payload}`, "#d00");
+                    return originalRequest.apply(this, arguments);
+                };
+            }
+        }
+
+        // Pantau properti baru yang ditambahkan ke window secara dinamis oleh native app
+        function monitorGlobalScope() {
+            const knownKeys = new Set(Object.keys(window));
+            setInterval(() => {
+                for (const key of Object.keys(window)) {
+                    if (!knownKeys.has(key)) {
+                        knownKeys.add(key);
+                        if (key.toLowerCase().includes('inch') || key.toLowerCase().includes('bridge') || key.toLowerCase().includes('wallet')) {
+                            log(`✨ NEW GLOBAL OBJECT INJECTED: window.${key}`, "purple");
+                        }
+                    }
+                }
+            }, 1000);
         }
 
         window.onload = function() {
-            log("1inch Full Coverage Test v5 Loaded");
-            setTimeout(hookAll, 800);
+            log("1inch Full Coverage Test v6 Loaded");
+            setTimeout(hookNativeBridges, 500);
+            setTimeout(hookProvider, 500);
+            monitorGlobalScope();
         };
     </script>
 </head>
-<body style="padding:20px; font-family:Arial;">
-    <h1>1inch Hijack Test v5</h1>
-    <p>Hook semua method + deteksi signing</p>
+<body style="padding:20px; font-family:Arial; background-color: #f9f9f9;">
+    <h2 style="color: #111;">1inch Hijack Test v6</h2>
+    <p style="color: #555;">Memantau Native Bridge, PostMessage, dan Injeksi Global WebView...</p>
+    <hr style="border:0; border-top:1px solid #ccc; margin:15px 0;">
 </body>
 </html>
