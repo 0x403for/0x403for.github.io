@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v9 - Function Bridge Intercept</title>
+    <title>1inch Hijack Test v10 - Proxy & Getter Trap</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch-v9] " + msg);
+            console.log("[1inch-v10] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -17,59 +17,56 @@
             document.body.prepend(div);
         }
 
-        function hookFunctionBridge(walletObjName) {
-            const target = window[walletObjName];
-            if (typeof target === 'function') {
-                log(`[!] Hooking function window.${walletObjName}(...)`, "blue");
+        // Menggunakan Proxy untuk menjebak semua interaksi pada objek native bridge
+        function trapWithProxy(objName) {
+            if (window[objName]) {
+                log(`[+] Applying Proxy trap to window.${objName}`, "blue");
                 
-                const originalFunc = target;
-                window[walletObjName] = function(...args) {
-                    log(`🚨 CALLED window.${walletObjName} -> Args: ${JSON.stringify(args)}`, "#d00");
-                    
-                    // Cek jika argumen mengandung string transaksi/swap/sign
-                    try {
-                        const str = JSON.stringify(args);
-                        if (str.includes('sign') || str.includes('transaction') || str.includes('swap') || str.includes('eth_')) {
-                            log(`🔥 MATCH TRANSACTION/SIGN PAYLOAD!`, "red");
+                const targetObj = window[objName];
+                
+                window[objName] = new Proxy(targetObj, {
+                    get(target, prop, receiver) {
+                        log(`[GET] Accessed property/method: ${objName}.${prop}`, "purple");
+                        const val = Reflect.get(target, prop, receiver);
+                        if (typeof val === 'function') {
+                            return function(...args) {
+                                log(`🚨 PROXY CALLED ${objName}.${prop} -> Args: ${JSON.stringify(args)}`, "#d00");
+                                return val.apply(this, args);
+                            };
                         }
-                    } catch(e) {}
-
-                    return originalFunc.apply(this, args);
-                };
+                        return val;
+                    },
+                    apply(target, thisArg, argumentsList) {
+                        log(`🚨 PROXY FUNCTION EXECUTION ${objName}(...) -> Args: ${JSON.stringify(argumentsList)}`, "#d00");
+                        return target.apply(thisArg, argumentsList);
+                    }
+                });
                 
-                log(`[+] Successfully hooked window.${walletObjName}`, "green");
+                log(`[+] Successfully proxied window.${objName}`, "green");
             }
         }
 
-        function runHooks() {
-            log("[+] Initializing Function-Level Hooking...", "blue");
-            hookFunctionBridge('OneInchIOSWallet');
-            hookFunctionBridge('OneInchSolanaWallet');
-
-            // Interval untuk memastikan jika objek di-overwrite atau dibuat belakangan oleh native
-            setInterval(() => {
-                if (typeof window.OneInchIOSWallet === 'function' && !window.OneInchIOSWallet.isHooked) {
-                    // Tandai agar tidak hook berulang-ulang
-                    const orig = window.OneInchIOSWallet;
-                    window.OneInchIOSWallet = function(...args) {
-                        log(`🚨 CALLED OneInchIOSWallet -> ${JSON.stringify(args)}`, "#d00");
-                        return orig.apply(this, args);
-                    };
-                    window.OneInchIOSWallet.isHooked = true;
-                    log(`[+] Re-hooked OneInchIOSWallet dynamically`, "green");
-                }
-            }, 500);
-        }
+        // Intercept Object.defineProperty untuk menangkap jika objek dibuat belakangan
+        const origDefineProperty = Object.defineProperty;
+        Object.defineProperty = function(obj, prop, descriptor) {
+            if (obj === window && (prop === 'OneInchIOSWallet' || prop === 'OneInchSolanaWallet')) {
+                log(`[!] App is defining protected property: window.${prop}`, "red");
+            }
+            return origDefineProperty.apply(this, arguments);
+        };
 
         window.onload = function() {
-            log("1inch Full Coverage Test v9 Loaded");
-            setTimeout(runHooks, 200);
+            log("1inch Full Coverage Test v10 Loaded");
+            setTimeout(() => {
+                trapWithProxy('OneInchIOSWallet');
+                trapWithProxy('OneInchSolanaWallet');
+            }, 300);
         };
     </script>
 </head>
 <body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v9</h3>
-    <p style="color: #555; font-size: 13px;">Function-level hooking for OneInch native bridge...</p>
+    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v10</h3>
+    <p style="color: #555; font-size: 13px;">Proxy & Getter Trap for Native Bridge...</p>
     <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
 </body>
 </html>
