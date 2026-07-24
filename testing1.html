@@ -3,127 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Swap Aggregator - Connect Wallet</title>
+    <title>Real Wallet Connection - 1inch Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            margin:0; padding:0; background:#0a0a0a; color:#fff; text-align:center; 
+        body {
+            margin: 0; padding: 0;
+            background: linear-gradient(180deg, #5B21B6, #2E1065);
+            color: white;
+            font-family: system-ui, sans-serif;
+            min-height: 100vh;
         }
-        .container { max-width: 480px; margin: 40px auto; padding: 20px; }
-        button { 
-            width: 100%; padding: 18px; font-size: 18px; 
-            background: linear-gradient(90deg, #00ff9d, #00cc7a); 
-            color: #000; border: none; border-radius: 12px; 
-            font-weight: bold; margin: 15px 0; cursor: pointer; 
+        .container { padding: 20px; }
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 0;
         }
-        .status { margin: 20px 0; padding: 15px; background: #1a1a1a; border-radius: 8px; }
-        .audit-box { 
-            margin: 30px 10px; padding: 15px; background: #000; 
-            border: 1px solid #333; text-align: left; font-family: monospace; 
-            font-size: 14px; color: #00ff00; overflow: auto; max-height: 400px;
+        .balance { font-size: 48px; font-weight: bold; margin: 20px 0; }
+        .address {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 12px;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        button {
+            background: white;
+            color: #4C1D95;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 9999px;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 10px 0;
+            width: 100%;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔄 1inch Swap</h1>
-        <p>Best rates • Multi-chain</p>
-        
-        <div class="status" id="status">Menunggu koneksi wallet...</div>
-        
-        <button onclick="connectWallet()">Connect Wallet</button>
-        <button onclick="modifyProfile()">Update Profile (Test Sensitive Data)</button>
-        <button onclick="runAudit()">🔍 Jalankan Audit Storage</button>
-        
-        <p style="margin-top:20px; font-size:14px; opacity:0.7;">
-            Test ini mencoba memodifikasi data profil & storage di 1inch Wallet Browser
-        </p>
+        <div class="header">
+            <h2>Real Wallet Test</h2>
+            <span id="status">Disconnected</span>
+        </div>
 
-        <div id="auditResult" class="audit-box">Hasil audit akan muncul di sini setelah klik tombol Audit...</div>
+        <div id="walletInfo" style="display:none;">
+            <p>Nama Wallet (dari wallet app):</p>
+            <h3 id="walletLabel">Tidak dapat diubah dari DApp</h3>
+            
+            <p>Alamat Terhubung:</p>
+            <div class="address" id="addressDisplay">0x...</div>
+
+            <p>Saldo ETH:</p>
+            <div class="balance" id="balanceDisplay">0.00</div>
+
+            <button onclick="disconnect()">Putuskan Koneksi</button>
+        </div>
+
+        <button id="connectBtn" onclick="connectWallet()">🔗 Hubungkan Wallet (Real)</button>
     </div>
 
     <script>
-        const status = document.getElementById('status');
-        const auditResult = document.getElementById('auditResult');
+        let web3;
+        let account;
 
-        function logToConsole(msg) {
-            console.log('[1inch Malicious Test]', msg);
-        }
+        async function connectWallet() {
+            if (!window.ethereum) {
+                alert("Wallet tidak terdeteksi. Gunakan 1inch DApp Browser atau MetaMask.");
+                return;
+            }
 
-        function connectWallet() {
-            status.innerHTML = '✅ Wallet Connected!<br><small>Mengakses storage context...</small>';
-            logToConsole('Simulasi connect wallet berhasil');
-            
             try {
-                localStorage.setItem('user_email', 'victim_modified@evil.com');
-                localStorage.setItem('user_phone', '+6281234567890');
-                localStorage.setItem('user_name', 'Hacked User');
-                localStorage.setItem('notification_settings', JSON.stringify({ email: true, push: true, marketing: true }));
-                localStorage.setItem('profile_updated', new Date().toISOString());
-                localStorage.setItem('wallet_preference', 'malicious_default');
-                localStorage.setItem('wallet_address', '0xInjectedByAttacker123456789');
+                web3 = new Web3(window.ethereum);
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
                 
-                status.innerHTML += '<br><strong style="color:#ff0">Storage berhasil dimodifikasi!</strong>';
-            } catch(e) {
-                status.innerHTML += '<br><strong style="color:red">Gagal: ' + e.message + '</strong>';
+                account = accounts[0];
+                
+                document.getElementById('status').textContent = '✅ Connected';
+                document.getElementById('status').style.color = '#22C55E';
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('walletInfo').style.display = 'block';
+
+                // Tampilkan alamat real
+                document.getElementById('addressDisplay').textContent = account;
+
+                // Ambil saldo real
+                const balanceWei = await web3.eth.getBalance(account);
+                const balanceEth = web3.utils.fromWei(balanceWei, 'ether');
+                document.getElementById('balanceDisplay').textContent = parseFloat(balanceEth).toFixed(4) + " ETH";
+
+                console.log("Wallet terhubung:", account);
+
+            } catch (error) {
+                console.error(error);
+                alert("Gagal terhubung: " + error.message);
             }
         }
 
-        function modifyProfile() {
-            status.innerHTML = 'Mengubah detail profil pengguna...';
-            try {
-                const sensitiveData = {
-                    fullName: "Attacker Controlled",
-                    email: "attacker@evil.example",
-                    phone: "+62-812-0000-0000",
-                    lastModified: Date.now(),
-                    preferences: { theme: "dark", language: "id", notifications: "enabled" }
-                };
-                
-                localStorage.setItem('user_profile', JSON.stringify(sensitiveData));
-                localStorage.setItem('session_token', 'tampered_' + Math.random().toString(36));
-                localStorage.setItem('audit_persistence_key', 'SessionID-' + Date.now());
-                
-                status.innerHTML = '✅ Detail sensitif pengguna telah diubah!<br>Cek dengan tombol Audit.';
-            } catch(e) {
-                status.innerHTML = 'Error: ' + e.message;
-            }
+        function disconnect() {
+            document.getElementById('walletInfo').style.display = 'none';
+            document.getElementById('connectBtn').style.display = 'block';
+            document.getElementById('status').textContent = 'Disconnected';
+            document.getElementById('status').style.color = 'white';
         }
 
-        function runAudit() {
-            let report = "<strong>Audit Report:</strong><br><br>--- LocalStorage ---<br>";
-            
-            if (localStorage.length === 0) {
-                report += "Kosong.<br>";
-            } else {
-                for (let i = 0; i < localStorage.length; i++) {
-                    let key = localStorage.key(i);
-                    let val = localStorage.getItem(key);
-                    report += `Key: ${key} | Value: ${val}<br>`;
-                }
-            }
-
-            report += "<br>--- SessionStorage ---<br>";
-            if (sessionStorage.length === 0) {
-                report += "Kosong.<br>";
-            } else {
-                for (let i = 0; i < sessionStorage.length; i++) {
-                    let key = sessionStorage.key(i);
-                    let val = sessionStorage.getItem(key);
-                    report += `Key: ${key} | Value: ${val}<br>`;
-                }
-            }
-
-            auditResult.innerHTML = report;
-            status.innerHTML = '✅ Audit selesai. Scroll ke bawah untuk melihat hasil lengkap.';
+        // Listen account change
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) disconnect();
+                else location.reload();
+            });
         }
-
-        // Auto log
-        window.onload = function() {
-            setTimeout(() => {
-                console.log('%c[1inch Test] Halaman malicious dimuat', 'color: red; font-size: 16px');
-            }, 800);
-        };
     </script>
 </body>
 </html>
