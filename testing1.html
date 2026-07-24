@@ -3,118 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real Wallet Connection - 1inch Test</title>
+    <title>Wallet Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
     <style>
         body {
             margin: 0; padding: 0;
-            background: linear-gradient(180deg, #5B21B6, #2E1065);
+            background: linear-gradient(180deg, #5B21B6 0%, #4C1D95 100%);
             color: white;
-            font-family: system-ui, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             min-height: 100vh;
         }
-        .container { padding: 20px; }
         .header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 0;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .balance { font-size: 48px; font-weight: bold; margin: 20px 0; }
-        .address {
-            background: rgba(255,255,255,0.1);
-            padding: 12px;
-            border-radius: 12px;
-            font-family: monospace;
-            word-break: break-all;
+        .balance-section {
+            text-align: center;
+            padding: 30px 20px;
         }
-        button {
-            background: white;
-            color: #4C1D95;
-            border: none;
-            padding: 14px 28px;
-            border-radius: 9999px;
-            font-size: 16px;
+        .balance {
+            font-size: 52px;
             font-weight: 700;
             margin: 10px 0;
+        }
+        .content {
+            background: #111;
+            flex: 1;
+            border-radius: 24px 24px 0 0;
+            padding: 20px;
+            min-height: 60vh;
+        }
+        button {
+            padding: 14px;
+            border-radius: 9999px;
+            font-weight: 600;
             width: 100%;
+            margin: 8px 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h2>Real Wallet Test</h2>
-            <span id="status">Disconnected</span>
-        </div>
+    <div class="header">
+        <div>☰</div>
+        <div id="walletName">1 Wallet</div>
+        <div>⚙️</div>
+    </div>
 
-        <div id="walletInfo" style="display:none;">
-            <p>Nama Wallet (dari wallet app):</p>
-            <h3 id="walletLabel">Tidak dapat diubah dari DApp</h3>
-            
-            <p>Alamat Terhubung:</p>
-            <div class="address" id="addressDisplay">0x...</div>
+    <div class="balance-section">
+        <div id="walletLabel">Terhubung</div>
+        <div class="balance" id="usdBalance">$0.00</div>
+        <div id="ethBalance">0.0000 ETH</div>
+    </div>
 
-            <p>Saldo ETH:</p>
-            <div class="balance" id="balanceDisplay">0.00</div>
-
-            <button onclick="disconnect()">Putuskan Koneksi</button>
-        </div>
-
-        <button id="connectBtn" onclick="connectWallet()">🔗 Hubungkan Wallet (Real)</button>
+    <div class="content">
+        <button onclick="switchToMainnet()">Ganti ke Ethereum Mainnet</button>
+        <button onclick="refreshData()">Refresh Saldo</button>
+        <button onclick="disconnect()">Putuskan Koneksi</button>
     </div>
 
     <script>
-        let web3;
-        let account;
+        let web3, account;
 
         async function connectWallet() {
-            if (!window.ethereum) {
-                alert("Wallet tidak terdeteksi. Gunakan 1inch DApp Browser atau MetaMask.");
+            if (!window.ethereum) return alert("Buka di DApp Browser");
+
+            web3 = new Web3(window.ethereum);
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            account = accounts[0];
+
+            document.getElementById('walletName').textContent = "Connected Wallet";
+            refreshData();
+        }
+
+        async function refreshData() {
+            if (!account) {
+                await connectWallet();
                 return;
             }
 
+            // Ambil saldo ETH
+            const balanceWei = await web3.eth.getBalance(account);
+            const eth = parseFloat(web3.utils.fromWei(balanceWei, 'ether'));
+            
+            document.getElementById('ethBalance').textContent = eth.toFixed(6) + " ETH";
+
+            // Estimasi USD (harga ETH approx)
+            const usd = (eth * 1880).toFixed(2);   // approx price
+            document.getElementById('usdBalance').textContent = "$" + usd;
+        }
+
+        async function switchToMainnet() {
             try {
-                web3 = new Web3(window.ethereum);
-                const accounts = await window.ethereum.request({ 
-                    method: 'eth_requestAccounts' 
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x1' }]
                 });
-                
-                account = accounts[0];
-                
-                document.getElementById('status').textContent = '✅ Connected';
-                document.getElementById('status').style.color = '#22C55E';
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('walletInfo').style.display = 'block';
-
-                // Tampilkan alamat real
-                document.getElementById('addressDisplay').textContent = account;
-
-                // Ambil saldo real
-                const balanceWei = await web3.eth.getBalance(account);
-                const balanceEth = web3.utils.fromWei(balanceWei, 'ether');
-                document.getElementById('balanceDisplay').textContent = parseFloat(balanceEth).toFixed(4) + " ETH";
-
-                console.log("Wallet terhubung:", account);
-
-            } catch (error) {
-                console.error(error);
-                alert("Gagal terhubung: " + error.message);
+                setTimeout(refreshData, 2000);
+            } catch (e) {
+                alert("Gagal switch network. Coba manual di wallet.");
             }
         }
 
         function disconnect() {
-            document.getElementById('walletInfo').style.display = 'none';
-            document.getElementById('connectBtn').style.display = 'block';
-            document.getElementById('status').textContent = 'Disconnected';
-            document.getElementById('status').style.color = 'white';
+            location.reload();
         }
 
-        // Listen account change
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (accounts) => {
-                if (accounts.length === 0) disconnect();
-                else location.reload();
-            });
-        }
+        // Mulai otomatis
+        window.onload = () => {
+            if (window.ethereum) connectWallet();
+        };
     </script>
 </body>
 </html>
