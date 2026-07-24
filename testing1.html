@@ -2,75 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch API & RPC Traffic Generator PoC</title>
+    <title>Coin98 dApp Browser Security Scanner PoC</title>
     <script>
         function log(msg, color = "black") {
+            console.log("[Coin98-Scanner] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
-            div.style.margin = "3px 0";
+            div.style.margin = "4px 0";
             div.style.fontFamily = "monospace";
-            div.style.fontSize = "11px";
+            div.style.fontSize = "12px";
+            div.style.wordBreak = "break-all";
+            div.style.fontWeight = (color === "red" || color === "#d00") ? "bold" : "normal";
             div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
             document.body.prepend(div);
         }
 
-        // 1. Memicu permintaan RPC melalui provider untuk menghasilkan traffic jaringan backend
-        async function triggerRpcTraffic() {
-            if (window.ethereum) {
-                try {
-                    log("[*] Mengirim request eth_blockNumber ke RPC node...", "blue");
-                    const blockNumber = await window.ethereum.request({ method: 'eth_blockNumber' });
-                    log(`[+] Berhasil mendapat block: ${blockNumber}`, "green");
+        // Fungsi untuk memindai objek global yang tersedia pada window di lingkungan Coin98
+        function scanGlobalEnvironment() {
+            log("--- Memulai Pemindaian Lingkungan WebView Coin98 ---", "blue");
+            
+            const commonProviders = [
+                'ethereum', 
+                'coin98', 
+                'coin98sol', 
+                'solana', 
+                'phantasma', 
+                'web3'
+            ];
 
-                    log("[*] Meminta akun aktif (memicu query backend/provider)...", "blue");
-                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    log(`[+] Akun: ${accounts[0] || 'Tidak ada'}`, "green");
-                } catch (err) {
-                    log(`[-] Error RPC: ${err.message}`, "red");
+            commonProviders.forEach(providerName => {
+                if (window[providerName]) {
+                    log(`[+] Ditemukan objek global: window.${providerName}`, "green");
+                    
+                    // Cek properti di dalam objek tersebut
+                    try {
+                        const keys = Object.getOwnPropertyNames(window[providerName]);
+                        log(`    -> Properti/Metode tersedia: ${keys.slice(0, 10).join(', ')}`, "purple");
+                    } catch (e) {
+                        log(`    -> Gagal membaca properti internal ${providerName}`, "orange");
+                    }
+                } else {
+                    log(`[-] Tidak ditemukan: window.${providerName}`, "#666");
                 }
-            } else {
-                log("[-] window.ethereum tidak ditemukan.", "red");
-            }
+            });
         }
 
-        // 2. Memicu fetch request langsung ke API 1inch (jika ada endpoint publik yang diakses dApp)
-        async function triggerApiTraffic() {
-            log("[*] Mengirim test fetch ke endpoint API...", "blue");
-            try {
-                // Contoh memanggil endpoint publik 1inch (atau bisa diarahkan ke burp listener jika dikonfigurasi)
-                const response = await fetch('https://api.1inch.dev/swap/v5.2/1/supported-chains', {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
+        // Memantau komunikasi postMessage masuk dan keluar
+        function setupPostMessageListener() {
+            window.addEventListener('message', function(event) {
+                try {
+                    const dataStr = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
+                    if (dataStr) {
+                        log(`[Incoming postMessage] ${dataStr.substring(0, 120)}`, "teal");
                     }
-                });
-                const data = await response.json();
-                log(`[+] API Response diterima (Status: ${response.status})`, "green");
-            } catch (e) {
-                log(`[-] Fetch API gagal/diblokir CORS: ${e.message}`, "orange");
-            }
+                } catch (e) {}
+            });
+            log("[+] Listener postMessage terpasang.", "green");
         }
 
         window.onload = function() {
-            log("=== Traffic Generator PoC Loaded ===");
+            log("Coin98 Security Scanner PoC Dimuat.");
+            scanGlobalEnvironment();
+            setupPostMessageListener();
         };
     </script>
 </head>
-<body style="padding:15px; font-family:Arial; background-color: #f4f6f8;">
-    <h3 style="color: #333; margin-top:0;">1inch API & RPC Traffic Generator</h3>
-    <p style="color: #666; font-size: 13px;">Gunakan halaman ini untuk memicu lalu lintas jaringan, lalu tangkap dan manipulasi parameternya menggunakan Burp Suite.</p>
+<body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
+    <h3 style="color: #111; margin-top:0;">Coin98 dApp Browser Scanner PoC</h3>
+    <p style="color: #555; font-size: 13px;">Alat uji mandiri untuk memetakan objek jembatan dan eksposur API di dalam peramban dApp Coin98 Wallet.</p>
     <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
-
-    <button onclick="triggerRpcTraffic()" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px;">
-        1. Trigger RPC Requests
-    </button>
-
-    <button onclick="triggerApiTraffic()" style="padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%;">
-        2. Trigger API Fetch Requests
-    </button>
-
-    <div id="console" style="margin-top: 15px; background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; max-height: 250px; overflow-y: auto;">
-        <strong>Log Aktivitas:</strong>
+    
+    <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
+        <h4 style="margin: 0 0 8px 0; color: #333;">Petunjuk Penggunaan:</h4>
+        <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
+            <li>Unggah kode ini ke server hosting pengujian Anda (mendukung HTTPS).</li>
+            <li>Buka tautannya melalui peramban dApp di dalam aplikasi Coin98 Wallet.</li>
+            <li>Lihat hasil pemindaian pada layar untuk mendeteksi objek *bridge* atau injeksi provider yang aktif di peramban tersebut.</li>
+        </ol>
     </div>
 </body>
 </html>
