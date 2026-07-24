@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v16 - PostMessage & Event Interceptor</title>
+    <title>1inch dApp Browser Security Scanner PoC</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch-v16] " + msg);
+            console.log("[1inch-Scanner] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -17,58 +17,68 @@
             document.body.prepend(div);
         }
 
-        // 1. Intercept window.postMessage (Komunikasi asinkron WebView <-> Native)
-        const originalPostMessage = window.postMessage;
-        window.postMessage = function(message, targetOrigin, transfer) {
-            try {
-                const msgStr = typeof message === 'string' ? message : JSON.stringify(message);
-                log(`[postMessage SENT] ${msgStr.substring(0, 150)}`, "blue");
-                
-                if (msgStr.includes('sign') || msgStr.includes('transaction') || msgStr.includes('send') || msgStr.includes('swap')) {
-                    log(`🚨 CRITICAL: Transaction Signing Flow Detected via postMessage!`, "#d00");
-                }
-            } catch (e) {}
-            return originalPostMessage.apply(this, arguments);
-        };
+        // Fungsi untuk memindai objek global yang tersedia pada window
+        function scanGlobalEnvironment() {
+            log("--- Memulai Pemindaian Lingkungan WebView ---", "blue");
+            
+            const commonProviders = [
+                'ethereum', 
+                'solana', 
+                'OneInchIOSWallet', 
+                'OneInchSolanaWallet', 
+                'web3', 
+                'trustwallet',
+                'phantom'
+            ];
 
-        // 2. Mendengarkan pesan masuk dari native (message event)
-        window.addEventListener('message', function(event) {
-            try {
-                const dataStr = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
-                if (!dataStr.includes('accountChanged') && !dataStr.includes('chainChanged')) {
-                    log(`[postMessage RECEIVED] ${dataStr.substring(0, 150)}`, "purple");
-                    if (dataStr.includes('sign') || dataStr.includes('tx') || dataStr.includes('to')) {
-                        log(`🚨 INTERCEPTED → Incoming transaction/signing data!`, "#d00");
+            commonProviders.forEach(providerName => {
+                if (window[providerName]) {
+                    log(`[+] Ditemukan objek global: window.${providerName}`, "green");
+                    
+                    // Cek properti di dalam objek tersebut
+                    try {
+                        const keys = Object.getOwnPropertyNames(window[providerName]);
+                        log(`    -> Properti/Metode tersedia: ${keys.slice(0, 10).join(', ')}`, "purple");
+                    } catch (e) {
+                        log(`    -> Gagal membaca properti internal ${providerName}`, "orange");
                     }
+                } else {
+                    log(`[-] Tidak ditemukan: window.${providerName}`, "#666");
                 }
-            } catch (e) {}
-        });
+            });
+        }
 
-        // 3. Intercept document.dispatchEvent untuk menangkap custom events dApp
-        const originalDispatchEvent = document.dispatchEvent;
-        document.dispatchEvent = function(event) {
-            if (event && event.type) {
-                log(`[DispatchEvent] ${event.type}`, "green");
-            }
-            return originalDispatchEvent.apply(this, arguments);
-        };
+        // Memantau komunikasi postMessage masuk dan keluar
+        function setupPostMessageListener() {
+            window.addEventListener('message', function(event) {
+                try {
+                    const dataStr = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
+                    if (dataStr && !dataStr.includes('accountChanged')) {
+                        log(`[Incoming postMessage] ${dataStr.substring(0, 120)}`, "teal");
+                    }
+                } catch (e) {}
+            });
+            log("[+] Listener postMessage terpasang.", "green");
+        }
 
         window.onload = function() {
-            log("1inch Hijack Test v16 Loaded (PostMessage mode)");
+            log("1inch Security Scanner PoC Dimuat.");
+            scanGlobalEnvironment();
+            setupPostMessageListener();
         };
     </script>
 </head>
 <body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v16</h3>
-    <p style="color: #555; font-size: 13px;">PostMessage & Custom Bridge Payload Interceptor...</p>
+    <h3 style="color: #111; margin-top:0;">1inch dApp Browser Scanner PoC</h3>
+    <p style="color: #555; font-size: 13px;">Alat uji mandiri untuk memetakan objek jembatan dan eksposur API di dalam peramban dApp.</p>
     <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
     
     <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian v16:</h4>
+        <h4 style="margin: 0 0 8px 0; color: #333;">Petunjuk Penggunaan:</h4>
         <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
-            <li>Ganti kode halaman uji Anda dengan skrip v16 ini.</li>
-            <li>Buka kembali di dApp browser 1inch, lalu lakukan proses <b>Swap</b>.</li>
-            <li>Perhatikan apakah muncul log merah bertuliskan <b>CRITICAL: Transaction Signing Flow Detected</b>.</li>
+            <li>Unggah kode ini ke server hosting uji coba Anda (atau gunakan file lokal yang dapat diakses).</li>
+            <li>Buka tautannya melalui peramban dApp di dalam aplikasi 1inch Wallet.</li>
+            <li>Lihat hasil pemindaian pada layar untuk mendeteksi objek *bridge* yang aktif di lingkungan peramban tersebut.</li>
         </ol>
     </div>
 </body>
