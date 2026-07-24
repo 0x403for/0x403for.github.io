@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>1inch Hijack Test v17 - Deep Native Bridge Bypass</title>
+    <title>1inch Hijack Test v16 - PostMessage & Event Interceptor</title>
     <script>
         function log(msg, color = "black") {
-            console.log("[1inch-v17] " + msg);
+            console.log("[1inch-v16] " + msg);
             const div = document.createElement('div');
             div.style.color = color;
             div.style.margin = "4px 0";
@@ -17,73 +17,58 @@
             document.body.prepend(div);
         }
 
-        // 1. Interceptor untuk menangkap semua properti baru yang disuntikkan ke window secara dinamis
-        const hookedProps = new Set();
-        function monitorWindowProperties() {
-            const keys = Object.getOwnPropertyNames(window);
-            keys.forEach(key => {
-                if ((key.toLowerCase().includes('wallet') || key.toLowerCase().includes('inch') || key.toLowerCase().includes('bridge')) && !hookedProps.has(key)) {
-                    hookedProps.add(key);
-                    log(`[+] Discovered dynamic bridge object: window.${key}`, "blue");
-                    
-                    try {
-                        const target = window[key];
-                        if (typeof target === 'object' && target !== null) {
-                            window[key] = new Proxy(target, {
-                                get(t, p, r) {
-                                    const val = Reflect.get(t, p, r);
-                                    if (typeof val === 'function' && p !== 'accountChanged' && p !== 'chainChanged') {
-                                        log(`🚨 CALLED ${key}.${p}(...)`, "#d00");
-                                    }
-                                    return val;
-                                }
-                            });
-                        }
-                    } catch (e) {}
-                }
-            });
-        }
-
-        // 2. Interceptor postMessage tingkat lanjut untuk payload kustom
+        // 1. Intercept window.postMessage (Komunikasi asinkron WebView <-> Native)
         const originalPostMessage = window.postMessage;
         window.postMessage = function(message, targetOrigin, transfer) {
             try {
                 const msgStr = typeof message === 'string' ? message : JSON.stringify(message);
-                log(`[postMessage Out] ${msgStr.substring(0, 100)}`, "purple");
-                if (msgStr.length > 5 && !msgStr.includes('accountChanged')) {
-                    log(`🚨 CRITICAL: Custom bridge payload sent via postMessage!`, "#d00");
+                log(`[postMessage SENT] ${msgStr.substring(0, 150)}`, "blue");
+                
+                if (msgStr.includes('sign') || msgStr.includes('transaction') || msgStr.includes('send') || msgStr.includes('swap')) {
+                    log(`🚨 CRITICAL: Transaction Signing Flow Detected via postMessage!`, "#d00");
                 }
             } catch (e) {}
             return originalPostMessage.apply(this, arguments);
         };
 
-        // 3. Interceptor createElement untuk melihat apakah ada iframe / script tersembunyi
-        const originalCreateElement = document.createElement;
-        document.createElement = function(tagName) {
-            const element = originalCreateElement.apply(this, arguments);
-            if (tagName.toLowerCase() === 'iframe' || tagName.toLowerCase() === 'script') {
-                log(`[DOM] Created element: <${tagName}>`, "orange");
+        // 2. Mendengarkan pesan masuk dari native (message event)
+        window.addEventListener('message', function(event) {
+            try {
+                const dataStr = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
+                if (!dataStr.includes('accountChanged') && !dataStr.includes('chainChanged')) {
+                    log(`[postMessage RECEIVED] ${dataStr.substring(0, 150)}`, "purple");
+                    if (dataStr.includes('sign') || dataStr.includes('tx') || dataStr.includes('to')) {
+                        log(`🚨 INTERCEPTED → Incoming transaction/signing data!`, "#d00");
+                    }
+                }
+            } catch (e) {}
+        });
+
+        // 3. Intercept document.dispatchEvent untuk menangkap custom events dApp
+        const originalDispatchEvent = document.dispatchEvent;
+        document.dispatchEvent = function(event) {
+            if (event && event.type) {
+                log(`[DispatchEvent] ${event.type}`, "green");
             }
-            return element;
+            return originalDispatchEvent.apply(this, arguments);
         };
 
         window.onload = function() {
-            log("1inch Hijack Test v17 Loaded. Memantau native bridge kustom...");
-            setInterval(monitorWindowProperties, 1000);
+            log("1inch Hijack Test v16 Loaded (PostMessage mode)");
         };
     </script>
 </head>
 <body style="padding:15px; font-family:Arial; background-color: #f9f9f9;">
-    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v17</h3>
-    <p style="color: #555; font-size: 13px;">Deep Native Bridge & Custom Event Bypass POC...</p>
+    <h3 style="color: #111; margin-top:0;">1inch Hijack Test v16</h3>
+    <p style="color: #555; font-size: 13px;">PostMessage & Custom Bridge Payload Interceptor...</p>
     <hr style="border:0; border-top:1px solid #ccc; margin:10px 0;">
     
     <div style="background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian v17:</h4>
+        <h4 style="margin: 0 0 8px 0; color: #333;">Instruksi Pengujian v16:</h4>
         <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
-            <li>Pasang kode ini ke laman uji Anda.</li>
-            <li>Buka di dApp browser 1inch dan lakukan proses <b>Swap</b>.</li>
-            <li>Amati apakah muncul log merah baru yang mendeteksi objek dinamis atau pesan kustom di luar jalur standar.</li>
+            <li>Ganti kode halaman uji Anda dengan skrip v16 ini.</li>
+            <li>Buka kembali di dApp browser 1inch, lalu lakukan proses <b>Swap</b>.</li>
+            <li>Perhatikan apakah muncul log merah bertuliskan <b>CRITICAL: Transaction Signing Flow Detected</b>.</li>
         </ol>
     </div>
 </body>
