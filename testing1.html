@@ -3,233 +3,437 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>1inch Tester v2</title>
+  <title>1inch WebView Deep Tester</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, system-ui, sans-serif;
-      background: #111;
-      color: #eee;
-      padding: 12px;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-    h1 { font-size: 18px; margin-bottom: 6px; }
-    .status {
-      background: #1e293b;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 12px;
+      background: #0f0f0f;
+      color: #e5e5e5;
+      padding: 14px;
       font-size: 13px;
-      border: 1px solid #334155;
+      line-height: 1.45;
+    }
+    h1 { font-size: 18px; margin-bottom: 4px; color: #fff; }
+    .sub { color: #94a3b8; font-size: 12px; margin-bottom: 14px; }
+    .section {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .section h2 {
+      font-size: 14px;
+      color: #7dd3fc;
+      margin-bottom: 8px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 4px;
     }
     button {
-      background: #3b82f6;
+      background: #2563eb;
       color: white;
       border: none;
       border-radius: 8px;
-      padding: 11px 14px;
-      font-size: 14px;
-      margin: 4px 4px 8px 0;
+      padding: 10px 12px;
+      font-size: 13px;
+      margin: 3px 3px 6px 0;
       font-weight: 600;
       width: 100%;
-      max-width: 320px;
+      max-width: 340px;
     }
     button:active { opacity: 0.75; }
     button.red { background: #dc2626; }
     button.green { background: #16a34a; }
-    pre, #log {
-      background: #0a0a0a;
+    button.orange { background: #ea580c; }
+    button.purple { background: #7c3aed; }
+    #log {
+      background: #050505;
       border: 1px solid #333;
       border-radius: 8px;
       padding: 10px;
-      font-size: 12px;
+      height: 320px;
+      overflow-y: auto;
+      font-family: ui-monospace, monospace;
+      font-size: 11.5px;
       white-space: pre-wrap;
       word-break: break-all;
-      max-height: 280px;
-      overflow-y: auto;
-      margin-top: 8px;
     }
     .ok { color: #4ade80; }
     .err { color: #f87171; }
     .warn { color: #fbbf24; }
-    .section { margin: 18px 0 8px; color: #7dd3fc; font-weight: 600; }
+    .info { color: #94a3b8; }
+    .blue { color: #60a5fa; }
   </style>
 </head>
 <body>
 
-  <h1>1inch iOS Tester v2</h1>
-  <div class="status" id="status">
-    Status: Menunggu JavaScript...
+  <h1>1inch WebView Deep Tester</h1>
+  <div class="sub">Versi uji: postMessage • Deep Link • Concurrent RPC • CSP • Event Spoof</div>
+
+  <!-- ========== 1. POSTMESSAGE / JS BRIDGE ========== -->
+  <div class="section">
+    <h2>1. WebView ↔ Native Bridge (postMessage)</h2>
+    <button onclick="testPostMessageBasic()">Kirim postMessage (same + *)</button>
+    <button onclick="testPostMessageFlood()">Flood 50 postMessage</button>
+    <button onclick="listenAllMessages()" class="green">Start Global Message Listener</button>
+    <button onclick="probePossibleBridges()" class="orange">Probe window.* Bridge Objects</button>
   </div>
 
-  <button onclick="forceLog()" class="green">1. Force Log / Cek JS</button>
-  <button onclick="detect()">2. Scan Provider</button>
-  <button onclick="getAccounts()">3. eth_accounts</button>
-  <button onclick="requestAccounts()">4. eth_requestAccounts</button>
-  <button onclick="getChainId()">5. eth_chainId</button>
-  <button onclick="personalSign()">6. personal_sign</button>
-  <button onclick="clearLog()" class="red">Clear Log</button>
+  <!-- ========== 2. DEEP LINK / URL SCHEME ========== -->
+  <div class="section">
+    <h2>2. Deep Link / Custom URL Scheme</h2>
+    <button onclick="tryDeepLinks()">Coba berbagai URL Scheme</button>
+    <button onclick="tryIntentStyle()">Coba Intent-style & custom</button>
+  </div>
 
-  <div class="section">Hasil / Log:</div>
-  <div id="log">Belum ada log...</div>
+  <!-- ========== 3. CONCURRENT ethereum.request ========== -->
+  <div class="section">
+    <h2>3. Aggressive Concurrent ethereum.request</h2>
+    <button onclick="concurrentAccounts()">10x eth_accounts bersamaan</button>
+    <button onclick="concurrentMixed()">Mixed concurrent (accounts + chainId + balance)</button>
+    <button onclick="concurrentSignFlood()" class="red">5x personal_sign bersamaan (hati-hati)</button>
+  </div>
 
-  <script>
-    // ========== LOGGING AMAN ==========
-    const logEl = document.getElementById('log');
-    const statusEl = document.getElementById('status');
+  <!-- ========== 4. BOOKMARK vs DIRECT ========== -->
+  <div class="section">
+    <h2>4. Bookmark vs Direct Open</h2>
+    <button onclick="showNavigationInfo()">Tampilkan Navigation / Referrer Info</button>
+  </div>
 
-    function log(msg, type = 'info') {
+  <!-- ========== 5. CSP & NAVIGATION ========== -->
+  <div class="section">
+    <h2>5. CSP / Navigation Restrictions</h2>
+    <button onclick="checkCSP()">Cek Content-Security-Policy</button>
+    <button onclick="tryNavigation()">Coba window.location & iframe</button>
+    <button onclick="tryOpenWindow()">Coba window.open()</button>
+  </div>
+
+  <!-- ========== 6. EVENT SPOOF ========== -->
+  <div class="section">
+    <h2>6. Event accountsChanged / chainChanged</h2>
+    <button onclick="listenProviderEvents()" class="green">Pasang Listener Event</button>
+    <button onclick="trySpoofEvents()" class="purple">Coba Dispatch Fake Events</button>
+    <button onclick="tryOverrideOn()" class="orange">Coba Override ethereum.on</button>
+  </div>
+
+  <button onclick="clearLog()" class="red" style="margin-top:8px">Clear Log</button>
+
+  <div style="margin:12px 0 6px; color:#7dd3fc; font-weight:600;">Live Log</div>
+  <div id="log">Menunggu aksi...</div>
+
+<script>
+  const logEl = document.getElementById('log');
+
+  function log(msg, type = 'info') {
+    const time = new Date().toLocaleTimeString('id-ID');
+    const colors = {
+      ok: '#4ade80',
+      err: '#f87171',
+      warn: '#fbbf24',
+      info: '#94a3b8',
+      blue: '#60a5fa'
+    };
+    const div = document.createElement('div');
+    div.style.color = colors[type] || colors.info;
+    div.style.borderBottom = '1px solid #1f1f1f';
+    div.style.padding = '3px 0';
+    div.textContent = `[${time}] ${msg}`;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function clearLog() {
+    logEl.innerHTML = '';
+    log('Log dibersihkan', 'warn');
+  }
+
+  // ==================== 1. POSTMESSAGE ====================
+  function testPostMessageBasic() {
+    log('Mengirim postMessage same-origin + wildcard...', 'blue');
+    window.postMessage({ test: 'same-origin', ts: Date.now() }, location.origin);
+    window.postMessage({ test: 'wildcard', ts: Date.now() }, '*');
+    log('postMessage terkirim', 'ok');
+  }
+
+  function testPostMessageFlood() {
+    log('Flood 50 postMessage dimulai...', 'warn');
+    for (let i = 0; i < 50; i++) {
+      window.postMessage({ flood: i, ts: Date.now() }, '*');
+    }
+    log('50 postMessage sudah dikirim', 'ok');
+  }
+
+  let messageListenerActive = false;
+  function listenAllMessages() {
+    if (messageListenerActive) {
+      log('Listener sudah aktif', 'warn');
+      return;
+    }
+    messageListenerActive = true;
+    window.addEventListener('message', (e) => {
+      log(`MESSAGE dari origin: ${e.origin}`, 'blue');
+      log(`Data: ${JSON.stringify(e.data).slice(0, 300)}`, 'info');
+    });
+    log('Global message listener AKTIF', 'ok');
+  }
+
+  function probePossibleBridges() {
+    log('Memeriksa object bridge di window...', 'blue');
+    const candidates = [
+      'OneInchIOSWallet', 'OneInchSolanaWallet', 'webkit',
+      'ReactNativeWebView', 'Android', 'native', 'bridge',
+      'webkit.messageHandlers', 'ethereum', '_1inch'
+    ];
+    candidates.forEach(name => {
       try {
-        const time = new Date().toLocaleTimeString();
-        let color = '#94a3b8';
-        if (type === 'ok') color = '#4ade80';
-        if (type === 'err') color = '#f87171';
-        if (type === 'warn') color = '#fbbf24';
-
-        const div = document.createElement('div');
-        div.style.color = color;
-        div.style.marginBottom = '4px';
-        div.style.borderBottom = '1px solid #222';
-        div.style.paddingBottom = '3px';
-        div.textContent = `[${time}] ${msg}`;
-        logEl.appendChild(div);
-        logEl.scrollTop = logEl.scrollHeight;
-      } catch (e) {
-        // kalau bahkan log gagal, pakai alert
-        alert('Log error: ' + e.message);
-      }
-    }
-
-    function setStatus(text, isError = false) {
-      statusEl.textContent = 'Status: ' + text;
-      statusEl.style.borderColor = isError ? '#dc2626' : '#334155';
-    }
-
-    function clearLog() {
-      logEl.innerHTML = '';
-      log('Log dibersihkan', 'warn');
-    }
-
-    // ========== FUNGSI UTAMA ==========
-    function forceLog() {
-      log('=== FORCE LOG BERHASIL ===', 'ok');
-      log('User Agent: ' + navigator.userAgent);
-      log('Location: ' + location.href);
-      log('window.ethereum exists? → ' + !!window.ethereum);
-      log('typeof window.ethereum → ' + typeof window.ethereum);
-
-      if (window.ethereum) {
-        log('isMetaMask: ' + window.ethereum.isMetaMask);
-        log('isOneInchIOSWallet: ' + window.ethereum.isOneInchIOSWallet);
-      }
-
-      setStatus('JavaScript berjalan normal');
-    }
-
-    function detect() {
-      try {
-        log('Mulai scan provider...', 'warn');
-        const eth = window.ethereum;
-
-        if (!eth) {
-          log('❌ window.ethereum TIDAK ADA', 'err');
-          setStatus('Tidak ada provider', true);
-          return;
+        const val = window[name];
+        if (val !== undefined) {
+          log(`Ditemukan: window.${name} → ${typeof val}`, 'ok');
+          if (typeof val === 'object' && val !== null) {
+            log(`  keys: ${Object.keys(val).slice(0, 12).join(', ')}`, 'info');
+          }
         }
-
-        const info = {
-          isMetaMask: eth.isMetaMask,
-          isOneInchIOSWallet: eth.isOneInchIOSWallet,
-          isOneInchAndroidWallet: eth.isOneInchAndroidWallet,
-          is1inch: eth.is1inch,
-          chainId: eth.chainId,
-          selectedAddress: eth.selectedAddress,
-          hasRequest: typeof eth.request === 'function',
-          hasOn: typeof eth.on === 'function',
-          keys: Object.keys(eth).slice(0, 20) // ambil 20 key dulu
-        };
-
-        log(JSON.stringify(info, null, 2), 'ok');
-        setStatus('Provider ditemukan');
       } catch (e) {
-        log('Error di detect(): ' + e.message, 'err');
-        setStatus('Error: ' + e.message, true);
+        log(`Error akses window.${name}: ${e.message}`, 'err');
       }
-    }
+    });
 
-    async function getAccounts() {
-      try {
-        log('Memanggil eth_accounts...', 'warn');
-        if (!window.ethereum) throw new Error('ethereum tidak ada');
-        const res = await window.ethereum.request({ method: 'eth_accounts' });
-        log('eth_accounts → ' + JSON.stringify(res), 'ok');
-      } catch (e) {
-        log('eth_accounts ERROR: ' + e.message, 'err');
-      }
-    }
-
-    async function requestAccounts() {
-      try {
-        log('Memanggil eth_requestAccounts...', 'warn');
-        if (!window.ethereum) throw new Error('ethereum tidak ada');
-        const res = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        log('eth_requestAccounts → ' + JSON.stringify(res), 'ok');
-      } catch (e) {
-        log('eth_requestAccounts ERROR: ' + e.message, 'err');
-      }
-    }
-
-    async function getChainId() {
-      try {
-        log('Memanggil eth_chainId...', 'warn');
-        if (!window.ethereum) throw new Error('ethereum tidak ada');
-        const res = await window.ethereum.request({ method: 'eth_chainId' });
-        log('eth_chainId → ' + res + ' (decimal: ' + parseInt(res, 16) + ')', 'ok');
-      } catch (e) {
-        log('eth_chainId ERROR: ' + e.message, 'err');
-      }
-    }
-
-    async function personalSign() {
-      try {
-        log('Memanggil personal_sign...', 'warn');
-        if (!window.ethereum) throw new Error('ethereum tidak ada');
-
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (!accounts || !accounts[0]) throw new Error('Tidak ada akun terhubung');
-
-        const msg = 'Test dari 1inch tester ' + Date.now();
-        const hex = '0x' + Array.from(new TextEncoder().encode(msg))
-          .map(b => b.toString(16).padStart(2, '0')).join('');
-
-        const sig = await window.ethereum.request({
-          method: 'personal_sign',
-          params: [hex, accounts[0]]
-        });
-
-        log('personal_sign BERHASIL', 'ok');
-        log('Signature: ' + sig, 'ok');
-      } catch (e) {
-        log('personal_sign ERROR: ' + e.message, 'err');
-      }
-    }
-
-    // ========== AUTO START ==========
+    // webkit messageHandlers
     try {
-      setStatus('JavaScript loaded');
-      log('Halaman berhasil dimuat', 'ok');
-      log('Waktu: ' + new Date().toLocaleString());
-      log('Jika kamu melihat ini, berarti JS berjalan.', 'ok');
-
-      // Coba deteksi otomatis setelah 500ms
-      setTimeout(() => {
-        forceLog();
-      }, 500);
+      if (window.webkit && window.webkit.messageHandlers) {
+        const handlers = Object.keys(window.webkit.messageHandlers);
+        log(`webkit.messageHandlers: ${handlers.join(', ') || '(kosong)'}`, 'ok');
+      } else {
+        log('window.webkit.messageHandlers tidak ada', 'info');
+      }
     } catch (e) {
-      setStatus('Gagal load JS: ' + e.message, true);
-      alert('Critical error: ' + e.message);
+      log('Error cek webkit: ' + e.message, 'err');
     }
-  </script>
+  }
+
+  // ==================== 2. DEEP LINK ====================
+  function tryDeepLinks() {
+    const schemes = [
+      '1inch://',
+      'oneinch://',
+      '1inchwallet://',
+      'wc:',
+      'ethereum:',
+      'metamask://',
+      'dapp://',
+      'https://app.1inch.io',
+      'about:blank'
+    ];
+    log('Mencoba berbagai URL scheme (akan muncul di log jika ada reaksi)...', 'blue');
+    schemes.forEach(s => {
+      try {
+        log(`Mencoba: ${s}`, 'info');
+        // Kita tidak langsung location.href agar tidak keluar dari halaman
+        // Hanya log saja + coba create <a>
+        const a = document.createElement('a');
+        a.href = s;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        // a.click(); // uncomment jika ingin benar-benar trigger
+        document.body.removeChild(a);
+      } catch (e) {
+        log(`Error scheme ${s}: ${e.message}`, 'err');
+      }
+    });
+    log('Selesai mencoba scheme (tanpa navigasi paksa)', 'ok');
+  }
+
+  function tryIntentStyle() {
+    log('Mencoba pola intent / custom...', 'blue');
+    const tests = [
+      'intent://scan/#Intent;scheme=1inch;end',
+      '1inch://wc?uri=wc:test',
+      'oneinch://dapp?url=https://example.com'
+    ];
+    tests.forEach(t => log(`Pola: ${t}`, 'info'));
+    log('Hanya logging (tidak dijalankan navigasi)', 'warn');
+  }
+
+  // ==================== 3. CONCURRENT REQUEST ====================
+  async function concurrentAccounts() {
+    if (!window.ethereum) return log('ethereum tidak ada', 'err');
+    log('Menjalankan 10x eth_accounts bersamaan...', 'warn');
+    const promises = [];
+    for (let i = 0; i < 10; i++) {
+      promises.push(
+        window.ethereum.request({ method: 'eth_accounts' })
+          .then(r => log(`#${i} accounts → ${JSON.stringify(r)}`, 'ok'))
+          .catch(e => log(`#${i} ERROR: ${e.message}`, 'err'))
+      );
+    }
+    await Promise.allSettled(promises);
+    log('10 concurrent eth_accounts selesai', 'blue');
+  }
+
+  async function concurrentMixed() {
+    if (!window.ethereum) return log('ethereum tidak ada', 'err');
+    log('Mixed concurrent request dimulai...', 'warn');
+    const methods = [
+      { method: 'eth_accounts' },
+      { method: 'eth_chainId' },
+      { method: 'net_version' },
+      { method: 'eth_accounts' },
+      { method: 'eth_chainId' },
+      { method: 'eth_getBalance', params: ['0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A', 'latest'] }
+    ];
+    const promises = methods.map((m, i) =>
+      window.ethereum.request(m)
+        .then(r => log(`Mixed #${i} ${m.method} → ${JSON.stringify(r).slice(0,80)}`, 'ok'))
+        .catch(e => log(`Mixed #${i} ERROR: ${e.message}`, 'err'))
+    );
+    await Promise.allSettled(promises);
+    log('Mixed concurrent selesai', 'blue');
+  }
+
+  async function concurrentSignFlood() {
+    if (!window.ethereum) return log('ethereum tidak ada', 'err');
+    log('PERINGATAN: 5x personal_sign bersamaan. User harus approve/reject satu per satu.', 'warn');
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    if (!accounts[0]) return log('Tidak ada akun', 'err');
+
+    const msg = 'concurrent-test-' + Date.now();
+    const hex = '0x' + Array.from(new TextEncoder().encode(msg)).map(b => b.toString(16).padStart(2,'0')).join('');
+
+    const promises = [];
+    for (let i = 0; i < 5; i++) {
+      promises.push(
+        window.ethereum.request({ method: 'personal_sign', params: [hex, accounts[0]] })
+          .then(sig => log(`Sign #${i} OK: ${sig.slice(0,40)}...`, 'ok'))
+          .catch(e => log(`Sign #${i} → ${e.message}`, 'err'))
+      );
+    }
+    await Promise.allSettled(promises);
+    log('Concurrent personal_sign selesai', 'blue');
+  }
+
+  // ==================== 4. NAVIGATION INFO ====================
+  function showNavigationInfo() {
+    log('=== Navigation / Context Info ===', 'blue');
+    log(`location.href: ${location.href}`, 'info');
+    log(`location.origin: ${location.origin}`, 'info');
+    log(`document.referrer: ${document.referrer || '(kosong)'}`, 'info');
+    log(`document.visibilityState: ${document.visibilityState}`, 'info');
+    log(`navigator.userAgent: ${navigator.userAgent}`, 'info');
+    log(`window.history.length: ${history.length}`, 'info');
+    log(`window.opener: ${window.opener ? 'ada' : 'null'}`, 'info');
+    log(`window.parent === window: ${window.parent === window}`, 'info');
+    log(`window.frameElement: ${window.frameElement}`, 'info');
+  }
+
+  // ==================== 5. CSP & NAVIGATION ==========
+  function checkCSP() {
+    log('Mencari CSP...', 'blue');
+    const metas = document.querySelectorAll('meta[http-equiv="Content-Security-Policy"]');
+    if (metas.length) {
+      metas.forEach(m => log(`CSP meta: ${m.content}`, 'ok'));
+    } else {
+      log('Tidak ada CSP meta di halaman ini', 'info');
+    }
+    // Coba fetch header (hanya same-origin)
+    fetch(location.href, { method: 'HEAD' })
+      .then(r => {
+        const csp = r.headers.get('content-security-policy');
+        log(`CSP header: ${csp || '(tidak ada / tidak terbaca)'}`, csp ? 'ok' : 'info');
+      })
+      .catch(e => log('Gagal cek header: ' + e.message, 'err'));
+  }
+
+  function tryNavigation() {
+    log('Mencoba buat iframe & cek restriction...', 'blue');
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.src = 'https://example.com';
+      iframe.style.width = '1px';
+      iframe.style.height = '1px';
+      iframe.style.opacity = '0';
+      iframe.onload = () => log('iframe example.com berhasil load', 'ok');
+      iframe.onerror = () => log('iframe example.com gagal', 'err');
+      document.body.appendChild(iframe);
+      setTimeout(() => document.body.removeChild(iframe), 3000);
+    } catch (e) {
+      log('Error buat iframe: ' + e.message, 'err');
+    }
+  }
+
+  function tryOpenWindow() {
+    log('Mencoba window.open...', 'blue');
+    try {
+      const w = window.open('https://example.com', '_blank');
+      if (w) {
+        log('window.open berhasil (popup mungkin diblokir visual)', 'ok');
+        setTimeout(() => w.close(), 1000);
+      } else {
+        log('window.open dikembalikan null (diblokir)', 'warn');
+      }
+    } catch (e) {
+      log('window.open error: ' + e.message, 'err');
+    }
+  }
+
+  // ==================== 6. EVENT SPOOF ====================
+  function listenProviderEvents() {
+    if (!window.ethereum || !window.ethereum.on) {
+      return log('ethereum.on tidak tersedia', 'err');
+    }
+    log('Memasang listener accountsChanged & chainChanged...', 'blue');
+    window.ethereum.on('accountsChanged', (acc) => {
+      log(`EVENT accountsChanged → ${JSON.stringify(acc)}`, 'warn');
+    });
+    window.ethereum.on('chainChanged', (chainId) => {
+      log(`EVENT chainChanged → ${chainId}`, 'warn');
+    });
+    window.ethereum.on('connect', (info) => log(`EVENT connect → ${JSON.stringify(info)}`, 'ok'));
+    window.ethereum.on('disconnect', (err) => log(`EVENT disconnect → ${JSON.stringify(err)}`, 'err'));
+    log('Listener event terpasang', 'ok');
+  }
+
+  function trySpoofEvents() {
+    log('Mencoba dispatch event palsu...', 'blue');
+    try {
+      // Cara 1: CustomEvent di window
+      window.dispatchEvent(new CustomEvent('accountsChanged', { detail: ['0x0000000000000000000000000000000000000001'] }));
+      log('CustomEvent accountsChanged di-dispatch ke window', 'info');
+
+      // Cara 2: coba di ethereum object
+      if (window.ethereum) {
+        const fakeEvent = new Event('accountsChanged');
+        window.ethereum.dispatchEvent?.(fakeEvent);
+        log('Event accountsChanged di-dispatch ke ethereum (jika support)', 'info');
+      }
+    } catch (e) {
+      log('Gagal spoof: ' + e.message, 'err');
+    }
+  }
+
+  function tryOverrideOn() {
+    if (!window.ethereum) return log('ethereum tidak ada', 'err');
+    log('Mencoba override ethereum.on ...', 'warn');
+    try {
+      const original = window.ethereum.on;
+      window.ethereum.on = function(event, cb) {
+        log(`ethereum.on dipanggil untuk event: ${event}`, 'blue');
+        return original.call(this, event, cb);
+      };
+      log('Override ethereum.on berhasil dipasang (sementara)', 'ok');
+    } catch (e) {
+      log('Gagal override: ' + e.message, 'err');
+    }
+  }
+
+  // Auto start
+  log('Halaman loaded. Siap testing.', 'ok');
+  log('UserAgent: ' + navigator.userAgent, 'info');
+  if (window.ethereum) {
+    log('window.ethereum terdeteksi | isOneInchIOSWallet: ' + window.ethereum.isOneInchIOSWallet, 'ok');
+  } else {
+    log('window.ethereum TIDAK ada', 'err');
+  }
+</script>
 </body>
 </html>
