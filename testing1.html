@@ -3,113 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-World dApp Cross-Origin Isolation Exploit PoC</title>
+    <title>Web3 Provider Integrity & Hijacking Auditor</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0f19; color: #f1f5f9; padding: 20px; }
         .container { max-width: 800px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
         h2 { color: #38bdf8; margin-top: 0; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; font-weight: 600; }
-        input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 6px; box-sizing: border-box; }
-        button { background: #0284c7; color: white; border: none; padding: 12px 20px; font-size: 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 5px; transition: background 0.2s; }
+        button { background: #0284c7; color: white; border: none; padding: 12px 20px; font-size: 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; transition: background 0.2s; }
         button:hover { background: #0369a1; }
-        .btn-exploit { background: #dc2626; }
-        .btn-exploit:hover { background: #b91c1c; }
-        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 280px; }
-        .box { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155; }
+        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 300px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>dApp Browser Origin Isolation Exploit PoC</h2>
-    <p style="font-size: 13px; color: #94a3b8;">Alat uji nyata untuk memeriksa apakah dApp browser mengizinkan pembacaan data privat (Session/Local Storage) secara ilegal antar domain web berbeda.</p>
+    <h2>Web3 Provider Injection Integrity Audit</h2>
+    <p style="font-size: 13px; color: #94a3b8;">Alat ini memeriksa apakah objek penyedia dompet (window.ethereum) dilindungi dari modifikasi ilegal (property redefinition / hijacking).</p>
     
-    <div class="box">
-        <h3>Langkah 1: Injeksi Sesi Korban</h3>
-        <div class="form-group">
-            <label>Token/Data Sensitif Target:</label>
-            <input type="text" id="targetData" value="PRIVATE_SESSION_TOKEN_1INCH_USER_9988">
-        </div>
-        <button onclick="injectVictimData()">Simulasikan Penyimpanan Sesi Korban</button>
-    </div>
+    <button onclick="auditProviderIntegrity()">Jalankan Audit Integritas Provider</button>
 
-    <div class="box">
-        <h3>Langkah 2: Eksploitasi Lintas Origin (Cross-Origin Extraction)</h3>
-        <p style="font-size: 12px; color: #94a3b8;">Simulasikan situs web pihak ketiga/penyerang yang mencoba mencuri data dari storage dApp lain.</p>
-        <div class="form-group">
-            <label>Target Domain/Origin yang Ingin Disusupi:</label>
-            <input type="text" id="targetOrigin" value="https://app.1inch.io">
-        </div>
-        <button onclick="executeCrossSiteExtraction()" class="btn-exploit">Coba Ambil Data Lintas Origin (Exploit)</button>
-    </div>
-
-    <h3>Log Hasil Eksploitasi Nyata:</h3>
-    <pre id="logOutput">Menunggu eksekusi uji...</pre>
+    <h3>Log Hasil Audit Integritas:</h3>
+    <pre id="logOutput">Menunggu eksekusi...</pre>
 </div>
 
 <script>
     const logOutput = document.getElementById("logOutput");
-    const STORAGE_KEY = "dapp_isolation_test_marker";
 
     function log(message) {
         logOutput.innerText += "\n> " + message;
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    function injectVictimData() {
-        const val = document.getElementById("targetData").value;
+    function auditProviderIntegrity() {
+        logOutput.innerText = "Memulai audit integritas objek global...";
+
+        if (typeof window.ethereum === "undefined") {
+            log("[INFO] Objek window.ethereum tidak terdeteksi. Pastikan halaman ini dibuka di dalam dApp browser wallet.");
+            return;
+        }
+
+        log("[OK] Objek window.ethereum ditemukan.");
+
+        // 1. Cek apakah properti ethereum dapat dimodifikasi/ditimpa (writable / configurable check)
+        const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
+        if (descriptor) {
+            log(`Deskriptor properti ethereum - writable: ${descriptor.writable}, configurable: ${descriptor.configurable}`);
+            if (descriptor.writable || descriptor.configurable) {
+                log("[PERINGATAN POTENSIAL] Properti window.ethereum bersifat writable/configurable. Script pihak ketiga yang dimuat di halaman berisiko menimpa (hijack) fungsi wallet.");
+            } else {
+                log("[AMAN] Properti window.ethereum terkunci dengan baik (immutable/non-writable).");
+            }
+        }
+
+        // 2. Cek keberadaan fungsi esensial standar EIP-1193
+        if (typeof window.ethereum.request === "function") {
+            log("[OK] Metode standar EIP-1193 'request' tersedia.");
+        } else {
+            log("[PERINGATAN] Objek ethereum tidak memiliki fungsi 'request' standar.");
+        }
+
+        // 3. Uji ketahanan terhadap upaya manipulasi properti secara langsung
         try {
-            localStorage.setItem(STORAGE_KEY, val);
-            sessionStorage.setItem(STORAGE_KEY, "session_" + val);
-            log(`[SUKSES] Data korban berhasil disimpan di Origin saat ini: ${window.location.origin}`);
+            const originalEthereum = window.ethereum;
+            // Coba timpa secara paksa untuk melihat apakah browser/extension melindunginya
+            window.ethereum = { fake: true };
+            
+            if (window.ethereum.fake === true) {
+                log("[KERENTANAN / CATATAN] Objek window.ethereum dapat ditimpa secara langsung di tingkat global scope halaman ini.");
+                // Kembalikan ke semula
+                window.ethereum = originalEthereum;
+            } else {
+                log("[AMAN] Objek window.ethereum dilindungi dari penimpaan langsung.");
+            }
         } catch (e) {
-            log("[GAGAL] Gagal menulis penyimpanan: " + e.message);
-        }
-    }
-
-    async function executeCrossSiteExtraction() {
-        logOutput.innerText = "Memulai pengujian eksploitasi lintas origin...";
-        const targetOrigin = document.getElementById("targetOrigin").value;
-        
-        log(`Target Origin: ${targetOrigin}`);
-        log(`Origin Eksekusi Saat Ini: ${window.location.origin}`);
-
-        if (window.location.origin === targetOrigin) {
-            log("[PERINGATAN] Anda sedang berada di domain yang sama dengan target. Ubah target origin ke domain lain atau hosting skrip ini di URL berbeda untuk melihat proteksi Same-Origin Policy.");
-        }
-
-        try {
-            // Skenario nyata eksploitasi menggunakan iframe lintas domain atau akses window object jika dApp browser gagal mengisolasi konteks eksekusi
-            log("Mencoba melakukan pembacaan paksa via iframe cross-origin...");
-            
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = targetOrigin;
-            
-            document.body.appendChild(iframe);
-
-            iframe.onload = function() {
-                try {
-                    // Upaya mencuri data localStorage dari iframe domain lain
-                    const stolenData = iframe.contentWindow.localStorage.getItem(STORAGE_KEY);
-                    if (stolenData) {
-                        log(`[KERENTANAN KRITIS BERBAHAYA] Berhasil mencuri data dari ${targetOrigin}! Data: ${stolenData}`);
-                    } else {
-                        log(`[AMAN] Akses ditolak atau data kosong. Same-Origin Policy terpatri dengan baik.`);
-                    }
-                } catch (err) {
-                    log(`[TERBLOKIR OLEH BROWSER] Akses lintas origin berhasil dicegah oleh Same-Origin Policy: ${err.message}`);
-                }
-                document.body.removeChild(iframe);
-            };
-
-            iframe.onerror = function() {
-                log("[INFO] Gagal memuat iframe target (mungkin diblokir oleh kebijakan CSP/X-Frame-Options dari server target).");
-            };
-
-        } catch (error) {
-            log("[GAGAL] Eksekusi eksploitasi dihentikan: " + error.message);
+            log("[AMAN] Penimpaan objek diblokir secara otomatis oleh proteksi lingkungan dApp browser: " + e.message);
         }
     }
 </script>
