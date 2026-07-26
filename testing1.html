@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>1inch WebView Deep Tester</title>
+  <title>1inch WebView - Redirect / Storage / Injection Tester</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -14,7 +14,7 @@
       font-size: 13px;
       line-height: 1.45;
     }
-    h1 { font-size: 18px; margin-bottom: 4px; color: #fff; }
+    h1 { font-size: 17px; margin-bottom: 4px; }
     .sub { color: #94a3b8; font-size: 12px; margin-bottom: 14px; }
     .section {
       background: #1a1a1a;
@@ -46,94 +46,67 @@
     button.red { background: #dc2626; }
     button.green { background: #16a34a; }
     button.orange { background: #ea580c; }
-    button.purple { background: #7c3aed; }
     #log {
       background: #050505;
       border: 1px solid #333;
       border-radius: 8px;
       padding: 10px;
-      height: 320px;
+      height: 300px;
       overflow-y: auto;
       font-family: ui-monospace, monospace;
       font-size: 11.5px;
       white-space: pre-wrap;
       word-break: break-all;
     }
-    .ok { color: #4ade80; }
-    .err { color: #f87171; }
-    .warn { color: #fbbf24; }
-    .info { color: #94a3b8; }
-    .blue { color: #60a5fa; }
   </style>
 </head>
 <body>
 
-  <h1>1inch WebView Deep Tester</h1>
-  <div class="sub">Versi uji: postMessage • Deep Link • Concurrent RPC • CSP • Event Spoof</div>
+  <h1>WebView Tester: Redirect / Storage / Injection</h1>
+  <div class="sub">Hanya observasi. Buka di dApp Browser 1inch iOS</div>
 
-  <!-- ========== 1. POSTMESSAGE / JS BRIDGE ========== -->
+  <!-- ========== 1. OPEN REDIRECT ========== -->
   <div class="section">
-    <h2>1. WebView ↔ Native Bridge (postMessage)</h2>
-    <button onclick="testPostMessageBasic()">Kirim postMessage (same + *)</button>
-    <button onclick="testPostMessageFlood()">Flood 50 postMessage</button>
-    <button onclick="listenAllMessages()" class="green">Start Global Message Listener</button>
-    <button onclick="probePossibleBridges()" class="orange">Probe window.* Bridge Objects</button>
+    <h2>1. Open Redirect Tests</h2>
+    <button onclick="testRedirectMeta()">Meta Refresh Redirect</button>
+    <button onclick="testRedirectJS()">JS location Redirect</button>
+    <button onclick="testRedirectLink()">Create & Click Link</button>
+    <button onclick="testRedirectIframe()">Iframe Redirect Attempt</button>
   </div>
 
-  <!-- ========== 2. DEEP LINK / URL SCHEME ========== -->
+  <!-- ========== 2. LOCALSTORAGE ========== -->
   <div class="section">
-    <h2>2. Deep Link / Custom URL Scheme</h2>
-    <button onclick="tryDeepLinks()">Coba berbagai URL Scheme</button>
-    <button onclick="tryIntentStyle()">Coba Intent-style & custom</button>
+    <h2>2. localStorage Isolation & Persistence</h2>
+    <button onclick="writeStorage()" class="green">Tulis Data ke localStorage</button>
+    <button onclick="readStorage()">Baca localStorage</button>
+    <button onclick="clearStorage()" class="orange">Hapus localStorage</button>
+    <button onclick="checkStorageKeys()">List Semua Keys</button>
   </div>
 
-  <!-- ========== 3. CONCURRENT ethereum.request ========== -->
+  <!-- ========== 3. CONTENT INJECTION (LOCAL) ========== -->
   <div class="section">
-    <h2>3. Aggressive Concurrent ethereum.request</h2>
-    <button onclick="concurrentAccounts()">10x eth_accounts bersamaan</button>
-    <button onclick="concurrentMixed()">Mixed concurrent (accounts + chainId + balance)</button>
-    <button onclick="concurrentSignFlood()" class="red">5x personal_sign bersamaan (hati-hati)</button>
+    <h2>3. Content Modification (Local Page)</h2>
+    <button onclick="injectText()">Ubah Teks di Halaman</button>
+    <button onclick="injectHTML()">Inject HTML Element</button>
+    <button onclick="restoreContent()" class="orange">Kembalikan Konten Asli</button>
   </div>
 
-  <!-- ========== 4. BOOKMARK vs DIRECT ========== -->
-  <div class="section">
-    <h2>4. Bookmark vs Direct Open</h2>
-    <button onclick="showNavigationInfo()">Tampilkan Navigation / Referrer Info</button>
-  </div>
-
-  <!-- ========== 5. CSP & NAVIGATION ========== -->
-  <div class="section">
-    <h2>5. CSP / Navigation Restrictions</h2>
-    <button onclick="checkCSP()">Cek Content-Security-Policy</button>
-    <button onclick="tryNavigation()">Coba window.location & iframe</button>
-    <button onclick="tryOpenWindow()">Coba window.open()</button>
-  </div>
-
-  <!-- ========== 6. EVENT SPOOF ========== -->
-  <div class="section">
-    <h2>6. Event accountsChanged / chainChanged</h2>
-    <button onclick="listenProviderEvents()" class="green">Pasang Listener Event</button>
-    <button onclick="trySpoofEvents()" class="purple">Coba Dispatch Fake Events</button>
-    <button onclick="tryOverrideOn()" class="orange">Coba Override ethereum.on</button>
-  </div>
-
-  <button onclick="clearLog()" class="red" style="margin-top:8px">Clear Log</button>
+  <button onclick="clearLog()" class="red">Clear Log</button>
 
   <div style="margin:12px 0 6px; color:#7dd3fc; font-weight:600;">Live Log</div>
   <div id="log">Menunggu aksi...</div>
+
+  <!-- Target untuk injection test -->
+  <div id="targetArea" style="margin-top:16px; padding:12px; background:#1e293b; border-radius:8px;">
+    <p id="originalText">Ini adalah teks asli halaman test. Jika berubah, berarti manipulasi DOM berhasil.</p>
+  </div>
 
 <script>
   const logEl = document.getElementById('log');
 
   function log(msg, type = 'info') {
     const time = new Date().toLocaleTimeString('id-ID');
-    const colors = {
-      ok: '#4ade80',
-      err: '#f87171',
-      warn: '#fbbf24',
-      info: '#94a3b8',
-      blue: '#60a5fa'
-    };
+    const colors = { ok: '#4ade80', err: '#f87171', warn: '#fbbf24', info: '#94a3b8', blue: '#60a5fa' };
     const div = document.createElement('div');
     div.style.color = colors[type] || colors.info;
     div.style.borderBottom = '1px solid #1f1f1f';
@@ -148,292 +121,141 @@
     log('Log dibersihkan', 'warn');
   }
 
-  // ==================== 1. POSTMESSAGE ====================
-  function testPostMessageBasic() {
-    log('Mengirim postMessage same-origin + wildcard...', 'blue');
-    window.postMessage({ test: 'same-origin', ts: Date.now() }, location.origin);
-    window.postMessage({ test: 'wildcard', ts: Date.now() }, '*');
-    log('postMessage terkirim', 'ok');
+  // ==================== 1. OPEN REDIRECT ====================
+  function testRedirectMeta() {
+    log('Mencoba meta refresh ke example.com (5 detik)...', 'blue');
+    const meta = document.createElement('meta');
+    meta.httpEquiv = 'refresh';
+    meta.content = '5;url=https://example.com';
+    document.head.appendChild(meta);
+    log('Meta refresh ditambahkan. Halaman akan pindah dalam 5 detik jika diizinkan.', 'warn');
   }
 
-  function testPostMessageFlood() {
-    log('Flood 50 postMessage dimulai...', 'warn');
-    for (let i = 0; i < 50; i++) {
-      window.postMessage({ flood: i, ts: Date.now() }, '*');
-    }
-    log('50 postMessage sudah dikirim', 'ok');
-  }
-
-  let messageListenerActive = false;
-  function listenAllMessages() {
-    if (messageListenerActive) {
-      log('Listener sudah aktif', 'warn');
-      return;
-    }
-    messageListenerActive = true;
-    window.addEventListener('message', (e) => {
-      log(`MESSAGE dari origin: ${e.origin}`, 'blue');
-      log(`Data: ${JSON.stringify(e.data).slice(0, 300)}`, 'info');
-    });
-    log('Global message listener AKTIF', 'ok');
-  }
-
-  function probePossibleBridges() {
-    log('Memeriksa object bridge di window...', 'blue');
-    const candidates = [
-      'OneInchIOSWallet', 'OneInchSolanaWallet', 'webkit',
-      'ReactNativeWebView', 'Android', 'native', 'bridge',
-      'webkit.messageHandlers', 'ethereum', '_1inch'
-    ];
-    candidates.forEach(name => {
-      try {
-        const val = window[name];
-        if (val !== undefined) {
-          log(`Ditemukan: window.${name} → ${typeof val}`, 'ok');
-          if (typeof val === 'object' && val !== null) {
-            log(`  keys: ${Object.keys(val).slice(0, 12).join(', ')}`, 'info');
-          }
-        }
-      } catch (e) {
-        log(`Error akses window.${name}: ${e.message}`, 'err');
-      }
-    });
-
-    // webkit messageHandlers
+  function testRedirectJS() {
+    log('Mencoba JS redirect (location.href)...', 'blue');
     try {
-      if (window.webkit && window.webkit.messageHandlers) {
-        const handlers = Object.keys(window.webkit.messageHandlers);
-        log(`webkit.messageHandlers: ${handlers.join(', ') || '(kosong)'}`, 'ok');
-      } else {
-        log('window.webkit.messageHandlers tidak ada', 'info');
-      }
+      // Kita tidak langsung redirect agar user masih bisa lihat log
+      log('location.href akan diubah ke https://example.com dalam 3 detik...', 'warn');
+      setTimeout(() => {
+        location.href = 'https://example.com';
+      }, 3000);
     } catch (e) {
-      log('Error cek webkit: ' + e.message, 'err');
+      log('Error JS redirect: ' + e.message, 'err');
     }
   }
 
-  // ==================== 2. DEEP LINK ====================
-  function tryDeepLinks() {
-    const schemes = [
-      '1inch://',
-      'oneinch://',
-      '1inchwallet://',
-      'wc:',
-      'ethereum:',
-      'metamask://',
-      'dapp://',
-      'https://app.1inch.io',
-      'about:blank'
-    ];
-    log('Mencoba berbagai URL scheme (akan muncul di log jika ada reaksi)...', 'blue');
-    schemes.forEach(s => {
-      try {
-        log(`Mencoba: ${s}`, 'info');
-        // Kita tidak langsung location.href agar tidak keluar dari halaman
-        // Hanya log saja + coba create <a>
-        const a = document.createElement('a');
-        a.href = s;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        // a.click(); // uncomment jika ingin benar-benar trigger
-        document.body.removeChild(a);
-      } catch (e) {
-        log(`Error scheme ${s}: ${e.message}`, 'err');
-      }
-    });
-    log('Selesai mencoba scheme (tanpa navigasi paksa)', 'ok');
+  function testRedirectLink() {
+    log('Membuat link dan mensimulasikan klik...', 'blue');
+    const a = document.createElement('a');
+    a.href = 'https://example.com';
+    a.target = '_blank';
+    a.textContent = 'Test Link';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    log('Link diklik (target=_blank). Lihat apakah tab/window baru terbuka.', 'info');
+    setTimeout(() => document.body.removeChild(a), 1000);
   }
 
-  function tryIntentStyle() {
-    log('Mencoba pola intent / custom...', 'blue');
-    const tests = [
-      'intent://scan/#Intent;scheme=1inch;end',
-      '1inch://wc?uri=wc:test',
-      'oneinch://dapp?url=https://example.com'
-    ];
-    tests.forEach(t => log(`Pola: ${t}`, 'info'));
-    log('Hanya logging (tidak dijalankan navigasi)', 'warn');
+  function testRedirectIframe() {
+    log('Mencoba load example.com di iframe...', 'blue');
+    const iframe = document.createElement('iframe');
+    iframe.src = 'https://example.com';
+    iframe.style.width = '100%';
+    iframe.style.height = '120px';
+    iframe.style.border = '1px solid #333';
+    iframe.onload = () => log('Iframe berhasil load example.com', 'ok');
+    iframe.onerror = () => log('Iframe gagal load', 'err');
+    document.body.appendChild(iframe);
   }
 
-  // ==================== 3. CONCURRENT REQUEST ====================
-  async function concurrentAccounts() {
-    if (!window.ethereum) return log('ethereum tidak ada', 'err');
-    log('Menjalankan 10x eth_accounts bersamaan...', 'warn');
-    const promises = [];
-    for (let i = 0; i < 10; i++) {
-      promises.push(
-        window.ethereum.request({ method: 'eth_accounts' })
-          .then(r => log(`#${i} accounts → ${JSON.stringify(r)}`, 'ok'))
-          .catch(e => log(`#${i} ERROR: ${e.message}`, 'err'))
-      );
-    }
-    await Promise.allSettled(promises);
-    log('10 concurrent eth_accounts selesai', 'blue');
-  }
-
-  async function concurrentMixed() {
-    if (!window.ethereum) return log('ethereum tidak ada', 'err');
-    log('Mixed concurrent request dimulai...', 'warn');
-    const methods = [
-      { method: 'eth_accounts' },
-      { method: 'eth_chainId' },
-      { method: 'net_version' },
-      { method: 'eth_accounts' },
-      { method: 'eth_chainId' },
-      { method: 'eth_getBalance', params: ['0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A', 'latest'] }
-    ];
-    const promises = methods.map((m, i) =>
-      window.ethereum.request(m)
-        .then(r => log(`Mixed #${i} ${m.method} → ${JSON.stringify(r).slice(0,80)}`, 'ok'))
-        .catch(e => log(`Mixed #${i} ERROR: ${e.message}`, 'err'))
-    );
-    await Promise.allSettled(promises);
-    log('Mixed concurrent selesai', 'blue');
-  }
-
-  async function concurrentSignFlood() {
-    if (!window.ethereum) return log('ethereum tidak ada', 'err');
-    log('PERINGATAN: 5x personal_sign bersamaan. User harus approve/reject satu per satu.', 'warn');
-    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-    if (!accounts[0]) return log('Tidak ada akun', 'err');
-
-    const msg = 'concurrent-test-' + Date.now();
-    const hex = '0x' + Array.from(new TextEncoder().encode(msg)).map(b => b.toString(16).padStart(2,'0')).join('');
-
-    const promises = [];
-    for (let i = 0; i < 5; i++) {
-      promises.push(
-        window.ethereum.request({ method: 'personal_sign', params: [hex, accounts[0]] })
-          .then(sig => log(`Sign #${i} OK: ${sig.slice(0,40)}...`, 'ok'))
-          .catch(e => log(`Sign #${i} → ${e.message}`, 'err'))
-      );
-    }
-    await Promise.allSettled(promises);
-    log('Concurrent personal_sign selesai', 'blue');
-  }
-
-  // ==================== 4. NAVIGATION INFO ====================
-  function showNavigationInfo() {
-    log('=== Navigation / Context Info ===', 'blue');
-    log(`location.href: ${location.href}`, 'info');
-    log(`location.origin: ${location.origin}`, 'info');
-    log(`document.referrer: ${document.referrer || '(kosong)'}`, 'info');
-    log(`document.visibilityState: ${document.visibilityState}`, 'info');
-    log(`navigator.userAgent: ${navigator.userAgent}`, 'info');
-    log(`window.history.length: ${history.length}`, 'info');
-    log(`window.opener: ${window.opener ? 'ada' : 'null'}`, 'info');
-    log(`window.parent === window: ${window.parent === window}`, 'info');
-    log(`window.frameElement: ${window.frameElement}`, 'info');
-  }
-
-  // ==================== 5. CSP & NAVIGATION ==========
-  function checkCSP() {
-    log('Mencari CSP...', 'blue');
-    const metas = document.querySelectorAll('meta[http-equiv="Content-Security-Policy"]');
-    if (metas.length) {
-      metas.forEach(m => log(`CSP meta: ${m.content}`, 'ok'));
-    } else {
-      log('Tidak ada CSP meta di halaman ini', 'info');
-    }
-    // Coba fetch header (hanya same-origin)
-    fetch(location.href, { method: 'HEAD' })
-      .then(r => {
-        const csp = r.headers.get('content-security-policy');
-        log(`CSP header: ${csp || '(tidak ada / tidak terbaca)'}`, csp ? 'ok' : 'info');
-      })
-      .catch(e => log('Gagal cek header: ' + e.message, 'err'));
-  }
-
-  function tryNavigation() {
-    log('Mencoba buat iframe & cek restriction...', 'blue');
+  // ==================== 2. LOCALSTORAGE ====================
+  function writeStorage() {
     try {
-      const iframe = document.createElement('iframe');
-      iframe.src = 'https://example.com';
-      iframe.style.width = '1px';
-      iframe.style.height = '1px';
-      iframe.style.opacity = '0';
-      iframe.onload = () => log('iframe example.com berhasil load', 'ok');
-      iframe.onerror = () => log('iframe example.com gagal', 'err');
-      document.body.appendChild(iframe);
-      setTimeout(() => document.body.removeChild(iframe), 3000);
-    } catch (e) {
-      log('Error buat iframe: ' + e.message, 'err');
-    }
-  }
-
-  function tryOpenWindow() {
-    log('Mencoba window.open...', 'blue');
-    try {
-      const w = window.open('https://example.com', '_blank');
-      if (w) {
-        log('window.open berhasil (popup mungkin diblokir visual)', 'ok');
-        setTimeout(() => w.close(), 1000);
-      } else {
-        log('window.open dikembalikan null (diblokir)', 'warn');
-      }
-    } catch (e) {
-      log('window.open error: ' + e.message, 'err');
-    }
-  }
-
-  // ==================== 6. EVENT SPOOF ====================
-  function listenProviderEvents() {
-    if (!window.ethereum || !window.ethereum.on) {
-      return log('ethereum.on tidak tersedia', 'err');
-    }
-    log('Memasang listener accountsChanged & chainChanged...', 'blue');
-    window.ethereum.on('accountsChanged', (acc) => {
-      log(`EVENT accountsChanged → ${JSON.stringify(acc)}`, 'warn');
-    });
-    window.ethereum.on('chainChanged', (chainId) => {
-      log(`EVENT chainChanged → ${chainId}`, 'warn');
-    });
-    window.ethereum.on('connect', (info) => log(`EVENT connect → ${JSON.stringify(info)}`, 'ok'));
-    window.ethereum.on('disconnect', (err) => log(`EVENT disconnect → ${JSON.stringify(err)}`, 'err'));
-    log('Listener event terpasang', 'ok');
-  }
-
-  function trySpoofEvents() {
-    log('Mencoba dispatch event palsu...', 'blue');
-    try {
-      // Cara 1: CustomEvent di window
-      window.dispatchEvent(new CustomEvent('accountsChanged', { detail: ['0x0000000000000000000000000000000000000001'] }));
-      log('CustomEvent accountsChanged di-dispatch ke window', 'info');
-
-      // Cara 2: coba di ethereum object
-      if (window.ethereum) {
-        const fakeEvent = new Event('accountsChanged');
-        window.ethereum.dispatchEvent?.(fakeEvent);
-        log('Event accountsChanged di-dispatch ke ethereum (jika support)', 'info');
-      }
-    } catch (e) {
-      log('Gagal spoof: ' + e.message, 'err');
-    }
-  }
-
-  function tryOverrideOn() {
-    if (!window.ethereum) return log('ethereum tidak ada', 'err');
-    log('Mencoba override ethereum.on ...', 'warn');
-    try {
-      const original = window.ethereum.on;
-      window.ethereum.on = function(event, cb) {
-        log(`ethereum.on dipanggil untuk event: ${event}`, 'blue');
-        return original.call(this, event, cb);
+      const data = {
+        test: true,
+        time: new Date().toISOString(),
+        address: '0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A',
+        note: 'Data tes dari 1inch WebView tester'
       };
-      log('Override ethereum.on berhasil dipasang (sementara)', 'ok');
+      localStorage.setItem('1inch_test_key', JSON.stringify(data));
+      localStorage.setItem('1inch_simple', 'hello-from-webview');
+      log('Data berhasil ditulis ke localStorage', 'ok');
+      log('Key: 1inch_test_key & 1inch_simple', 'info');
     } catch (e) {
-      log('Gagal override: ' + e.message, 'err');
+      log('Gagal tulis localStorage: ' + e.message, 'err');
     }
+  }
+
+  function readStorage() {
+    try {
+      const val1 = localStorage.getItem('1inch_test_key');
+      const val2 = localStorage.getItem('1inch_simple');
+      log('1inch_test_key → ' + (val1 || '(kosong)'), val1 ? 'ok' : 'warn');
+      log('1inch_simple → ' + (val2 || '(kosong)'), val2 ? 'ok' : 'warn');
+    } catch (e) {
+      log('Gagal baca localStorage: ' + e.message, 'err');
+    }
+  }
+
+  function clearStorage() {
+    try {
+      localStorage.removeItem('1inch_test_key');
+      localStorage.removeItem('1inch_simple');
+      log('Key tes dihapus dari localStorage', 'ok');
+    } catch (e) {
+      log('Gagal hapus: ' + e.message, 'err');
+    }
+  }
+
+  function checkStorageKeys() {
+    try {
+      const keys = Object.keys(localStorage);
+      log('Jumlah key di localStorage: ' + keys.length, 'blue');
+      keys.forEach(k => log(' - ' + k, 'info'));
+      if (keys.length === 0) log('localStorage kosong', 'warn');
+    } catch (e) {
+      log('Error list keys: ' + e.message, 'err');
+    }
+  }
+
+  // ==================== 3. CONTENT MODIFICATION ====================
+  function injectText() {
+    const el = document.getElementById('originalText');
+    if (el) {
+      el.textContent = 'TEKS SUDAH DIUBAH oleh JavaScript pada ' + new Date().toLocaleTimeString();
+      el.style.color = '#fbbf24';
+      log('Teks berhasil diubah (DOM manipulation)', 'ok');
+    }
+  }
+
+  function injectHTML() {
+    const area = document.getElementById('targetArea');
+    if (area) {
+      const div = document.createElement('div');
+      div.innerHTML = '<p style="color:#4ade80; margin-top:8px;">[Injected Element] Ini elemen baru yang ditambahkan ke DOM.</p>';
+      area.appendChild(div);
+      log('HTML element berhasil di-inject ke halaman', 'ok');
+    }
+  }
+
+  function restoreContent() {
+    const el = document.getElementById('originalText');
+    if (el) {
+      el.textContent = 'Ini adalah teks asli halaman test. Jika berubah, berarti manipulasi DOM berhasil.';
+      el.style.color = '';
+    }
+    // Hapus injected elements (sederhana)
+    const area = document.getElementById('targetArea');
+    const extras = area.querySelectorAll('div');
+    extras.forEach(d => d.remove());
+    log('Konten dikembalikan ke semula', 'ok');
   }
 
   // Auto start
   log('Halaman loaded. Siap testing.', 'ok');
   log('UserAgent: ' + navigator.userAgent, 'info');
-  if (window.ethereum) {
-    log('window.ethereum terdeteksi | isOneInchIOSWallet: ' + window.ethereum.isOneInchIOSWallet, 'ok');
-  } else {
-    log('window.ethereum TIDAK ada', 'err');
-  }
+  log('Origin: ' + location.origin, 'info');
 </script>
 </body>
 </html>
