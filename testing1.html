@@ -3,25 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Real-World Swap & Allowance Security Auditor</title>
+    <title>1inch Real-World Allowance & Reset Vulnerability Auditor</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0f19; color: #f1f5f9; padding: 20px; }
-        .container { max-width: 750px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0f19; color: #f1f5f9; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
         h2 { color: #38bdf8; margin-top: 0; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; }
+        label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; font-weight: 600; }
         input, select { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 6px; box-sizing: border-box; }
-        button { background: #0284c7; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.2s; }
+        button { background: #0284c7; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.2s; margin-top: 5px; }
         button:hover { background: #0369a1; }
-        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 250px; }
-        .status-box { margin-top: 15px; padding: 10px; border-radius: 6px; background: #0f172a; border-left: 4px solid #38bdf8; font-size: 14px; }
+        .btn-danger { background: #dc2626; margin-top: 10px; }
+        .btn-danger:hover { background: #b91c1c; }
+        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 300px; }
+        .status-box { margin-top: 15px; padding: 12px; border-radius: 6px; background: #0f172a; border-left: 4px solid #38bdf8; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>1inch Live Swap & Allowance Auditor</h2>
-    <p style="font-size: 13px; color: #94a3b8;">Alat ini berinteraksi langsung dengan API 1inch Fusion/Swap V5 dan blockchain (Mainnet/Arbitrum/Polygon) untuk mendeteksi kerentanan real-time.</p>
+    <h2>Live Approval & Reset Auditor</h2>
+    <p style="font-size: 13px; color: #94a3b8;">Alat ini membaca data *on-chain* secara langsung untuk menguji kerentanan standar *ERC-20 approval race condition* (Approval Reset Bug) pada kontrak router.</p>
     
     <div class="form-group">
         <label>Pilih Jaringan (Chain ID):</label>
@@ -33,21 +35,17 @@
     </div>
 
     <div class="form-group">
-        <label>Alamat Token Sumber (ERC-20, cth: USDC / USDT):</label>
-        <input type="text" id="tokenInAddress" placeholder="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" value="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48">
+        <label>Alamat Token ERC-20 (Contoh: USDC / USDT):</label>
+        <input type="text" id="tokenAddress" value="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48">
     </div>
 
-    <div class="form-group">
-        <label>Jumlah Token yang Diswap (dalam Wei/Satuan Terkecil):</label>
-        <input type="text" id="swapAmount" placeholder="1000000" value="1000000">
-    </div>
-
-    <button onclick="runRealWorldAudit()">Mulai Audit Keamanan Live</button>
+    <button onclick="checkLiveAllowance()">1. Periksa Status Allowance & Risiko Reset</button>
+    <button onclick="executeSafeResetTest()" class="btn-danger">2. Eksekusi Uji Transaksi Reset ke 0 (Memerlukan Gas Nyata)</button>
 
     <div class="status-box" id="walletStatus">Status Wallet: Belum Terhubung</div>
 
-    <h3>Log Audit & Respon API 1inch:</h3>
-    <pre id="logOutput">Siap menginisialisasi...</pre>
+    <h3>Log Eksekusi On-Chain:</h3>
+    <pre id="logOutput">Menunggu tindakan pengguna...</pre>
 </div>
 
 <!-- Memuat Ethers.js v5 -->
@@ -61,98 +59,81 @@
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    async function runRealWorldAudit() {
-        logOutput.innerText = "Inisialisasi audit...";
-        
+    // Alamat resmi Aggregator Router V5/V6 1inch
+    const ONEINCH_ROUTER = "0x1111111254fb6c44bac0bed2854e76f90643097d";
+
+    async function getProviderAndSigner() {
         if (typeof window.ethereum === "undefined") {
-            log("Kesalahan: Tidak ada ekstensi Web3 / dApp Browser terdeteksi.");
+            alert("Web3 Wallet tidak ditemukan!");
+            throw new Error("Wallet tidak terdeteksi");
+        }
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        return { provider, signer };
+    }
+
+    async function checkLiveAllowance() {
+        logOutput.innerText = "Memulai pemeriksaan on-chain...";
+        try {
+            const { provider, signer } = await getProviderAndSigner();
+            const userAddress = await signer.getAddress();
+            walletStatus.innerText = "Terhubung: " + userAddress;
+
+            const tokenAddr = document.getElementById("tokenAddress").value;
+            const chainId = document.getElementById("chainIdSelect").value;
+
+            const erc20Abi = [
+                "function allowance(address owner, address spender) view returns (uint256)",
+                "function symbol() view returns (string)"
+            ];
+
+            const tokenContract = new ethers.Contract(tokenAddr, erc20Abi, provider);
+            const symbol = await tokenContract.symbol();
+            const allowance = await tokenContract.allowance(userAddress, ONEINCH_ROUTER);
+
+            log(`[INFO] Token Terdeteksi: ${symbol} (${tokenAddr})`);
+            log(`[INFO] Alamat Router Pembanding: ${ONEINCH_ROUTER}`);
+            log(`[ON-CHAIN DATA] Nilai Allowance Aktif: ${allowance.toString()}`);
+
+            if (allowance.gt(0) && allowance.lt(ethers.constants.MaxUint256)) {
+                log(`[KERENTANAN POTENSIAL] Token ${symbol} memiliki non-zero finite allowance (${allowance.toString()}). Beberapa token lama (seperti USDT di Ethereum) mewajibkan proses reset allowance ke 0 sebelum diubah ke nilai baru, yang rentan terhadap front-running jika tidak menggunakan fungsi aman (seperti increase/decrease Allowance atau Permit).`);
+            } else if (allowance.eq(0)) {
+                log(`[AMAN] Allowance bernilai 0. Tidak ada risiko eksposur saat ini.`);
+            } else {
+                log(`[INFO] Terdeteksi Unlimited Allowance (MaxUint256).`);
+            }
+
+        } catch (error) {
+            log("[ERROR] " + error.message);
+        }
+    }
+
+    async function executeSafeResetTest() {
+        if (!confirm("PERINGATAN: Tombol ini akan mengirim transaksi sungguhan ke jaringan blockchain dan memerlukan biaya gas. Lanjutkan?")) {
             return;
         }
 
         try {
-            // 1. Hubungkan Wallet Pengguna Secara Nyata
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
-            const signer = provider.getSigner();
-            const userAddress = await signer.getAddress();
-            walletStatus.innerText = "Terhubung: " + userAddress;
-            log("Berhasil terhubung ke wallet: " + userAddress);
-
-            const chainId = document.getElementById("chainIdSelect").value;
-            const tokenIn = document.getElementById("tokenInAddress").value;
-            const amount = document.getElementById("swapAmount").value;
-
-            // 2. Cek Router Resmi 1inch Approval Proxy Berdasarkan Chain
-            // Alamat resmi 1inch V5/AggregationRouterV5 & AllowanceHolder universal
-            const routerRegistry = {
-                "1": "0x1111111254fb6c44bac0bed2854e76f90643097d",
-                "137": "0x1111111254fb6c44bac0bed2854e76f90643097d",
-                "42161": "0x1111111254fb6c44bac0bed2854e76f90643097d"
-            };
-            const officialRouter = routerRegistry[chainId];
-
-            log("Memeriksa status Allowance token saat ini di blockchain...");
-
-            // ABI minimal untuk membaca allowance ERC-20
-            const erc20Abi = [
-                "function allowance(address owner, address spender) view returns (uint256)",
-                "function symbol() view returns (string)",
-                "function decimals() view returns (uint8)"
+            const { signer } = await getProviderAndSigner();
+            const tokenAddr = document.getElementById("tokenAddress").value;
+            
+            const erc20WriteAbi = [
+                "function approve(address spender, uint256 amount) public returns (bool)"
             ];
 
-            const tokenContract = new ethers.Contract(tokenIn, erc20Abi, provider);
-            let tokenSymbol = "TOKEN";
-            try {
-                tokenSymbol = await tokenContract.symbol();
-            } catch(e) {
-                log("Peringatan: Gagal mengambil simbol token, menggunakan alamat mentah.");
-            }
+            const tokenContract = new ethers.Contract(tokenAddr, erc20WriteAbi, signer);
 
-            const currentAllowance = await tokenContract.allowance(userAddress, officialRouter);
-            log(`Token Target: ${tokenSymbol} (${tokenIn})`);
-            log(`Allowance Aktif ke Router 1inch: ${currentAllowance.toString()}`);
-
-            // 3. Analisis Kerentanan Real-World Allowance
-            const MAX_UINT256 = ethers.BigNumber.from("2").pow(255).sub(1).mul(2).add(1); // 2^256 - 1
-
-            if (currentAllowance.gte(MAX_UINT256.div(2))) {
-                log(`[KERENTANAN KRITIS] Ditemukan Unlimited Allowance (${tokenSymbol}) pada Router 1inch!`);
-                log("Risiko: Jika dApp mengalami DNS Poisoning / Script Injection pihak ketiga, seluruh saldo token ini dapat dikuras tanpa konfirmasi tambahan.");
-            } else if (currentAllowance.gt(0)) {
-                log(`[PERINGATAN SEDANG] Ditemukan custom allowance sebesar ${currentAllowance.toString()}. Pastikan ini sesuai dengan kebutuhan transaksi sebelumnya.`);
-            } else {
-                log(`[AMAN] Allowance saat ini bernilai 0. Kontrak 1inch belum memiliki izin akses ke token ${tokenSymbol} Anda.`);
-            }
-
-            // 4. Integrasi Fetch Real-World 1inch Swap API (Public Endpoint Public Key)
-            log("Menguji parameter payload ke Endpoint 1inch API Swap...");
-            const dummyReceiver = userAddress;
-            const apiUrl = `https://api.1inch.dev/swap/v5.2/${chainId}/swap?src=${tokenIn}&dst=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&amount=${amount}&from=${userAddress}&slippage=1`;
-
-            // Catatan: 1inch API v5.2+ menyarankan Bearer Token, namun parameter dasar dapat diuji struktur responnya.
-            const response = await fetch(apiUrl, {
-                headers: {
-                    "Authorization": "Bearer PUBLIC_OR_YOUR_API_KEY", // Ganti dengan key valid jika diperlukan untuk production ketat
-                    "Accept": "application/json"
-                }
-            }).catch(err => {
-                return { ok: false, status: "Network/CORS Error or Invalid API Key" };
-            });
-
-            if (!response.ok) {
-                log(`[INFO API] Respon 1inch API dibatasi/butuh API Key sah (Status: ${response.status}). Melanjutkan validasi lokal payload.`);
-            } else {
-                const data = await response.json();
-                log(`[SUKSES] Payload 1inch API diterima. Memeriksa integritas calldata target router...`);
-                if (data.tx && data.tx.to.toLowerCase() === officialRouter.toLowerCase()) {
-                    log(`[VALIDASI] Alamat tujuan transaksi valid mengarah ke Smart Contract 1inch yang sah.`);
-                } else {
-                    log(`[BAHAYA TINGGI] Alamat tujuan transaksi (to) dialihkan ke kontrak asing! Indikasi serangan dApp Phishing / Malicious Injection.`);
-                }
-            }
+            log("[TRANSAKSI] Mengirim transaksi reset allowance ke 0...");
+            // Langkah kerentanan lama: Merebut/mereset approval ke 0 terlebih dahulu
+            const tx = await tokenContract.approve(ONEINCH_ROUTER, 0);
+            log(`[PENDING] Hash Transaksi: ${tx.hash}`);
+            
+            await tx.wait();
+            log(`[SUKSES] Transaksi reset terkonfirmasi di blockchain. Allowance berhasil diset ke 0 secara aman.`);
 
         } catch (error) {
-            log("Terjadi kesalahan saat eksekusi: " + error.message);
+            log("[GAGAL / DITOLAK] " + error.message);
         }
     }
 </script>
