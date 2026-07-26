@@ -3,138 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Real-World Allowance & Reset Vulnerability Auditor</title>
+    <title>dApp Browser Isolation & Storage Audit PoC</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0f19; color: #f1f5f9; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        .container { max-width: 700px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
         h2 { color: #38bdf8; margin-top: 0; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; font-weight: 600; }
-        input, select { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 6px; box-sizing: border-box; }
-        button { background: #0284c7; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.2s; margin-top: 5px; }
+        input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 6px; box-sizing: border-box; }
+        button { background: #0284c7; color: white; border: none; padding: 10px 15px; font-size: 14px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 5px; transition: background 0.2s; }
         button:hover { background: #0369a1; }
-        .btn-danger { background: #dc2626; margin-top: 10px; }
+        .btn-danger { background: #dc2626; }
         .btn-danger:hover { background: #b91c1c; }
-        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 300px; }
-        .status-box { margin-top: 15px; padding: 12px; border-radius: 6px; background: #0f172a; border-left: 4px solid #38bdf8; font-size: 14px; }
+        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 250px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Live Approval & Reset Auditor</h2>
-    <p style="font-size: 13px; color: #94a3b8;">Alat ini membaca data *on-chain* secara langsung untuk menguji kerentanan standar *ERC-20 approval race condition* (Approval Reset Bug) pada kontrak router.</p>
+    <h2>dApp Browser Storage Isolation Test</h2>
+    <p style="font-size: 13px; color: #94a3b8;">Alat uji ini memeriksa apakah penyimpanan lokal terisolasi dengan benar berdasarkan domain (Origin Policy) di dalam dApp browser.</p>
     
     <div class="form-group">
-        <label>Pilih Jaringan (Chain ID):</label>
-        <select id="chainIdSelect">
-            <option value="1">Ethereum Mainnet (1)</option>
-            <option value="137">Polygon (137)</option>
-            <option value="42161">Arbitrum One (42161)</option>
-        </select>
+        <label>Nilai Token / Data Sensitif Simulasi:</label>
+        <input type="text" id="testDataInput" value="SENSITIF_SESSION_TOKEN_XYZ_123">
     </div>
 
-    <div class="form-group">
-        <label>Alamat Token ERC-20 (Contoh: USDC / USDT):</label>
-        <input type="text" id="tokenAddress" value="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48">
-    </div>
+    <button onclick="injectTestData()">1. Tulis Data ke Storage dApp Ini</button>
+    <button onclick="checkTestData()">2. Periksa Keberadaan Data (Audit)</button>
+    <button onclick="clearTestData()" class="btn-danger">3. Bersihkan Data Uji</button>
 
-    <button onclick="checkLiveAllowance()">1. Periksa Status Allowance & Risiko Reset</button>
-    <button onclick="executeSafeResetTest()" class="btn-danger">2. Eksekusi Uji Transaksi Reset ke 0 (Memerlukan Gas Nyata)</button>
-
-    <div class="status-box" id="walletStatus">Status Wallet: Belum Terhubung</div>
-
-    <h3>Log Eksekusi On-Chain:</h3>
-    <pre id="logOutput">Menunggu tindakan pengguna...</pre>
+    <h3>Log Hasil Audit Isolasi:</h3>
+    <pre id="logOutput">Menunggu tindakan pengujian...</pre>
 </div>
 
-<!-- Memuat Ethers.js v5 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 <script>
     const logOutput = document.getElementById("logOutput");
-    const walletStatus = document.getElementById("walletStatus");
+    const STORAGE_KEY = "dapp_isolation_test_marker";
 
     function log(message) {
         logOutput.innerText += "\n> " + message;
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    // Alamat resmi Aggregator Router V5/V6 1inch
-    const ONEINCH_ROUTER = "0x1111111254fb6c44bac0bed2854e76f90643097d";
-
-    async function getProviderAndSigner() {
-        if (typeof window.ethereum === "undefined") {
-            alert("Web3 Wallet tidak ditemukan!");
-            throw new Error("Wallet tidak terdeteksi");
-        }
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        const signer = provider.getSigner();
-        return { provider, signer };
-    }
-
-    async function checkLiveAllowance() {
-        logOutput.innerText = "Memulai pemeriksaan on-chain...";
+    function injectTestData() {
+        const val = document.getElementById("testDataInput").value;
         try {
-            const { provider, signer } = await getProviderAndSigner();
-            const userAddress = await signer.getAddress();
-            walletStatus.innerText = "Terhubung: " + userAddress;
-
-            const tokenAddr = document.getElementById("tokenAddress").value;
-            const chainId = document.getElementById("chainIdSelect").value;
-
-            const erc20Abi = [
-                "function allowance(address owner, address spender) view returns (uint256)",
-                "function symbol() view returns (string)"
-            ];
-
-            const tokenContract = new ethers.Contract(tokenAddr, erc20Abi, provider);
-            const symbol = await tokenContract.symbol();
-            const allowance = await tokenContract.allowance(userAddress, ONEINCH_ROUTER);
-
-            log(`[INFO] Token Terdeteksi: ${symbol} (${tokenAddr})`);
-            log(`[INFO] Alamat Router Pembanding: ${ONEINCH_ROUTER}`);
-            log(`[ON-CHAIN DATA] Nilai Allowance Aktif: ${allowance.toString()}`);
-
-            if (allowance.gt(0) && allowance.lt(ethers.constants.MaxUint256)) {
-                log(`[KERENTANAN POTENSIAL] Token ${symbol} memiliki non-zero finite allowance (${allowance.toString()}). Beberapa token lama (seperti USDT di Ethereum) mewajibkan proses reset allowance ke 0 sebelum diubah ke nilai baru, yang rentan terhadap front-running jika tidak menggunakan fungsi aman (seperti increase/decrease Allowance atau Permit).`);
-            } else if (allowance.eq(0)) {
-                log(`[AMAN] Allowance bernilai 0. Tidak ada risiko eksposur saat ini.`);
-            } else {
-                log(`[INFO] Terdeteksi Unlimited Allowance (MaxUint256).`);
-            }
-
-        } catch (error) {
-            log("[ERROR] " + error.message);
+            localStorage.setItem(STORAGE_KEY, val);
+            sessionStorage.setItem(STORAGE_KEY, "session_" + val);
+            log(`[BERHASIL] Data uji berhasil disuntikkan ke Local & Session Storage domain ini (${window.location.origin}).`);
+            log(`Origin saat ini: ${window.location.origin}`);
+        } catch (e) {
+            log("[GAGAL] Tidak dapat menulis ke storage: " + e.message);
         }
     }
 
-    async function executeSafeResetTest() {
-        if (!confirm("PERINGATAN: Tombol ini akan mengirim transaksi sungguhan ke jaringan blockchain dan memerlukan biaya gas. Lanjutkan?")) {
-            return;
+    function checkTestData() {
+        logOutput.innerText = "Memeriksa status penyimpanan...";
+        const localVal = localStorage.getItem(STORAGE_KEY);
+        const sessionVal = sessionStorage.getItem(STORAGE_KEY);
+
+        log(`Origin yang diperiksa: ${window.location.origin}`);
+        
+        if (localVal) {
+            log(`[INFO] Ditemukan data di localStorage: "${localVal}"`);
+        } else {
+            log(`[AMAN / BERSIH] Tidak ada data uji tersisa di localStorage domain ini.`);
         }
 
-        try {
-            const { signer } = await getProviderAndSigner();
-            const tokenAddr = document.getElementById("tokenAddress").value;
-            
-            const erc20WriteAbi = [
-                "function approve(address spender, uint256 amount) public returns (bool)"
-            ];
-
-            const tokenContract = new ethers.Contract(tokenAddr, erc20WriteAbi, signer);
-
-            log("[TRANSAKSI] Mengirim transaksi reset allowance ke 0...");
-            // Langkah kerentanan lama: Merebut/mereset approval ke 0 terlebih dahulu
-            const tx = await tokenContract.approve(ONEINCH_ROUTER, 0);
-            log(`[PENDING] Hash Transaksi: ${tx.hash}`);
-            
-            await tx.wait();
-            log(`[SUKSES] Transaksi reset terkonfirmasi di blockchain. Allowance berhasil diset ke 0 secara aman.`);
-
-        } catch (error) {
-            log("[GAGAL / DITOLAK] " + error.message);
+        if (sessionVal) {
+            log(`[INFO] Ditemukan data di sessionStorage: "${sessionVal}"`);
+        } else {
+            log(`[AMAN / BERSIH] Tidak ada data uji tersisa di sessionStorage domain ini.`);
         }
+    }
+
+    function clearTestData() {
+        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
+        log("[INFO] Data uji pada storage domain ini telah dihapus.");
     }
 </script>
 
