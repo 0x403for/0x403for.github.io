@@ -1,261 +1,81 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>1inch WebView - Redirect / Storage / Injection Tester</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, system-ui, sans-serif;
-      background: #0f0f0f;
-      color: #e5e5e5;
-      padding: 14px;
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    h1 { font-size: 17px; margin-bottom: 4px; }
-    .sub { color: #94a3b8; font-size: 12px; margin-bottom: 14px; }
-    .section {
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 14px;
-    }
-    .section h2 {
-      font-size: 14px;
-      color: #7dd3fc;
-      margin-bottom: 8px;
-      border-bottom: 1px solid #333;
-      padding-bottom: 4px;
-    }
-    button {
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 13px;
-      margin: 3px 3px 6px 0;
-      font-weight: 600;
-      width: 100%;
-      max-width: 340px;
-    }
-    button:active { opacity: 0.75; }
-    button.red { background: #dc2626; }
-    button.green { background: #16a34a; }
-    button.orange { background: #ea580c; }
-    #log {
-      background: #050505;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 10px;
-      height: 300px;
-      overflow-y: auto;
-      font-family: ui-monospace, monospace;
-      font-size: 11.5px;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch dApp Swap Vulnerability Scanner (PoC)</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: #1e293b; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h2 { color: #38bdf8; }
+        button { background: #0284c7; color: white; border: none; padding: 10px 15px; font-size: 16px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0369a1; }
+        pre { background: #090d16; padding: 10px; border-radius: 5px; overflow-x: auto; color: #34d399; }
+        .warning { color: #f87171; font-weight: bold; }
+    </style>
 </head>
 <body>
 
-  <h1>WebView Tester: Redirect / Storage / Injection</h1>
-  <div class="sub">Hanya observasi. Buka di dApp Browser 1inch iOS</div>
+<div class="container">
+    <h2>1inch dApp Security Auditing Tool</h2>
+    <p>Alat ini mendeteksi potensi kerentanan <span class="warning">Unlimited Token Allowance</span> dan malfungsi parameter payload pada dApp browser wallet.</p>
+    
+    <button onclick="checkWalletConnection()">1. Hubungkan Wallet</button>
+    <button onclick="testSwapAllowanceRisk()">2. Audit Celah Approval Swap</button>
 
-  <!-- ========== 1. OPEN REDIRECT ========== -->
-  <div class="section">
-    <h2>1. Open Redirect Tests</h2>
-    <button onclick="testRedirectMeta()">Meta Refresh Redirect</button>
-    <button onclick="testRedirectJS()">JS location Redirect</button>
-    <button onclick="testRedirectLink()">Create & Click Link</button>
-    <button onclick="testRedirectIframe()">Iframe Redirect Attempt</button>
-  </div>
+    <h3>Log Aktivitas & Indikator Celah:</h3>
+    <pre id="logOutput">Menunggu tindakan...</pre>
+</div>
 
-  <!-- ========== 2. LOCALSTORAGE ========== -->
-  <div class="section">
-    <h2>2. localStorage Isolation & Persistence</h2>
-    <button onclick="writeStorage()" class="green">Tulis Data ke localStorage</button>
-    <button onclick="readStorage()">Baca localStorage</button>
-    <button onclick="clearStorage()" class="orange">Hapus localStorage</button>
-    <button onclick="checkStorageKeys()">List Semua Keys</button>
-  </div>
-
-  <!-- ========== 3. CONTENT INJECTION (LOCAL) ========== -->
-  <div class="section">
-    <h2>3. Content Modification (Local Page)</h2>
-    <button onclick="injectText()">Ubah Teks di Halaman</button>
-    <button onclick="injectHTML()">Inject HTML Element</button>
-    <button onclick="restoreContent()" class="orange">Kembalikan Konten Asli</button>
-  </div>
-
-  <button onclick="clearLog()" class="red">Clear Log</button>
-
-  <div style="margin:12px 0 6px; color:#7dd3fc; font-weight:600;">Live Log</div>
-  <div id="log">Menunggu aksi...</div>
-
-  <!-- Target untuk injection test -->
-  <div id="targetArea" style="margin-top:16px; padding:12px; background:#1e293b; border-radius:8px;">
-    <p id="originalText">Ini adalah teks asli halaman test. Jika berubah, berarti manipulasi DOM berhasil.</p>
-  </div>
-
+<!-- Memuat pustaka Ethers.js untuk interaksi Web3 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 <script>
-  const logEl = document.getElementById('log');
+    const logOutput = document.getElementById("logOutput");
 
-  function log(msg, type = 'info') {
-    const time = new Date().toLocaleTimeString('id-ID');
-    const colors = { ok: '#4ade80', err: '#f87171', warn: '#fbbf24', info: '#94a3b8', blue: '#60a5fa' };
-    const div = document.createElement('div');
-    div.style.color = colors[type] || colors.info;
-    div.style.borderBottom = '1px solid #1f1f1f';
-    div.style.padding = '3px 0';
-    div.textContent = `[${time}] ${msg}`;
-    logEl.appendChild(div);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  function clearLog() {
-    logEl.innerHTML = '';
-    log('Log dibersihkan', 'warn');
-  }
-
-  // ==================== 1. OPEN REDIRECT ====================
-  function testRedirectMeta() {
-    log('Mencoba meta refresh ke example.com (5 detik)...', 'blue');
-    const meta = document.createElement('meta');
-    meta.httpEquiv = 'refresh';
-    meta.content = '5;url=https://example.com';
-    document.head.appendChild(meta);
-    log('Meta refresh ditambahkan. Halaman akan pindah dalam 5 detik jika diizinkan.', 'warn');
-  }
-
-  function testRedirectJS() {
-    log('Mencoba JS redirect (location.href)...', 'blue');
-    try {
-      // Kita tidak langsung redirect agar user masih bisa lihat log
-      log('location.href akan diubah ke https://example.com dalam 3 detik...', 'warn');
-      setTimeout(() => {
-        location.href = 'https://example.com';
-      }, 3000);
-    } catch (e) {
-      log('Error JS redirect: ' + e.message, 'err');
+    function log(message) {
+        logOutput.innerText += "\n> " + message;
     }
-  }
 
-  function testRedirectLink() {
-    log('Membuat link dan mensimulasikan klik...', 'blue');
-    const a = document.createElement('a');
-    a.href = 'https://example.com';
-    a.target = '_blank';
-    a.textContent = 'Test Link';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    log('Link diklik (target=_blank). Lihat apakah tab/window baru terbuka.', 'info');
-    setTimeout(() => document.body.removeChild(a), 1000);
-  }
-
-  function testRedirectIframe() {
-    log('Mencoba load example.com di iframe...', 'blue');
-    const iframe = document.createElement('iframe');
-    iframe.src = 'https://example.com';
-    iframe.style.width = '100%';
-    iframe.style.height = '120px';
-    iframe.style.border = '1px solid #333';
-    iframe.onload = () => log('Iframe berhasil load example.com', 'ok');
-    iframe.onerror = () => log('Iframe gagal load', 'err');
-    document.body.appendChild(iframe);
-  }
-
-  // ==================== 2. LOCALSTORAGE ====================
-  function writeStorage() {
-    try {
-      const data = {
-        test: true,
-        time: new Date().toISOString(),
-        address: '0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A',
-        note: 'Data tes dari 1inch WebView tester'
-      };
-      localStorage.setItem('1inch_test_key', JSON.stringify(data));
-      localStorage.setItem('1inch_simple', 'hello-from-webview');
-      log('Data berhasil ditulis ke localStorage', 'ok');
-      log('Key: 1inch_test_key & 1inch_simple', 'info');
-    } catch (e) {
-      log('Gagal tulis localStorage: ' + e.message, 'err');
+    async function checkWalletConnection() {
+        if (typeof window.ethereum === "undefined") {
+            log("Kesalahan: Browser Wallet (MetaMask/1inch Wallet) tidak terdeteksi!");
+            return;
+        }
+        try {
+            const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+            log("Wallet terhubung: " + accounts[0]);
+        } catch (error) {
+            log("Koneksi ditolak oleh pengguna: " + error.message);
+        }
     }
-  }
 
-  function readStorage() {
-    try {
-      const val1 = localStorage.getItem('1inch_test_key');
-      const val2 = localStorage.getItem('1inch_simple');
-      log('1inch_test_key → ' + (val1 || '(kosong)'), val1 ? 'ok' : 'warn');
-      log('1inch_simple → ' + (val2 || '(kosong)'), val2 ? 'ok' : 'warn');
-    } catch (e) {
-      log('Gagal baca localStorage: ' + e.message, 'err');
+    async function testSwapAllowanceRisk() {
+        if (typeof window.ethereum === "undefined") {
+            log("Kesalahan: Harap hubungkan wallet terlebih dahulu.");
+            return;
+        }
+
+        log("Memulai analisis parameter router 1inch...");
+        
+        // Contoh alamat Router Aggregator 1inch yang sah di Ethereum Mainnet
+        const ONEINCH_ROUTER = "-"; 
+        
+        // Simulasi pemeriksaan payload data swap yang mencurigakan (rentan terhadap parameter tampering)
+        const sampleSwapPayload = {
+            fromTokenAddress: "0x1111111111111111111111111111111111111111", // Contoh token dummy
+            toTokenAddress: "0x0000000000000000000000000000000000000000",
+            amount: "1000000000000000000",
+            // Kerentanan umum: Allowance diset tak terbatas (Max Uint256) alih-alih pasak nominal swap
+            requestedAllowance: "115792089237316195423570985008687907853269984665640564039457584007913129639935" 
+        };
+
+        if (BigInt(sampleSwapPayload.requestedAllowance) === BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")) {
+            log("[PERINGATAN KRITIS] Terdeteksi permintaan Unlimited Allowance! Risiko celah token drainer aktif jika dApp tidak membatasi kuota router.");
+        } else {
+            log("[AMAN] Allowance dibatasi sesuai nominal transaksi.");
+        }
     }
-  }
-
-  function clearStorage() {
-    try {
-      localStorage.removeItem('1inch_test_key');
-      localStorage.removeItem('1inch_simple');
-      log('Key tes dihapus dari localStorage', 'ok');
-    } catch (e) {
-      log('Gagal hapus: ' + e.message, 'err');
-    }
-  }
-
-  function checkStorageKeys() {
-    try {
-      const keys = Object.keys(localStorage);
-      log('Jumlah key di localStorage: ' + keys.length, 'blue');
-      keys.forEach(k => log(' - ' + k, 'info'));
-      if (keys.length === 0) log('localStorage kosong', 'warn');
-    } catch (e) {
-      log('Error list keys: ' + e.message, 'err');
-    }
-  }
-
-  // ==================== 3. CONTENT MODIFICATION ====================
-  function injectText() {
-    const el = document.getElementById('originalText');
-    if (el) {
-      el.textContent = 'TEKS SUDAH DIUBAH oleh JavaScript pada ' + new Date().toLocaleTimeString();
-      el.style.color = '#fbbf24';
-      log('Teks berhasil diubah (DOM manipulation)', 'ok');
-    }
-  }
-
-  function injectHTML() {
-    const area = document.getElementById('targetArea');
-    if (area) {
-      const div = document.createElement('div');
-      div.innerHTML = '<p style="color:#4ade80; margin-top:8px;">[Injected Element] Ini elemen baru yang ditambahkan ke DOM.</p>';
-      area.appendChild(div);
-      log('HTML element berhasil di-inject ke halaman', 'ok');
-    }
-  }
-
-  function restoreContent() {
-    const el = document.getElementById('originalText');
-    if (el) {
-      el.textContent = 'Ini adalah teks asli halaman test. Jika berubah, berarti manipulasi DOM berhasil.';
-      el.style.color = '';
-    }
-    // Hapus injected elements (sederhana)
-    const area = document.getElementById('targetArea');
-    const extras = area.querySelectorAll('div');
-    extras.forEach(d => d.remove());
-    log('Konten dikembalikan ke semula', 'ok');
-  }
-
-  // Auto start
-  log('Halaman loaded. Siap testing.', 'ok');
-  log('UserAgent: ' + navigator.userAgent, 'info');
-  log('Origin: ' + location.origin, 'info');
 </script>
+
 </body>
 </html>
