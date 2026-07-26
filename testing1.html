@@ -3,403 +3,232 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>1inch iOS Wallet Tester</title>
+  <title>1inch Tester v2</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f0f0f;
-      color: #e0e0e0;
-      padding: 16px;
-      line-height: 1.5;
+      font-family: -apple-system, system-ui, sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 12px;
       font-size: 14px;
+      line-height: 1.4;
     }
-    h1 { font-size: 20px; margin-bottom: 8px; color: #fff; }
-    h2 { font-size: 16px; margin: 20px 0 8px; color: #7dd3fc; border-bottom: 1px solid #333; padding-bottom: 4px; }
-    .card {
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 14px;
+    h1 { font-size: 18px; margin-bottom: 6px; }
+    .status {
+      background: #1e293b;
+      padding: 10px;
+      border-radius: 8px;
       margin-bottom: 12px;
+      font-size: 13px;
+      border: 1px solid #334155;
     }
     button {
-      background: #2563eb;
+      background: #3b82f6;
       color: white;
       border: none;
       border-radius: 8px;
-      padding: 10px 14px;
+      padding: 11px 14px;
       font-size: 14px;
-      margin: 4px 4px 4px 0;
-      cursor: pointer;
-      font-weight: 500;
+      margin: 4px 4px 8px 0;
+      font-weight: 600;
+      width: 100%;
+      max-width: 320px;
     }
-    button:active { opacity: 0.8; }
-    button.danger { background: #dc2626; }
-    button.success { background: #16a34a; }
-    pre {
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 10px;
-      overflow-x: auto;
-      font-size: 12px;
-      white-space: pre-wrap;
-      word-break: break-all;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .ok { color: #4ade80; }
-    .warn { color: #fbbf24; }
-    .err { color: #f87171; }
-    .label { color: #94a3b8; font-size: 12px; }
-    #log {
+    button:active { opacity: 0.75; }
+    button.red { background: #dc2626; }
+    button.green { background: #16a34a; }
+    pre, #log {
       background: #0a0a0a;
       border: 1px solid #333;
       border-radius: 8px;
       padding: 10px;
-      height: 220px;
-      overflow-y: auto;
       font-size: 12px;
-      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 280px;
+      overflow-y: auto;
+      margin-top: 8px;
     }
-    .log-entry { margin-bottom: 4px; border-bottom: 1px solid #222; padding-bottom: 3px; }
+    .ok { color: #4ade80; }
+    .err { color: #f87171; }
+    .warn { color: #fbbf24; }
+    .section { margin: 18px 0 8px; color: #7dd3fc; font-weight: 600; }
   </style>
 </head>
 <body>
-  <h1>1inch iOS Wallet Tester</h1>
-  <p class="label">Buka file ini di dApp Browser 1inch Wallet iOS</p>
 
-  <!-- ==================== DETECT ==================== -->
-  <h2>1. Provider Detection</h2>
-  <div class="card">
-    <button onclick="detectProvider()">Scan Provider</button>
-    <button onclick="listAllKeys()">List All Keys</button>
-    <pre id="detectResult">Tekan "Scan Provider"</pre>
+  <h1>1inch iOS Tester v2</h1>
+  <div class="status" id="status">
+    Status: Menunggu JavaScript...
   </div>
 
-  <!-- ==================== BASIC ==================== -->
-  <h2>2. Basic RPC Calls</h2>
-  <div class="card">
-    <button onclick="getAccounts()">eth_accounts</button>
-    <button onclick="requestAccounts()">eth_requestAccounts</button>
-    <button onclick="getChainId()">eth_chainId</button>
-    <button onclick="getBalance()">eth_getBalance</button>
-    <button onclick="getNetVersion()">net_version</button>
-    <pre id="basicResult">-</pre>
-  </div>
+  <button onclick="forceLog()" class="green">1. Force Log / Cek JS</button>
+  <button onclick="detect()">2. Scan Provider</button>
+  <button onclick="getAccounts()">3. eth_accounts</button>
+  <button onclick="requestAccounts()">4. eth_requestAccounts</button>
+  <button onclick="getChainId()">5. eth_chainId</button>
+  <button onclick="personalSign()">6. personal_sign</button>
+  <button onclick="clearLog()" class="red">Clear Log</button>
 
-  <!-- ==================== SIGN ==================== -->
-  <h2>3. Signing Test</h2>
-  <div class="card">
-    <button onclick="personalSign()">personal_sign</button>
-    <button onclick="signTypedData()">eth_signTypedData_v4</button>
-    <pre id="signResult">-</pre>
-  </div>
-
-  <!-- ==================== CHAIN ==================== -->
-  <h2>4. Chain Switch / Add</h2>
-  <div class="card">
-    <button onclick="switchToPolygon()">Switch → Polygon</button>
-    <button onclick="switchToMainnet()">Switch → Mainnet</button>
-    <button onclick="addBase()">Add Base Chain</button>
-    <pre id="chainResult">-</pre>
-  </div>
-
-  <!-- ==================== EIP-6963 ==================== -->
-  <h2>5. EIP-6963 (Multi Provider)</h2>
-  <div class="card">
-    <button onclick="listenEIP6963()">Listen EIP-6963</button>
-    <pre id="eip6963Result">-</pre>
-  </div>
-
-  <!-- ==================== POSTMESSAGE ==================== -->
-  <h2>6. postMessage Test</h2>
-  <div class="card">
-    <button onclick="testPostMessage()">Send postMessage</button>
-    <pre id="pmResult">-</pre>
-  </div>
-
-  <!-- ==================== LOG ==================== -->
-  <h2>Live Log</h2>
-  <div id="log"></div>
-  <button onclick="clearLog()" class="danger" style="margin-top:8px">Clear Log</button>
+  <div class="section">Hasil / Log:</div>
+  <div id="log">Belum ada log...</div>
 
   <script>
+    // ========== LOGGING AMAN ==========
     const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('status');
 
     function log(msg, type = 'info') {
-      const time = new Date().toLocaleTimeString();
-      const color = type === 'err' ? '#f87171' : type === 'ok' ? '#4ade80' : type === 'warn' ? '#fbbf24' : '#94a3b8';
-      logEl.innerHTML += `<div class="log-entry" style="color:${color}">[${time}] ${msg}</div>`;
-      logEl.scrollTop = logEl.scrollHeight;
+      try {
+        const time = new Date().toLocaleTimeString();
+        let color = '#94a3b8';
+        if (type === 'ok') color = '#4ade80';
+        if (type === 'err') color = '#f87171';
+        if (type === 'warn') color = '#fbbf24';
+
+        const div = document.createElement('div');
+        div.style.color = color;
+        div.style.marginBottom = '4px';
+        div.style.borderBottom = '1px solid #222';
+        div.style.paddingBottom = '3px';
+        div.textContent = `[${time}] ${msg}`;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+      } catch (e) {
+        // kalau bahkan log gagal, pakai alert
+        alert('Log error: ' + e.message);
+      }
+    }
+
+    function setStatus(text, isError = false) {
+      statusEl.textContent = 'Status: ' + text;
+      statusEl.style.borderColor = isError ? '#dc2626' : '#334155';
     }
 
     function clearLog() {
       logEl.innerHTML = '';
+      log('Log dibersihkan', 'warn');
     }
 
-    function setResult(id, data) {
-      document.getElementById(id).textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-    }
+    // ========== FUNGSI UTAMA ==========
+    function forceLog() {
+      log('=== FORCE LOG BERHASIL ===', 'ok');
+      log('User Agent: ' + navigator.userAgent);
+      log('Location: ' + location.href);
+      log('window.ethereum exists? → ' + !!window.ethereum);
+      log('typeof window.ethereum → ' + typeof window.ethereum);
 
-    // ========== 1. DETECT ==========
-    function detectProvider() {
-      const eth = window.ethereum;
-      if (!eth) {
-        setResult('detectResult', '❌ window.ethereum TIDAK DITEMUKAN');
-        log('window.ethereum not found', 'err');
-        return;
+      if (window.ethereum) {
+        log('isMetaMask: ' + window.ethereum.isMetaMask);
+        log('isOneInchIOSWallet: ' + window.ethereum.isOneInchIOSWallet);
       }
 
-      const info = {
-        isMetaMask: eth.isMetaMask,
-        is1inch: eth.is1inch,
-        isOneInchIOSWallet: eth.isOneInchIOSWallet,
-        isOneInchAndroidWallet: eth.isOneInchAndroidWallet,
-        isCoinbaseWallet: eth.isCoinbaseWallet,
-        isTrust: eth.isTrust,
-        isRabby: eth.isRabby,
-        isPhantom: eth.isPhantom,
-        isBraveWallet: eth.isBraveWallet,
-        chainId: eth.chainId,
-        selectedAddress: eth.selectedAddress,
-        networkVersion: eth.networkVersion,
-        hasRequest: typeof eth.request === 'function',
-        hasSend: typeof eth.send === 'function',
-        hasSendAsync: typeof eth.sendAsync === 'function',
-        hasEnable: typeof eth.enable === 'function',
-        hasOn: typeof eth.on === 'function',
-        providersCount: eth.providers ? eth.providers.length : 0,
-        // Check global objects
-        hasOneInchIOSWallet: typeof window.OneInchIOSWallet === 'function' || typeof window.OneInchIOSWallet === 'object',
-        hasOneInchSolanaWallet: typeof window.OneInchSolanaWallet === 'function' || typeof window.OneInchSolanaWallet === 'object',
-      };
-
-      setResult('detectResult', info);
-      log('Provider detected', 'ok');
-      console.log('Full ethereum object:', eth);
+      setStatus('JavaScript berjalan normal');
     }
 
-    function listAllKeys() {
-      const eth = window.ethereum;
-      if (!eth) {
-        setResult('detectResult', 'No ethereum');
-        return;
+    function detect() {
+      try {
+        log('Mulai scan provider...', 'warn');
+        const eth = window.ethereum;
+
+        if (!eth) {
+          log('❌ window.ethereum TIDAK ADA', 'err');
+          setStatus('Tidak ada provider', true);
+          return;
+        }
+
+        const info = {
+          isMetaMask: eth.isMetaMask,
+          isOneInchIOSWallet: eth.isOneInchIOSWallet,
+          isOneInchAndroidWallet: eth.isOneInchAndroidWallet,
+          is1inch: eth.is1inch,
+          chainId: eth.chainId,
+          selectedAddress: eth.selectedAddress,
+          hasRequest: typeof eth.request === 'function',
+          hasOn: typeof eth.on === 'function',
+          keys: Object.keys(eth).slice(0, 20) // ambil 20 key dulu
+        };
+
+        log(JSON.stringify(info, null, 2), 'ok');
+        setStatus('Provider ditemukan');
+      } catch (e) {
+        log('Error di detect(): ' + e.message, 'err');
+        setStatus('Error: ' + e.message, true);
       }
-      const keys = Object.keys(eth);
-      const own = Object.getOwnPropertyNames(eth);
-      setResult('detectResult', {
-        Object.keys: keys,
-        Object.getOwnPropertyNames: own,
-        prototype: Object.getOwnPropertyNames(Object.getPrototypeOf(eth) || {})
-      });
     }
 
-    // ========== 2. BASIC ==========
     async function getAccounts() {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        setResult('basicResult', accounts);
-        log('eth_accounts: ' + JSON.stringify(accounts), 'ok');
+        log('Memanggil eth_accounts...', 'warn');
+        if (!window.ethereum) throw new Error('ethereum tidak ada');
+        const res = await window.ethereum.request({ method: 'eth_accounts' });
+        log('eth_accounts → ' + JSON.stringify(res), 'ok');
       } catch (e) {
-        setResult('basicResult', e.message);
-        log('eth_accounts error: ' + e.message, 'err');
+        log('eth_accounts ERROR: ' + e.message, 'err');
       }
     }
 
     async function requestAccounts() {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        setResult('basicResult', accounts);
-        log('eth_requestAccounts: ' + JSON.stringify(accounts), 'ok');
+        log('Memanggil eth_requestAccounts...', 'warn');
+        if (!window.ethereum) throw new Error('ethereum tidak ada');
+        const res = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        log('eth_requestAccounts → ' + JSON.stringify(res), 'ok');
       } catch (e) {
-        setResult('basicResult', e.message);
-        log('eth_requestAccounts error: ' + e.message, 'err');
+        log('eth_requestAccounts ERROR: ' + e.message, 'err');
       }
     }
 
     async function getChainId() {
       try {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        setResult('basicResult', { chainId, decimal: parseInt(chainId, 16) });
-        log('eth_chainId: ' + chainId, 'ok');
+        log('Memanggil eth_chainId...', 'warn');
+        if (!window.ethereum) throw new Error('ethereum tidak ada');
+        const res = await window.ethereum.request({ method: 'eth_chainId' });
+        log('eth_chainId → ' + res + ' (decimal: ' + parseInt(res, 16) + ')', 'ok');
       } catch (e) {
-        setResult('basicResult', e.message);
-        log(e.message, 'err');
+        log('eth_chainId ERROR: ' + e.message, 'err');
       }
     }
 
-    async function getBalance() {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (!accounts[0]) throw new Error('No account');
-        const bal = await window.ethereum.request({
-          method: 'eth_getBalance',
-          params: [accounts[0], 'latest']
-        });
-        const eth = parseInt(bal, 16) / 1e18;
-        setResult('basicResult', { wei: bal, eth: eth.toFixed(6) });
-        log('Balance: ' + eth.toFixed(6) + ' ETH', 'ok');
-      } catch (e) {
-        setResult('basicResult', e.message);
-        log(e.message, 'err');
-      }
-    }
-
-    async function getNetVersion() {
-      try {
-        const v = await window.ethereum.request({ method: 'net_version' });
-        setResult('basicResult', v);
-        log('net_version: ' + v, 'ok');
-      } catch (e) {
-        setResult('basicResult', e.message);
-        log(e.message, 'err');
-      }
-    }
-
-    // ========== 3. SIGN ==========
     async function personalSign() {
       try {
+        log('Memanggil personal_sign...', 'warn');
+        if (!window.ethereum) throw new Error('ethereum tidak ada');
+
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (!accounts[0]) throw new Error('No account connected');
-        const msg = 'Hello from 1inch tester - ' + new Date().toISOString();
+        if (!accounts || !accounts[0]) throw new Error('Tidak ada akun terhubung');
+
+        const msg = 'Test dari 1inch tester ' + Date.now();
         const hex = '0x' + Array.from(new TextEncoder().encode(msg))
           .map(b => b.toString(16).padStart(2, '0')).join('');
+
         const sig = await window.ethereum.request({
           method: 'personal_sign',
           params: [hex, accounts[0]]
         });
-        setResult('signResult', { message: msg, signature: sig });
-        log('personal_sign success', 'ok');
+
+        log('personal_sign BERHASIL', 'ok');
+        log('Signature: ' + sig, 'ok');
       } catch (e) {
-        setResult('signResult', e.message);
-        log('personal_sign: ' + e.message, 'err');
+        log('personal_sign ERROR: ' + e.message, 'err');
       }
     }
 
-    async function signTypedData() {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (!accounts[0]) throw new Error('No account');
-        const domain = {
-          name: '1inch Tester',
-          version: '1',
-          chainId: 1,
-          verifyingContract: '0x0000000000000000000000000000000000000000'
-        };
-        const types = {
-          Message: [{ name: 'content', type: 'string' }]
-        };
-        const value = { content: 'Test typed data from 1inch iOS' };
-        const sig = await window.ethereum.request({
-          method: 'eth_signTypedData_v4',
-          params: [accounts[0], JSON.stringify({ domain, types, primaryType: 'Message', message: value })]
-        });
-        setResult('signResult', { signature: sig });
-        log('eth_signTypedData_v4 success', 'ok');
-      } catch (e) {
-        setResult('signResult', e.message);
-        log('signTypedData: ' + e.message, 'err');
-      }
-    }
+    // ========== AUTO START ==========
+    try {
+      setStatus('JavaScript loaded');
+      log('Halaman berhasil dimuat', 'ok');
+      log('Waktu: ' + new Date().toLocaleString());
+      log('Jika kamu melihat ini, berarti JS berjalan.', 'ok');
 
-    // ========== 4. CHAIN ==========
-    async function switchToPolygon() {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x89' }]
-        });
-        setResult('chainResult', 'Switched to Polygon (0x89)');
-        log('Switched to Polygon', 'ok');
-      } catch (e) {
-        setResult('chainResult', e.message);
-        log('switch Polygon: ' + e.message, 'err');
-      }
-    }
-
-    async function switchToMainnet() {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x1' }]
-        });
-        setResult('chainResult', 'Switched to Mainnet (0x1)');
-        log('Switched to Mainnet', 'ok');
-      } catch (e) {
-        setResult('chainResult', e.message);
-        log('switch Mainnet: ' + e.message, 'err');
-      }
-    }
-
-    async function addBase() {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: '0x2105',
-            chainName: 'Base',
-            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-            rpcUrls: ['https://mainnet.base.org'],
-            blockExplorerUrls: ['https://basescan.org']
-          }]
-        });
-        setResult('chainResult', 'Base chain added / switched');
-        log('Base chain added', 'ok');
-      } catch (e) {
-        setResult('chainResult', e.message);
-        log('addBase: ' + e.message, 'err');
-      }
-    }
-
-    // ========== 5. EIP-6963 ==========
-    function listenEIP6963() {
-      const providers = [];
-      window.addEventListener('eip6963:announceProvider', (event) => {
-        providers.push(event.detail);
-        setResult('eip6963Result', providers);
-        log('EIP-6963 provider announced: ' + (event.detail?.info?.name || 'unknown'), 'ok');
-      });
-      window.dispatchEvent(new Event('eip6963:requestProvider'));
+      // Coba deteksi otomatis setelah 500ms
       setTimeout(() => {
-        if (providers.length === 0) {
-          setResult('eip6963Result', 'Tidak ada provider EIP-6963 yang merespons (banyak mobile wallet belum support)');
-          log('No EIP-6963 response', 'warn');
-        }
-      }, 1000);
-    }
-
-    // ========== 6. POSTMESSAGE ==========
-    function testPostMessage() {
-      const results = [];
-      window.addEventListener('message', (e) => {
-        results.push({ origin: e.origin, data: e.data });
-        setResult('pmResult', results);
-        log('Received message from ' + e.origin, 'ok');
-      });
-
-      // same origin
-      window.postMessage({ test: 'same-origin', from: '1inch-tester' }, location.origin);
-      // wildcard
-      window.postMessage({ test: 'wildcard', from: '1inch-tester' }, '*');
-
-      setResult('pmResult', 'Messages sent. Waiting for echo...');
-      log('postMessage sent (same-origin + *)', 'ok');
-    }
-
-    // Auto run detection on load
-    window.addEventListener('load', () => {
-      log('Page loaded. Ready to test.', 'ok');
-      detectProvider();
-    });
-
-    // Listen to provider events
-    if (window.ethereum && window.ethereum.on) {
-      window.ethereum.on('accountsChanged', (acc) => log('accountsChanged: ' + JSON.stringify(acc), 'warn'));
-      window.ethereum.on('chainChanged', (chainId) => log('chainChanged: ' + chainId, 'warn'));
-      window.ethereum.on('connect', (info) => log('connect: ' + JSON.stringify(info), 'ok'));
-      window.ethereum.on('disconnect', (err) => log('disconnect: ' + JSON.stringify(err), 'err'));
+        forceLog();
+      }, 500);
+    } catch (e) {
+      setStatus('Gagal load JS: ' + e.message, true);
+      alert('Critical error: ' + e.message);
     }
   </script>
 </body>
