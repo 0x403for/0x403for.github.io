@@ -1,150 +1,405 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1inch Advanced Test</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>1inch iOS Wallet Tester</title>
   <style>
-    body { font-family: system-ui; background: #0d0d0d; color: #e0e0e0; padding: 16px; }
-    button { width: 100%; padding: 14px; margin: 8px 0; font-size: 15px; border-radius: 8px; border: none; background: #1a1a1a; color: white; }
-    .box { background: #1a1a1a; padding: 12px; margin-top: 12px; border-radius: 8px; font-size: 13px; word-break: break-all; }
-    h3 { color: #00e676; margin-bottom: 4px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      padding: 16px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    h1 { font-size: 20px; margin-bottom: 8px; color: #fff; }
+    h2 { font-size: 16px; margin: 20px 0 8px; color: #7dd3fc; border-bottom: 1px solid #333; padding-bottom: 4px; }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      margin: 4px 4px 4px 0;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:active { opacity: 0.8; }
+    button.danger { background: #dc2626; }
+    button.success { background: #16a34a; }
+    pre {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      overflow-x: auto;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .ok { color: #4ade80; }
+    .warn { color: #fbbf24; }
+    .err { color: #f87171; }
+    .label { color: #94a3b8; font-size: 12px; }
+    #log {
+      background: #0a0a0a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      height: 220px;
+      overflow-y: auto;
+      font-size: 12px;
+      font-family: monospace;
+    }
+    .log-entry { margin-bottom: 4px; border-bottom: 1px solid #222; padding-bottom: 3px; }
   </style>
 </head>
 <body>
-  <h2>1inch dApp Browser - Advanced Test</h2>
-  <p style="font-size:13px;opacity:0.7">Hanya untuk testing di wallet sendiri</p>
+  <h1>1inch iOS Wallet Tester</h1>
+  <p class="label">Buka file ini di dApp Browser 1inch Wallet iOS</p>
 
-  <button onclick="checkProvider()">1. Deep Provider Info</button>
-  <button onclick="listMethods()">2. List ethereum Methods</button>
-  <button onclick="testSign()">3. Test personal_sign (hati-hati)</button>
-  <button onclick="testPermissions()">4. Request Permissions</button>
-  <button onclick="scanWindow()">5. Scan window Objects</button>
-  <button onclick="testPostMessageOrigin()">6. postMessage Origin Test</button>
+  <!-- ==================== DETECT ==================== -->
+  <h2>1. Provider Detection</h2>
+  <div class="card">
+    <button onclick="detectProvider()">Scan Provider</button>
+    <button onclick="listAllKeys()">List All Keys</button>
+    <pre id="detectResult">Tekan "Scan Provider"</pre>
+  </div>
 
-  <div id="out" class="box">Hasil muncul di sini...</div>
+  <!-- ==================== BASIC ==================== -->
+  <h2>2. Basic RPC Calls</h2>
+  <div class="card">
+    <button onclick="getAccounts()">eth_accounts</button>
+    <button onclick="requestAccounts()">eth_requestAccounts</button>
+    <button onclick="getChainId()">eth_chainId</button>
+    <button onclick="getBalance()">eth_getBalance</button>
+    <button onclick="getNetVersion()">net_version</button>
+    <pre id="basicResult">-</pre>
+  </div>
+
+  <!-- ==================== SIGN ==================== -->
+  <h2>3. Signing Test</h2>
+  <div class="card">
+    <button onclick="personalSign()">personal_sign</button>
+    <button onclick="signTypedData()">eth_signTypedData_v4</button>
+    <pre id="signResult">-</pre>
+  </div>
+
+  <!-- ==================== CHAIN ==================== -->
+  <h2>4. Chain Switch / Add</h2>
+  <div class="card">
+    <button onclick="switchToPolygon()">Switch → Polygon</button>
+    <button onclick="switchToMainnet()">Switch → Mainnet</button>
+    <button onclick="addBase()">Add Base Chain</button>
+    <pre id="chainResult">-</pre>
+  </div>
+
+  <!-- ==================== EIP-6963 ==================== -->
+  <h2>5. EIP-6963 (Multi Provider)</h2>
+  <div class="card">
+    <button onclick="listenEIP6963()">Listen EIP-6963</button>
+    <pre id="eip6963Result">-</pre>
+  </div>
+
+  <!-- ==================== POSTMESSAGE ==================== -->
+  <h2>6. postMessage Test</h2>
+  <div class="card">
+    <button onclick="testPostMessage()">Send postMessage</button>
+    <pre id="pmResult">-</pre>
+  </div>
+
+  <!-- ==================== LOG ==================== -->
+  <h2>Live Log</h2>
+  <div id="log"></div>
+  <button onclick="clearLog()" class="danger" style="margin-top:8px">Clear Log</button>
 
   <script>
-    const out = document.getElementById('out');
-    function log(msg) {
-      out.innerHTML += msg + '<br><br>';
-      console.log(msg);
-    }
-    function clearLog() { out.innerHTML = ''; }
+    const logEl = document.getElementById('log');
 
-    async function checkProvider() {
-      clearLog();
-      log('<h3>Provider Info</h3>');
-      if (!window.ethereum) return log('Tidak ada ethereum');
-
-      const e = window.ethereum;
-      log('isMetaMask: ' + e.isMetaMask);
-      log('is1inch: ' + e.is1inch);
-      log('chainId: ' + e.chainId);
-      log('selectedAddress: ' + e.selectedAddress);
-      log('networkVersion: ' + e.networkVersion);
-
-      try {
-        const chainId = await e.request({ method: 'eth_chainId' });
-        log('eth_chainId: ' + chainId);
-      } catch(err) { log('eth_chainId error: ' + err.message); }
-
-      try {
-        const accounts = await e.request({ method: 'eth_accounts' });
-        log('eth_accounts: ' + JSON.stringify(accounts));
-      } catch(err) { log('eth_accounts error: ' + err.message); }
+    function log(msg, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const color = type === 'err' ? '#f87171' : type === 'ok' ? '#4ade80' : type === 'warn' ? '#fbbf24' : '#94a3b8';
+      logEl.innerHTML += `<div class="log-entry" style="color:${color}">[${time}] ${msg}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
     }
 
-    function listMethods() {
-      clearLog();
-      log('<h3>ethereum Methods / Properties</h3>');
-      if (!window.ethereum) return log('Tidak ada ethereum');
+    function clearLog() {
+      logEl.innerHTML = '';
+    }
 
-      const keys = Object.keys(window.ethereum);
-      log('Keys: ' + keys.join(', '));
+    function setResult(id, data) {
+      document.getElementById(id).textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    }
 
-      // Cek method umum
-      const methods = ['request', 'send', 'sendAsync', 'enable', 'on', 'removeListener'];
-      methods.forEach(m => {
-        log(m + ': ' + (typeof window.ethereum[m]));
+    // ========== 1. DETECT ==========
+    function detectProvider() {
+      const eth = window.ethereum;
+      if (!eth) {
+        setResult('detectResult', '❌ window.ethereum TIDAK DITEMUKAN');
+        log('window.ethereum not found', 'err');
+        return;
+      }
+
+      const info = {
+        isMetaMask: eth.isMetaMask,
+        is1inch: eth.is1inch,
+        isOneInchIOSWallet: eth.isOneInchIOSWallet,
+        isOneInchAndroidWallet: eth.isOneInchAndroidWallet,
+        isCoinbaseWallet: eth.isCoinbaseWallet,
+        isTrust: eth.isTrust,
+        isRabby: eth.isRabby,
+        isPhantom: eth.isPhantom,
+        isBraveWallet: eth.isBraveWallet,
+        chainId: eth.chainId,
+        selectedAddress: eth.selectedAddress,
+        networkVersion: eth.networkVersion,
+        hasRequest: typeof eth.request === 'function',
+        hasSend: typeof eth.send === 'function',
+        hasSendAsync: typeof eth.sendAsync === 'function',
+        hasEnable: typeof eth.enable === 'function',
+        hasOn: typeof eth.on === 'function',
+        providersCount: eth.providers ? eth.providers.length : 0,
+        // Check global objects
+        hasOneInchIOSWallet: typeof window.OneInchIOSWallet === 'function' || typeof window.OneInchIOSWallet === 'object',
+        hasOneInchSolanaWallet: typeof window.OneInchSolanaWallet === 'function' || typeof window.OneInchSolanaWallet === 'object',
+      };
+
+      setResult('detectResult', info);
+      log('Provider detected', 'ok');
+      console.log('Full ethereum object:', eth);
+    }
+
+    function listAllKeys() {
+      const eth = window.ethereum;
+      if (!eth) {
+        setResult('detectResult', 'No ethereum');
+        return;
+      }
+      const keys = Object.keys(eth);
+      const own = Object.getOwnPropertyNames(eth);
+      setResult('detectResult', {
+        Object.keys: keys,
+        Object.getOwnPropertyNames: own,
+        prototype: Object.getOwnPropertyNames(Object.getPrototypeOf(eth) || {})
       });
     }
 
-    async function testSign() {
-      clearLog();
-      log('<h3>personal_sign Test</h3>');
-      log('Ini akan memunculkan konfirmasi di wallet. Jangan approve kalau tidak yakin.');
-
-      if (!window.ethereum) return log('Tidak ada ethereum');
-
+    // ========== 2. BASIC ==========
+    async function getAccounts() {
       try {
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (!accounts.length) return log('Tidak ada account');
-
-        const msg = 'Test message from dApp browser - ' + Date.now();
-        const from = accounts[0];
-
-        const signature = await window.ethereum.request({
-          method: 'personal_sign',
-          params: [msg, from]
-        });
-        log('Signature berhasil: ' + signature);
-      } catch (err) {
-        log('Error / Ditolak: ' + err.message);
+        setResult('basicResult', accounts);
+        log('eth_accounts: ' + JSON.stringify(accounts), 'ok');
+      } catch (e) {
+        setResult('basicResult', e.message);
+        log('eth_accounts error: ' + e.message, 'err');
       }
     }
 
-    async function testPermissions() {
-      clearLog();
-      log('<h3>Request Permissions</h3>');
+    async function requestAccounts() {
       try {
-        const perms = await window.ethereum.request({
-          method: 'wallet_requestPermissions',
-          params: [{ eth_accounts: {} }]
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        setResult('basicResult', accounts);
+        log('eth_requestAccounts: ' + JSON.stringify(accounts), 'ok');
+      } catch (e) {
+        setResult('basicResult', e.message);
+        log('eth_requestAccounts error: ' + e.message, 'err');
+      }
+    }
+
+    async function getChainId() {
+      try {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        setResult('basicResult', { chainId, decimal: parseInt(chainId, 16) });
+        log('eth_chainId: ' + chainId, 'ok');
+      } catch (e) {
+        setResult('basicResult', e.message);
+        log(e.message, 'err');
+      }
+    }
+
+    async function getBalance() {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (!accounts[0]) throw new Error('No account');
+        const bal = await window.ethereum.request({
+          method: 'eth_getBalance',
+          params: [accounts[0], 'latest']
         });
-        log('Permissions: ' + JSON.stringify(perms));
-      } catch (err) {
-        log('Error: ' + err.message);
+        const eth = parseInt(bal, 16) / 1e18;
+        setResult('basicResult', { wei: bal, eth: eth.toFixed(6) });
+        log('Balance: ' + eth.toFixed(6) + ' ETH', 'ok');
+      } catch (e) {
+        setResult('basicResult', e.message);
+        log(e.message, 'err');
       }
     }
 
-    function scanWindow() {
-      clearLog();
-      log('<h3>Scanning window for interesting objects</h3>');
-
-      const interesting = [];
-      for (let key in window) {
-        try {
-          if (key.toLowerCase().includes('inch') ||
-              key.toLowerCase().includes('wallet') ||
-              key.toLowerCase().includes('bridge') ||
-              key.toLowerCase().includes('native') ||
-              key.toLowerCase().includes('webkit') ||
-              key.toLowerCase().includes('react') ||
-              key === 'ethereum' || key === 'solana' || key === 'web3') {
-            interesting.push(key + ' (' + typeof window[key] + ')');
-          }
-        } catch(e) {}
+    async function getNetVersion() {
+      try {
+        const v = await window.ethereum.request({ method: 'net_version' });
+        setResult('basicResult', v);
+        log('net_version: ' + v, 'ok');
+      } catch (e) {
+        setResult('basicResult', e.message);
+        log(e.message, 'err');
       }
-      log(interesting.join('<br>') || 'Tidak banyak object menarik');
     }
 
-    function testPostMessageOrigin() {
-      clearLog();
-      log('<h3>postMessage Origin Test</h3>');
+    // ========== 3. SIGN ==========
+    async function personalSign() {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (!accounts[0]) throw new Error('No account connected');
+        const msg = 'Hello from 1inch tester - ' + new Date().toISOString();
+        const hex = '0x' + Array.from(new TextEncoder().encode(msg))
+          .map(b => b.toString(16).padStart(2, '0')).join('');
+        const sig = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [hex, accounts[0]]
+        });
+        setResult('signResult', { message: msg, signature: sig });
+        log('personal_sign success', 'ok');
+      } catch (e) {
+        setResult('signResult', e.message);
+        log('personal_sign: ' + e.message, 'err');
+      }
+    }
 
+    async function signTypedData() {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (!accounts[0]) throw new Error('No account');
+        const domain = {
+          name: '1inch Tester',
+          version: '1',
+          chainId: 1,
+          verifyingContract: '0x0000000000000000000000000000000000000000'
+        };
+        const types = {
+          Message: [{ name: 'content', type: 'string' }]
+        };
+        const value = { content: 'Test typed data from 1inch iOS' };
+        const sig = await window.ethereum.request({
+          method: 'eth_signTypedData_v4',
+          params: [accounts[0], JSON.stringify({ domain, types, primaryType: 'Message', message: value })]
+        });
+        setResult('signResult', { signature: sig });
+        log('eth_signTypedData_v4 success', 'ok');
+      } catch (e) {
+        setResult('signResult', e.message);
+        log('signTypedData: ' + e.message, 'err');
+      }
+    }
+
+    // ========== 4. CHAIN ==========
+    async function switchToPolygon() {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x89' }]
+        });
+        setResult('chainResult', 'Switched to Polygon (0x89)');
+        log('Switched to Polygon', 'ok');
+      } catch (e) {
+        setResult('chainResult', e.message);
+        log('switch Polygon: ' + e.message, 'err');
+      }
+    }
+
+    async function switchToMainnet() {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x1' }]
+        });
+        setResult('chainResult', 'Switched to Mainnet (0x1)');
+        log('Switched to Mainnet', 'ok');
+      } catch (e) {
+        setResult('chainResult', e.message);
+        log('switch Mainnet: ' + e.message, 'err');
+      }
+    }
+
+    async function addBase() {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: '0x2105',
+            chainName: 'Base',
+            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+            rpcUrls: ['https://mainnet.base.org'],
+            blockExplorerUrls: ['https://basescan.org']
+          }]
+        });
+        setResult('chainResult', 'Base chain added / switched');
+        log('Base chain added', 'ok');
+      } catch (e) {
+        setResult('chainResult', e.message);
+        log('addBase: ' + e.message, 'err');
+      }
+    }
+
+    // ========== 5. EIP-6963 ==========
+    function listenEIP6963() {
+      const providers = [];
+      window.addEventListener('eip6963:announceProvider', (event) => {
+        providers.push(event.detail);
+        setResult('eip6963Result', providers);
+        log('EIP-6963 provider announced: ' + (event.detail?.info?.name || 'unknown'), 'ok');
+      });
+      window.dispatchEvent(new Event('eip6963:requestProvider'));
+      setTimeout(() => {
+        if (providers.length === 0) {
+          setResult('eip6963Result', 'Tidak ada provider EIP-6963 yang merespons (banyak mobile wallet belum support)');
+          log('No EIP-6963 response', 'warn');
+        }
+      }, 1000);
+    }
+
+    // ========== 6. POSTMESSAGE ==========
+    function testPostMessage() {
+      const results = [];
       window.addEventListener('message', (e) => {
-        log('Received from origin: <b>' + e.origin + '</b>');
-        log('Data: ' + JSON.stringify(e.data));
+        results.push({ origin: e.origin, data: e.data });
+        setResult('pmResult', results);
+        log('Received message from ' + e.origin, 'ok');
       });
 
-      // Kirim ke origin sendiri
-      window.postMessage({test: 'same-origin'}, location.origin);
-      log('Sent to same origin');
+      // same origin
+      window.postMessage({ test: 'same-origin', from: '1inch-tester' }, location.origin);
+      // wildcard
+      window.postMessage({ test: 'wildcard', from: '1inch-tester' }, '*');
 
-      // Kirim ke *
-      window.postMessage({test: 'wildcard'}, '*');
-      log('Sent to *');
+      setResult('pmResult', 'Messages sent. Waiting for echo...');
+      log('postMessage sent (same-origin + *)', 'ok');
+    }
+
+    // Auto run detection on load
+    window.addEventListener('load', () => {
+      log('Page loaded. Ready to test.', 'ok');
+      detectProvider();
+    });
+
+    // Listen to provider events
+    if (window.ethereum && window.ethereum.on) {
+      window.ethereum.on('accountsChanged', (acc) => log('accountsChanged: ' + JSON.stringify(acc), 'warn'));
+      window.ethereum.on('chainChanged', (chainId) => log('chainChanged: ' + chainId, 'warn'));
+      window.ethereum.on('connect', (info) => log('connect: ' + JSON.stringify(info), 'ok'));
+      window.ethereum.on('disconnect', (err) => log('disconnect: ' + JSON.stringify(err), 'err'));
     }
   </script>
 </body>
