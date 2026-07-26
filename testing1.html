@@ -1,138 +1,151 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch dApp Browser Test Page</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #111; color: #eee; }
-        button { display: block; width: 100%; margin: 10px 0; padding: 12px; font-size: 16px; }
-        .result { background: #222; padding: 10px; margin-top: 10px; border-radius: 6px; word-break: break-all; }
-        h2 { color: #00e676; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1inch Advanced Test</title>
+  <style>
+    body { font-family: system-ui; background: #0d0d0d; color: #e0e0e0; padding: 16px; }
+    button { width: 100%; padding: 14px; margin: 8px 0; font-size: 15px; border-radius: 8px; border: none; background: #1a1a1a; color: white; }
+    .box { background: #1a1a1a; padding: 12px; margin-top: 12px; border-radius: 8px; font-size: 13px; word-break: break-all; }
+    h3 { color: #00e676; margin-bottom: 4px; }
+  </style>
 </head>
 <body>
-    <h2>1inch Wallet - dApp Browser Test</h2>
-    <p>Gunakan hanya di wallet milik sendiri. Jangan pakai untuk merugikan orang lain.</p>
+  <h2>1inch dApp Browser - Advanced Test</h2>
+  <p style="font-size:13px;opacity:0.7">Hanya untuk testing di wallet sendiri</p>
 
-    <button onclick="testAlert()">1. Basic XSS / JS Execution Test</button>
-    <button onclick="testEthereum()">2. Check window.ethereum / provider</button>
-    <button onclick="testPostMessage()">3. postMessage Test</button>
-    <button onclick="testLocalStorage()">4. LocalStorage / Session Test</button>
-    <button onclick="testDeepLink()">5. Try Custom Scheme / Deep Link</button>
-    <button onclick="testFileAccess()">6. Attempt file:// access</button>
+  <button onclick="checkProvider()">1. Deep Provider Info</button>
+  <button onclick="listMethods()">2. List ethereum Methods</button>
+  <button onclick="testSign()">3. Test personal_sign (hati-hati)</button>
+  <button onclick="testPermissions()">4. Request Permissions</button>
+  <button onclick="scanWindow()">5. Scan window Objects</button>
+  <button onclick="testPostMessageOrigin()">6. postMessage Origin Test</button>
 
-    <div id="output" class="result">Hasil akan muncul di sini...</div>
+  <div id="out" class="box">Hasil muncul di sini...</div>
 
-    <script>
-        function log(msg) {
-            document.getElementById('output').innerHTML += msg + '<br>';
-            console.log(msg);
-        }
+  <script>
+    const out = document.getElementById('out');
+    function log(msg) {
+      out.innerHTML += msg + '<br><br>';
+      console.log(msg);
+    }
+    function clearLog() { out.innerHTML = ''; }
 
-        function testAlert() {
-            try {
-                alert('XSS / JS Execution berhasil!');
-                log('[+] alert() berhasil dieksekusi');
-            } catch (e) {
-                log('[-] alert gagal: ' + e.message);
-            }
-        }
+    async function checkProvider() {
+      clearLog();
+      log('<h3>Provider Info</h3>');
+      if (!window.ethereum) return log('Tidak ada ethereum');
 
-        function testEthereum() {
-            log('--- Checking provider ---');
-            if (typeof window.ethereum !== 'undefined') {
-                log('[+] window.ethereum ditemukan');
-                log('isMetaMask: ' + window.ethereum.isMetaMask);
-                log('is1inch: ' + (window.ethereum.is1inch || 'tidak diketahui'));
-                try {
-                    window.ethereum.request({ method: 'eth_accounts' })
-                        .then(accounts => log('Accounts: ' + JSON.stringify(accounts)))
-                        .catch(err => log('eth_accounts error: ' + err.message));
-                } catch (e) {
-                    log('Error request: ' + e.message);
-                }
-            } else {
-                log('[-] window.ethereum tidak ditemukan');
-            }
+      const e = window.ethereum;
+      log('isMetaMask: ' + e.isMetaMask);
+      log('is1inch: ' + e.is1inch);
+      log('chainId: ' + e.chainId);
+      log('selectedAddress: ' + e.selectedAddress);
+      log('networkVersion: ' + e.networkVersion);
 
-            // Cek provider lain yang umum
-            const providers = ['ethereum', 'web3', 'solana', 'phantom'];
-            providers.forEach(p => {
-                if (window[p]) log(`[+] window.${p} ada`);
-            });
-        }
+      try {
+        const chainId = await e.request({ method: 'eth_chainId' });
+        log('eth_chainId: ' + chainId);
+      } catch(err) { log('eth_chainId error: ' + err.message); }
 
-        function testPostMessage() {
-            log('--- postMessage test ---');
-            try {
-                window.postMessage({ type: 'test', data: 'hello from dapp' }, '*');
-                log('[+] postMessage ke * dikirim');
+      try {
+        const accounts = await e.request({ method: 'eth_accounts' });
+        log('eth_accounts: ' + JSON.stringify(accounts));
+      } catch(err) { log('eth_accounts error: ' + err.message); }
+    }
 
-                // Dengarkan balasan
-                window.addEventListener('message', function(e) {
-                    log('Received message from: ' + e.origin);
-                    log('Data: ' + JSON.stringify(e.data));
-                });
-            } catch (e) {
-                log('postMessage error: ' + e.message);
-            }
-        }
+    function listMethods() {
+      clearLog();
+      log('<h3>ethereum Methods / Properties</h3>');
+      if (!window.ethereum) return log('Tidak ada ethereum');
 
-        function testLocalStorage() {
-            log('--- Storage test ---');
-            try {
-                localStorage.setItem('test_key', 'test_value_' + Date.now());
-                log('[+] localStorage.setItem berhasil');
-                log('Isi: ' + localStorage.getItem('test_key'));
-            } catch (e) {
-                log('localStorage error: ' + e.message);
-            }
+      const keys = Object.keys(window.ethereum);
+      log('Keys: ' + keys.join(', '));
 
-            try {
-                sessionStorage.setItem('session_test', 'ok');
-                log('[+] sessionStorage berhasil');
-            } catch (e) {
-                log('sessionStorage error: ' + e.message);
-            }
-        }
+      // Cek method umum
+      const methods = ['request', 'send', 'sendAsync', 'enable', 'on', 'removeListener'];
+      methods.forEach(m => {
+        log(m + ': ' + (typeof window.ethereum[m]));
+      });
+    }
 
-        function testDeepLink() {
-            log('--- Trying deep links ---');
-            // Hanya mencoba, tidak otomatis berbahaya
-            const schemes = [
-                '1inch://',
-                'oneinch://',
-                'wc:',
-                'ethereum:',
-                'intent://'
-            ];
-            schemes.forEach(s => {
-                log('Mencoba: ' + s);
-                // Tidak langsung redirect supaya tidak agresif
-            });
-            log('Coba manual buka deep link dari luar aplikasi juga');
-        }
+    async function testSign() {
+      clearLog();
+      log('<h3>personal_sign Test</h3>');
+      log('Ini akan memunculkan konfirmasi di wallet. Jangan approve kalau tidak yakin.');
 
-        function testFileAccess() {
-            log('--- File access test ---');
-            try {
-                // Ini biasanya diblokir di WebView yang aman
-                fetch('file:///etc/passwd')
-                    .then(r => r.text())
-                    .then(t => log('[!] file access berhasil: ' + t.substring(0, 100)))
-                    .catch(e => log('[-] file:// diblokir (bagus): ' + e.message));
-            } catch (e) {
-                log('file access error: ' + e.message);
-            }
-        }
+      if (!window.ethereum) return log('Tidak ada ethereum');
 
-        // Auto log saat page load
-        window.onload = function() {
-            log('Page loaded');
-            log('User Agent: ' + navigator.userAgent);
-            log('Location: ' + location.href);
-        };
-    </script>
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (!accounts.length) return log('Tidak ada account');
+
+        const msg = 'Test message from dApp browser - ' + Date.now();
+        const from = accounts[0];
+
+        const signature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [msg, from]
+        });
+        log('Signature berhasil: ' + signature);
+      } catch (err) {
+        log('Error / Ditolak: ' + err.message);
+      }
+    }
+
+    async function testPermissions() {
+      clearLog();
+      log('<h3>Request Permissions</h3>');
+      try {
+        const perms = await window.ethereum.request({
+          method: 'wallet_requestPermissions',
+          params: [{ eth_accounts: {} }]
+        });
+        log('Permissions: ' + JSON.stringify(perms));
+      } catch (err) {
+        log('Error: ' + err.message);
+      }
+    }
+
+    function scanWindow() {
+      clearLog();
+      log('<h3>Scanning window for interesting objects</h3>');
+
+      const interesting = [];
+      for (let key in window) {
+        try {
+          if (key.toLowerCase().includes('inch') ||
+              key.toLowerCase().includes('wallet') ||
+              key.toLowerCase().includes('bridge') ||
+              key.toLowerCase().includes('native') ||
+              key.toLowerCase().includes('webkit') ||
+              key.toLowerCase().includes('react') ||
+              key === 'ethereum' || key === 'solana' || key === 'web3') {
+            interesting.push(key + ' (' + typeof window[key] + ')');
+          }
+        } catch(e) {}
+      }
+      log(interesting.join('<br>') || 'Tidak banyak object menarik');
+    }
+
+    function testPostMessageOrigin() {
+      clearLog();
+      log('<h3>postMessage Origin Test</h3>');
+
+      window.addEventListener('message', (e) => {
+        log('Received from origin: <b>' + e.origin + '</b>');
+        log('Data: ' + JSON.stringify(e.data));
+      });
+
+      // Kirim ke origin sendiri
+      window.postMessage({test: 'same-origin'}, location.origin);
+      log('Sent to same origin');
+
+      // Kirim ke *
+      window.postMessage({test: 'wildcard'}, '*');
+      log('Sent to *');
+    }
+  </script>
 </body>
 </html>
