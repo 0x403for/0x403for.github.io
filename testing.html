@@ -3,83 +3,55 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Provider Method Scanner</title>
+  <title>Navigation / Address Bar Test</title>
   <style>
     body { font-family: system-ui; padding: 16px; background: #0f0f0f; color: #e0e0e0; }
     button { margin: 6px 4px; padding: 10px 14px; border-radius: 8px; border: none; background: #3b82f6; color: white; }
-    pre { background: #1a1a1a; padding: 12px; border-radius: 8px; overflow: auto; font-size: 13px; white-space: pre-wrap; }
-    .ok { color: #4ade80; }
-    .err { color: #f87171; }
+    pre { background: #1a1a1a; padding: 12px; border-radius: 8px; font-size: 13px; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <h2>Provider Method Scanner (Read-only)</h2>
-  <button onclick="scanProviders()">Scan Providers</button>
-  <button onclick="callSafeMethods()">Call Safe Methods</button>
-  <button onclick="clearLog()">Clear</button>
+  <h2>Navigation / Address Bar Spoof Test</h2>
+  <p>Perhatikan apakah address bar berubah setelah menekan tombol.</p>
+  <button onclick="tryHistory()">history.replaceState</button>
+  <button onclick="tryPushState()">history.pushState</button>
+  <button onclick="tryLocation()">location manipulation</button>
+  <button onclick="tryTitle()">Ubah document.title</button>
   <pre id="log">Siap...</pre>
 
   <script>
     const logEl = document.getElementById('log');
-    function log(msg, type = '') {
-      const span = type ? `<span class="${type}">${msg}</span>` : msg;
-      logEl.innerHTML += span + '\n';
-    }
-    function clearLog() { logEl.innerHTML = ''; }
+    function log(msg) { logEl.textContent += msg + '\n'; }
 
-    function scanProviders() {
-      clearLog();
-      const providers = ['ethereum', 'coin98', 'solana', 'coin98.provider', 'coin98.sol', 'coin98.bitcoin'];
-      providers.forEach(path => {
-        try {
-          const obj = path.split('.').reduce((o, k) => o?.[k], window);
-          if (obj) {
-            log(`[FOUND] window.${path}`, 'ok');
-            const keys = Object.keys(obj).filter(k => typeof obj[k] === 'function' || typeof obj[k] === 'object');
-            log(`  keys/methods: ${keys.slice(0, 25).join(', ')}`);
-          }
-        } catch(e) {}
-      });
-    }
-
-    async function callSafeMethods() {
-      clearLog();
-      log('=== Memanggil method read-only ===\n');
-
-      // ethereum
-      if (window.ethereum) {
-        const methods = [
-          'eth_chainId',
-          'eth_accounts',
-          'net_version',
-          'wallet_getPermissions',
-          'wallet_requestPermissions',
-          'eth_requestAccounts'
-        ];
-        for (const m of methods) {
-          try {
-            const res = await window.ethereum.request({ method: m });
-            log(`[ethereum] ${m} → ${JSON.stringify(res)}`, 'ok');
-          } catch(e) {
-            log(`[ethereum] ${m} → ERROR: ${e.message}`, 'err');
-          }
-        }
-      } else {
-        log('window.ethereum tidak ada', 'err');
-      }
-
-      // coin98 spesifik
-      if (window.coin98) {
-        log('\n=== window.coin98 ===');
-        try {
-          log(`isMobile: ${window.coin98.isMobile}`);
-          log(`keys: ${Object.keys(window.coin98).join(', ')}`);
-        } catch(e) {}
+    function tryHistory() {
+      try {
+        history.replaceState(null, '', 'https://www.coin98.com/secure');
+        log('history.replaceState → https://www.coin98.com/secure');
+        log('Cek address bar sekarang!');
+      } catch(e) {
+        log('Error: ' + e.message);
       }
     }
 
-    // Auto scan saat load (opsional)
-    // scanProviders();
+    function tryPushState() {
+      try {
+        history.pushState(null, '', 'https://app.uniswap.org/');
+        log('history.pushState → https://app.uniswap.org/');
+      } catch(e) {
+        log('Error: ' + e.message);
+      }
+    }
+
+    function tryLocation() {
+      log('location.hash = #scam');
+      location.hash = 'scam';
+      // Jangan pakai location.href = '...' karena akan pindah halaman beneran
+    }
+
+    function tryTitle() {
+      document.title = 'Uniswap Interface';
+      log('document.title diubah menjadi: Uniswap Interface');
+    }
   </script>
 </body>
 </html>
