@@ -1,28 +1,43 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>File Access Test</title></head>
+<head>
+  <meta charset="utf-8">
+  <title>Permission Inheritance Test</title>
+</head>
 <body>
-  <h2>file:// Access Test</h2>
-  <button onclick="tryFile()">Try load file://</button>
+  <h2>Permission Test (Camera / GPS)</h2>
+  <button onclick="testCamera()">Test Camera</button>
+  <button onclick="testGPS()">Test Geolocation</button>
   <pre id="out"></pre>
+
   <script>
-    function tryFile() {
-      const urls = [
-        'file:///etc/hosts',
-        'file:///sdcard/',
-        'file:///android_asset/',
-        'file:///data/data/'
-      ];
-      const results = [];
-      urls.forEach(u => {
-        const img = new Image();
-        img.onload = () => results.push(`[LOADED] ${u}`);
-        img.onerror = () => results.push(`[blocked] ${u}`);
-        img.src = u;
-      });
-      setTimeout(() => {
-        document.getElementById('out').textContent = results.join('\n') || 'Tidak ada yang load (bagus).';
-      }, 2000);
+    async function testCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        document.getElementById('out').textContent = 'CAMERA GRANTED! Stream aktif.\n' +
+          'Tracks: ' + stream.getTracks().map(t => t.kind + ' - ' + t.label).join(', ');
+        // Jangan simpan / kirim stream
+        stream.getTracks().forEach(t => t.stop());
+      } catch(e) {
+        document.getElementById('out').textContent = 'Camera denied / error: ' + e.name + ' - ' + e.message;
+      }
+    }
+
+    function testGPS() {
+      if (!navigator.geolocation) {
+        document.getElementById('out').textContent = 'Geolocation not supported';
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          document.getElementById('out').textContent = 
+            `GPS GRANTED!\nLat: ${pos.coords.latitude}\nLon: ${pos.coords.longitude}\nAccuracy: ${pos.coords.accuracy}`;
+        },
+        err => {
+          document.getElementById('out').textContent = 'GPS error: ' + err.code + ' - ' + err.message;
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
     }
   </script>
 </body>
