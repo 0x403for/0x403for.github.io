@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Navigation / Address Bar Test</title>
+  <title>Clipboard Test</title>
   <style>
     body { font-family: system-ui; padding: 16px; background: #0f0f0f; color: #e0e0e0; }
     button { margin: 6px 4px; padding: 10px 14px; border-radius: 8px; border: none; background: #3b82f6; color: white; }
@@ -11,46 +11,39 @@
   </style>
 </head>
 <body>
-  <h2>Navigation / Address Bar Spoof Test</h2>
-  <p>Perhatikan apakah address bar berubah setelah menekan tombol.</p>
-  <button onclick="tryHistory()">history.replaceState</button>
-  <button onclick="tryPushState()">history.pushState</button>
-  <button onclick="tryLocation()">location manipulation</button>
-  <button onclick="tryTitle()">Ubah document.title</button>
+  <h2>Clipboard Access Test</h2>
+  <p>1. Copy teks apa saja di luar (misalnya seed phrase palsu / alamat wallet)</p>
+  <p>2. Kembali ke sini dan tekan tombol di bawah</p>
+  <button onclick="readClipboard()">Baca Clipboard</button>
+  <button onclick="writeClipboard()">Tulis ke Clipboard</button>
   <pre id="log">Siap...</pre>
 
   <script>
     const logEl = document.getElementById('log');
     function log(msg) { logEl.textContent += msg + '\n'; }
 
-    function tryHistory() {
+    async function readClipboard() {
+      logEl.textContent = '';
       try {
-        history.replaceState(null, '', 'https://www.coin98.com/secure');
-        log('history.replaceState → https://www.coin98.com/secure');
-        log('Cek address bar sekarang!');
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const text = await navigator.clipboard.readText();
+          log('[SUCCESS] Berhasil baca clipboard:');
+          log(text || '(kosong)');
+        } else {
+          log('navigator.clipboard.readText tidak tersedia');
+        }
       } catch(e) {
-        log('Error: ' + e.message);
+        log('[BLOCKED / ERROR] ' + e.name + ': ' + e.message);
       }
     }
 
-    function tryPushState() {
+    async function writeClipboard() {
       try {
-        history.pushState(null, '', 'https://app.uniswap.org/');
-        log('history.pushState → https://app.uniswap.org/');
+        await navigator.clipboard.writeText('PoC from Coin98 dApp browser - ' + Date.now());
+        log('[SUCCESS] Berhasil menulis ke clipboard');
       } catch(e) {
-        log('Error: ' + e.message);
+        log('[ERROR write] ' + e.message);
       }
-    }
-
-    function tryLocation() {
-      log('location.hash = #scam');
-      location.hash = 'scam';
-      // Jangan pakai location.href = '...' karena akan pindah halaman beneran
-    }
-
-    function tryTitle() {
-      document.title = 'Uniswap Interface';
-      log('document.title diubah menjadi: Uniswap Interface');
     }
   </script>
 </body>
