@@ -2,43 +2,84 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Permission Inheritance Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Provider Method Scanner</title>
+  <style>
+    body { font-family: system-ui; padding: 16px; background: #0f0f0f; color: #e0e0e0; }
+    button { margin: 6px 4px; padding: 10px 14px; border-radius: 8px; border: none; background: #3b82f6; color: white; }
+    pre { background: #1a1a1a; padding: 12px; border-radius: 8px; overflow: auto; font-size: 13px; white-space: pre-wrap; }
+    .ok { color: #4ade80; }
+    .err { color: #f87171; }
+  </style>
 </head>
 <body>
-  <h2>Permission Test (Camera / GPS)</h2>
-  <button onclick="testCamera()">Test Camera</button>
-  <button onclick="testGPS()">Test Geolocation</button>
-  <pre id="out"></pre>
+  <h2>Provider Method Scanner (Read-only)</h2>
+  <button onclick="scanProviders()">Scan Providers</button>
+  <button onclick="callSafeMethods()">Call Safe Methods</button>
+  <button onclick="clearLog()">Clear</button>
+  <pre id="log">Siap...</pre>
 
   <script>
-    async function testCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        document.getElementById('out').textContent = 'CAMERA GRANTED! Stream aktif.\n' +
-          'Tracks: ' + stream.getTracks().map(t => t.kind + ' - ' + t.label).join(', ');
-        // Jangan simpan / kirim stream
-        stream.getTracks().forEach(t => t.stop());
-      } catch(e) {
-        document.getElementById('out').textContent = 'Camera denied / error: ' + e.name + ' - ' + e.message;
+    const logEl = document.getElementById('log');
+    function log(msg, type = '') {
+      const span = type ? `<span class="${type}">${msg}</span>` : msg;
+      logEl.innerHTML += span + '\n';
+    }
+    function clearLog() { logEl.innerHTML = ''; }
+
+    function scanProviders() {
+      clearLog();
+      const providers = ['ethereum', 'coin98', 'solana', 'coin98.provider', 'coin98.sol', 'coin98.bitcoin'];
+      providers.forEach(path => {
+        try {
+          const obj = path.split('.').reduce((o, k) => o?.[k], window);
+          if (obj) {
+            log(`[FOUND] window.${path}`, 'ok');
+            const keys = Object.keys(obj).filter(k => typeof obj[k] === 'function' || typeof obj[k] === 'object');
+            log(`  keys/methods: ${keys.slice(0, 25).join(', ')}`);
+          }
+        } catch(e) {}
+      });
+    }
+
+    async function callSafeMethods() {
+      clearLog();
+      log('=== Memanggil method read-only ===\n');
+
+      // ethereum
+      if (window.ethereum) {
+        const methods = [
+          'eth_chainId',
+          'eth_accounts',
+          'net_version',
+          'wallet_getPermissions',
+          'wallet_requestPermissions',
+          'eth_requestAccounts'
+        ];
+        for (const m of methods) {
+          try {
+            const res = await window.ethereum.request({ method: m });
+            log(`[ethereum] ${m} → ${JSON.stringify(res)}`, 'ok');
+          } catch(e) {
+            log(`[ethereum] ${m} → ERROR: ${e.message}`, 'err');
+          }
+        }
+      } else {
+        log('window.ethereum tidak ada', 'err');
+      }
+
+      // coin98 spesifik
+      if (window.coin98) {
+        log('\n=== window.coin98 ===');
+        try {
+          log(`isMobile: ${window.coin98.isMobile}`);
+          log(`keys: ${Object.keys(window.coin98).join(', ')}`);
+        } catch(e) {}
       }
     }
 
-    function testGPS() {
-      if (!navigator.geolocation) {
-        document.getElementById('out').textContent = 'Geolocation not supported';
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          document.getElementById('out').textContent = 
-            `GPS GRANTED!\nLat: ${pos.coords.latitude}\nLon: ${pos.coords.longitude}\nAccuracy: ${pos.coords.accuracy}`;
-        },
-        err => {
-          document.getElementById('out').textContent = 'GPS error: ' + err.code + ' - ' + err.message;
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    }
+    // Auto scan saat load (opsional)
+    // scanProviders();
   </script>
 </body>
 </html>
