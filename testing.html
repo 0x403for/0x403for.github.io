@@ -3,47 +3,92 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Clipboard Test</title>
+  <title>Auto Clipboard Read Test</title>
   <style>
-    body { font-family: system-ui; padding: 16px; background: #0f0f0f; color: #e0e0e0; }
-    button { margin: 6px 4px; padding: 10px 14px; border-radius: 8px; border: none; background: #3b82f6; color: white; }
-    pre { background: #1a1a1a; padding: 12px; border-radius: 8px; font-size: 13px; white-space: pre-wrap; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      line-height: 1.5;
+    }
+    h2 { margin-top: 0; }
+    .box {
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 14px;
+      margin: 12px 0;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+    .info { color: #94a3b8; }
+    button {
+      margin: 8px 6px 8px 0;
+      padding: 12px 18px;
+      border-radius: 8px;
+      border: none;
+      background: #3b82f6;
+      color: white;
+      font-size: 15px;
+    }
   </style>
 </head>
 <body>
-  <h2>Clipboard Access Test</h2>
-  <p>1. Copy teks apa saja di luar (misalnya seed phrase palsu / alamat wallet)</p>
-  <p>2. Kembali ke sini dan tekan tombol di bawah</p>
-  <button onclick="readClipboard()">Baca Clipboard</button>
-  <button onclick="writeClipboard()">Tulis ke Clipboard</button>
-  <pre id="log">Siap...</pre>
+  <h2>Auto Clipboard Read Test</h2>
+  <p>Halaman ini akan <b>otomatis</b> mencoba membaca clipboard saat dimuat (tanpa perlu tekan tombol).</p>
+
+  <div class="box" id="status">
+    <span class="info">Menunggu hasil auto-read...</span>
+  </div>
+
+  <button onclick="manualRead()">Baca Manual Lagi</button>
+  <button onclick="clearLog()">Clear</button>
 
   <script>
-    const logEl = document.getElementById('log');
-    function log(msg) { logEl.textContent += msg + '\n'; }
+    const statusEl = document.getElementById('status');
 
-    async function readClipboard() {
-      logEl.textContent = '';
+    function log(msg, type = 'info') {
+      const colorClass = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+      statusEl.innerHTML += `<div class="${colorClass}">${msg}</div>`;
+    }
+
+    function clearLog() {
+      statusEl.innerHTML = '';
+    }
+
+    async function tryReadClipboard(source) {
       try {
-        if (navigator.clipboard && navigator.clipboard.readText) {
-          const text = await navigator.clipboard.readText();
-          log('[SUCCESS] Berhasil baca clipboard:');
-          log(text || '(kosong)');
-        } else {
-          log('navigator.clipboard.readText tidak tersedia');
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+          log(`[${source}] navigator.clipboard.readText tidak tersedia`, 'error');
+          return;
         }
-      } catch(e) {
-        log('[BLOCKED / ERROR] ' + e.name + ': ' + e.message);
+
+        const text = await navigator.clipboard.readText();
+        log(`[${source}] BERHASIL membaca clipboard:`, 'success');
+        log(text || '(kosong)', 'success');
+      } catch (err) {
+        log(`[${source}] GAGAL: ${err.name} - ${err.message}`, 'error');
       }
     }
 
-    async function writeClipboard() {
-      try {
-        await navigator.clipboard.writeText('PoC from Coin98 dApp browser - ' + Date.now());
-        log('[SUCCESS] Berhasil menulis ke clipboard');
-      } catch(e) {
-        log('[ERROR write] ' + e.message);
-      }
+    // Auto-read saat page load
+    window.addEventListener('DOMContentLoaded', () => {
+      log('DOMContentLoaded → mencoba auto-read...', 'info');
+      tryReadClipboard('AUTO (DOMContentLoaded)');
+    });
+
+    // Cadangan: coba lagi setelah sedikit delay
+    setTimeout(() => {
+      log('Timeout 1.5s → mencoba auto-read lagi...', 'info');
+      tryReadClipboard('AUTO (setTimeout 1.5s)');
+    }, 1500);
+
+    // Manual
+    function manualRead() {
+      tryReadClipboard('MANUAL (button)');
     }
   </script>
 </body>
