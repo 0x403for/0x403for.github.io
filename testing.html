@@ -2,75 +2,40 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Bridge Origin / iframe Test</title>
-  <style>body{font-family:sans-serif;padding:16px;} pre{background:#111;color:#0f0;padding:12px;white-space:pre-wrap;}</style>
+  <title>Local Network Probe</title>
 </head>
 <body>
-  <h3>Test 1: postMessage dari top frame</h3>
-  <button onclick="sendFromTop()">Kirim postMessage dari top</button>
-
-  <h3>Test 2: postMessage dari iframe cross-origin</h3>
-  <iframe id="f" style="width:100%;height:120px;border:1px solid #ccc;"></iframe>
-  <button onclick="sendFromIframe()">Kirim postMessage dari iframe</button>
-
-  <pre id="log">Log akan muncul di sini...</pre>
+  <h2>Local Network / Internal Access Test</h2>
+  <button onclick="probe()">Probe localhost & private ranges</button>
+  <pre id="out"></pre>
 
   <script>
-    const log = (msg) => {
-      document.getElementById('log').textContent += msg + '\n';
-    };
+    async function probe() {
+      const targets = [
+        'http://127.0.0.1:80',
+        'http://127.0.0.1:8080',
+        'http://127.0.0.1:3000',
+        'http://localhost:80',
+        'http://192.168.1.1',
+        'http://192.168.0.1',
+        'http://10.0.0.1',
+        'http://172.16.0.1'
+      ];
+      const results = [];
 
-    function sendFromTop() {
-      try {
-        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'test',
-            source: 'top-frame',
-            origin: location.origin,
-            time: Date.now()
-          }));
-          log('[TOP] postMessage terkirim');
-        } else {
-          log('[TOP] ReactNativeWebView tidak ada');
+      for (const url of targets) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 2500);
+          const res = await fetch(url, { mode: 'no-cors', signal: controller.signal });
+          clearTimeout(timeout);
+          results.push(`[REACHABLE?] ${url}`);
+        } catch(e) {
+          results.push(`[blocked/error] ${url} → ${e.name}`);
         }
-      } catch(e) {
-        log('[TOP] Error: ' + e.message);
       }
+      document.getElementById('out').textContent = results.join('\n');
     }
-
-    function sendFromIframe() {
-      const iframe = document.getElementById('f');
-      // Buat iframe dengan origin berbeda (data: URL)
-      iframe.srcdoc = `
-        <html><body style="font-family:sans-serif;padding:8px;">
-          <p>Ini iframe (data: origin)</p>
-          <button onclick="trySend()">Kirim postMessage dari iframe</button>
-          <script>
-            function trySend() {
-              try {
-                // Coba akses ReactNativeWebView dari dalam iframe
-                if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-                  window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'test',
-                    source: 'iframe-data-url',
-                    time: Date.now()
-                  }));
-                  parent.postMessage({status: 'iframe-sent-success'}, '*');
-                } else {
-                  parent.postMessage({status: 'no-ReactNativeWebView-in-iframe'}, '*');
-                }
-              } catch(e) {
-                parent.postMessage({status: 'error', msg: e.message}, '*');
-              }
-            }
-          <\/script>
-        </body></html>
-      `;
-    }
-
-    window.addEventListener('message', (e) => {
-      log('[iframe → parent] ' + JSON.stringify(e.data));
-    });
   </script>
 </body>
 </html>
