@@ -1,40 +1,28 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Local Network Probe</title>
-</head>
+<head><meta charset="utf-8"><title>File Access Test</title></head>
 <body>
-  <h2>Local Network / Internal Access Test</h2>
-  <button onclick="probe()">Probe localhost & private ranges</button>
+  <h2>file:// Access Test</h2>
+  <button onclick="tryFile()">Try load file://</button>
   <pre id="out"></pre>
-
   <script>
-    async function probe() {
-      const targets = [
-        'http://127.0.0.1:80',
-        'http://127.0.0.1:8080',
-        'http://127.0.0.1:3000',
-        'http://localhost:80',
-        'http://192.168.1.1',
-        'http://192.168.0.1',
-        'http://10.0.0.1',
-        'http://172.16.0.1'
+    function tryFile() {
+      const urls = [
+        'file:///etc/hosts',
+        'file:///sdcard/',
+        'file:///android_asset/',
+        'file:///data/data/'
       ];
       const results = [];
-
-      for (const url of targets) {
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 2500);
-          const res = await fetch(url, { mode: 'no-cors', signal: controller.signal });
-          clearTimeout(timeout);
-          results.push(`[REACHABLE?] ${url}`);
-        } catch(e) {
-          results.push(`[blocked/error] ${url} → ${e.name}`);
-        }
-      }
-      document.getElementById('out').textContent = results.join('\n');
+      urls.forEach(u => {
+        const img = new Image();
+        img.onload = () => results.push(`[LOADED] ${u}`);
+        img.onerror = () => results.push(`[blocked] ${u}`);
+        img.src = u;
+      });
+      setTimeout(() => {
+        document.getElementById('out').textContent = results.join('\n') || 'Tidak ada yang load (bagus).';
+      }, 2000);
     }
   </script>
 </body>
