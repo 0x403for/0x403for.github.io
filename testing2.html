@@ -3,72 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>dApp Browser Security & Vulnerability Test</title>
+    <title>dApp Browser Advanced Vulnerability Test Suite</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { padding: 10px 15px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        button { padding: 10px 15px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px; }
         button:hover { background: #0056b3; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
         .vulnerable { color: #d9534f; font-weight: bold; }
         .secure { color: #5cb85c; font-weight: bold; }
+        input[type="text"] { padding: 8px; width: 60%; margin-right: 5px; }
     </style>
 </head>
 <body>
 
-    <h2>Web3 dApp Browser Diagnostic Tool</h2>
-    <p>Gunakan halaman ini di dalam browser internal wallet (misal: 1inch iOS) untuk memeriksa injeksi provider dan potensi celah keamanan sisi klien.</p>
+    <h2>Advanced dApp Browser Security Test Suite</h2>
+    <p>Gunakan halaman ini di dalam dApp browser wallet (misal: 1inch iOS) untuk pengujian keamanan tingkat lanjut.</p>
 
-    <!-- 1. Deteksi Provider Injeksi -->
+    <!-- 1. Status Injeksi & Basic -->
     <div class="card">
         <h3>1. Status Injeksi Provider Web3</h3>
         <button onclick="checkProvider()">Cek Injeksi window.ethereum</button>
         <pre id="provider-status">Belum dicek...</pre>
     </div>
 
-    <!-- 2. Uji Kebocoran Informasi Akun (Auto-Connect Risk) -->
+    <!-- 2. Uji Auto-Exposure Akun -->
     <div class="card">
-        <h3>2. Uji Auto-Exposure Akun</h3>
-        <p>Apakah dApp browser membocorkan alamat akun sebelum izin (permission) diberikan?</p>
+        <h3>2. Uji Auto-Exposure Akun (Pre-connection Leak)</h3>
         <button onclick="checkAccountLeak()">Cek Kebocoran Alamat</button>
         <pre id="leak-status">Belum dicek...</pre>
     </div>
 
-    <!-- 3. Uji Simulai Prompt Transaksi / Malicious Sign -->
+    <!-- 3. Uji Proteksi Objek Provider (Read-Only / Overwrite Protection) -->
     <div class="card">
-        <h3>3. Uji Tanggapan Metode RPC (Eth_RequestAccounts)</h3>
+        <h3>3. Uji Mutabilitas Provider (Overwrite Protection)</h3>
+        <p>Apakah objek <code>window.ethereum</code> bisa ditimpa secara global oleh script halaman?</p>
+        <button onclick="testProviderOverwrite()">Uji Timpa Provider</button>
+        <pre id="overwrite-status">Belum dicek...</pre>
+    </div>
+
+    <!-- 4. Uji Tanggapan Metode RPC & Koneksi -->
+    <div class="card">
+        <h3>4. Uji Koneksi Akun (eth_requestAccounts)</h3>
         <button onclick="testConnection()">Minta Koneksi Akun</button>
         <pre id="connection-result">Menunggu aksi...</pre>
     </div>
 
-    <!-- 4. Informasi User Agent & Environment -->
+    <!-- 5. Uji Silent Sign / Blind Signing Risk -->
     <div class="card">
-        <h3>4. Informasi Lingkungan Browser</h3>
-        <button onclick="getEnvironmentInfo()">Muat Info Environment</button>
-        <pre id="env-info">Klik tombol di atas...</pre>
+        <h3>5. Uji Pemanggilan Metode Sensitif (personal_sign)</h3>
+        <p>Menguji apakah prompt tanda tangan muncul dengan benar atau tereksekusi otomatis.</p>
+        <button onclick="testSilentSign()">Uji Permintaan Tanda Tangan</button>
+        <pre id="sign-result">Menunggu aksi...</pre>
+    </div>
+
+    <!-- 6. Uji Paksa Ganti Jaringan (wallet_switchEthereumChain) -->
+    <div class="card">
+        <h3>6. Uji Manipulasi Chain (Switch Chain ke BSC)</h3>
+        <button onclick="testChainSwitch()">Uji Switch ke BSC (Chain ID 0x38)</button>
+        <pre id="chain-result">Menunggu aksi...</pre>
+    </div>
+
+    <!-- 7. Uji Isolasi IFrame -->
+    <div class="card">
+        <h3>7. Uji Akses Provider dari IFrame Pihak Ketiga</h3>
+        <p>Apakah iframe eksternal dapat mencuri atau membaca objek ethereum dari parent?</p>
+        <button onclick="testIframeIsolation()">Uji Akses IFrame</button>
+        <iframe id="test-iframe" src="about:blank" style="display:none;"></iframe>
+        <pre id="iframe-result">Menunggu aksi...</pre>
+    </div>
+
+    <!-- 8. Simulasi Address Bar / Title Spoofing Test -->
+    <div class="card">
+        <h3>8. Simulasi Manipulasi Tampilan (Title & History Spoofing)</h3>
+        <p>Uji apakah browser menampilkan URL asli dengan jelas saat judul halaman dimanipulasi.</p>
+        <input type="text" id="spoof-title-input" placeholder="Ketik Judul Palsu (Cth: https://trusted-site.com)">
+        <button onclick="applySpoof()">Ubah Document Title</button>
+        <pre id="spoof-result">Gunakan untuk melihat apakah URL bar ikut berubah atau tetap domain asli.</pre>
     </div>
 
     <script>
         function checkProvider() {
             const statusEl = document.getElementById('provider-status');
             if (window.ethereum) {
-                let info = `[AMAN/TERDETEKSI] window.ethereum ditemukan.\n`;
-                info += `- Is MetaMask/Injected: ${window.ethereum.isMetaMask || 'Tidak diketahui'}\n`;
-                info += `- Is 1inch Wallet: ${window.ethereum.isOneInchIOS || window.ethereum.is1inch || 'Tidak terdeteksi secara eksplisit'}\n`;
-                info += `- Chain ID aktif: ${window.ethereum.chainId || 'Tidak tersedia'}`;
+                let info = `[TERDETEKSI] window.ethereum ditemukan.\n`;
+                info += `- Is MetaMask: ${window.ethereum.isMetaMask || false}\n`;
+                info += `- Is 1inch / Custom: ${window.ethereum.isOneInchIOS || window.ethereum.is1inch || 'Tidak ada flag eksplisit'}\n`;
+                info += `- Chain ID: ${window.ethereum.chainId || 'Tidak tersedia'}`;
                 statusEl.textContent = info;
             } else {
-                statusEl.textContent = "[INFO] window.ethereum tidak ditemukan. Pastikan dibuka di dalam dApp browser wallet.";
+                statusEl.textContent = "[INFO] window.ethereum tidak ditemukan.";
             }
         }
 
         function checkAccountLeak() {
             const leakEl = document.getElementById('leak-status');
-            // Beberapa browser rentan membocorkan selectedAddress secara langsung tanpa request
             if (window.ethereum && window.ethereum.selectedAddress) {
                 leakEl.innerHTML = `<span class="vulnerable">[RENTAN] Alamat terekspos otomatis: ${window.ethereum.selectedAddress}</span>`;
             } else {
-                leakEl.innerHTML = `<span class="secure">[AMAN] Tidak ada alamat yang terekspos secara pre-connection.</span>`;
+                leakEl.innerHTML = `<span class="secure">[AMAN] Tidak ada alamat terekspos sebelum koneksi diizinkan.</span>`;
+            }
+        }
+
+        function testProviderOverwrite() {
+            const statusEl = document.getElementById('overwrite-status');
+            try {
+                // Coba ubah window.ethereum
+                const original = window.ethereum;
+                window.ethereum = { malicious: true };
+                
+                if (window.ethereum.malicious) {
+                    statusEl.innerHTML = `<span class="vulnerable">[RENTAN] Objek window.ethereum dapat ditimpa (writable)! Script pihak ketiga bisa memalsukan provider.</span>`;
+                    window.ethereum = original; // kembalikan
+                } else {
+                    statusEl.innerHTML = `<span class="secure">[AMAN] Objek bersifat read-only atau dilindungi dari penimpaan langsung.</span>`;
+                }
+            } catch (e) {
+                statusEl.innerHTML = `<span class="secure">[AMAN] Eksekusi penimpaan diblokir oleh sistem: ${e.message}</span>`;
             }
         }
 
@@ -82,13 +133,90 @@
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 resultEl.textContent = `Berhasil terhubung! Akun: ${accounts[0]}`;
             } catch (error) {
-                resultEl.textContent = `Koneksi ditolak atau gagal: ${error.message}`;
+                resultEl.textContent = `Koneksi ditolak / gagal: ${error.message}`;
             }
         }
 
-        function getEnvironmentInfo() {
-            const envEl = document.getElementById('env-info');
-            envEl.textContent = `User-Agent: ${navigator.userAgent}\nPlatform: ${navigator.platform}`;
+        async function testSilentSign() {
+            const resultEl = document.getElementById('sign-result');
+            if (!window.ethereum) {
+                resultEl.textContent = "Provider tidak tersedia.";
+                return;
+            }
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (!accounts || accounts.length === 0) {
+                    resultEl.textContent = "Hubungkan dompet terlebih dahulu melalui tombol di atas (No 4).";
+                    return;
+                }
+                
+                resultEl.textContent = "Meminta tanda tangan pesan...";
+                await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: ["Security Audit Test Message", accounts[0]]
+                });
+                resultEl.innerHTML = `<span class="secure">[INFO] Permintaan tanda tangan diproses (harus ada konfirmasi manual dari UI wallet).</span>`;
+            } catch (error) {
+                resultEl.innerHTML = `<span class="secure">[AMAN/DITOLAK] Permintaan diblokir/dibatalkan: ${error.message}</span>`;
+            }
+        }
+
+        async function testChainSwitch() {
+            const resultEl = document.getElementById('chain-result');
+            if (!window.ethereum) {
+                resultEl.textContent = "Provider tidak tersedia.";
+                return;
+            }
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x38' }], // BSC Mainnet
+                });
+                resultEl.textContent = "Berhasil meminta perpindahan jaringan ke BSC.";
+            } catch (error) {
+                resultEl.textContent = `Respons switch chain: ${error.message} (Pastikan prompt konfirmasi muncul)`;
+            }
+        }
+
+        function testIframeIsolation() {
+            const iframeResult = document.getElementById('iframe-result');
+            const iframe = document.getElementById('test-iframe');
+            
+            // Masukkan script pengujian ke dalam iframe
+            iframe.srcdoc = `
+                <script>
+                    setTimeout(() => {
+                        try {
+                            const hasEth = window.parent.ethereum !== undefined;
+                            const canAccess = window.parent.ethereum && window.parent.ethereum.selectedAddress;
+                            parent.postMessage({status: 'checked', hasEth: hasEth, canAccess: canAccess}, '*');
+                        } catch(e) {
+                            parent.postMessage({status: 'blocked', error: e.message}, '*');
+                        }
+                    }, 500);
+                <\/script>
+            `;
+            
+            window.onmessage = function(e) {
+                if (e.data && e.data.status === 'checked') {
+                    if (e.data.hasEth) {
+                        iframeResult.innerHTML = `<span class="vulnerable">[POTENSI RISIKO] Iframe dapat mendeteksi objek ethereum dari parent window. Periksa apakah isolasi asal (CORS/Origin) berfungsi.</span>`;
+                    } else {
+                        iframeResult.innerHTML = `<span class="secure">[AMAN] Iframe diisolasi dengan baik dari objek provider utama.</span>`;
+                    }
+                } else {
+                    iframeResult.innerHTML = `<span class="secure">[AMAN] Akses iframe diblokir oleh kebijakan keamanan browser.</span>`;
+                }
+            };
+        }
+
+        function applySpoof() {
+            const inputVal = document.getElementById('spoof-title-input').value;
+            const spoofEl = document.getElementById('spoof-result');
+            if (inputVal) {
+                document.title = inputVal;
+                spoofEl.innerHTML = `Judul dokumen diubah menjadi: <b>${inputVal}</b>.<br>Perhatikan apakah Address Bar dApp browser tetap menampilkan URL asli Anda atau ikut berubah/terkecoh.`;
+            }
         }
     </script>
 </body>
