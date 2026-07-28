@@ -31,11 +31,11 @@
     <!-- 2. Pengujian IFrame Lintas Domain Nyata -->
     <div class="card">
         <h3>2. Uji Akses Provider via IFrame Eksternal</h3>
-        <p>Iframe di bawah ini memuat domain penyerang: <code>https://poc-clipboard-hijacking.netlify.app/</code></p>
+        <p>Iframe di bawah ini memuat domain penyerang: <code>https://poc-attacker.netlify.app/</code></p>
         <button onclick="checkIframeStatus()">Periksa Status Integrasi IFrame</button>
         
-        <!-- Iframe nyata mengarah ke domain penyerang Anda -->
-        <iframe id="attacker-iframe" src="https://poc-clipboard-hijacking.netlify.app/"></iframe>
+        <!-- Iframe nyata mengarah ke domain penyerang yang baru -->
+        <iframe id="attacker-iframe" src="https://poc-attacker.netlify.app/"></iframe>
         
         <pre id="test-result">Menunggu interaksi...</pre>
     </div>
@@ -58,13 +58,8 @@
         function checkIframeStatus() {
             const resultEl = document.getElementById('test-result');
             
-            // Catatan: Karena ini lintas-origin (beda domain antara halaman utama dan netlify.app),
-            // kebijakan Same-Origin Policy mencegah JavaScript utama membaca isi DOM iframe secara langsung.
-            // Namun, skrip di dalam domain Netlify Anda (jika dApp browser salah mengimplementasikan injeksi) 
-            // bisa mencoba mengakses window.parent.ethereum secara mandiri dari dalam iframe tersebut.
-            
             resultEl.innerHTML = `
-                [INFO] Iframe eksternal <code>poc-clipboard-hijacking.netlify.app</code> sedang dimuat.<br>
+                [INFO] Iframe eksternal <code>poc-attacker.netlify.app</code> sedang dimuat.<br>
                 <b>Langkah Analisis:</b><br>
                 1. Pastikan di server Netlify Anda sudah disematkan skrip uji coba yang memanggil <code>window.parent.ethereum</code> atau <code>window.ethereum</code>.<br>
                 2. Perhatikan apakah dApp browser mengizinkan iframe eksternal tersebut mengeksekusi metode Web3 atau justru memblokirnya total karena perbedaan *origin*.
