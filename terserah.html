@@ -3,106 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>dApp Browser Wallet Information Inspector</title>
+    <title>1inch Wallet Fingerprinting Test</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         button { padding: 10px 15px; background: #6c5ce7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
         button:hover { background: #5849be; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; word-break: break-all; }
-        .label { font-weight: bold; color: #2d3436; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 13px; overflow-x: auto; }
+        .detected { color: #d63031; font-weight: bold; }
+        .safe { color: #00b894; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>dApp Browser Wallet Inspector</h2>
-    <p>Alat uji ini membaca informasi dan status dompet yang disuntikkan langsung oleh peramban internal aplikasi.</p>
+    <h2>Wallet Fingerprinting & Detection Test</h2>
+    <p>Uji ini memeriksa apakah situs web dapat mendeteksi keberadaan 1inch iOS Wallet secara otomatis melalui properti global injeksi.</p>
 
-    <!-- Informasi Utama Sesi -->
+    <!-- Hasil Deteksi Fingerprint -->
     <div class="card">
-        <h3>1. Informasi Koneksi & Akun</h3>
-        <p><span class="label">Provider Status:</span> <span id="provider-status">Memeriksa...</span></p>
-        <p><span class="label">Chain ID:</span> <span id="chain-id">-</span></p>
-        <p><span class="label">Alamat Dompet (Account):</span></p>
-        <pre id="wallet-address">Belum terhubung...</pre>
-        <p><span class="label">Saldo Native (ETH/BNB/Polygon dll):</span></p>
-        <pre id="wallet-balance">-</pre>
-        <button onclick="fetchAllInfo()">Ambil Informasi Wallet</button>
-    </div>
-
-    <!-- Informasi Lingkungan Browser / User-Agent -->
-    <div class="card">
-        <h3>2. Informasi Lingkungan Peramban (Environment)</h3>
-        <p><span class="label">User Agent:</span></p>
-        <pre id="user-agent">-</pre>
-        <p><span class="label">Properti Objek window.ethereum:</span></p>
-        <pre id="provider-props">-</pre>
+        <h3>Status Deteksi Dompet</h3>
+        <button onclick="runFingerprintTest()">Jalankan Tes Deteksi</button>
+        <pre id="fingerprint-result">Menunggu pengujian...</pre>
     </div>
 
     <script>
-        // Menampilkan informasi lingkungan saat halaman dimuat
-        document.getElementById('user-agent').textContent = navigator.userAgent;
-
-        async function fetchAllInfo() {
-            const providerStatusEl = document.getElementById('provider-status');
-            const chainIdEl = document.getElementById('chain-id');
-            const addressEl = document.getElementById('wallet-address');
-            const balanceEl = document.getElementById('wallet-balance');
-            const propsEl = document.getElementById('provider-props');
-
+        function runFingerprintTest() {
+            const resultEl = document.getElementById('fingerprint-result');
+            
             if (!window.ethereum) {
-                providerStatusEl.textContent = "Tidak Ditemukan (window.ethereum bernilai undefined)";
-                addressEl.textContent = "Provider Web3 tidak disuntikkan oleh browser.";
+                resultEl.textContent = "Tidak ada objek window.ethereum yang ditemukan.";
                 return;
             }
 
-            providerStatusEl.textContent = "Terdeteksi aktif!";
+            let detectionLog = [];
             
-            // Menampilkan properti yang tersedia pada objek ethereum (untuk melihat fungsi kustom dompet)
-            let keys = [];
-            for (let key in window.ethereum) {
-                keys.push(key);
+            // Memeriksa bendera identifikasi khusus
+            const is1Inch = window.ethereum.isOneInchIOSWallet;
+            const isMetaMaskCompat = window.ethereum.isMetaMask;
+
+            if (is1Inch) {
+                detectionLog.push(`[TERDETEKSI] isOneInchIOSWallet bernilai: true`);
+            } else {
+                detectionLog.push(`[INFO] isOneInchIOSWallet tidak ditemukan.`);
             }
-            propsEl.textContent = keys.join(', ');
 
-            try {
-                // Mendapatkan Chain ID
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                chainIdEl.textContent = `${chainId} (Decimal: ${parseInt(chainId, 16)})`;
-
-                // Meminta izin atau mengambil akun yang aktif
-                addressEl.textContent = "Meminta akses akun...";
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
-                if (accounts && accounts.length > 0) {
-                    const address = accounts[0];
-                    addressEl.textContent = address;
-
-                    // Mengambil saldo native dari akun aktif
-                    balanceEl.textContent = "Mengambil saldo...";
-                    const balanceHex = await window.ethereum.request({
-                        method: 'eth_getBalance',
-                        params: [address, 'latest']
-                    });
-                    
-                    // Konversi Wei ke Ether secara sederhana
-                    const balanceWei = BigInt(balanceHex);
-                    const balanceEth = Number(balanceWei) / 1e18;
-                    balanceEl.textContent = `${balanceEth} (Hex: ${balanceHex})`;
-                } else {
-                    addressEl.textContent = "Tidak ada akun yang diizinkan.";
-                }
-
-            } catch (err) {
-                addressEl.textContent = `Gagal mengambil data: ${err.message}`;
-                balanceEl.textContent = "Gagal memuat saldo.";
+            if (isMetaMaskCompat) {
+                detectionLog.push(`[TERDETEKSI] Kompatibilitas isMetaMask bernilai: true (Meniru standar injeksi MetaMask)`);
             }
+
+            // Memeriksa properti event emitter bawaan
+            detectionLog.push(`[INFO] Jumlah properti event terdeteksi: ${Object.keys(window.ethereum).length} properti.`);
+            
+            resultEl.innerHTML = detectionLog.join('\n');
         }
 
-        // Jalankan otomatis jika provider sudah siap
+        // Jalankan otomatis saat halaman dimuat
         window.addEventListener('DOMContentLoaded', () => {
             if (window.ethereum) {
-                fetchAllInfo();
+                runFingerprintTest();
             }
         });
     </script>
