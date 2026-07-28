@@ -1,95 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Auto Clipboard Read Test</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      padding: 20px;
-      background: #0f0f0f;
-      color: #e0e0e0;
-      line-height: 1.5;
-    }
-    h2 { margin-top: 0; }
-    .box {
-      background: #1a1a1a;
-      border-radius: 10px;
-      padding: 14px;
-      margin: 12px 0;
-      font-size: 14px;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-    .success { color: #4ade80; }
-    .error { color: #f87171; }
-    .info { color: #94a3b8; }
-    button {
-      margin: 8px 6px 8px 0;
-      padding: 12px 18px;
-      border-radius: 8px;
-      border: none;
-      background: #3b82f6;
-      color: white;
-      font-size: 15px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Non-Standard & Dangerous RPC Methods Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
+        .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 10px 15px; background: #d9534f; color: #fff; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px; font-weight: bold; }
+        button:hover { background: #c9302c; }
+        .btn-safe { background: #007bff; }
+        .btn-safe:hover { background: #0056b3; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; }
+        .vulnerable { color: #d9534f; font-weight: bold; }
+        .secure { color: #5cb85c; font-weight: bold; }
+    </style>
 </head>
 <body>
-  <h2>Auto Clipboard Read Test</h2>
-  <p>Halaman ini akan <b>otomatis</b> mencoba membaca clipboard saat dimuat (tanpa perlu tekan tombol).</p>
 
-  <div class="box" id="status">
-    <span class="info">Menunggu hasil auto-read...</span>
-  </div>
+    <h2>Non-Standard & Dangerous RPC Methods Test</h2>
+    <p>Uji ini memeriksa bagaimana dApp browser menangani metode RPC non-standar, manipulasi jaringan paksa, atau pemanggilan fungsi tersembunyi.</p>
 
-  <button onclick="manualRead()">Baca Manual Lagi</button>
-  <button onclick="clearLog()">Clear</button>
+    <!-- 1. Koneksi Dasar -->
+    <div class="card">
+        <h3>1. Inisialisasi Koneksi Wallet</h3>
+        <button class="btn-safe" onclick="connectWallet()">Connect Wallet</button>
+        <pre id="conn-status">Belum terhubung...</pre>
+    </div>
 
-  <script>
-    const statusEl = document.getElementById('status');
+    <!-- 2. Uji Paksa Ganti Jaringan (Switch Chain Tanpa Interaksi Layak) -->
+    <div class="card">
+        <h3>2. Uji Paksa Pindah Jaringan (wallet_switchEthereumChain)</h3>
+        <p>Mencoba memindahkan jaringan secara paksa ke BSC Mainnet (Chain ID: 0x38) atau jaringan tiruan.</p>
+        <button onclick="testSwitchChain()">Uji Switch Chain Paksa</button>
+        <pre id="switch-result">Menunggu aksi...</pre>
+    </div>
 
-    function log(msg, type = 'info') {
-      const colorClass = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
-      statusEl.innerHTML += `<div class="${colorClass}">${msg}</div>`;
-    }
+    <!-- 3. Uji Penambahan Jaringan Kustom Berbahaya (wallet_addEthereumChain) -->
+    <div class="card">
+        <h3>3. Uji Injeksi Jaringan Kustom (Malicious RPC URL)</h3>
+        <p>Mencoba mendaftarkan jaringan kustom dengan RPC eksternal palsu untuk menguji validasi keamanan domain/node.</p>
+        <button onclick="testAddChain()">Uji Tambah Jaringan Kustom</button>
+        <pre id="addchain-result">Menunggu aksi...</pre>
+    </div>
 
-    function clearLog() {
-      statusEl.innerHTML = '';
-    }
+    <!-- 4. Uji Pemanggilan Metode RPC Ilegal / Tidak Dikenal -->
+    <div class="card">
+        <h3>4. Uji Metode RPC Kustom / Tidak Dikenal</h3>
+        <p>Menguji respons browser ketika mendapati method custom fiktif (cth: <code>wallet_maliciousAction</code>).</p>
+        <button onclick="testCustomRpc()">Uji Metode Fiktif</button>
+        <pre id="custom-result">Menunggu aksi...</pre>
+    </div>
 
-    async function tryReadClipboard(source) {
-      try {
-        if (!navigator.clipboard || !navigator.clipboard.readText) {
-          log(`[${source}] navigator.clipboard.readText tidak tersedia`, 'error');
-          return;
+    <script>
+        async function connectWallet() {
+            const statusEl = document.getElementById('conn-status');
+            if (!window.ethereum) {
+                statusEl.textContent = "window.ethereum tidak ditemukan!";
+                return;
+            }
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                statusEl.textContent = `Terhubung: ${accounts[0]}`;
+            } catch (err) {
+                statusEl.textContent = `Ditolak: ${err.message}`;
+            }
         }
 
-        const text = await navigator.clipboard.readText();
-        log(`[${source}] BERHASIL membaca clipboard:`, 'success');
-        log(text || '(kosong)', 'success');
-      } catch (err) {
-        log(`[${source}] GAGAL: ${err.name} - ${err.message}`, 'error');
-      }
-    }
+        async function testSwitchChain() {
+            const resultEl = document.getElementById('switch-result');
+            if (!window.ethereum) {
+                resultEl.textContent = "Provider tidak tersedia.";
+                return;
+            }
+            try {
+                resultEl.textContent = "Mengirim permintaan switch chain ke BSC...";
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x38' }],
+                });
+                resultEl.innerHTML = `<span class="secure">[INFO] Permintaan diproses. Pastikan dialog konfirmasi (UI prompt) muncul di layar dompet Anda.</span>`;
+            } catch (err) {
+                resultEl.innerHTML = `<span class="secure">[AMAN/DITOLAK] Permintaan dicegah atau dibatalkan: ${err.message}</span>`;
+            }
+        }
 
-    // Auto-read saat page load
-    window.addEventListener('DOMContentLoaded', () => {
-      log('DOMContentLoaded → mencoba auto-read...', 'info');
-      tryReadClipboard('AUTO (DOMContentLoaded)');
-    });
+        async function testAddChain() {
+            const resultEl = document.getElementById('addchain-result');
+            if (!window.ethereum) {
+                resultEl.textContent = "Provider tidak tersedia.";
+                return;
+            }
+            try {
+                resultEl.textContent = "Mengirim permintaan penambahan jaringan kustom...";
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0x999999',
+                        chainName: 'Malicious Fake Network',
+                        nativeCurrency: { name: 'FAKE', symbol: 'FAKE', decimals: 18 },
+                        rpcUrls: ['https://fake-malicious-rpc-node.com']
+                    }],
+                });
+                resultEl.innerHTML = `<span class="vulnerable">[PERHATIAN] Jaringan kustom berhasil diajukan. Pastikan browser memvalidasi keamanan RPC URL tersebut.</span>`;
+            } catch (err) {
+                resultEl.innerHTML = `<span class="secure">[AMAN] Penambahan jaringan kustom ditolak/gagal: ${err.message}</span>`;
+            }
+        }
 
-    // Cadangan: coba lagi setelah sedikit delay
-    setTimeout(() => {
-      log('Timeout 1.5s → mencoba auto-read lagi...', 'info');
-      tryReadClipboard('AUTO (setTimeout 1.5s)');
-    }, 1500);
-
-    // Manual
-    function manualRead() {
-      tryReadClipboard('MANUAL (button)');
-    }
-  </script>
+        async function testCustomRpc() {
+            const resultEl = document.getElementById('custom-result');
+            if (!window.ethereum) {
+                resultEl.textContent = "Provider tidak tersedia.";
+                return;
+            }
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_maliciousAction',
+                    params: [{ test: true }]
+                });
+                resultEl.innerHTML = `<span class="vulnerable">[RENTAN] Metode fiktif diterima tanpa penolakan galat standar!</span>`;
+            } catch (err) {
+                resultEl.innerHTML = `<span class="secure">[AMAN] Metode tidak dikenal ditolak dengan benar: ${err.message}</span>`;
+            }
+        }
+    </script>
 </body>
 </html>
