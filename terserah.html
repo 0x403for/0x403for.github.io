@@ -3,65 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1inch Wallet Fingerprinting Test</title>
+    <title>Passive Wallet Fingerprinting & Privacy Leakage PoC</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { padding: 10px 15px; background: #6c5ce7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        button:hover { background: #5849be; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 13px; overflow-x: auto; }
-        .detected { color: #d63031; font-weight: bold; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; }
+        .leak { color: #d63031; font-weight: bold; }
         .safe { color: #00b894; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Wallet Fingerprinting & Detection Test</h2>
-    <p>Uji ini memeriksa apakah situs web dapat mendeteksi keberadaan 1inch iOS Wallet secara otomatis melalui properti global injeksi.</p>
+    <h2>Passive Fingerprinting & Privacy Leakage PoC</h2>
+    <p>Demonstrasi ini menunjukkan bagaimana skrip pelacak di dalam dApp browser dapat langsung mengidentifikasi jenis dompet dan perangkat secara pasif sebelum izin koneksi diberikan.</p>
 
-    <!-- Hasil Deteksi Fingerprint -->
+    <!-- Hasil Ekstraksi Pasif -->
     <div class="card">
-        <h3>Status Deteksi Dompet</h3>
-        <button onclick="runFingerprintTest()">Jalankan Tes Deteksi</button>
-        <pre id="fingerprint-result">Menunggu pengujian...</pre>
+        <h3>Hasil Ekstraksi Data Pasif (Tanpa Interaksi)</h3>
+        <pre id="passive-result">Memindai lingkungan peramban...</pre>
     </div>
 
     <script>
-        function runFingerprintTest() {
-            const resultEl = document.getElementById('fingerprint-result');
-            
-            if (!window.ethereum) {
-                resultEl.textContent = "Tidak ada objek window.ethereum yang ditemukan.";
-                return;
-            }
+        function performPassiveFingerprint() {
+            const resultEl = document.getElementById('passive-result');
+            let findings = [];
 
-            let detectionLog = [];
-            
-            // Memeriksa bendera identifikasi khusus
-            const is1Inch = window.ethereum.isOneInchIOSWallet;
-            const isMetaMaskCompat = window.ethereum.isMetaMask;
+            // 1. Ekstraksi Informasi Perangkat Dasar (User-Agent)
+            findings.push(`[INFO] User-Agent: ${navigator.userAgent}`);
+            findings.push(`[INFO] Platform: ${navigator.platform || 'Tidak diketahui'}`);
 
-            if (is1Inch) {
-                detectionLog.push(`[TERDETEKSI] isOneInchIOSWallet bernilai: true`);
+            // 2. Deteksi Pasif Properti Injeksi Global (Tanpa Meminta Akun)
+            if (window.ethereum) {
+                findings.push(`[+] Objek window.ethereum: TERSEDIA (Terekspos secara global)`);
+                
+                // Memeriksa bendera identifikasi dompet spesifik
+                if (window.ethereum.isOneInchIOSWallet) {
+                    findings.push(`[!] <span class="leak">PRIVACY LEAK: isOneInchIOSWallet = true (Identitas terungkap secara pasif)</span>`);
+                }
+                
+                if (window.ethereum.isMetaMask) {
+                    findings.push(`[!] <span class="leak">PRIVACY LEAK: isMetaMask = true (Emulasi injeksi terdeteksi)</span>`);
+                }
+
+                // Memeriksa apakah alamat akun sudah terekspos sebelum persetujuan (jika di-cache oleh browser)
+                if (window.ethereum.selectedAddress) {
+                    findings.push(`[!] <span class="leak">CRITICAL LEAK: selectedAddress terekspos = ${window.ethereum.selectedAddress}</span>`);
+                } else {
+                    findings.push(`[-] selectedAddress: Belum terekspos sebelum izin diberikan.`);
+                }
             } else {
-                detectionLog.push(`[INFO] isOneInchIOSWallet tidak ditemukan.`);
+                findings.push(`[-] Objek window.ethereum tidak ditemukan.`);
             }
 
-            if (isMetaMaskCompat) {
-                detectionLog.push(`[TERDETEKSI] Kompatibilitas isMetaMask bernilai: true (Meniru standar injeksi MetaMask)`);
-            }
-
-            // Memeriksa properti event emitter bawaan
-            detectionLog.push(`[INFO] Jumlah properti event terdeteksi: ${Object.keys(window.ethereum).length} properti.`);
-            
-            resultEl.innerHTML = detectionLog.join('\n');
+            resultEl.innerHTML = findings.join('\n');
         }
 
-        // Jalankan otomatis saat halaman dimuat
+        // Dijalankan secara otomatis seketika halaman dimuat tanpa menunggu klik pengguna
         window.addEventListener('DOMContentLoaded', () => {
-            if (window.ethereum) {
-                runFingerprintTest();
-            }
+            performPassiveFingerprint();
         });
     </script>
 </body>
