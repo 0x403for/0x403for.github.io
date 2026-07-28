@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real Cross-Origin IFrame Web3 Leak Test</title>
+    <title>Real Cross-Origin IFrame Web3 Test</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -12,73 +12,63 @@
         pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; }
         .vulnerable { color: #d9534f; font-weight: bold; }
         .secure { color: #5cb85c; font-weight: bold; }
-        iframe { width: 100%; height: 120px; border: 1px solid #ccc; margin-top: 10px; border-radius: 4px; }
+        iframe { width: 100%; height: 200px; border: 1px solid #ccc; margin-top: 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
     <h2>Real Cross-Origin IFrame Security Test</h2>
-    <p>Pengujian ini menyematkan iframe dari domain pihak ketiga yang berbeda (*cross-origin*) untuk melihat apakah dApp browser mengizinkan iframe tersebut mengakses objek <code>window.ethereum</code> milik halaman utama.</p>
+    <p>Halaman ini memuat iframe dari domain eksternal nyata milik Anda untuk menguji isolasi dApp browser.</p>
 
+    <!-- 1. Status Koneksi -->
     <div class="card">
-        <h3>1. Hubungkan Dompet Terlebih Dahulu</h3>
-        <p>Lakukan koneksi wallet agar objek ethereum memiliki data aktif (state connected).</p>
-        <button onclick="connectWallet()">Connect Wallet</button>
+        <h3>1. Status Koneksi Dompet Utama</h3>
+        <p>Pastikan Anda sudah melakukan koneksi wallet di halaman ini terlebih dahulu.</p>
+        <button onclick="connectWallet()">Connect Wallet (Parent)</button>
         <pre id="connection-status">Belum terhubung...</pre>
     </div>
 
+    <!-- 2. Pengujian IFrame Lintas Domain Nyata -->
     <div class="card">
-        <h3>2. Uji Akses Lintas Domain (Real IFrame)</h3>
-        <p>Iframe di bawah ini dimuat dari domain eksternal nyata (menggunakan layanan publik seperti <code>example.com</code> atau Anda bisa menggantinya dengan server/domain milik Anda sendiri yang berbeda origin).</p>
-        <button onclick="runRealTest()">Jalankan Tes Cross-Origin</button>
+        <h3>2. Uji Akses Provider via IFrame Eksternal</h3>
+        <p>Iframe di bawah ini memuat domain penyerang: <code>https://poc-clipboard-hijacking.netlify.app/</code></p>
+        <button onclick="checkIframeStatus()">Periksa Status Integrasi IFrame</button>
         
-        <!-- Iframe nyata dengan domain eksternal berbeda -->
-        <iframe id="external-iframe" src="https://paypal.com"></iframe>
+        <!-- Iframe nyata mengarah ke domain penyerang Anda -->
+        <iframe id="attacker-iframe" src="https://poc-clipboard-hijacking.netlify.app/"></iframe>
         
-        <pre id="real-test-result">Menunggu eksekusi...</pre>
+        <pre id="test-result">Menunggu interaksi...</pre>
     </div>
 
     <script>
         async function connectWallet() {
             const statusEl = document.getElementById('connection-status');
             if (!window.ethereum) {
-                statusEl.textContent = "window.ethereum tidak ditemukan!";
+                statusEl.textContent = "window.ethereum tidak ditemukan di parent window!";
                 return;
             }
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                statusEl.textContent = `Terhubung ke akun: ${accounts[0]}`;
+                statusEl.textContent = `Parent Terhubung ke akun: ${accounts[0]}`;
             } catch (err) {
                 statusEl.textContent = `Koneksi ditolak: ${err.message}`;
             }
         }
 
-        function runRealTest() {
-            const resultEl = document.getElementById('real-test-result');
-            const iframe = document.getElementById('external-iframe');
-
-            resultEl.textContent = "Mengirim perintah uji ke iframe eksternal...";
-
-            // Menggunakan postMessage untuk menyuruh iframe eksternal mencoba mencuri/membaca window.parent.ethereum
-            // Catatan: Agar skrip ini berjalan sempurna di server Anda, Anda juga bisa menaruh file HTML kecil di server lain 
-            // yang berisi script untuk mengecek window.parent.ethereum.
+        function checkIframeStatus() {
+            const resultEl = document.getElementById('test-result');
             
-            try {
-                // Simulasi injeksi script atau pengujian pesan lintas domain
-                // Pada dApp browser yang aman, iframe cross-origin seharusnya sama sekali tidak memiliki akses 
-                // ke konteks window.ethereum milik parent, atau diblokir oleh Same-Origin Policy / Context Isolation.
-                
-                setTimeout(() => {
-                    resultEl.innerHTML = `
-                        <span class="secure">[INFO TEnis] Iframe eksternal dimuat. </span><br>
-                        Untuk pengujian riil tingkat lanjut (Bug Bounty), pastikan Anda menghosting file penerima di server eksternal (misal: <code>https://domain-penyerang.com/test.html</code>) 
-                        yang mencoba memanggil <code>window.parent.ethereum.request()</code> secara langsung dari domain luar tersebut.
-                    `;
-                }, 1000);
-
-            } catch (e) {
-                resultEl.innerHTML = `<span class="secure">[AMAN] Diblokir oleh kebijakan isolasi browser: ${e.message}</span>`;
-            }
+            // Catatan: Karena ini lintas-origin (beda domain antara halaman utama dan netlify.app),
+            // kebijakan Same-Origin Policy mencegah JavaScript utama membaca isi DOM iframe secara langsung.
+            // Namun, skrip di dalam domain Netlify Anda (jika dApp browser salah mengimplementasikan injeksi) 
+            // bisa mencoba mengakses window.parent.ethereum secara mandiri dari dalam iframe tersebut.
+            
+            resultEl.innerHTML = `
+                [INFO] Iframe eksternal <code>poc-clipboard-hijacking.netlify.app</code> sedang dimuat.<br>
+                <b>Langkah Analisis:</b><br>
+                1. Pastikan di server Netlify Anda sudah disematkan skrip uji coba yang memanggil <code>window.parent.ethereum</code> atau <code>window.ethereum</code>.<br>
+                2. Perhatikan apakah dApp browser mengizinkan iframe eksternal tersebut mengeksekusi metode Web3 atau justru memblokirnya total karena perbedaan *origin*.
+            `;
         }
     </script>
 </body>
