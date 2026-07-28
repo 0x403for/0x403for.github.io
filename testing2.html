@@ -1,121 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>1inch test </title>
-<style>
-  body { font-family: monospace; font-size: 12px; padding: 12px; background: #111; color: #eee; }
-  .log { margin: 3px 0; word-break: break-all; }
-  .red { color: #ff5555; font-weight: bold; }
-  .purple { color: #c084fc; }
-  .blue { color: #60a5fa; }
-  .green { color: #4ade80; }
-</style>
+    <meta charset="UTF-8">
+    <title>1inch dApp Advanced Security Test PoC</title>
+    <style>
+        body { font-family: monospace; font-size: 11px; padding: 10px; background: #0f172a; color: #f8fafc; }
+        .log-box { background: #1e293b; border: 1px: solid #334155; padding: 8px; margin-top: 8px; max-height: 250px; overflow-y: auto; border-radius: 4px; }
+        .log { margin: 3px 0; word-break: break-all; }
+        .critical { color: #f87171; font-weight: bold; }
+        .high { color: #fb923c; }
+        .info { color: #38bdf8; }
+        .success { color: #4ade80; }
+        button { background: #3b82f6; color: white; border: none; padding: 8px 12px; margin: 4px 2px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        button:hover { background: #2563eb; }
+    </style>
 </head>
 <body>
-<h3 style="margin:0 0 8px 0; color:#fff">1inch Hijack Test v13</h3>
-<div style="color:#aaa; font-size:11px; margin-bottom:12px">Deep Callback & Property Hijacking POC...</div>
-<hr style="border-color:#333; margin:8px 0">
+    <h3 style="margin:0 0 5px 0; color:#fff">1inch dApp Advanced Security Tester</h3>
+    <div style="color:#94a3b8; font-size:10px; margin-bottom:10px">Modul Pengujian Terpadu: TX Hijacking, API Interception, Chain Validation & Local Storage</div>
+    <hr style="border-color:#334155; margin:6px 0">
+
+    <div>
+        <button onclick="runLocalStorageAudit()">1. Cek LocalStorage</button>
+        <button onclick="runProviderAudit()">2. Audit Bridge Object</button>
+        <button onclick="testTransactionSimulation()">3. Simulasi TX Hook</button>
+    </div>
+
+    <div class="log-box" id="consoleLog">
+        <div class="log info">[System] PoC siap dijalankan di lingkungan dApp browser.</div>
+    </div>
 
 <script>
-  // simple logger
-  function log(msg, cls = "") {
-    const d = document.createElement("div");
-    d.className = "log " + cls;
-    d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    document.body.prepend(d);
-    console.log(msg);
-  }
+    function log(msg, type = "info") {
+        const box = document.getElementById("consoleLog");
+        const div = document.createElement("div");
+        div.className = "log " + type;
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        box.prepend(div);
+        console.log(msg);
+    }
 
-  // deep trap pake Proxy
-  function applyDeepTrap(name) {
-    if (!window[name]) return;
-
-    log(`[!] Found window.${name}. Applying deep trap...`, "purple");
-
-    const original = window[name];
-
-    try {
-      window[name] = new Proxy(original, {
-        get(target, prop, receiver) {
-          const val = Reflect.get(target, prop, receiver);
-
-          // trap function
-          if (typeof val === "function") {
-            return function (...args) {
-              log(`🚨 CALLED ${name}.${String(prop)}(...) -> Args: ${JSON.stringify(args)}`, "red");
-              return val.apply(this === receiver ? target : this, args);
-            };
-          }
-
-          // trap nested object juga (biar lebih dalam)
-          if (val && typeof val === "object") {
-            try {
-              return new Proxy(val, {
-                get(t, p, r) {
-                  const v = Reflect.get(t, p, r);
-                  if (typeof v === "function") {
-                    return function (...a) {
-                      log(`🚨 CALLED ${name}.${String(prop)}.${String(p)}(...) -> Args: ${JSON.stringify(a)}`, "red");
-                      return v.apply(this, a);
-                    };
-                  }
-                  return v;
-                }
-              });
-            } catch (e) {}
-          }
-
-          return val;
-        },
-
-        set(target, prop, value) {
-          log(`[SET] ${name}.${String(prop)} = ${value}`, "blue");
-          return Reflect.set(target, prop, value);
+    // Modul 1: Pemeriksaan Penyimpanan Lokal (Sensitive Data / LocalStorage)
+    function runLocalStorageAudit() {
+        log("--- Memulai Audit LocalStorage & SessionStorage ---", "info");
+        try {
+            const lsCount = localStorage.length;
+            log(`Total item di localStorage: ${lsCount}`, "info");
+            for (let i = 0; i < lsCount; i++) {
+                const key = localStorage.key(i);
+                const val = localStorage.getItem(key);
+                // Menandai jika ada kunci yang mencurigakan atau menyimpan data sensitif mentah
+                const isSensitive = /key|token|auth|seed|mnemonic|account/i.test(key);
+                const cls = isSensitive ? "critical" : "success";
+                log(`[LS] Key: "${key}" => Value: ${val ? val.substring(0, 40) + '...' : 'kosong'}`, cls);
+            }
+        } catch (e) {
+            log(`Gagal membaca localStorage: ${e.message}`, "critical");
         }
-      });
-
-      log(`[+] Initializing Deep Callback Interceptor v13...`, "blue");
-    } catch (err) {
-      log(`[x] gagal trap ${name}: ${err.message}`, "red");
     }
-  }
 
-  // coba intercept defineProperty juga (kadang wallet inject belakangan)
-  const _defineProperty = Object.defineProperty;
-  Object.defineProperty = function (obj, prop, desc) {
-    if (obj === window && (prop === "OneInchIOSWallet" || prop === "OneInchSolanaWallet")) {
-      log(`[!] window.${prop} lagi di-define...`, "red");
+    // Modul 2: Audit Objek Provider & Bridge Bawaan
+    function runProviderAudit() {
+        log("--- Memulai Audit Objek Provider & Jembatan Native ---", "info");
+        const targets = ['ethereum', 'OneInchIOSWallet', 'OneInchSolanaWallet', 'coin98'];
+        
+        targets.forEach(targetName => {
+            if (window[targetName]) {
+                log(`[+] Ditemukan objek global: window.${targetName}`, "success");
+                try {
+                    const props = Object.getOwnPropertyNames(window[targetName]);
+                    log(`    Properti/Metode: ${props.slice(0, 12).join(', ')}`, "info");
+                } catch (err) {
+                    log(`    Gagal membaca properti ${targetName}`, "high");
+                }
+            } else {
+                log(`[-] Tidak ditemukan: window.${targetName}`, "info");
+            }
+        });
     }
-    return _defineProperty.apply(this, arguments);
-  };
 
-  // jalanin setelah page load
-  window.addEventListener("load", () => {
-    log("1inch Full Coverage Test v13 Loaded");
-    
-    // kasih jeda dikit biar object wallet sempet inject
-    setTimeout(() => {
-      applyDeepTrap("OneInchSolanaWallet");
-      applyDeepTrap("OneInchIOSWallet");
-      
-      // coba lagi beberapa kali soalnya kadang object muncul belakangan
-      let tries = 0;
-      const interval = setInterval(() => {
-        tries++;
-        applyDeepTrap("OneInchSolanaWallet");
-        applyDeepTrap("OneInchIOSWallet");
-        if (tries > 8) clearInterval(interval);
-      }, 600);
-    }, 250);
-  });
+    // Modul 3: Simulasi Hooking / Intersepsi Parameter Transaksi (TX Hijacking / API Interception)
+    function testTransactionSimulation() {
+        log("--- Menguji Kait Parameter Transaksi (TX Hook) ---", "info");
+        if (window.ethereum && typeof window.ethereum.request === 'function') {
+            log("[*] window.ethereum terdeteksi aktif. Mencoba memantau metode request...", "info");
+            
+            // Menyadap fungsi request untuk melihat apakah parameter transaksi bisa dibaca/dimodifikasi
+            const originalRequest = window.ethereum.request;
+            window.ethereum.request = async function(args) {
+                log(`🚨 TERDETEKSI PEMANGGILAN METHOD: ${args.method}`, "critical");
+                if (args.params) {
+                    log(`    Parameter: ${JSON.stringify(args.params).substring(0, 120)}...`, "high");
+                }
+                return originalRequest.apply(this, arguments);
+            };
+            log("[+] Berhasil memasang hook pada window.ethereum.request", "success");
+        } else {
+            log("[-] window.ethereum.request tidak tersedia atau dibatasi.", "high");
+        }
+    }
+
+    window.onload = function() {
+        log("Inisialisasi skrip pengujian berhasil dimuat.");
+    };
 </script>
-
-<div style="margin-top:20px; color:#666; font-size:11px; line-height:1.5">
-  <b>Instruksi Pengujian :</b><br>
-  1. Buka halaman ini di dApp browser 1inch.<br>
-  2. Lakukan proses Swap atau panggil fungsi transaksi/signing.<br>
-  3. Perhatikan apakah ada log merah baru yang mencetak fungsi turunan (seperti *exec*callback* dll).
-</div>
 </body>
 </html>
