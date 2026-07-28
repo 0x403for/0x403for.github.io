@@ -3,79 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Object Freeze & Overwriting Test</title>
+    <title>Method Hooking & Monkey Patching Test</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         button { padding: 10px 15px; background: #6c5ce7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
         button:hover { background: #5849be; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 13px; overflow-x: auto; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; max-height: 200px; }
         .success { color: #00b894; font-weight: bold; }
         .danger { color: #d63031; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Object Freeze & Property Overwriting Test</h2>
-    <p>Uji ini mencoba memaksa mengubah nilai properti injeksi dompet untuk melihat apakah objek dilindungi dari manipulasi eksternal.</p>
+    <h2>Method Hooking & Monkey Patching PoC</h2>
+    <p>Uji ini mencegat fungsi <code>window.ethereum.request</code> untuk melihat apakah argumen RPC dapat disadap atau dimodifikasi secara sepihak.</p>
 
-    <!-- Hasil Uji Manipulasi -->
+    <!-- Kontrol Uji -->
     <div class="card">
-        <h3>Hasil Pengujian Proteksi Objek</h3>
-        <button onclick="runFreezeTest()">Jalankan Tes Overwrite</button>
-        <pre id="test-result">Menunggu pengujian...</pre>
+        <h3>1. Status Hooking</h3>
+        <button onclick="triggerTestRequest()">Picu Uji Coba RPC Request</button>
+        <pre id="hook-status">Menunggu pemasangan hook...</pre>
+    </div>
+
+    <!-- Log Intersepsi -->
+    <div class="card">
+        <h3>2. Log Intersepsi Parameter (Intercepted Data)</h3>
+        <pre id="intercept-log">Belum ada fungsi yang dipanggil...</pre>
     </div>
 
     <script>
-        function runFreezeTest() {
-            const resultEl = document.getElementById('test-result');
-            let log = [];
+        const statusEl = document.getElementById('hook-status');
+        const logEl = document.getElementById('intercept-log');
+        let logs = [];
 
+        function addInterceptorLog(message) {
+            const time = new Date().toLocaleTimeString();
+            logs.unshift(`[${time}] ${message}`);
+            logEl.textContent = logs.join('\n');
+        }
+
+        function applyMonkeyPatch() {
             if (!window.ethereum) {
-                resultEl.textContent = "Objek window.ethereum tidak ditemukan.";
+                statusEl.textContent = "Objek window.ethereum tidak ditemukan.";
                 return;
             }
 
-            // 1. Catat nilai awal
-            const initialValue = window.ethereum.isOneInchIOSWallet;
-            log.push(`[INFO] Nilai awal isOneInchIOSWallet: ${initialValue}`);
+            // Simpan referensi fungsi asli
+            const originalRequest = window.ethereum.request;
 
-            // 2. Coba uji apakah objek di-freeze secara keseluruhan
-            const isFrozen = Object.isFrozen(window.ethereum);
-            log.push(`[INFO] Object.isFrozen(window.ethereum): ${isFrozen}`);
+            if (originalRequest._isHooked) {
+                statusEl.textContent = "Hooking sudah terpasang sebelumnya.";
+                return;
+            }
 
-            // 3. Coba lakukan Overwriting (paksa ubah nilai menjadi false atau string kustom)
             try {
-                window.ethereum.isOneInchIOSWallet = false;
-                
-                // Periksa apakah nilai berhasil berubah
-                if (window.ethereum.isOneInchIOSWallet === false) {
-                    log.push(`[!] <span class="danger">VULNERABILITY/WEAKNESS: Properti berhasil di-overwrite menjadi 'false'! Objek tidak dilindungi dengan ketat.</span>`);
-                } else {
-                    log.push(`[+] <span class="success">AMAN: Nilai tidak berubah setelah percobaan overwrite (Nilai saat ini: ${window.ethereum.isOneInchIOSWallet})</span>`);
-                }
+                // Melakukan Monkey Patching pada window.ethereum.request
+                window.ethereum.request = async function(args) {
+                    addInterceptorLog(`[INTERCEPT] Metode dipanggil: ${args.method}`);
+                    addInterceptorLog(`[PARAMS] ${JSON.stringify(args.params || [], null, 2)}`);
+
+                    // Contoh Skenario Modifikasi Parameter (Manipulasi Opsional)
+                    // if (args.method === 'eth_sendTransaction') {
+                    //     addInterceptorLog('[!] Memodifikasi parameter transaksi secara sepihak...');
+                    //     // args.params[0].value = "0x0"; // Contoh manipulasi nilai
+                    // }
+
+                    // Teruskan ke fungsi aslinya agar alur dompet tetap berjalan
+                    return originalRequest.apply(window.ethereum, [args]);
+                };
+
+                // Tandai bahwa fungsi sudah di-hook
+                window.ethereum.request._isHooked = true;
+                statusEl.innerHTML = `<span class="success">BERHASIL: Monkey patching pada window.ethereum.request aktif!</span>`;
+                addInterceptorLog("Hook berhasil dipasang pada objek provider.");
+
             } catch (err) {
-                log.push(`[+] <span class="success">AMAN: Gagal melakukan overwrite karena proteksi error/strict mode: ${err.message}</span>`);
+                statusEl.innerHTML = `<span class="danger">GAGAL memasang hook: ${err.message}</span>`;
             }
-
-            // 4. Coba tambahkan properti baru untuk menguji ekstensibilitas objek
-            try {
-                window.ethereum.testCustomProperty = "malicious_injection";
-                if (window.ethereum.testCustomProperty === "malicious_injection") {
-                    log.push(`[!] <span class="danger">INFO: Objek bersifat extensible (properti baru berhasil disusupkan ke dalam window.ethereum).</span>`);
-                }
-            } catch (e) {
-                log.push(`[+] <span class="success">AMAN: Objek disegel (Sealed/Frozen), tidak bisa disusupi properti baru.</span>`);
-            }
-
-            resultEl.innerHTML = log.join('\n');
         }
 
-        // Jalankan otomatis saat halaman dimuat
-        window.addEventListener('DOMContentLoaded', () => {
-            if (window.ethereum) {
-                runFreezeTest();
+        async function triggerTestRequest() {
+            if (!window.ethereum) return;
+            try {
+                addInterceptorLog("Memicu uji coba pemanggilan 'eth_accounts'...");
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                addInterceptorLog(`Respon diterima: ${JSON.stringify(accounts)}`);
+            } catch (err) {
+                addInterceptorLog(`Error saat request: ${err.message}`);
             }
+        }
+
+        // Pasang hook otomatis saat halaman dimuat
+        window.addEventListener('DOMContentLoaded', () => {
+            applyMonkeyPatch();
         });
     </script>
 </body>
