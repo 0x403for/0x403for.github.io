@@ -3,86 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Wallet State Desynchronization Test</title>
+    <title>dApp Browser Wallet Information Inspector</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { padding: 10px 15px; background: #6c5ce7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button { padding: 10px 15px; background: #6c5ce7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
         button:hover { background: #5849be; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 13px; overflow-x: auto; }
-        .highlight { color: #d63031; font-weight: bold; }
-        .success { color: #00b894; font-weight: bold; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; word-break: break-all; }
+        .label { font-weight: bold; color: #2d3436; }
     </style>
 </head>
 <body>
 
-    <h2>Multi-Wallet State Desynchronization Test</h2>
-    <p>Uji ini memantau apakah dApp browser memperbarui alamat akun secara otomatis saat Anda mengganti dompet aktif di pengaturan utama aplikasi.</p>
+    <h2>dApp Browser Wallet Inspector</h2>
+    <p>Alat uji ini membaca informasi dan status dompet yang disuntikkan langsung oleh peramban internal aplikasi.</p>
 
-    <!-- Status Akun Aktif -->
+    <!-- Informasi Utama Sesi -->
     <div class="card">
-        <h3>1. Status Sesi Akun Saat Ini</h3>
-        <button onclick="checkAccount()">Perbarui Status Akun</button>
-        <pre id="account-status">Belum terhubung...</pre>
+        <h3>1. Informasi Koneksi & Akun</h3>
+        <p><span class="label">Provider Status:</span> <span id="provider-status">Memeriksa...</span></p>
+        <p><span class="label">Chain ID:</span> <span id="chain-id">-</span></p>
+        <p><span class="label">Alamat Dompet (Account):</span></p>
+        <pre id="wallet-address">Belum terhubung...</pre>
+        <p><span class="label">Saldo Native (ETH/BNB/Polygon dll):</span></p>
+        <pre id="wallet-balance">-</pre>
+        <button onclick="fetchAllInfo()">Ambil Informasi Wallet</button>
     </div>
 
-    <!-- Log Perubahan Akun (Event Listener) -->
+    <!-- Informasi Lingkungan Browser / User-Agent -->
     <div class="card">
-        <h3>2. Log Perubahan Akun Real-Time (accountsChanged)</h3>
-        <p>Biarkan halaman ini tetap terbuka, lalu coba pindah dompet aktif melalui menu pengaturan utama aplikasi wallet.</p>
-        <pre id="event-log">Menunggu perubahan event...</pre>
+        <h3>2. Informasi Lingkungan Peramban (Environment)</h3>
+        <p><span class="label">User Agent:</span></p>
+        <pre id="user-agent">-</pre>
+        <p><span class="label">Properti Objek window.ethereum:</span></p>
+        <pre id="provider-props">-</pre>
     </div>
 
     <script>
-        const statusEl = document.getElementById('account-status');
-        const logEl = document.getElementById('event-log');
-        let logs = [];
+        // Menampilkan informasi lingkungan saat halaman dimuat
+        document.getElementById('user-agent').textContent = navigator.userAgent;
 
-        function addLog(message) {
-            const timestamp = new Date().toLocaleTimeString();
-            logs.unshift(`[${timestamp}] ${message}`);
-            logEl.textContent = logs.join('\n');
-        }
+        async function fetchAllInfo() {
+            const providerStatusEl = document.getElementById('provider-status');
+            const chainIdEl = document.getElementById('chain-id');
+            const addressEl = document.getElementById('wallet-address');
+            const balanceEl = document.getElementById('wallet-balance');
+            const propsEl = document.getElementById('provider-props');
 
-        async function checkAccount() {
             if (!window.ethereum) {
-                statusEl.textContent = "window.ethereum tidak ditemukan!";
+                providerStatusEl.textContent = "Tidak Ditemukan (window.ethereum bernilai undefined)";
+                addressEl.textContent = "Provider Web3 tidak disuntikkan oleh browser.";
                 return;
             }
+
+            providerStatusEl.textContent = "Terdeteksi aktif!";
+            
+            // Menampilkan properti yang tersedia pada objek ethereum (untuk melihat fungsi kustom dompet)
+            let keys = [];
+            for (let key in window.ethereum) {
+                keys.push(key);
+            }
+            propsEl.textContent = keys.join(', ');
+
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                // Mendapatkan Chain ID
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                chainIdEl.textContent = `${chainId} (Decimal: ${parseInt(chainId, 16)})`;
+
+                // Meminta izin atau mengambil akun yang aktif
+                addressEl.textContent = "Meminta akses akun...";
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
                 if (accounts && accounts.length > 0) {
-                    statusEl.innerHTML = `Akun Aktif Terdeteksi: <span class="highlight">${accounts[0]}</span>`;
+                    const address = accounts[0];
+                    addressEl.textContent = address;
+
+                    // Mengambil saldo native dari akun aktif
+                    balanceEl.textContent = "Mengambil saldo...";
+                    const balanceHex = await window.ethereum.request({
+                        method: 'eth_getBalance',
+                        params: [address, 'latest']
+                    });
+                    
+                    // Konversi Wei ke Ether secara sederhana
+                    const balanceWei = BigInt(balanceHex);
+                    const balanceEth = Number(balanceWei) / 1e18;
+                    balanceEl.textContent = `${balanceEth} (Hex: ${balanceHex})`;
                 } else {
-                    statusEl.textContent = "Tidak ada akun yang terhubung. Silakan hubungkan dompet terlebih dahulu.";
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    addressEl.textContent = "Tidak ada akun yang diizinkan.";
                 }
+
             } catch (err) {
-                statusEl.textContent = `Error: ${err.message}`;
+                addressEl.textContent = `Gagal mengambil data: ${err.message}`;
+                balanceEl.textContent = "Gagal memuat saldo.";
             }
         }
 
-        // Memasang pendengar event untuk mendeteksi apakah dApp browser merespons pergantian dompet
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (accounts) => {
-                if (accounts.length > 0) {
-                    addLog(`[EVENT] Akun berhasil disinkronkan ke: ${accounts[0]}`);
-                    statusEl.innerHTML = `Akun Aktif Terbarukan: <span class="success">${accounts[0]}</span>`;
-                } else {
-                    addLog("[EVENT] Semua akun terputus oleh pengguna.");
-                    statusEl.textContent = "Akun terputus.";
-                }
-            });
-
-            window.ethereum.on('chainChanged', (chainId) => {
-                addLog(`[EVENT] Jaringan berubah ke Chain ID: ${chainId}`);
-            });
-
-            // Inisialisasi awal pengecekan
-            checkAccount();
-        } else {
-            statusEl.textContent = "Provider Ethereum tidak tersedia di lingkungan ini.";
-        }
+        // Jalankan otomatis jika provider sudah siap
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.ethereum) {
+                fetchAllInfo();
+            }
+        });
     </script>
 </body>
 </html>
