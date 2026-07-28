@@ -3,55 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Sandbox - Exploit Test</title>
+    <title>Multi-Wallet State Desynchronization Test</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 15px; background: #ffffff; color: #333; margin: 0; }
-        .box { border: 1px solid #ddd; padding: 15px; border-radius: 6px; background: #fafafa; }
-        button { padding: 10px 15px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; }
-        button:hover { background: #0056b3; }
-        #status { margin-top: 10px; padding: 8px; background: #000; color: #00ff00; font-family: monospace; font-size: 12px; border-radius: 4px; word-break: break-all; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
+        .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 10px 15px; background: #6c5ce7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #5849be; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 13px; overflow-x: auto; }
+        .highlight { color: #d63031; font-weight: bold; }
+        .success { color: #00b894; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="box">
-        <h3>Security Sandbox</h3>
-        <button id="exploitBtn">Click Here to Test Provider Leak</button>
-        <div id="status">The Process Is Ready.</div>
+    <h2>Multi-Wallet State Desynchronization Test</h2>
+    <p>Uji ini memantau apakah dApp browser memperbarui alamat akun secara otomatis saat Anda mengganti dompet aktif di pengaturan utama aplikasi.</p>
+
+    <!-- Status Akun Aktif -->
+    <div class="card">
+        <h3>1. Status Sesi Akun Saat Ini</h3>
+        <button onclick="checkAccount()">Perbarui Status Akun</button>
+        <pre id="account-status">Belum terhubung...</pre>
+    </div>
+
+    <!-- Log Perubahan Akun (Event Listener) -->
+    <div class="card">
+        <h3>2. Log Perubahan Akun Real-Time (accountsChanged)</h3>
+        <p>Biarkan halaman ini tetap terbuka, lalu coba pindah dompet aktif melalui menu pengaturan utama aplikasi wallet.</p>
+        <pre id="event-log">Menunggu perubahan event...</pre>
     </div>
 
     <script>
-        document.getElementById('exploitBtn').addEventListener('click', async () => {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = "Mencoba mengakses provider Web3 dari iframe...";
+        const statusEl = document.getElementById('account-status');
+        const logEl = document.getElementById('event-log');
+        let logs = [];
 
-            try {
-                // Menguji akses ke window.parent.ethereum atau window.ethereum global
-                const targetProvider = window.parent.ethereum || window.ethereum;
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.unshift(`[${timestamp}] ${message}`);
+            logEl.textContent = logs.join('\n');
+        }
 
-                if (!targetProvider) {
-                    statusEl.textContent = "[AMAN] Provider tidak ditemukan di dalam konteks iframe.";
-                    return;
-                }
-
-                statusEl.textContent = "[!] Provider terdeteksi! Mencoba membaca akun secara diam-diam...";
-
-                // Mencoba memanggil method RPC tanpa izin eksplisit di iframe
-                const accounts = await targetProvider.request({ method: 'eth_accounts' });
-
-                if (accounts && accounts.length > 0) {
-                    statusEl.innerHTML = `<span style="color: #ff4d4d;">[VULNERABLE] BERHASIL MENCURI AKUN: ${accounts[0]}</span>`;
-                } else {
-                    // Coba paksa minta request accounts jika tidak terbaca langsung
-                    statusEl.textContent = "[!] Mencoba memicu eth_requestAccounts dari iframe...";
-                    const requestedAccounts = await targetProvider.request({ method: 'eth_requestAccounts' });
-                    statusEl.innerHTML = `<span style="color: #ff4d4d;">[VULNERABLE] PROMPT / AKUN TERBACA: ${requestedAccounts[0]}</span>`;
-                }
-
-            } catch (err) {
-                statusEl.innerHTML = `<span style="color: #00ff00;">[AMAN] Diblokir oleh isolasi browser: ${err.message}</span>`;
+        async function checkAccount() {
+            if (!window.ethereum) {
+                statusEl.textContent = "window.ethereum tidak ditemukan!";
+                return;
             }
-        });
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts && accounts.length > 0) {
+                    statusEl.innerHTML = `Akun Aktif Terdeteksi: <span class="highlight">${accounts[0]}</span>`;
+                } else {
+                    statusEl.textContent = "Tidak ada akun yang terhubung. Silakan hubungkan dompet terlebih dahulu.";
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                }
+            } catch (err) {
+                statusEl.textContent = `Error: ${err.message}`;
+            }
+        }
+
+        // Memasang pendengar event untuk mendeteksi apakah dApp browser merespons pergantian dompet
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length > 0) {
+                    addLog(`[EVENT] Akun berhasil disinkronkan ke: ${accounts[0]}`);
+                    statusEl.innerHTML = `Akun Aktif Terbarukan: <span class="success">${accounts[0]}</span>`;
+                } else {
+                    addLog("[EVENT] Semua akun terputus oleh pengguna.");
+                    statusEl.textContent = "Akun terputus.";
+                }
+            });
+
+            window.ethereum.on('chainChanged', (chainId) => {
+                addLog(`[EVENT] Jaringan berubah ke Chain ID: ${chainId}`);
+            });
+
+            // Inisialisasi awal pengecekan
+            checkAccount();
+        } else {
+            statusEl.textContent = "Provider Ethereum tidak tersedia di lingkungan ini.";
+        }
     </script>
 </body>
 </html>
