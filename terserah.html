@@ -3,100 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Method Hooking & Monkey Patching Test</title>
+    <title>Comprehensive Web3 Provider Vulnerability PoC</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 850px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         button { padding: 10px 15px; background: #6c5ce7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
         button:hover { background: #5849be; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; max-height: 200px; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; max-height: 180px; }
+        .leak { color: #d63031; font-weight: bold; }
         .success { color: #00b894; font-weight: bold; }
-        .danger { color: #d63031; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Method Hooking & Monkey Patching PoC</h2>
-    <p>Uji ini mencegat fungsi <code>window.ethereum.request</code> untuk melihat apakah argumen RPC dapat disadap atau dimodifikasi secara sepihak.</p>
+    <h2>Comprehensive dApp Browser Security PoC</h2>
+    <p>Pengujian gabungan: Passive Fingerprinting, Object Mutability (Lack of Freeze), dan Method Monkey Patching pada objek <code>window.ethereum</code>.</p>
 
-    <!-- Kontrol Uji -->
+    <!-- Modul 1: Passive Fingerprinting -->
     <div class="card">
-        <h3>1. Status Hooking</h3>
-        <button onclick="triggerTestRequest()">Picu Uji Coba RPC Request</button>
-        <pre id="hook-status">Menunggu pemasangan hook...</pre>
+        <h3>1. Passive Privacy Leak / Fingerprinting</h3>
+        <pre id="log-fingerprint">Memindai lingkungan peramban secara pasif...</pre>
     </div>
 
-    <!-- Log Intersepsi -->
+    <!-- Modul 2: Object Mutability & Overwriting -->
     <div class="card">
-        <h3>2. Log Intersepsi Parameter (Intercepted Data)</h3>
-        <pre id="intercept-log">Belum ada fungsi yang dipanggil...</pre>
+        <h3>2. Object Freeze & Property Overwriting Test</h3>
+        <pre id="log-freeze">Menunggu pengujian mutabilitas objek...</pre>
+    </div>
+
+    <!-- Modul 3: Method Monkey Patching -->
+    <div class="card">
+        <h3>3. Method Monkey Patching (window.ethereum.request)</h3>
+        <button onclick="triggerTestRequest()">Picu Uji Coba RPC Request</button>
+        <pre id="log-intercept">Log intersepsi parameter RPC...</pre>
     </div>
 
     <script>
-        const statusEl = document.getElementById('hook-status');
-        const logEl = document.getElementById('intercept-log');
-        let logs = [];
+        const logFingerprint = document.getElementById('log-fingerprint');
+        const logFreeze = document.getElementById('log-freeze');
+        const logIntercept = document.getElementById('log-intercept');
+        let interceptLogs = [];
 
-        function addInterceptorLog(message) {
+        function addInterceptLog(msg) {
             const time = new Date().toLocaleTimeString();
-            logs.unshift(`[${time}] ${message}`);
-            logEl.textContent = logs.join('\n');
+            interceptLogs.unshift(`[${time}] ${msg}`);
+            logIntercept.textContent = interceptLogs.join('\n');
         }
 
-        function applyMonkeyPatch() {
+        function runAllTests() {
             if (!window.ethereum) {
-                statusEl.textContent = "Objek window.ethereum tidak ditemukan.";
+                logFingerprint.textContent = "Objek window.ethereum tidak ditemukan.";
+                logFreeze.textContent = "Objek window.ethereum tidak ditemukan.";
                 return;
             }
 
-            // Simpan referensi fungsi asli
-            const originalRequest = window.ethereum.request;
-
-            if (originalRequest._isHooked) {
-                statusEl.textContent = "Hooking sudah terpasang sebelumnya.";
-                return;
+            // --- SKENARIO 1: Passive Fingerprinting ---
+            let fpResults = [];
+            fpResults.push(`[INFO] User-Agent: ${navigator.userAgent}`);
+            if (window.ethereum.isOneInchIOSWallet) {
+                fpResults.push(`[!] <span class="leak">PRIVACY LEAK: isOneInchIOSWallet = true (Terekspos pasif)</span>`);
             }
+            if (window.ethereum.isMetaMask) {
+                fpResults.push(`[!] <span class="leak">PRIVACY LEAK: isMetaMask = true (Emulasi standar terdeteksi)</span>`);
+            }
+            logFingerprint.innerHTML = fpResults.join('\n');
 
+            // --- SKENARIO 2: Object Freeze & Overwriting ---
+            let freezeResults = [];
+            const isFrozen = Object.isFrozen(window.ethereum);
+            freezeResults.push(`[INFO] Object.isFrozen(window.ethereum): ${isFrozen}`);
+            
             try {
-                // Melakukan Monkey Patching pada window.ethereum.request
-                window.ethereum.request = async function(args) {
-                    addInterceptorLog(`[INTERCEPT] Metode dipanggil: ${args.method}`);
-                    addInterceptorLog(`[PARAMS] ${JSON.stringify(args.params || [], null, 2)}`);
-
-                    // Contoh Skenario Modifikasi Parameter (Manipulasi Opsional)
-                    // if (args.method === 'eth_sendTransaction') {
-                    //     addInterceptorLog('[!] Memodifikasi parameter transaksi secara sepihak...');
-                    //     // args.params[0].value = "0x0"; // Contoh manipulasi nilai
-                    // }
-
-                    // Teruskan ke fungsi aslinya agar alur dompet tetap berjalan
-                    return originalRequest.apply(window.ethereum, [args]);
-                };
-
-                // Tandai bahwa fungsi sudah di-hook
-                window.ethereum.request._isHooked = true;
-                statusEl.innerHTML = `<span class="success">BERHASIL: Monkey patching pada window.ethereum.request aktif!</span>`;
-                addInterceptorLog("Hook berhasil dipasang pada objek provider.");
-
+                const originalVal = window.ethereum.isOneInchIOSWallet;
+                window.ethereum.isOneInchIOSWallet = false;
+                if (window.ethereum.isOneInchIOSWallet === false) {
+                    freezeResults.push(`[!] <span class="leak">VULNERABILITY: Properti berhasil di-overwrite menjadi 'false'! Objek tidak dibekukan.</span>`);
+                    // Kembalikan nilai semula
+                    window.ethereum.isOneInchIOSWallet = originalVal;
+                } else {
+                    freezeResults.push(`[+] AMAN: Properti terlindungi dari overwriting.`);
+                }
             } catch (err) {
-                statusEl.innerHTML = `<span class="danger">GAGAL memasang hook: ${err.message}</span>`;
+                freezeResults.push(`[+] AMAN: Gagal melakukan overwrite: ${err.message}`);
+            }
+            logFreeze.innerHTML = freezeResults.join('\n');
+
+            // --- SKENARIO 3: Monkey Patching pada request ---
+            try {
+                const originalRequest = window.ethereum.request;
+                if (!originalRequest._isHooked) {
+                    window.ethereum.request = async function(args) {
+                        addInterceptLog(`[INTERCEPT] Metode: ${args.method}`);
+                        addInterceptLog(`[PARAMS] ${JSON.stringify(args.params || [])}`);
+                        return originalRequest.apply(window.ethereum, [args]);
+                    };
+                    window.ethereum.request._isHooked = true;
+                    addInterceptLog("Berhasil melakukan monkey patching pada window.ethereum.request.");
+                }
+            } catch (err) {
+                addInterceptLog(`Gagal memasang hook: ${err.message}`);
             }
         }
 
         async function triggerTestRequest() {
             if (!window.ethereum) return;
             try {
-                addInterceptorLog("Memicu uji coba pemanggilan 'eth_accounts'...");
+                addInterceptLog("Memicu pemanggilan RPC 'eth_accounts'...");
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                addInterceptorLog(`Respon diterima: ${JSON.stringify(accounts)}`);
+                addInterceptLog(`Respon diterima: ${JSON.stringify(accounts)}`);
             } catch (err) {
-                addInterceptorLog(`Error saat request: ${err.message}`);
+                addInterceptLog(`Error: ${err.message}`);
             }
         }
 
-        // Pasang hook otomatis saat halaman dimuat
+        // Jalankan otomatis saat halaman dimuat
         window.addEventListener('DOMContentLoaded', () => {
-            applyMonkeyPatch();
+            runAllTests();
         });
     </script>
 </body>
