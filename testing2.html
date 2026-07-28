@@ -1,108 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>1inch dApp Advanced Security Test PoC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dApp Browser Security & Vulnerability Test</title>
     <style>
-        body { font-family: monospace; font-size: 11px; padding: 10px; background: #0f172a; color: #f8fafc; }
-        .log-box { background: #1e293b; border: 1px: solid #334155; padding: 8px; margin-top: 8px; max-height: 250px; overflow-y: auto; border-radius: 4px; }
-        .log { margin: 3px 0; word-break: break-all; }
-        .critical { color: #f87171; font-weight: bold; }
-        .high { color: #fb923c; }
-        .info { color: #38bdf8; }
-        .success { color: #4ade80; }
-        button { background: #3b82f6; color: white; border: none; padding: 8px 12px; margin: 4px 2px; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        button:hover { background: #2563eb; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; }
+        .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 10px 15px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .vulnerable { color: #d9534f; font-weight: bold; }
+        .secure { color: #5cb85c; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h3 style="margin:0 0 5px 0; color:#fff">1inch dApp Advanced Security Tester</h3>
-    <div style="color:#94a3b8; font-size:10px; margin-bottom:10px">Modul Pengujian Terpadu: TX Hijacking, API Interception, Chain Validation & Local Storage</div>
-    <hr style="border-color:#334155; margin:6px 0">
 
-    <div>
-        <button onclick="runLocalStorageAudit()">1. Cek LocalStorage</button>
-        <button onclick="runProviderAudit()">2. Audit Bridge Object</button>
-        <button onclick="testTransactionSimulation()">3. Simulasi TX Hook</button>
+    <h2>Web3 dApp Browser Diagnostic Tool</h2>
+    <p>Gunakan halaman ini di dalam browser internal wallet (misal: 1inch iOS) untuk memeriksa injeksi provider dan potensi celah keamanan sisi klien.</p>
+
+    <!-- 1. Deteksi Provider Injeksi -->
+    <div class="card">
+        <h3>1. Status Injeksi Provider Web3</h3>
+        <button onclick="checkProvider()">Cek Injeksi window.ethereum</button>
+        <pre id="provider-status">Belum dicek...</pre>
     </div>
 
-    <div class="log-box" id="consoleLog">
-        <div class="log info">[System] PoC siap dijalankan di lingkungan dApp browser.</div>
+    <!-- 2. Uji Kebocoran Informasi Akun (Auto-Connect Risk) -->
+    <div class="card">
+        <h3>2. Uji Auto-Exposure Akun</h3>
+        <p>Apakah dApp browser membocorkan alamat akun sebelum izin (permission) diberikan?</p>
+        <button onclick="checkAccountLeak()">Cek Kebocoran Alamat</button>
+        <pre id="leak-status">Belum dicek...</pre>
     </div>
 
-<script>
-    function log(msg, type = "info") {
-        const box = document.getElementById("consoleLog");
-        const div = document.createElement("div");
-        div.className = "log " + type;
-        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        box.prepend(div);
-        console.log(msg);
-    }
+    <!-- 3. Uji Simulai Prompt Transaksi / Malicious Sign -->
+    <div class="card">
+        <h3>3. Uji Tanggapan Metode RPC (Eth_RequestAccounts)</h3>
+        <button onclick="testConnection()">Minta Koneksi Akun</button>
+        <pre id="connection-result">Menunggu aksi...</pre>
+    </div>
 
-    // Modul 1: Pemeriksaan Penyimpanan Lokal (Sensitive Data / LocalStorage)
-    function runLocalStorageAudit() {
-        log("--- Memulai Audit LocalStorage & SessionStorage ---", "info");
-        try {
-            const lsCount = localStorage.length;
-            log(`Total item di localStorage: ${lsCount}`, "info");
-            for (let i = 0; i < lsCount; i++) {
-                const key = localStorage.key(i);
-                const val = localStorage.getItem(key);
-                // Menandai jika ada kunci yang mencurigakan atau menyimpan data sensitif mentah
-                const isSensitive = /key|token|auth|seed|mnemonic|account/i.test(key);
-                const cls = isSensitive ? "critical" : "success";
-                log(`[LS] Key: "${key}" => Value: ${val ? val.substring(0, 40) + '...' : 'kosong'}`, cls);
-            }
-        } catch (e) {
-            log(`Gagal membaca localStorage: ${e.message}`, "critical");
-        }
-    }
+    <!-- 4. Informasi User Agent & Environment -->
+    <div class="card">
+        <h3>4. Informasi Lingkungan Browser</h3>
+        <button onclick="getEnvironmentInfo()">Muat Info Environment</button>
+        <pre id="env-info">Klik tombol di atas...</pre>
+    </div>
 
-    // Modul 2: Audit Objek Provider & Bridge Bawaan
-    function runProviderAudit() {
-        log("--- Memulai Audit Objek Provider & Jembatan Native ---", "info");
-        const targets = ['ethereum', 'OneInchIOSWallet', 'OneInchSolanaWallet', 'coin98'];
-        
-        targets.forEach(targetName => {
-            if (window[targetName]) {
-                log(`[+] Ditemukan objek global: window.${targetName}`, "success");
-                try {
-                    const props = Object.getOwnPropertyNames(window[targetName]);
-                    log(`    Properti/Metode: ${props.slice(0, 12).join(', ')}`, "info");
-                } catch (err) {
-                    log(`    Gagal membaca properti ${targetName}`, "high");
-                }
+    <script>
+        function checkProvider() {
+            const statusEl = document.getElementById('provider-status');
+            if (window.ethereum) {
+                let info = `[AMAN/TERDETEKSI] window.ethereum ditemukan.\n`;
+                info += `- Is MetaMask/Injected: ${window.ethereum.isMetaMask || 'Tidak diketahui'}\n`;
+                info += `- Is 1inch Wallet: ${window.ethereum.isOneInchIOS || window.ethereum.is1inch || 'Tidak terdeteksi secara eksplisit'}\n`;
+                info += `- Chain ID aktif: ${window.ethereum.chainId || 'Tidak tersedia'}`;
+                statusEl.textContent = info;
             } else {
-                log(`[-] Tidak ditemukan: window.${targetName}`, "info");
+                statusEl.textContent = "[INFO] window.ethereum tidak ditemukan. Pastikan dibuka di dalam dApp browser wallet.";
             }
-        });
-    }
-
-    // Modul 3: Simulasi Hooking / Intersepsi Parameter Transaksi (TX Hijacking / API Interception)
-    function testTransactionSimulation() {
-        log("--- Menguji Kait Parameter Transaksi (TX Hook) ---", "info");
-        if (window.ethereum && typeof window.ethereum.request === 'function') {
-            log("[*] window.ethereum terdeteksi aktif. Mencoba memantau metode request...", "info");
-            
-            // Menyadap fungsi request untuk melihat apakah parameter transaksi bisa dibaca/dimodifikasi
-            const originalRequest = window.ethereum.request;
-            window.ethereum.request = async function(args) {
-                log(`🚨 TERDETEKSI PEMANGGILAN METHOD: ${args.method}`, "critical");
-                if (args.params) {
-                    log(`    Parameter: ${JSON.stringify(args.params).substring(0, 120)}...`, "high");
-                }
-                return originalRequest.apply(this, arguments);
-            };
-            log("[+] Berhasil memasang hook pada window.ethereum.request", "success");
-        } else {
-            log("[-] window.ethereum.request tidak tersedia atau dibatasi.", "high");
         }
-    }
 
-    window.onload = function() {
-        log("Inisialisasi skrip pengujian berhasil dimuat.");
-    };
-</script>
+        function checkAccountLeak() {
+            const leakEl = document.getElementById('leak-status');
+            // Beberapa browser rentan membocorkan selectedAddress secara langsung tanpa request
+            if (window.ethereum && window.ethereum.selectedAddress) {
+                leakEl.innerHTML = `<span class="vulnerable">[RENTAN] Alamat terekspos otomatis: ${window.ethereum.selectedAddress}</span>`;
+            } else {
+                leakEl.innerHTML = `<span class="secure">[AMAN] Tidak ada alamat yang terekspos secara pre-connection.</span>`;
+            }
+        }
+
+        async function testConnection() {
+            const resultEl = document.getElementById('connection-result');
+            if (!window.ethereum) {
+                resultEl.textContent = "Provider Web3 tidak tersedia.";
+                return;
+            }
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                resultEl.textContent = `Berhasil terhubung! Akun: ${accounts[0]}`;
+            } catch (error) {
+                resultEl.textContent = `Koneksi ditolak atau gagal: ${error.message}`;
+            }
+        }
+
+        function getEnvironmentInfo() {
+            const envEl = document.getElementById('env-info');
+            envEl.textContent = `User-Agent: ${navigator.userAgent}\nPlatform: ${navigator.platform}`;
+        }
+    </script>
 </body>
 </html>
