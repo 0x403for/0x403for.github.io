@@ -2,27 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Real-World dApp Security Test PoC</title>
+    <title>Web3 dApp Provider Security Test</title>
     <style>
-        body { font-family: monospace; font-size: 12px; padding: 15px; background: #121212; color: #e0e0e0; }
-        .log-box { background: #1e1e1e; border: 1px solid #333; padding: 10px; margin-top: 10px; max-height: 300px; overflow-y: auto; border-radius: 4px; }
+        body { font-family: monospace; font-size: 12px; padding: 15px; background: #0f172a; color: #f8fafc; }
+        .log-box { background: #1e293b; border: 1px solid #334155; padding: 10px; margin-top: 10px; max-height: 250px; overflow-y: auto; border-radius: 4px; }
         .log { margin: 4px 0; word-break: break-all; }
-        .critical { color: #ff5252; font-weight: bold; }
-        .success { color: #69f0ae; }
-        .info { color: #40c4ff; }
-        button { background: #2962ff; color: white; border: none; padding: 10px 15px; margin: 5px 0; cursor: pointer; border-radius: 4px; font-weight: bold; width: 100%; }
-        button:hover { background: #1565c0; }
+        .critical { color: #f87171; font-weight: bold; }
+        .success { color: #4ade80; }
+        .info { color: #38bdf8; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 15px; margin: 5px 0; cursor: pointer; border-radius: 4px; font-weight: bold; width: 100%; }
+        button:hover { background: #2563eb; }
     </style>
 </head>
 <body>
-    <h3 style="margin-top:0; color:#fff;">Real-World dApp Injection & Method PoC</h3>
-    <p style="color: #aaa; font-size: 11px;">Alat uji nyata untuk memeriksa apakah objek jembatan mengizinkan pemanggilan metode transaksi tanpa izin eksplisit.</p>
-    <hr style="border-color: #333;">
+    <h3 style="margin-top:0; color:#fff;">Web3 dApp Bridge & Provider Security Test</h3>
+    <p style="color: #94a3b8; font-size: 11px;">Skrip pengujian untuk memverifikasi isolasi objek jembatan dan validasi penandatanganan dApp browser.</p>
+    <hr style="border-color: #334155;">
 
-    <button onclick="runRealWorldCheck()">Jalankan Pemindaian & Uji Metode Provider</button>
+    <button onclick="runWeb3SecurityTest()">Jalankan Uji Keamanan Provider</button>
 
     <div class="log-box" id="logConsole">
-        <div class="log info">[System] Menunggu eksekusi pengguna di dApp browser...</div>
+        <div class="log info">[System] Menunggu eksekusi di dApp browser...</div>
     </div>
 
 <script>
@@ -35,53 +35,49 @@
         console.log(msg);
     }
 
-    async function runRealWorldCheck() {
-        log("--- Memulai Pengujian Nyata Objek Provider ---", "info");
+    async function runWeb3SecurityTest() {
+        log("--- Memulai Validasi Objek Provider Web3 ---", "info");
 
-        // 1. Deteksi objek provider utama
-        const provider = window.ethereum || window.OneInchIOSWallet || window.coin98;
+        // Deteksi objek jembatan (bridge) yang tersedia
+        const provider = window.ethereum || window.OneInchIOSWallet || window.OneInchSolanaWallet;
         
         if (!provider) {
-            log("[-] Tidak ada objek provider utama yang terdeteksi di lingkungan ini.", "critical");
+            log("[-] Tidak ada objek jembatan dompet yang terekspos pada konteks ini.", "critical");
             return;
         }
 
-        log("[+] Objek provider berhasil diakses.", "success");
+        log("[+] Objek jembatan/provider berhasil diidentifikasi.", "success");
 
-        // 2. Uji coba membaca akun aktif secara otomatis (Silent Account Enumeration)
+        // Uji coba pembacaan akun (Enforcement of User Consent)
         try {
-            log("[*] Mencoba meminta akses akun (eth_accounts / request)...", "info");
+            log("[*] Memeriksa apakah akun dapat diakses secara senyap (silent enumeration)...", "info");
             let accounts = [];
             
             if (typeof provider.request === 'function') {
                 accounts = await provider.request({ method: 'eth_accounts' });
-            } else if (typeof provider.enable === 'function') {
-                accounts = await provider.enable();
             }
 
             if (accounts && accounts.length > 0) {
-                log(`🚨 Kritis: Akun terekspos tanpa interaksi popup manual: ${accounts[0]}`, "critical");
+                log(`🚨 Peringatan: Alamat akun terekspos tanpa intervensi popup: ${accounts[0]}`, "critical");
             } else {
-                log("[+] Akses akun dilindungi dengan baik (memerlukan izin/popup manual).", "success");
+                log("[+] Akses akun terlindungi (memerlukan persetujuan manual pengguna).", "success");
             }
         } catch (err) {
-            log(`[-] Permintaan akun dibatasi atau ditolak oleh sistem: ${err.message}`, "success");
+            log(`[-] Permintaan dibatasi oleh mekanisme keamanan sistem: ${err.message}`, "success");
         }
 
-        // 3. Uji coba pemanggilan fungsi penandatanganan arbitrer (Arbitrary Signing Test)
+        // Uji coba eksekusi metode sign tanpa parameter valid
         try {
-            log("[*] Menguji apakah fungsi penandatanganan dapat dipicu secara otomatis...", "info");
-            const testPayload = "0x43616e2d
-          if (typeof provider.request === 'function') {
-                // Mencoba sign pesan uji
-                const signTest = await provider.request({
+            log("[*] Menguji penanganan parameter sign/request arbitrer...", "info");
+            if (typeof provider.request === 'function') {
+                await provider.request({
                     method: 'personal_sign',
-                    params: ["Test Security Validation", "0x0000000000000000000000000000000000000000"]
+                    params: ["Test Payload Injection", "0x0000000000000000000000000000000000000000"]
                 });
-                log(`🚨 VULN TERDETEKSI: Tanda tangan dihasilkan tanpa kendali: ${signTest}`, "critical");
+                log("🚨 Kerentanan: Permintaan tanda tangan diproses tanpa validasi ketat.", "critical");
             }
         } catch (e) {
-            log(`[-] Keamanan validasi parameter berfungsi (Gagal/Ditolak: ${e.message})`, "success");
+            log(`[-] Validasi parameter dan penolakan error bekerja dengan baik: ${e.message}`, "success");
         }
     }
 </script>
