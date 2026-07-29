@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-World dApp Security Test PoC</title>
+    <style>
+        body { font-family: monospace; font-size: 12px; padding: 15px; background: #121212; color: #e0e0e0; }
+        .log-box { background: #1e1e1e; border: 1px solid #333; padding: 10px; margin-top: 10px; max-height: 300px; overflow-y: auto; border-radius: 4px; }
+        .log { margin: 4px 0; word-break: break-all; }
+        .critical { color: #ff5252; font-weight: bold; }
+        .success { color: #69f0ae; }
+        .info { color: #40c4ff; }
+        button { background: #2962ff; color: white; border: none; padding: 10px 15px; margin: 5px 0; cursor: pointer; border-radius: 4px; font-weight: bold; width: 100%; }
+        button:hover { background: #1565c0; }
+    </style>
+</head>
+<body>
+    <h3 style="margin-top:0; color:#fff;">Real-World dApp Injection & Method PoC</h3>
+    <p style="color: #aaa; font-size: 11px;">Alat uji nyata untuk memeriksa apakah objek jembatan mengizinkan pemanggilan metode transaksi tanpa izin eksplisit.</p>
+    <hr style="border-color: #333;">
+
+    <button onclick="runRealWorldCheck()">Jalankan Pemindaian & Uji Metode Provider</button>
+
+    <div class="log-box" id="logConsole">
+        <div class="log info">[System] Menunggu eksekusi pengguna di dApp browser...</div>
+    </div>
+
+<script>
+    function log(msg, type = "info") {
+        const box = document.getElementById("logConsole");
+        const div = document.createElement("div");
+        div.className = "log " + type;
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        box.prepend(div);
+        console.log(msg);
+    }
+
+    async function runRealWorldCheck() {
+        log("--- Memulai Pengujian Nyata Objek Provider ---", "info");
+
+        // 1. Deteksi objek provider utama
+        const provider = window.ethereum || window.OneInchIOSWallet || window.coin98;
+        
+        if (!provider) {
+            log("[-] Tidak ada objek provider utama yang terdeteksi di lingkungan ini.", "critical");
+            return;
+        }
+
+        log("[+] Objek provider berhasil diakses.", "success");
+
+        // 2. Uji coba membaca akun aktif secara otomatis (Silent Account Enumeration)
+        try {
+            log("[*] Mencoba meminta akses akun (eth_accounts / request)...", "info");
+            let accounts = [];
+            
+            if (typeof provider.request === 'function') {
+                accounts = await provider.request({ method: 'eth_accounts' });
+            } else if (typeof provider.enable === 'function') {
+                accounts = await provider.enable();
+            }
+
+            if (accounts && accounts.length > 0) {
+                log(`🚨 Kritis: Akun terekspos tanpa interaksi popup manual: ${accounts[0]}`, "critical");
+            } else {
+                log("[+] Akses akun dilindungi dengan baik (memerlukan izin/popup manual).", "success");
+            }
+        } catch (err) {
+            log(`[-] Permintaan akun dibatasi atau ditolak oleh sistem: ${err.message}`, "success");
+        }
+
+        // 3. Uji coba pemanggilan fungsi penandatanganan arbitrer (Arbitrary Signing Test)
+        try {
+            log("[*] Menguji apakah fungsi penandatanganan dapat dipicu secara otomatis...", "info");
+            const testPayload = "0x43616e2d
+          if (typeof provider.request === 'function') {
+                // Mencoba sign pesan uji
+                const signTest = await provider.request({
+                    method: 'personal_sign',
+                    params: ["Test Security Validation", "0x0000000000000000000000000000000000000000"]
+                });
+                log(`🚨 VULN TERDETEKSI: Tanda tangan dihasilkan tanpa kendali: ${signTest}`, "critical");
+            }
+        } catch (e) {
+            log(`[-] Keamanan validasi parameter berfungsi (Gagal/Ditolak: ${e.message})`, "success");
+        }
+    }
+</script>
+</body>
+</html>
