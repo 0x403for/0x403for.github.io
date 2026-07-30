@@ -1,129 +1,492 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Non-Standard & Dangerous RPC Methods Test</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 800px; margin: auto; }
-        .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { padding: 10px 15px; background: #d9534f; color: #fff; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px; font-weight: bold; }
-        button:hover { background: #c9302c; }
-        .btn-safe { background: #007bff; }
-        .btn-safe:hover { background: #0056b3; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; }
-        .vulnerable { color: #d9534f; font-weight: bold; }
-        .secure { color: #5cb85c; font-weight: bold; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>1inch iOS dApp Browser Security Test</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d27;
+      --border: #2a2e3b;
+      --text: #e4e6ed;
+      --muted: #8b90a0;
+      --critical: #ff4d4f;
+      --high: #fa8c16;
+      --medium: #fadb14;
+      --ok: #52c41a;
+      --info: #1890ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 16px;
+      padding-bottom: 80px;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 4px; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 1.05rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .badge.critical { background: rgba(255,77,79,0.15); color: var(--critical); }
+    .badge.high { background: rgba(250,140,22,0.15); color: var(--high); }
+    .badge.medium { background: rgba(250,219,20,0.15); color: var(--medium); }
+    .badge.info { background: rgba(24,144,255,0.15); color: var(--info); }
+
+    .test-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+    .test-item:last-child { border-bottom: none; }
+    .test-name { flex: 1; font-size: 0.9rem; }
+    .test-desc { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .status {
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+      min-width: 70px;
+      text-align: right;
+    }
+    .status.pass { color: var(--ok); }
+    .status.fail { color: var(--critical); }
+    .status.warn { color: var(--high); }
+    .status.info { color: var(--info); }
+
+    button {
+      background: #2a2e3b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+    }
+    button:active { opacity: 0.8; }
+    button.primary {
+      background: #1890ff;
+      border-color: #1890ff;
+      color: white;
+    }
+    .log {
+      background: #111;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.78rem;
+      max-height: 220px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 12px;
+      color: #a0a8c0;
+    }
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
+  <h1>1inch iOS dApp Browser Security Test</h1>
+  <p class="subtitle">Load this page inside 1inch iOS Browser to check for common WebView & wallet integration issues.</p>
 
-    <h2>Non-Standard & Dangerous RPC Methods Test</h2>
-    <p>Uji ini memeriksa bagaimana dApp browser menangani metode RPC non-standar, manipulasi jaringan paksa, atau pemanggilan fungsi tersembunyi.</p>
+  <!-- 1. Environment Detection -->
+  <div class="card">
+    <h2>
+      1. Environment & WebView Detection
+      <span class="badge info">Info</span>
+    </h2>
+    <div id="env-tests"></div>
+  </div>
 
-    <!-- 1. Koneksi Dasar -->
-    <div class="card">
-        <h3>1. Inisialisasi Koneksi Wallet</h3>
-        <button class="btn-safe" onclick="connectWallet()">Connect Wallet</button>
-        <pre id="conn-status">Belum terhubung...</pre>
-    </div>
+  <!-- 2. Insecure WebView Config -->
+  <div class="card">
+    <h2>
+      2. Insecure WebView Configuration
+      <span class="badge critical">Critical</span>
+    </h2>
+    <div id="webview-tests"></div>
+  </div>
 
-    <!-- 2. Uji Paksa Ganti Jaringan (Switch Chain Tanpa Interaksi Layak) -->
-    <div class="card">
-        <h3>2. Uji Paksa Pindah Jaringan (wallet_switchEthereumChain)</h3>
-        <p>Mencoba memindahkan jaringan secara paksa ke BSC Mainnet (Chain ID: 0x38) atau jaringan tiruan.</p>
-        <button onclick="testSwitchChain()">Uji Switch Chain Paksa</button>
-        <pre id="switch-result">Menunggu aksi...</pre>
-    </div>
+  <!-- 3. JavaScript Bridge / Injection Surface -->
+  <div class="card">
+    <h2>
+      3. JS Bridge & Injection Surface
+      <span class="badge critical">Critical</span>
+    </h2>
+    <div id="bridge-tests"></div>
+    <button onclick="testBridgeInjection()">Run Bridge Probe</button>
+  </div>
 
-    <!-- 3. Uji Penambahan Jaringan Kustom Berbahaya (wallet_addEthereumChain) -->
-    <div class="card">
-        <h3>3. Uji Injeksi Jaringan Kustom (Malicious RPC URL)</h3>
-        <p>Mencoba mendaftarkan jaringan kustom dengan RPC eksternal palsu untuk menguji validasi keamanan domain/node.</p>
-        <button onclick="testAddChain()">Uji Tambah Jaringan Kustom</button>
-        <pre id="addchain-result">Menunggu aksi...</pre>
-    </div>
+  <!-- 4. Wallet Provider Security -->
+  <div class="card">
+    <h2>
+      4. Wallet Provider (window.ethereum)
+      <span class="badge critical">Critical</span>
+    </h2>
+    <div id="wallet-tests"></div>
+    <button class="primary" onclick="connectWallet()">Connect Wallet</button>
+    <button onclick="testBlindSigning()">Test Blind Signing Risk</button>
+    <button onclick="testTransactionParams()">Test Tx Parameter Handling</button>
+  </div>
 
-    <!-- 4. Uji Pemanggilan Metode RPC Ilegal / Tidak Dikenal -->
-    <div class="card">
-        <h3>4. Uji Metode RPC Kustom / Tidak Dikenal</h3>
-        <p>Menguji respons browser ketika mendapati method custom fiktif (cth: <code>wallet_maliciousAction</code>).</p>
-        <button onclick="testCustomRpc()">Uji Metode Fiktif</button>
-        <pre id="custom-result">Menunggu aksi...</pre>
-    </div>
+  <!-- 5. Local File / Sensitive Access -->
+  <div class="card">
+    <h2>
+      5. Local File Access & Sensitive APIs
+      <span class="badge critical">Critical</span>
+    </h2>
+    <div id="file-tests"></div>
+    <button onclick="testLocalFileAccess()">Probe Local File Access</button>
+  </div>
 
-    <script>
-        async function connectWallet() {
-            const statusEl = document.getElementById('conn-status');
-            if (!window.ethereum) {
-                statusEl.textContent = "window.ethereum tidak ditemukan!";
-                return;
-            }
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                statusEl.textContent = `Terhubung: ${accounts[0]}`;
-            } catch (err) {
-                statusEl.textContent = `Ditolak: ${err.message}`;
-            }
+  <!-- 6. Deep Link / URL Handling -->
+  <div class="card">
+    <h2>
+      6. Deep Link & URL Handling
+      <span class="badge high">High</span>
+    </h2>
+    <div id="deeplink-tests"></div>
+    <button onclick="testDeepLinkParams()">Test Deep Link Parameter Injection</button>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <h2>Live Log</h2>
+    <div class="log" id="log">Waiting for tests...</div>
+  </div>
+
+  <div class="footer">
+    1inch iOS dApp Browser Security Checklist Test • Use only for authorized testing
+  </div>
+
+  <script>
+    const logEl = document.getElementById('log');
+    function log(msg, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const color = type === 'fail' ? '#ff4d4f' : type === 'warn' ? '#fa8c16' : type === 'ok' ? '#52c41a' : '#a0a8c0';
+      logEl.innerHTML += `<div style="color:${color}">[${time}] ${msg}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function addTest(containerId, name, desc, status, statusText) {
+      const container = document.getElementById(containerId);
+      const div = document.createElement('div');
+      div.className = 'test-item';
+      div.innerHTML = `
+        <div class="test-name">
+          ${name}
+          <div class="test-desc">${desc}</div>
+        </div>
+        <div class="status ${status}">${statusText}</div>
+      `;
+      container.appendChild(div);
+    }
+
+    // ========== 1. Environment Detection ==========
+    function runEnvTests() {
+      const ua = navigator.userAgent;
+      const isIOS = /iPhone|iPad|iPod/.test(ua);
+      const isWebView = /(WebView|wv|1inch)/i.test(ua) || !window.chrome || window.webkit;
+      
+      addTest('env-tests', 'User Agent', ua.substring(0, 80) + '...', 'info', 'Info');
+      addTest('env-tests', 'iOS Detected', 'Running on iOS device', isIOS ? 'pass' : 'warn', isIOS ? 'Yes' : 'No');
+      addTest('env-tests', 'Likely WebView', 'Check for WebView indicators', isWebView ? 'warn' : 'pass', isWebView ? 'Yes' : 'No');
+      addTest('env-tests', 'window.webkit', 'iOS WebView bridge present', window.webkit ? 'warn' : 'pass', window.webkit ? 'Present' : 'Absent');
+      addTest('env-tests', 'document.location', location.href, 'info', 'OK');
+      
+      log('Environment scan complete');
+    }
+
+    // ========== 2. Insecure WebView Config ==========
+    function runWebViewTests() {
+      // Check if JavaScript can access file:// or other schemes
+      const canAccessFile = (() => {
+        try {
+          // This will usually fail, but some misconfigured WebViews allow it
+          return typeof window.open === 'function';
+        } catch(e) { return false; }
+      })();
+
+      addTest('webview-tests', 
+        'JavaScript Enabled', 
+        'JS should be enabled in dApp browser', 
+        'pass', 'Enabled');
+
+      addTest('webview-tests',
+        'window.open available',
+        'Can open new windows / popups',
+        typeof window.open === 'function' ? 'warn' : 'pass',
+        typeof window.open === 'function' ? 'Yes' : 'No');
+
+      addTest('webview-tests',
+        'document.cookie accessible',
+        'Cookie access from page',
+        'info',
+        document.cookie ? 'Has cookies' : 'Empty');
+
+      // Check for mixed content or insecure loaded content indicators
+      addTest('webview-tests',
+        'Mixed Content Policy',
+        'Whether insecure content can be loaded',
+        'info',
+        'Manual check needed');
+
+      log('WebView config checks done');
+    }
+
+    // ========== 3. JS Bridge / Injection ==========
+    function testBridgeInjection() {
+      log('Probing possible native bridges...', 'info');
+
+      const bridges = [
+        'webkit',
+        'webkit.messageHandlers',
+        'ethereum',
+        'web3',
+        'solana',
+        'phantom',
+        'coinbaseWalletExtension',
+        'okxwallet',
+        'bitkeep',
+        'trustwallet',
+        'BinanceChain',
+        '1inch'
+      ];
+
+      bridges.forEach(b => {
+        const parts = b.split('.');
+        let obj = window;
+        let exists = true;
+        for (const p of parts) {
+          if (obj && obj[p] !== undefined) {
+            obj = obj[p];
+          } else {
+            exists = false;
+            break;
+          }
+        }
+        if (exists) {
+          log(`Found bridge: window.${b}`, 'warn');
+          addTest('bridge-tests', `Bridge: ${b}`, 'Native bridge detected', 'warn', 'Found');
+        }
+      });
+
+      // Try to detect messageHandlers
+      if (window.webkit && window.webkit.messageHandlers) {
+        const handlers = Object.keys(window.webkit.messageHandlers);
+        log(`webkit.messageHandlers: ${handlers.join(', ') || '(empty)'}`, 'warn');
+        addTest('bridge-tests', 'webkit.messageHandlers', handlers.join(', ') || 'present but empty', 'warn', 'Present');
+      }
+
+      log('Bridge probe finished', 'ok');
+    }
+
+    // ========== 4. Wallet Provider ==========
+    async function connectWallet() {
+      log('Requesting wallet connection...', 'info');
+      if (!window.ethereum) {
+        log('No window.ethereum found', 'fail');
+        addTest('wallet-tests', 'window.ethereum', 'Provider not injected', 'fail', 'Missing');
+        return;
+      }
+
+      addTest('wallet-tests', 'window.ethereum', 'Provider is present', 'pass', 'Present');
+      addTest('wallet-tests', 'isMetaMask', String(!!window.ethereum.isMetaMask), 'info', window.ethereum.isMetaMask ? 'Yes' : 'No');
+      addTest('wallet-tests', 'is1inch / custom', 'Check provider identity', 'info', 
+        window.ethereum.is1inch ? '1inch' : (window.ethereum.isMetaMask ? 'MetaMask' : 'Unknown'));
+
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        log(`Connected accounts: ${accounts.join(', ')}`, 'ok');
+        addTest('wallet-tests', 'eth_requestAccounts', accounts[0] || 'none', 'pass', 'Success');
+      } catch (err) {
+        log(`Connection error: ${err.message}`, 'fail');
+        addTest('wallet-tests', 'eth_requestAccounts', err.message, 'fail', 'Failed');
+      }
+    }
+
+    async function testBlindSigning() {
+      log('Testing blind signing risk (eth_sign / personal_sign)...', 'info');
+      if (!window.ethereum) {
+        log('No provider', 'fail');
+        return;
+      }
+
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (!accounts.length) {
+          log('No account connected. Connect first.', 'warn');
+          return;
         }
 
-        async function testSwitchChain() {
-            const resultEl = document.getElementById('switch-result');
-            if (!window.ethereum) {
-                resultEl.textContent = "Provider tidak tersedia.";
-                return;
-            }
-            try {
-                resultEl.textContent = "Mengirim permintaan switch chain ke BSC...";
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0x38' }],
-                });
-                resultEl.innerHTML = `<span class="secure">[INFO] Permintaan diproses. Pastikan dialog konfirmasi (UI prompt) muncul di layar dompet Anda.</span>`;
-            } catch (err) {
-                resultEl.innerHTML = `<span class="secure">[AMAN/DITOLAK] Permintaan dicegah atau dibatalkan: ${err.message}</span>`;
-            }
+        // Dangerous: eth_sign with arbitrary data (classic blind sign vector)
+        const msg = '0x' + 'deadbeef'.repeat(8); // arbitrary data
+        log('Attempting eth_sign with arbitrary data (blind sign test)...', 'warn');
+        
+        try {
+          const sig = await window.ethereum.request({
+            method: 'eth_sign',
+            params: [accounts[0], msg]
+          });
+          log('eth_sign SUCCEEDED — High risk of blind signing!', 'fail');
+          addTest('wallet-tests', 'Blind Signing (eth_sign)', 'App allowed signing arbitrary data', 'fail', 'Vulnerable');
+        } catch (e) {
+          log(`eth_sign blocked or rejected: ${e.message}`, 'ok');
+          addTest('wallet-tests', 'Blind Signing (eth_sign)', 'Rejected or not supported', 'pass', 'Protected');
+        }
+      } catch (err) {
+        log(`Error: ${err.message}`, 'fail');
+      }
+    }
+
+    async function testTransactionParams() {
+      log('Testing transaction parameter validation...', 'info');
+      if (!window.ethereum) return;
+
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (!accounts.length) {
+          log('Connect wallet first', 'warn');
+          return;
         }
 
-        async function testAddChain() {
-            const resultEl = document.getElementById('addchain-result');
-            if (!window.ethereum) {
-                resultEl.textContent = "Provider tidak tersedia.";
-                return;
-            }
-            try {
-                resultEl.textContent = "Mengirim permintaan penambahan jaringan kustom...";
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                        chainId: '0x999999',
-                        chainName: 'Malicious Fake Network',
-                        nativeCurrency: { name: 'FAKE', symbol: 'FAKE', decimals: 18 },
-                        rpcUrls: ['https://fake-malicious-rpc-node.com']
-                    }],
-                });
-                resultEl.innerHTML = `<span class="vulnerable">[PERHATIAN] Jaringan kustom berhasil diajukan. Pastikan browser memvalidasi keamanan RPC URL tersebut.</span>`;
-            } catch (err) {
-                resultEl.innerHTML = `<span class="secure">[AMAN] Penambahan jaringan kustom ditolak/gagal: ${err.message}</span>`;
-            }
-        }
+        // Intentionally malformed / suspicious tx
+        const badTx = {
+          from: accounts[0],
+          to: '0x0000000000000000000000000000000000000000',
+          value: '0x0',
+          data: '0x',
+          // Missing chainId, gas, etc. — some wallets fail to enforce
+        };
 
-        async function testCustomRpc() {
-            const resultEl = document.getElementById('custom-result');
-            if (!window.ethereum) {
-                resultEl.textContent = "Provider tidak tersedia.";
-                return;
-            }
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_maliciousAction',
-                    params: [{ test: true }]
-                });
-                resultEl.innerHTML = `<span class="vulnerable">[RENTAN] Metode fiktif diterima tanpa penolakan galat standar!</span>`;
-            } catch (err) {
-                resultEl.innerHTML = `<span class="secure">[AMAN] Metode tidak dikenal ditolak dengan benar: ${err.message}</span>`;
-            }
+        log('Sending suspicious tx request (should be validated by wallet)...', 'warn');
+        try {
+          await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [badTx]
+          });
+          log('Suspicious tx was accepted — check parameter validation!', 'fail');
+          addTest('wallet-tests', 'Tx Parameter Validation', 'Accepted incomplete/suspicious tx', 'fail', 'Weak');
+        } catch (e) {
+          log(`Tx rejected (good): ${e.message}`, 'ok');
+          addTest('wallet-tests', 'Tx Parameter Validation', 'Rejected suspicious tx', 'pass', 'OK');
         }
-    </script>
+      } catch (err) {
+        log(err.message, 'fail');
+      }
+    }
+
+    // ========== 5. Local File Access ==========
+    function testLocalFileAccess() {
+      log('Probing local file / sensitive access...', 'info');
+
+      // Attempt to detect if file:// scheme or local resources are reachable
+      const tests = [
+        { name: 'file:// access', url: 'file:///etc/passwd' },
+        { name: 'file:// library', url: 'file:///var/mobile/Library/' },
+        { name: 'iframe local', type: 'iframe' }
+      ];
+
+      tests.forEach(t => {
+        if (t.type === 'iframe') {
+          try {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = 'file:///';
+            document.body.appendChild(iframe);
+            setTimeout(() => {
+              try {
+                const content = iframe.contentWindow.document.body.innerHTML;
+                log('iframe file:// content readable!', 'fail');
+                addTest('file-tests', 'iframe file://', 'Content accessible', 'fail', 'Vulnerable');
+              } catch (e) {
+                log('iframe file:// blocked (good)', 'ok');
+                addTest('file-tests', 'iframe file://', 'Access blocked', 'pass', 'Protected');
+              }
+              iframe.remove();
+            }, 500);
+          } catch (e) {
+            log('iframe creation failed', 'ok');
+          }
+        }
+      });
+
+      // Check for common sensitive objects
+      const sensitive = ['localStorage', 'sessionStorage', 'indexedDB', 'caches'];
+      sensitive.forEach(s => {
+        const available = !!window[s];
+        addTest('file-tests', s, available ? 'Available' : 'Not available', available ? 'info' : 'pass', available ? 'Yes' : 'No');
+      });
+
+      log('Local access probe finished');
+    }
+
+    // ========== 6. Deep Link / Parameter Injection ==========
+    function testDeepLinkParams() {
+      log('Checking URL parameters & deep link handling...', 'info');
+      
+      const params = new URLSearchParams(location.search);
+      const hash = location.hash;
+
+      addTest('deeplink-tests', 'URL Search Params', params.toString() || '(none)', 'info', params.toString() ? 'Present' : 'None');
+      addTest('deeplink-tests', 'URL Hash', hash || '(none)', 'info', hash ? 'Present' : 'None');
+
+      // Simulate common deep link injection patterns
+      if (params.has('redirect') || params.has('url') || params.has('callback')) {
+        log('Suspicious redirect/callback parameter detected!', 'warn');
+        addTest('deeplink-tests', 'Redirect/Callback Param', 'Found potential open redirect vector', 'warn', 'Check');
+      } else {
+        addTest('deeplink-tests', 'Redirect/Callback Param', 'No obvious redirect params', 'pass', 'Clean');
+      }
+
+      // Check if the page can be loaded with javascript: or data: schemes (manual)
+      log('Tip: Try opening this page via deep link with javascript: or data: payload', 'info');
+      log('Deep link parameter check done');
+    }
+
+    // Auto-run safe tests on load
+    window.addEventListener('DOMContentLoaded', () => {
+      runEnvTests();
+      runWebViewTests();
+      testBridgeInjection();
+      testDeepLinkParams();
+      log('Ready. Run interactive tests above.', 'ok');
+    });
+  </script>
 </body>
 </html>
