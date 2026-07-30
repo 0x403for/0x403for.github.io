@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>1inch iOS dApp Browser Security Test</title>
+  <title>1inch iOS dApp Browser - Advanced Security Test</title>
   <style>
     :root {
-      --bg: #0f1117;
-      --card: #1a1d27;
-      --border: #2a2e3b;
-      --text: #e4e6ed;
-      --muted: #8b90a0;
+      --bg: #0b0d13;
+      --card: #151821;
+      --border: #2a2f3d;
+      --text: #e8eaef;
+      --muted: #8b92a8;
       --critical: #ff4d4f;
       --high: #fa8c16;
       --medium: #fadb14;
@@ -22,53 +22,53 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.5;
-      padding: 16px;
-      padding-bottom: 80px;
+      line-height: 1.45;
+      padding: 14px;
+      padding-bottom: 90px;
     }
-    h1 { font-size: 1.4rem; margin-bottom: 4px; }
-    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+    h1 { font-size: 1.25rem; margin-bottom: 2px; }
+    .subtitle { color: var(--muted); font-size: 0.82rem; margin-bottom: 16px; }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
     }
     .card h2 {
-      font-size: 1.05rem;
-      margin-bottom: 12px;
+      font-size: 0.98rem;
+      margin-bottom: 10px;
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
     .badge {
-      font-size: 0.7rem;
-      padding: 2px 8px;
+      font-size: 0.65rem;
+      padding: 2px 7px;
       border-radius: 20px;
       font-weight: 600;
     }
-    .badge.critical { background: rgba(255,77,79,0.15); color: var(--critical); }
-    .badge.high { background: rgba(250,140,22,0.15); color: var(--high); }
-    .badge.medium { background: rgba(250,219,20,0.15); color: var(--medium); }
-    .badge.info { background: rgba(24,144,255,0.15); color: var(--info); }
+    .badge.critical { background: rgba(255,77,79,0.18); color: var(--critical); }
+    .badge.high { background: rgba(250,140,22,0.18); color: var(--high); }
+    .badge.info { background: rgba(24,144,255,0.18); color: var(--info); }
 
     .test-item {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding: 10px 0;
+      padding: 8px 0;
       border-bottom: 1px solid var(--border);
-      gap: 12px;
+      gap: 10px;
     }
     .test-item:last-child { border-bottom: none; }
-    .test-name { flex: 1; font-size: 0.9rem; }
-    .test-desc { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .test-name { flex: 1; font-size: 0.86rem; }
+    .test-desc { font-size: 0.74rem; color: var(--muted); margin-top: 2px; }
     .status {
-      font-size: 0.8rem;
+      font-size: 0.76rem;
       font-weight: 600;
       white-space: nowrap;
-      min-width: 70px;
+      min-width: 68px;
       text-align: right;
     }
     .status.pass { color: var(--ok); }
@@ -77,130 +77,140 @@
     .status.info { color: var(--info); }
 
     button {
-      background: #2a2e3b;
+      background: #252a38;
       color: var(--text);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 16px;
-      font-size: 0.9rem;
+      padding: 9px 12px;
+      font-size: 0.84rem;
       cursor: pointer;
       width: 100%;
-      margin-top: 8px;
+      margin-top: 7px;
     }
     button:active { opacity: 0.8; }
-    button.primary {
-      background: #1890ff;
-      border-color: #1890ff;
-      color: white;
-    }
+    button.primary { background: #1890ff; border-color: #1890ff; color: #fff; }
+    button.danger { background: #a61d24; border-color: #a61d24; color: #fff; }
+    button.warn { background: #ad4e00; border-color: #ad4e00; color: #fff; }
+
+    .row { display: flex; gap: 8px; }
+    .row button { flex: 1; }
+
     .log {
-      background: #111;
+      background: #0a0c12;
       border-radius: 8px;
-      padding: 12px;
-      font-family: ui-monospace, monospace;
-      font-size: 0.78rem;
-      max-height: 220px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      max-height: 260px;
       overflow-y: auto;
       white-space: pre-wrap;
       word-break: break-all;
-      margin-top: 12px;
-      color: #a0a8c0;
+      margin-top: 10px;
+      color: #9aa3b8;
     }
     .footer {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       background: var(--card);
       border-top: 1px solid var(--border);
-      padding: 12px 16px;
-      font-size: 0.8rem;
+      padding: 10px 14px;
+      font-size: 0.75rem;
       color: var(--muted);
       text-align: center;
     }
   </style>
 </head>
 <body>
-  <h1>1inch iOS dApp Browser Security Test</h1>
-  <p class="subtitle">Load this page inside 1inch iOS Browser to check for common WebView & wallet integration issues.</p>
+  <h1>1inch iOS — Advanced dApp Browser Test</h1>
+  <p class="subtitle">Aggressive security probe • Multiple provider • Signing • ChainId • Gas • Deep link • Spoofing</p>
 
-  <!-- 1. Environment Detection -->
+  <!-- 1. Provider Detection & Spoofing -->
   <div class="card">
-    <h2>
-      1. Environment & WebView Detection
-      <span class="badge info">Info</span>
-    </h2>
-    <div id="env-tests"></div>
+    <h2>1. Multiple Provider & Spoofing <span class="badge critical">Critical</span></h2>
+    <div id="provider-tests"></div>
+    <div class="row">
+      <button class="primary" onclick="detectProviders()">Detect Providers</button>
+      <button class="danger" onclick="spoofEthereum()">Spoof window.ethereum</button>
+    </div>
+    <button onclick="restoreEthereum()">Restore Original ethereum</button>
   </div>
 
-  <!-- 2. Insecure WebView Config -->
+  <!-- 2. Deep Bridge Scan -->
   <div class="card">
-    <h2>
-      2. Insecure WebView Configuration
-      <span class="badge critical">Critical</span>
-    </h2>
-    <div id="webview-tests"></div>
-  </div>
-
-  <!-- 3. JavaScript Bridge / Injection Surface -->
-  <div class="card">
-    <h2>
-      3. JS Bridge & Injection Surface
-      <span class="badge critical">Critical</span>
-    </h2>
+    <h2>2. Deep Bridge & postMessage Scan <span class="badge high">High</span></h2>
     <div id="bridge-tests"></div>
-    <button onclick="testBridgeInjection()">Run Bridge Probe</button>
+    <button onclick="deepBridgeScan()">Deep Bridge Scan</button>
+    <button onclick="scanPostMessage()">Scan postMessage Listeners</button>
   </div>
 
-  <!-- 4. Wallet Provider Security -->
+  <!-- 3. Signing Tests -->
   <div class="card">
-    <h2>
-      4. Wallet Provider (window.ethereum)
-      <span class="badge critical">Critical</span>
-    </h2>
+    <h2>3. Signing Tests (Blind / Typed) <span class="badge critical">Critical</span></h2>
+    <div id="sign-tests"></div>
+    <div class="row">
+      <button class="warn" onclick="testEthSign()">eth_sign</button>
+      <button class="warn" onclick="testPersonalSign()">personal_sign</button>
+    </div>
+    <button class="danger" onclick="testEIP712()">EIP-712 (eth_signTypedData_v4)</button>
+  </div>
+
+  <!-- 4. ChainId & Gas -->
+  <div class="card">
+    <h2>4. ChainId Enforcement & Gas Manipulation <span class="badge high">High</span></h2>
+    <div id="tx-tests"></div>
+    <div class="row">
+      <button onclick="testChainIdMismatch()">ChainId Mismatch</button>
+      <button onclick="testGasManipulation()">Gas Manipulation</button>
+    </div>
+    <button onclick="testMissingChainId()">Missing chainId</button>
+  </div>
+
+  <!-- 5. Dangerous Schemes & Navigation -->
+  <div class="card">
+    <h2>5. Dangerous Schemes & Navigation <span class="badge critical">Critical</span></h2>
+    <div id="scheme-tests"></div>
+    <div class="row">
+      <button class="danger" onclick="testFileScheme()">file://</button>
+      <button class="danger" onclick="testJavascriptScheme()">javascript:</button>
+    </div>
+    <div class="row">
+      <button class="danger" onclick="testDataScheme()">data:</button>
+      <button onclick="testOpenRedirect()">Open Redirect Test</button>
+    </div>
+  </div>
+
+  <!-- 6. Wallet Connect -->
+  <div class="card">
+    <h2>6. Wallet Connection <span class="badge info">Info</span></h2>
     <div id="wallet-tests"></div>
-    <button class="primary" onclick="connectWallet()">Connect Wallet</button>
-    <button onclick="testBlindSigning()">Test Blind Signing Risk</button>
-    <button onclick="testTransactionParams()">Test Tx Parameter Handling</button>
-  </div>
-
-  <!-- 5. Local File / Sensitive Access -->
-  <div class="card">
-    <h2>
-      5. Local File Access & Sensitive APIs
-      <span class="badge critical">Critical</span>
-    </h2>
-    <div id="file-tests"></div>
-    <button onclick="testLocalFileAccess()">Probe Local File Access</button>
-  </div>
-
-  <!-- 6. Deep Link / URL Handling -->
-  <div class="card">
-    <h2>
-      6. Deep Link & URL Handling
-      <span class="badge high">High</span>
-    </h2>
-    <div id="deeplink-tests"></div>
-    <button onclick="testDeepLinkParams()">Test Deep Link Parameter Injection</button>
+    <button class="primary" onclick="connectWallet()">Connect / Refresh Accounts</button>
   </div>
 
   <!-- Log -->
   <div class="card">
     <h2>Live Log</h2>
-    <div class="log" id="log">Waiting for tests...</div>
+    <div class="log" id="log">Ready. Run tests above...</div>
   </div>
 
   <div class="footer">
-    1inch iOS dApp Browser Security Checklist Test • Use only for authorized testing
+    Advanced 1inch iOS dApp Browser Security Test • Authorized testing only
   </div>
 
   <script>
     const logEl = document.getElementById('log');
+    let originalEthereum = null;
+    let connectedAccount = null;
+
     function log(msg, type = 'info') {
       const time = new Date().toLocaleTimeString();
-      const color = type === 'fail' ? '#ff4d4f' : type === 'warn' ? '#fa8c16' : type === 'ok' ? '#52c41a' : '#a0a8c0';
+      const color = type === 'fail' ? '#ff4d4f' : type === 'warn' ? '#fa8c16' : type === 'ok' ? '#52c41a' : '#9aa3b8';
       logEl.innerHTML += `<div style="color:${color}">[${time}] ${msg}</div>`;
       logEl.scrollTop = logEl.scrollHeight;
+      console.log(`[${type}] ${msg}`);
+    }
+
+    function clearContainer(id) {
+      document.getElementById(id).innerHTML = '';
     }
 
     function addTest(containerId, name, desc, status, statusText) {
@@ -217,275 +227,463 @@
       container.appendChild(div);
     }
 
-    // ========== 1. Environment Detection ==========
-    function runEnvTests() {
-      const ua = navigator.userAgent;
-      const isIOS = /iPhone|iPad|iPod/.test(ua);
-      const isWebView = /(WebView|wv|1inch)/i.test(ua) || !window.chrome || window.webkit;
-      
-      addTest('env-tests', 'User Agent', ua.substring(0, 80) + '...', 'info', 'Info');
-      addTest('env-tests', 'iOS Detected', 'Running on iOS device', isIOS ? 'pass' : 'warn', isIOS ? 'Yes' : 'No');
-      addTest('env-tests', 'Likely WebView', 'Check for WebView indicators', isWebView ? 'warn' : 'pass', isWebView ? 'Yes' : 'No');
-      addTest('env-tests', 'window.webkit', 'iOS WebView bridge present', window.webkit ? 'warn' : 'pass', window.webkit ? 'Present' : 'Absent');
-      addTest('env-tests', 'document.location', location.href, 'info', 'OK');
-      
-      log('Environment scan complete');
-    }
+    // ===================== 1. PROVIDER DETECTION & SPOOFING =====================
+    function detectProviders() {
+      clearContainer('provider-tests');
+      log('Scanning injected providers...', 'info');
 
-    // ========== 2. Insecure WebView Config ==========
-    function runWebViewTests() {
-      // Check if JavaScript can access file:// or other schemes
-      const canAccessFile = (() => {
-        try {
-          // This will usually fail, but some misconfigured WebViews allow it
-          return typeof window.open === 'function';
-        } catch(e) { return false; }
-      })();
-
-      addTest('webview-tests', 
-        'JavaScript Enabled', 
-        'JS should be enabled in dApp browser', 
-        'pass', 'Enabled');
-
-      addTest('webview-tests',
-        'window.open available',
-        'Can open new windows / popups',
-        typeof window.open === 'function' ? 'warn' : 'pass',
-        typeof window.open === 'function' ? 'Yes' : 'No');
-
-      addTest('webview-tests',
-        'document.cookie accessible',
-        'Cookie access from page',
-        'info',
-        document.cookie ? 'Has cookies' : 'Empty');
-
-      // Check for mixed content or insecure loaded content indicators
-      addTest('webview-tests',
-        'Mixed Content Policy',
-        'Whether insecure content can be loaded',
-        'info',
-        'Manual check needed');
-
-      log('WebView config checks done');
-    }
-
-    // ========== 3. JS Bridge / Injection ==========
-    function testBridgeInjection() {
-      log('Probing possible native bridges...', 'info');
-
-      const bridges = [
-        'webkit',
-        'webkit.messageHandlers',
-        'ethereum',
-        'web3',
-        'solana',
-        'phantom',
-        'coinbaseWalletExtension',
-        'okxwallet',
-        'bitkeep',
-        'trustwallet',
-        'BinanceChain',
-        '1inch'
+      const providers = [
+        { key: 'ethereum', obj: window.ethereum },
+        { key: 'solana', obj: window.solana },
+        { key: 'phantom', obj: window.phantom },
+        { key: 'okxwallet', obj: window.okxwallet },
+        { key: 'bitkeep', obj: window.bitkeep },
+        { key: 'coinbaseWalletExtension', obj: window.coinbaseWalletExtension },
+        { key: 'trustwallet', obj: window.trustwallet },
+        { key: 'BinanceChain', obj: window.BinanceChain },
+        { key: '1inch', obj: window['1inch'] },
       ];
 
-      bridges.forEach(b => {
-        const parts = b.split('.');
+      let found = 0;
+      providers.forEach(p => {
+        if (p.obj) {
+          found++;
+          const flags = [];
+          if (p.obj.isMetaMask) flags.push('isMetaMask');
+          if (p.obj.is1inch) flags.push('is1inch');
+          if (p.obj.isPhantom) flags.push('isPhantom');
+          if (p.obj.isCoinbaseWallet) flags.push('isCoinbaseWallet');
+          if (p.obj.isTrust) flags.push('isTrust');
+          if (p.obj.isOkxWallet) flags.push('isOkxWallet');
+
+          const identity = flags.length ? flags.join(', ') : 'unknown identity';
+          addTest('provider-tests', `window.${p.key}`, identity, 'warn', 'Present');
+          log(`Found provider: window.${p.key} → ${identity}`, 'warn');
+        }
+      });
+
+      if (window.ethereum) {
+        // Deeper inspection
+        const e = window.ethereum;
+        addTest('provider-tests', 'ethereum.chainId', e.chainId || e.networkVersion || 'N/A', 'info', e.chainId || 'N/A');
+        addTest('provider-tests', 'ethereum.selectedAddress', e.selectedAddress || 'null', 'info', e.selectedAddress ? 'Set' : 'null');
+        addTest('provider-tests', 'ethereum.isConnected()', typeof e.isConnected === 'function' ? String(e.isConnected()) : 'N/A', 'info', 'OK');
+        
+        // Check if it looks like real MetaMask or custom
+        const isLikelyMetaMask = e.isMetaMask && !e.is1inch;
+        const isLikely1inch = e.is1inch || (e._state && e._state.is1inch);
+        addTest('provider-tests', 'Provider Identity Guess', 
+          isLikely1inch ? 'Likely 1inch' : (isLikelyMetaMask ? 'Likely MetaMask' : 'Custom / Unknown'),
+          isLikely1inch || isLikelyMetaMask ? 'pass' : 'warn',
+          isLikely1inch ? '1inch' : (isLikelyMetaMask ? 'MetaMask' : 'Unknown')
+        );
+      }
+
+      if (found > 1) {
+        log(`⚠️ Multiple providers detected (${found}). Risk of provider confusion / spoofing.`, 'warn');
+      } else {
+        log(`Found ${found} provider(s)`, 'ok');
+      }
+    }
+
+    function spoofEthereum() {
+      if (!window.ethereum) {
+        log('No window.ethereum to spoof', 'fail');
+        return;
+      }
+      if (!originalEthereum) {
+        originalEthereum = window.ethereum;
+      }
+
+      log('Attempting to overwrite window.ethereum with malicious proxy...', 'warn');
+
+      const malicious = new Proxy(originalEthereum, {
+        get(target, prop) {
+          if (prop === 'request') {
+            return async (args) => {
+              log(`[SPOOFED] Intercepted request: ${args.method}`, 'fail');
+              // Still forward, but we proved we can intercept
+              return target.request(args);
+            };
+          }
+          if (prop === 'isMetaMask') return true; // pretend to be MetaMask
+          if (prop === 'is1inch') return false;
+          return target[prop];
+        }
+      });
+
+      try {
+        window.ethereum = malicious;
+        log('Successfully overwrote window.ethereum (spoof succeeded)', 'fail');
+        addTest('provider-tests', 'Spoof window.ethereum', 'Page was able to replace the provider', 'fail', 'Vulnerable');
+      } catch (e) {
+        log(`Spoof blocked: ${e.message}`, 'ok');
+        addTest('provider-tests', 'Spoof window.ethereum', 'Assignment blocked', 'pass', 'Protected');
+      }
+    }
+
+    function restoreEthereum() {
+      if (originalEthereum) {
+        try {
+          window.ethereum = originalEthereum;
+          log('Restored original window.ethereum', 'ok');
+        } catch (e) {
+          log(`Restore failed: ${e.message}`, 'fail');
+        }
+      } else {
+        log('No original ethereum saved', 'info');
+      }
+    }
+
+    // ===================== 2. DEEP BRIDGE + postMessage =====================
+    function deepBridgeScan() {
+      clearContainer('bridge-tests');
+      log('Running deep bridge scan...', 'info');
+
+      const candidates = [
+        'webkit', 'webkit.messageHandlers',
+        'ethereum', 'solana', 'phantom', 'okxwallet', 'bitkeep',
+        'coinbaseWalletExtension', 'trustwallet', 'BinanceChain',
+        '1inch', 'walletRouter', 'nativeBridge', 'ReactNativeWebView',
+        'webkit.messageHandlers.ethereum', 'webkit.messageHandlers.wallet',
+        'webkit.messageHandlers.sign', 'webkit.messageHandlers.postMessage'
+      ];
+
+      candidates.forEach(path => {
+        const parts = path.split('.');
         let obj = window;
         let exists = true;
         for (const p of parts) {
-          if (obj && obj[p] !== undefined) {
-            obj = obj[p];
-          } else {
-            exists = false;
-            break;
-          }
+          if (obj && obj[p] !== undefined) obj = obj[p];
+          else { exists = false; break; }
         }
         if (exists) {
-          log(`Found bridge: window.${b}`, 'warn');
-          addTest('bridge-tests', `Bridge: ${b}`, 'Native bridge detected', 'warn', 'Found');
+          addTest('bridge-tests', path, 'Bridge / object found', 'warn', 'Found');
+          log(`Bridge found: ${path}`, 'warn');
         }
       });
 
-      // Try to detect messageHandlers
-      if (window.webkit && window.webkit.messageHandlers) {
-        const handlers = Object.keys(window.webkit.messageHandlers);
-        log(`webkit.messageHandlers: ${handlers.join(', ') || '(empty)'}`, 'warn');
-        addTest('bridge-tests', 'webkit.messageHandlers', handlers.join(', ') || 'present but empty', 'warn', 'Present');
-      }
-
-      log('Bridge probe finished', 'ok');
-    }
-
-    // ========== 4. Wallet Provider ==========
-    async function connectWallet() {
-      log('Requesting wallet connection...', 'info');
-      if (!window.ethereum) {
-        log('No window.ethereum found', 'fail');
-        addTest('wallet-tests', 'window.ethereum', 'Provider not injected', 'fail', 'Missing');
-        return;
-      }
-
-      addTest('wallet-tests', 'window.ethereum', 'Provider is present', 'pass', 'Present');
-      addTest('wallet-tests', 'isMetaMask', String(!!window.ethereum.isMetaMask), 'info', window.ethereum.isMetaMask ? 'Yes' : 'No');
-      addTest('wallet-tests', 'is1inch / custom', 'Check provider identity', 'info', 
-        window.ethereum.is1inch ? '1inch' : (window.ethereum.isMetaMask ? 'MetaMask' : 'Unknown'));
-
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        log(`Connected accounts: ${accounts.join(', ')}`, 'ok');
-        addTest('wallet-tests', 'eth_requestAccounts', accounts[0] || 'none', 'pass', 'Success');
-      } catch (err) {
-        log(`Connection error: ${err.message}`, 'fail');
-        addTest('wallet-tests', 'eth_requestAccounts', err.message, 'fail', 'Failed');
-      }
-    }
-
-    async function testBlindSigning() {
-      log('Testing blind signing risk (eth_sign / personal_sign)...', 'info');
-      if (!window.ethereum) {
-        log('No provider', 'fail');
-        return;
-      }
-
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (!accounts.length) {
-          log('No account connected. Connect first.', 'warn');
-          return;
-        }
-
-        // Dangerous: eth_sign with arbitrary data (classic blind sign vector)
-        const msg = '0x' + 'deadbeef'.repeat(8); // arbitrary data
-        log('Attempting eth_sign with arbitrary data (blind sign test)...', 'warn');
-        
+      // Enumerate webkit.messageHandlers if possible
+      if (window.webkit?.messageHandlers) {
         try {
-          const sig = await window.ethereum.request({
-            method: 'eth_sign',
-            params: [accounts[0], msg]
-          });
-          log('eth_sign SUCCEEDED — High risk of blind signing!', 'fail');
-          addTest('wallet-tests', 'Blind Signing (eth_sign)', 'App allowed signing arbitrary data', 'fail', 'Vulnerable');
+          const keys = Object.keys(window.webkit.messageHandlers);
+          addTest('bridge-tests', 'webkit.messageHandlers keys', keys.join(', ') || '(empty)', keys.length ? 'warn' : 'pass', keys.length ? 'Has keys' : 'Empty');
+          log(`messageHandlers keys: ${keys.join(', ') || '(empty)'}`, keys.length ? 'warn' : 'ok');
         } catch (e) {
-          log(`eth_sign blocked or rejected: ${e.message}`, 'ok');
-          addTest('wallet-tests', 'Blind Signing (eth_sign)', 'Rejected or not supported', 'pass', 'Protected');
+          log(`Cannot enumerate messageHandlers: ${e.message}`, 'info');
         }
-      } catch (err) {
-        log(`Error: ${err.message}`, 'fail');
+      }
+
+      log('Deep bridge scan finished', 'ok');
+    }
+
+    function scanPostMessage() {
+      log('Checking for postMessage usage / listeners...', 'info');
+
+      // We cannot directly list all listeners, but we can test if the page can abuse it
+      const originalPostMessage = window.postMessage;
+      let intercepted = false;
+
+      window.postMessage = function(...args) {
+        intercepted = true;
+        log(`postMessage called with: ${JSON.stringify(args).slice(0, 120)}`, 'warn');
+        return originalPostMessage.apply(this, args);
+      };
+
+      // Try common patterns
+      try {
+        window.postMessage({ type: 'test', method: 'eth_requestAccounts' }, '*');
+        window.parent.postMessage({ type: 'wallet', action: 'sign' }, '*');
+      } catch (e) {}
+
+      setTimeout(() => {
+        window.postMessage = originalPostMessage;
+        if (intercepted) {
+          addTest('bridge-tests', 'postMessage interceptable', 'Page can wrap/ intercept postMessage', 'warn', 'Yes');
+        } else {
+          addTest('bridge-tests', 'postMessage interceptable', 'No obvious abuse detected in this context', 'pass', 'OK');
+        }
+        log('postMessage scan done', 'ok');
+      }, 300);
+    }
+
+    // ===================== 3. SIGNING TESTS =====================
+    async function ensureAccount() {
+      if (connectedAccount) return connectedAccount;
+      if (!window.ethereum) throw new Error('No ethereum provider');
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      connectedAccount = accounts[0];
+      return connectedAccount;
+    }
+
+    async function testEthSign() {
+      log('Testing eth_sign (classic blind sign)...', 'warn');
+      try {
+        const account = await ensureAccount();
+        const msg = '0x' + 'deadbeef'.repeat(8);
+        const sig = await window.ethereum.request({
+          method: 'eth_sign',
+          params: [account, msg]
+        });
+        log(`eth_sign SUCCEEDED → ${sig.slice(0, 20)}...`, 'fail');
+        addTest('sign-tests', 'eth_sign', 'Arbitrary data signed (blind sign risk)', 'fail', 'Vulnerable');
+      } catch (e) {
+        log(`eth_sign rejected: ${e.message}`, 'ok');
+        addTest('sign-tests', 'eth_sign', e.message, 'pass', 'Protected');
       }
     }
 
-    async function testTransactionParams() {
-      log('Testing transaction parameter validation...', 'info');
-      if (!window.ethereum) return;
-
+    async function testPersonalSign() {
+      log('Testing personal_sign...', 'warn');
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (!accounts.length) {
-          log('Connect wallet first', 'warn');
-          return;
-        }
+        const account = await ensureAccount();
+        const msg = 'Hello from malicious dApp - personal_sign test';
+        const sig = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [msg, account]
+        });
+        log(`personal_sign SUCCEEDED → ${sig.slice(0, 20)}...`, 'fail');
+        addTest('sign-tests', 'personal_sign', 'Message signed', 'warn', 'Allowed');
+      } catch (e) {
+        log(`personal_sign rejected: ${e.message}`, 'ok');
+        addTest('sign-tests', 'personal_sign', e.message, 'pass', 'Protected');
+      }
+    }
 
-        // Intentionally malformed / suspicious tx
-        const badTx = {
-          from: accounts[0],
-          to: '0x0000000000000000000000000000000000000000',
-          value: '0x0',
-          data: '0x',
-          // Missing chainId, gas, etc. — some wallets fail to enforce
+    async function testEIP712() {
+      log('Testing eth_signTypedData_v4 (EIP-712)...', 'warn');
+      try {
+        const account = await ensureAccount();
+        const typedData = {
+          types: {
+            EIP712Domain: [
+              { name: 'name', type: 'string' },
+              { name: 'version', type: 'string' },
+              { name: 'chainId', type: 'uint256' },
+              { name: 'verifyingContract', type: 'address' }
+            ],
+            Mail: [
+              { name: 'from', type: 'address' },
+              { name: 'to', type: 'address' },
+              { name: 'contents', type: 'string' }
+            ]
+          },
+          primaryType: 'Mail',
+          domain: {
+            name: 'Malicious dApp',
+            version: '1',
+            chainId: 1,
+            verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC'
+          },
+          message: {
+            from: account,
+            to: '0xDdDddDdDDDDDDddDDDDDDdDdDdDdDdDdDdDdDdDd',
+            contents: 'Blind sign this if you dare'
+          }
         };
 
-        log('Sending suspicious tx request (should be validated by wallet)...', 'warn');
-        try {
-          await window.ethereum.request({
-            method: 'eth_sendTransaction',
-            params: [badTx]
-          });
-          log('Suspicious tx was accepted — check parameter validation!', 'fail');
-          addTest('wallet-tests', 'Tx Parameter Validation', 'Accepted incomplete/suspicious tx', 'fail', 'Weak');
-        } catch (e) {
-          log(`Tx rejected (good): ${e.message}`, 'ok');
-          addTest('wallet-tests', 'Tx Parameter Validation', 'Rejected suspicious tx', 'pass', 'OK');
-        }
-      } catch (err) {
-        log(err.message, 'fail');
+        const sig = await window.ethereum.request({
+          method: 'eth_signTypedData_v4',
+          params: [account, JSON.stringify(typedData)]
+        });
+        log(`EIP-712 SUCCEEDED → ${sig.slice(0, 20)}...`, 'fail');
+        addTest('sign-tests', 'eth_signTypedData_v4', 'Typed data signed', 'warn', 'Allowed');
+      } catch (e) {
+        log(`EIP-712 rejected: ${e.message}`, 'ok');
+        addTest('sign-tests', 'eth_signTypedData_v4', e.message, 'pass', 'Protected');
       }
     }
 
-    // ========== 5. Local File Access ==========
-    function testLocalFileAccess() {
-      log('Probing local file / sensitive access...', 'info');
+    // ===================== 4. CHAINID & GAS =====================
+    async function testChainIdMismatch() {
+      log('Testing chainId mismatch (tx on wrong chain)...', 'warn');
+      try {
+        const account = await ensureAccount();
+        const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
+        log(`Current chainId: ${currentChain}`, 'info');
 
-      // Attempt to detect if file:// scheme or local resources are reachable
-      const tests = [
-        { name: 'file:// access', url: 'file:///etc/passwd' },
-        { name: 'file:// library', url: 'file:///var/mobile/Library/' },
-        { name: 'iframe local', type: 'iframe' }
-      ];
+        // Force a different chainId in the tx
+        const wrongChainId = currentChain === '0x1' ? '0x89' : '0x1'; // flip ETH ↔ Polygon
 
-      tests.forEach(t => {
-        if (t.type === 'iframe') {
+        const tx = {
+          from: account,
+          to: account,
+          value: '0x0',
+          chainId: wrongChainId
+        };
+
+        await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+        log('Tx with mismatched chainId was accepted!', 'fail');
+        addTest('tx-tests', 'ChainId Mismatch', 'Accepted tx with wrong chainId', 'fail', 'Vulnerable');
+      } catch (e) {
+        log(`ChainId mismatch rejected: ${e.message}`, 'ok');
+        addTest('tx-tests', 'ChainId Mismatch', e.message, 'pass', 'Protected');
+      }
+    }
+
+    async function testGasManipulation() {
+      log('Testing gas manipulation (very low gas)...', 'warn');
+      try {
+        const account = await ensureAccount();
+        const tx = {
+          from: account,
+          to: account,
+          value: '0x0',
+          gas: '0x5208',      // 21000
+          gasPrice: '0x1'     // extremely low
+        };
+
+        await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+        log('Tx with manipulated gas was accepted!', 'fail');
+        addTest('tx-tests', 'Gas Manipulation', 'Accepted extremely low gasPrice', 'fail', 'Vulnerable');
+      } catch (e) {
+        log(`Gas manipulation rejected: ${e.message}`, 'ok');
+        addTest('tx-tests', 'Gas Manipulation', e.message, 'pass', 'Protected');
+      }
+    }
+
+    async function testMissingChainId() {
+      log('Testing tx without chainId...', 'warn');
+      try {
+        const account = await ensureAccount();
+        const tx = {
+          from: account,
+          to: account,
+          value: '0x0'
+          // deliberately no chainId
+        };
+
+        await window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+        log('Tx without chainId accepted', 'warn');
+        addTest('tx-tests', 'Missing chainId', 'Accepted', 'warn', 'Allowed');
+      } catch (e) {
+        log(`Missing chainId rejected: ${e.message}`, 'ok');
+        addTest('tx-tests', 'Missing chainId', e.message, 'pass', 'Protected');
+      }
+    }
+
+    // ===================== 5. DANGEROUS SCHEMES =====================
+    function testFileScheme() {
+      log('Testing file:// navigation / iframe...', 'warn');
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = 'file:///';
+        document.body.appendChild(iframe);
+
+        setTimeout(() => {
           try {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = 'file:///';
-            document.body.appendChild(iframe);
-            setTimeout(() => {
-              try {
-                const content = iframe.contentWindow.document.body.innerHTML;
-                log('iframe file:// content readable!', 'fail');
-                addTest('file-tests', 'iframe file://', 'Content accessible', 'fail', 'Vulnerable');
-              } catch (e) {
-                log('iframe file:// blocked (good)', 'ok');
-                addTest('file-tests', 'iframe file://', 'Access blocked', 'pass', 'Protected');
-              }
-              iframe.remove();
-            }, 500);
+            const html = iframe.contentWindow.document.documentElement.outerHTML;
+            log('file:// content readable!', 'fail');
+            addTest('scheme-tests', 'file:// access', 'Content accessible via iframe', 'fail', 'Vulnerable');
           } catch (e) {
-            log('iframe creation failed', 'ok');
+            log(`file:// blocked: ${e.message}`, 'ok');
+            addTest('scheme-tests', 'file:// access', 'Blocked', 'pass', 'Protected');
           }
-        }
-      });
-
-      // Check for common sensitive objects
-      const sensitive = ['localStorage', 'sessionStorage', 'indexedDB', 'caches'];
-      sensitive.forEach(s => {
-        const available = !!window[s];
-        addTest('file-tests', s, available ? 'Available' : 'Not available', available ? 'info' : 'pass', available ? 'Yes' : 'No');
-      });
-
-      log('Local access probe finished');
-    }
-
-    // ========== 6. Deep Link / Parameter Injection ==========
-    function testDeepLinkParams() {
-      log('Checking URL parameters & deep link handling...', 'info');
-      
-      const params = new URLSearchParams(location.search);
-      const hash = location.hash;
-
-      addTest('deeplink-tests', 'URL Search Params', params.toString() || '(none)', 'info', params.toString() ? 'Present' : 'None');
-      addTest('deeplink-tests', 'URL Hash', hash || '(none)', 'info', hash ? 'Present' : 'None');
-
-      // Simulate common deep link injection patterns
-      if (params.has('redirect') || params.has('url') || params.has('callback')) {
-        log('Suspicious redirect/callback parameter detected!', 'warn');
-        addTest('deeplink-tests', 'Redirect/Callback Param', 'Found potential open redirect vector', 'warn', 'Check');
-      } else {
-        addTest('deeplink-tests', 'Redirect/Callback Param', 'No obvious redirect params', 'pass', 'Clean');
+          iframe.remove();
+        }, 600);
+      } catch (e) {
+        log(`file:// test error: ${e.message}`, 'ok');
+        addTest('scheme-tests', 'file:// access', e.message, 'pass', 'Protected');
       }
 
-      // Check if the page can be loaded with javascript: or data: schemes (manual)
-      log('Tip: Try opening this page via deep link with javascript: or data: payload', 'info');
-      log('Deep link parameter check done');
+      // Also try location
+      try {
+        // We don't actually navigate away, just probe
+        log('Note: Manual test → try open file:///etc/passwd via deep link', 'info');
+      } catch (e) {}
     }
 
-    // Auto-run safe tests on load
+    function testJavascriptScheme() {
+      log('Testing javascript: scheme...', 'warn');
+      try {
+        const a = document.createElement('a');
+        a.href = 'javascript:alert("XSS via javascript: scheme")';
+        a.textContent = 'js-scheme';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        // Don't auto-click to avoid annoying alerts; just check if it is allowed to exist
+        addTest('scheme-tests', 'javascript: link', 'Element created (manual click test recommended)', 'warn', 'Check');
+        log('javascript: anchor created. Manually click or open via deep link to test.', 'warn');
+        a.remove();
+      } catch (e) {
+        log(`javascript: blocked: ${e.message}`, 'ok');
+        addTest('scheme-tests', 'javascript: scheme', e.message, 'pass', 'Protected');
+      }
+    }
+
+    function testDataScheme() {
+      log('Testing data: scheme...', 'warn');
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = 'data:text/html,<script>parent.postMessage("data-scheme-executed","*")</script>';
+        document.body.appendChild(iframe);
+
+        const handler = (e) => {
+          if (e.data === 'data-scheme-executed') {
+            log('data: scheme script executed!', 'fail');
+            addTest('scheme-tests', 'data: scheme', 'Script executed inside data: URI', 'fail', 'Vulnerable');
+            window.removeEventListener('message', handler);
+            iframe.remove();
+          }
+        };
+        window.addEventListener('message', handler);
+
+        setTimeout(() => {
+          window.removeEventListener('message', handler);
+          iframe.remove();
+          log('data: scheme test finished (no execution detected)', 'ok');
+          addTest('scheme-tests', 'data: scheme', 'No script execution detected', 'pass', 'Protected');
+        }, 800);
+      } catch (e) {
+        log(`data: test error: ${e.message}`, 'ok');
+      }
+    }
+
+    function testOpenRedirect() {
+      log('Open Redirect / Deep link parameter test', 'info');
+      const params = new URLSearchParams(location.search);
+      const redirect = params.get('redirect') || params.get('url') || params.get('callback') || params.get('next');
+
+      if (redirect) {
+        log(`Found redirect param: ${redirect}`, 'warn');
+        addTest('scheme-tests', 'Open Redirect Param', redirect, 'warn', 'Present');
+      } else {
+        addTest('scheme-tests', 'Open Redirect Param', 'No redirect/callback param in current URL', 'pass', 'Clean');
+        log('No obvious redirect parameter. Try loading this page with ?redirect=https://evil.com', 'info');
+      }
+    }
+
+    // ===================== 6. WALLET CONNECT =====================
+    async function connectWallet() {
+      clearContainer('wallet-tests');
+      log('Requesting accounts...', 'info');
+      if (!window.ethereum) {
+        log('No window.ethereum', 'fail');
+        addTest('wallet-tests', 'Provider', 'Missing', 'fail', 'None');
+        return;
+      }
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        connectedAccount = accounts[0];
+        log(`Connected: ${connectedAccount}`, 'ok');
+        addTest('wallet-tests', 'Account', connectedAccount, 'pass', 'Connected');
+
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        addTest('wallet-tests', 'chainId', chainId, 'info', chainId);
+      } catch (e) {
+        log(`Connect failed: ${e.message}`, 'fail');
+        addTest('wallet-tests', 'Connect', e.message, 'fail', 'Failed');
+      }
+    }
+
+    // Auto-run safe detections
     window.addEventListener('DOMContentLoaded', () => {
-      runEnvTests();
-      runWebViewTests();
-      testBridgeInjection();
-      testDeepLinkParams();
-      log('Ready. Run interactive tests above.', 'ok');
+      detectProviders();
+      deepBridgeScan();
+      testOpenRedirect();
+      log('Initial scan complete. Run aggressive tests manually.', 'ok');
     });
   </script>
 </body>
