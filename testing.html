@@ -1,615 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>1inch iOS Advanced Security Test</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0b0d13;
-      color: #e8eaef;
-      padding: 14px;
-      padding-bottom: 100px;
-      line-height: 1.4;
-    }
-    h1 { font-size: 1.2rem; margin-bottom: 4px; }
-    .sub { color: #8b92a8; font-size: 0.8rem; margin-bottom: 14px; }
-    .card {
-      background: #151821;
-      border: 1px solid #2a2f3d;
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
-    }
-    .card h2 {
-      font-size: 0.95rem;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .badge {
-      font-size: 0.65rem;
-      padding: 2px 7px;
-      border-radius: 20px;
-      font-weight: 600;
-    }
-    .badge.critical { background: rgba(255,77,79,0.2); color: #ff4d4f; }
-    .badge.high { background: rgba(250,140,22,0.2); color: #fa8c16; }
-    .badge.info { background: rgba(24,144,255,0.2); color: #1890ff; }
-
-    .test-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #2a2f3d;
-      gap: 8px;
-      font-size: 0.85rem;
-    }
-    .test-item:last-child { border-bottom: none; }
-    .test-name { flex: 1; }
-    .test-desc { font-size: 0.72rem; color: #8b92a8; margin-top: 2px; }
-    .status { font-weight: 600; font-size: 0.75rem; white-space: nowrap; }
-    .pass { color: #52c41a; }
-    .fail { color: #ff4d4f; }
-    .warn { color: #fa8c16; }
-    .info { color: #1890ff; }
-
-    button {
-      display: block;
-      width: 100%;
-      background: #252a38;
-      color: #e8eaef;
-      border: 1px solid #2a2f3d;
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 0.9rem;
-      margin-top: 8px;
-      cursor: pointer;
-    }
-    button:active { opacity: 0.75; }
-    .primary { background: #1890ff; border-color: #1890ff; color: #fff; }
-    .danger { background: #a61d24; border-color: #a61d24; color: #fff; }
-    .warnbtn { background: #ad4e00; border-color: #ad4e00; color: #fff; }
-
-    .row { display: flex; gap: 8px; }
-    .row button { flex: 1; }
-
-    #log {
-      background: #0a0c12;
-      border-radius: 8px;
-      padding: 10px;
-      font-family: monospace;
-      font-size: 0.72rem;
-      max-height: 240px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      color: #9aa3b8;
-      margin-top: 8px;
-    }
-    .js-ok {
-      background: #143d1b;
-      color: #52c41a;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      margin-bottom: 12px;
-      text-align: center;
-      font-weight: 600;
-    }
-    .js-fail {
-      background: #3d1414;
-      color: #ff4d4f;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      margin-bottom: 12px;
-      text-align: center;
-      font-weight: 600;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dApp Browser Security Test PoC</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; }
+        h2 { color: #38bdf8; }
+        .card { background: #1e293b; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #334155; }
+        button { background: #0284c7; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-top: 5px; }
+        button:hover { background: #0369a1; }
+        pre { background: #0f172a; padding: 10px; border-radius: 4px; overflow-x: auto; color: #4ade80; font-size: 12px; }
+    </style>
 </head>
 <body>
 
-  <div id="jsStatus" class="js-fail">JS belum jalan / error</div>
+    <h2>dApp Browser Security Assessment Tool</h2>
+    <p>Target: <code>window.ethereum</code> & WebView Context Injection</p>
 
-  <h1>1inch iOS — Advanced Test</h1>
-  <p class="sub">Multiple provider • Spoofing • Signing • ChainId • Gas • Schemes</p>
-
-  <div class="card">
-    <h2>1. Provider & Spoofing <span class="badge critical">Critical</span></h2>
-    <div id="provider-tests"></div>
-    <div class="row">
-      <button class="primary" onclick="safeRun(detectProviders)">Detect Providers</button>
-      <button class="danger" onclick="safeRun(spoofEthereum)">Spoof ethereum</button>
+    <!-- 1. Spoofing / Detection & ChainId Mismatch -->
+    <div class="card">
+        <h3>1. Provider Detection & ChainId Mismatch</h3>
+        <p>Cek apakah objek <code>window.ethereum</code> tersedia dan coba paksa minta perpindahan Chain ID palsu.</p>
+        <button onclick="checkProvider()">Cek Provider</button>
+        <button onclick="testChainMismatch()">Uji ChainId Mismatch (EIP-3326)</button>
+        <pre id="log-provider">Status: Belum diuji</pre>
     </div>
-    <button onclick="safeRun(restoreEthereum)">Restore ethereum</button>
-  </div>
 
-  <div class="card">
-    <h2>2. Bridge & postMessage <span class="badge high">High</span></h2>
-    <div id="bridge-tests"></div>
-    <button onclick="safeRun(deepBridgeScan)">Deep Bridge Scan</button>
-    <button onclick="safeRun(scanPostMessage)">Scan postMessage</button>
-  </div>
-
-  <div class="card">
-    <h2>3. Signing Tests <span class="badge critical">Critical</span></h2>
-    <div id="sign-tests"></div>
-    <div class="row">
-      <button class="warnbtn" onclick="safeRun(testEthSign)">eth_sign</button>
-      <button class="warnbtn" onclick="safeRun(testPersonalSign)">personal_sign</button>
+    <!-- 2. Signing Tests (eth_sign / personal_sign / EIP-712) -->
+    <div class="card">
+        <h3>2. Dangerous Signature Methods</h3>
+        <p>Uji metode penandatanganan yang rentan terhadap phishing (<code>eth_sign</code> vs <code>personal_sign</code>).</p>
+        <button onclick="testPersonalSign()">Uji personal_sign</button>
+        <button onclick="testEthSign()">Uji eth_sign (Raw)</button>
+        <button onclick="testEIP712()">Uji EIP-712 Typed Data</button>
+        <pre id="log-sign">Status: Belum diuji</pre>
     </div>
-    <button class="danger" onclick="safeRun(testEIP712)">EIP-712 (signTypedData_v4)</button>
-  </div>
 
-  <div class="card">
-    <h2>4. ChainId & Gas <span class="badge high">High</span></h2>
-    <div id="tx-tests"></div>
-    <div class="row">
-      <button onclick="safeRun(testChainIdMismatch)">ChainId Mismatch</button>
-      <button onclick="safeRun(testGasManipulation)">Gas Manipulation</button>
+    <!-- 3. Gas Manipulation -->
+    <div class="card">
+        <h3>3. Gas Limit / Gas Price Manipulation</h3>
+        <p>Mengirim transaksi dengan parameter gas yang dimanipulasi secara ekstrem untuk uji batas validasi wallet.</p>
+        <button onclick="testGasManipulation()">Kirim Tx Gas Ekstrem</button>
+        <pre id="log-gas">Status: Belum diuji</pre>
     </div>
-    <button onclick="safeRun(testMissingChainId)">Missing chainId</button>
-  </div>
 
-  <div class="card">
-    <h2>5. Dangerous Schemes <span class="badge critical">Critical</span></h2>
-    <div id="scheme-tests"></div>
-    <div class="row">
-      <button class="danger" onclick="safeRun(testFileScheme)">file://</button>
-      <button class="danger" onclick="safeRun(testJavascriptScheme)">javascript:</button>
+    <!-- 4. Protocol / Scheme Bypass (file://, javascript:, data:) -->
+    <div class="card">
+        <h3>4. URI Scheme & Sandbox Escape</h3>
+        <p>Uji navigasi ke skema non-standard di dalam dApp browser.</p>
+        <button onclick="testDataUri()">Buka data:text/html</button>
+        <button onclick="testJavascriptUri()">Uji javascript: scheme</button>
+        <pre id="log-scheme">Status: Belum diuji</pre>
     </div>
-    <div class="row">
-      <button class="danger" onclick="safeRun(testDataScheme)">data:</button>
-      <button onclick="safeRun(testOpenRedirect)">Open Redirect</button>
-    </div>
-  </div>
 
-  <div class="card">
-    <h2>6. Wallet Connect <span class="badge info">Info</span></h2>
-    <div id="wallet-tests"></div>
-    <button class="primary" onclick="safeRun(connectWallet)">Connect Wallet</button>
-  </div>
-
-  <div class="card">
-    <h2>Live Log</h2>
-    <div id="log">Menunggu...</div>
-  </div>
-
-  <script>
-    window.onerror = function(msg, url, line) {
-      log('JS ERROR: ' + msg + ' (line ' + line + ')', 'fail');
-      return false;
-    };
-    window.addEventListener('unhandledrejection', function(e) {
-      log('Promise Error: ' + (e.reason && e.reason.message ? e.reason.message : e.reason), 'fail');
-    });
-
-    var logEl = document.getElementById('log');
-    var originalEthereum = null;
-    var connectedAccount = null;
-
-    function log(msg, type) {
-      type = type || 'info';
-      var time = new Date().toLocaleTimeString();
-      var color = type === 'fail' ? '#ff4d4f' : type === 'warn' ? '#fa8c16' : type === 'ok' ? '#52c41a' : '#9aa3b8';
-      logEl.innerHTML += '<div style="color:' + color + '">[' + time + '] ' + msg + '</div>';
-      logEl.scrollTop = logEl.scrollHeight;
-    }
-
-    function safeRun(fn) {
-      try { fn(); } catch (e) { log('Error: ' + e.message, 'fail'); }
-    }
-
-    function clearContainer(id) {
-      var el = document.getElementById(id);
-      if (el) el.innerHTML = '';
-    }
-
-    function addTest(containerId, name, desc, status, statusText) {
-      var container = document.getElementById(containerId);
-      if (!container) return;
-      var div = document.createElement('div');
-      div.className = 'test-item';
-      div.innerHTML = '<div class="test-name">' + name +
-        '<div class="test-desc">' + desc + '</div></div>' +
-        '<div class="status ' + status + '">' + statusText + '</div>';
-      container.appendChild(div);
-    }
-
-    function detectProviders() {
-      clearContainer('provider-tests');
-      log('Scanning providers...', 'info');
-      var list = [
-        { key: 'ethereum', obj: window.ethereum },
-        { key: 'solana', obj: window.solana },
-        { key: 'phantom', obj: window.phantom },
-        { key: 'okxwallet', obj: window.okxwallet },
-        { key: 'bitkeep', obj: window.bitkeep },
-        { key: 'coinbaseWalletExtension', obj: window.coinbaseWalletExtension },
-        { key: 'trustwallet', obj: window.trustwallet },
-        { key: 'BinanceChain', obj: window.BinanceChain }
-      ];
-      var found = 0;
-      for (var i = 0; i < list.length; i++) {
-        var p = list[i];
-        if (p.obj) {
-          found++;
-          var flags = [];
-          if (p.obj.isMetaMask) flags.push('isMetaMask');
-          if (p.obj.is1inch) flags.push('is1inch');
-          if (p.obj.isPhantom) flags.push('isPhantom');
-          if (p.obj.isCoinbaseWallet) flags.push('isCoinbaseWallet');
-          if (p.obj.isTrust) flags.push('isTrust');
-          var identity = flags.length ? flags.join(', ') : 'unknown';
-          addTest('provider-tests', 'window.' + p.key, identity, 'warn', 'Present');
-          log('Found: window.' + p.key + ' → ' + identity, 'warn');
+    <script>
+        function log(elementId, data) {
+            document.getElementById(elementId).innerText = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
         }
-      }
-      if (window.ethereum) {
-        var e = window.ethereum;
-        addTest('provider-tests', 'chainId', e.chainId || e.networkVersion || 'N/A', 'info', e.chainId || 'N/A');
-        addTest('provider-tests', 'selectedAddress', e.selectedAddress || 'null', 'info', e.selectedAddress ? 'Set' : 'null');
-      }
-      log(found > 1 ? 'Multiple providers (' + found + ')' : 'Found ' + found + ' provider(s)', found > 1 ? 'warn' : 'ok');
-    }
 
-    function spoofEthereum() {
-      if (!window.ethereum) { log('No window.ethereum', 'fail'); return; }
-      if (!originalEthereum) originalEthereum = window.ethereum;
-      log('Trying to overwrite window.ethereum...', 'warn');
-      try {
-        var malicious = {
-          request: function(args) {
-            log('[SPOOFED] Intercepted: ' + (args && args.method), 'fail');
-            return originalEthereum.request(args);
-          },
-          isMetaMask: true,
-          is1inch: false,
-          chainId: originalEthereum.chainId,
-          selectedAddress: originalEthereum.selectedAddress
-        };
-        for (var k in originalEthereum) {
-          if (!malicious[k] && typeof originalEthereum[k] !== 'function') {
-            try { malicious[k] = originalEthereum[k]; } catch(e) {}
-          }
+        // 1. Provider & ChainId
+        async function checkProvider() {
+            if (window.ethereum) {
+                log('log-provider', {
+                    isAvailable: true,
+                    isMist: window.ethereum.isMist,
+                    isMetaMask: window.ethereum.isMetaMask,
+                    selectedAddress: window.ethereum.selectedAddress,
+                    chainId: window.ethereum.chainId
+                });
+            } else {
+                log('log-provider', "window.ethereum TIDAK DITEMUKAN (WebView tidak menginjeksi provider).");
+            }
         }
-        window.ethereum = malicious;
-        log('Spoof SUCCEEDED', 'fail');
-        addTest('provider-tests', 'Spoof window.ethereum', 'Provider bisa diganti', 'fail', 'Vulnerable');
-      } catch (e) {
-        log('Spoof blocked: ' + e.message, 'ok');
-        addTest('provider-tests', 'Spoof window.ethereum', 'Blocked', 'pass', 'Protected');
-      }
-    }
 
-    function restoreEthereum() {
-      if (originalEthereum) {
-        try {
-          window.ethereum = originalEthereum;
-          log('Restored original ethereum', 'ok');
-        } catch (e) {
-          log('Restore failed: ' + e.message, 'fail');
+        async function testChainMismatch() {
+            if (!window.ethereum) return alert("Provider tidak ada");
+            try {
+                // Meminta chain ID yang tidak valid atau salah format (ChainID Mismatch Test)
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x7FFFFFFF' }], // Chain ID fiktif / sangat besar
+                });
+                log('log-provider', "Berhasil beralih ke Chain ID fiktif (Potensi Bug Mismatch)");
+            } catch (err) {
+                log('log-provider', "Error (Ditolak Wallet - Aman): " + err.message);
+            }
         }
-      } else {
-        log('No original saved', 'info');
-      }
-    }
 
-    function deepBridgeScan() {
-      clearContainer('bridge-tests');
-      log('Deep bridge scan...', 'info');
-      var candidates = ['webkit', 'ethereum', 'solana', 'phantom', 'okxwallet', 'bitkeep', 'trustwallet', 'BinanceChain', 'ReactNativeWebView'];
-      for (var i = 0; i < candidates.length; i++) {
-        var key = candidates[i];
-        if (window[key]) {
-          addTest('bridge-tests', 'window.' + key, 'Found', 'warn', 'Present');
-          log('Bridge: window.' + key, 'warn');
+        // 2. Signatures
+        async function testPersonalSign() {
+            if (!window.ethereum) return alert("Provider tidak ada");
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const message = "Uji Coba Keamanan 1inch dApp Browser: Verifikasi kepemilikan.";
+                const hexMessage = '0x' + Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('');
+                
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [hexMessage, accounts[0]]
+                });
+                log('log-sign', { method: 'personal_sign', signature });
+            } catch (err) {
+                log('log-sign', "Error/Reject: " + err.message);
+            }
         }
-      }
-      if (window.webkit && window.webkit.messageHandlers) {
-        try {
-          var keys = Object.keys(window.webkit.messageHandlers);
-          var keyStr = keys.length ? keys.join(', ') : '(empty)';
-          addTest('bridge-tests', 'webkit.messageHandlers', keyStr, keys.length ? 'warn' : 'pass', keys.length ? 'Has keys' : 'Empty');
-          log('messageHandlers: ' + keyStr, keys.length ? 'warn' : 'ok');
-        } catch (e) {
-          log('Cannot read messageHandlers: ' + e.message, 'info');
+
+        async function testEthSign() {
+            if (!window.ethereum) return alert("Provider tidak ada");
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                // eth_sign sangat berbahaya karena bisa menandatangani hash transaksi arbitrer
+                const dummyHash = "0x1111111111111111111111111111111111111111111111111111111111111111";
+                const signature = await window.ethereum.request({
+                    method: 'eth_sign',
+                    params: [accounts[0], dummyHash]
+                });
+                log('log-sign', { method: 'eth_sign (RAW HAZARD!)', signature });
+            } catch (err) {
+                log('log-sign', "eth_sign diblokir/ditolak wallet (Bagus): " + err.message);
+            }
         }
-      } else {
-        addTest('bridge-tests', 'webkit.messageHandlers', 'Not found', 'pass', 'Absent');
-      }
-      log('Bridge scan done', 'ok');
-    }
 
-    function scanPostMessage() {
-      log('Testing postMessage...', 'info');
-      var original = window.postMessage;
-      var intercepted = false;
-      window.postMessage = function() {
-        intercepted = true;
-        log('postMessage intercepted', 'warn');
-        return original.apply(this, arguments);
-      };
-      try { window.postMessage({ test: 1 }, '*'); } catch (e) {}
-      setTimeout(function() {
-        window.postMessage = original;
-        addTest('bridge-tests', 'postMessage', intercepted ? 'Bisa di-intercept' : 'OK', intercepted ? 'warn' : 'pass', intercepted ? 'Yes' : 'OK');
-        log('postMessage test done', 'ok');
-      }, 300);
-    }
+        async function testEIP712() {
+            if (!window.ethereum) return alert("Provider tidak ada");
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const msgParams = JSON.stringify({
+                    types: {
+                        EIP712Domain: [
+                            { name: "name", type: "string" },
+                            { name: "version", type: "string" },
+                            { name: "chainId", type: "uint256" },
+                        ],
+                        Test: [{ name: "content", type: "string" }]
+                    },
+                    primaryType: "Test",
+                    domain: { name: "Security Test", version: "1", chainId: 1 },
+                    message: { content: "EIP-712 Spoofing Check" }
+                });
 
-    function ensureAccount(cb) {
-      if (connectedAccount) { cb(null, connectedAccount); return; }
-      if (!window.ethereum) { cb(new Error('No ethereum provider')); return; }
-      window.ethereum.request({ method: 'eth_requestAccounts' })
-        .then(function(accounts) {
-          connectedAccount = accounts[0];
-          cb(null, connectedAccount);
-        })
-        .catch(function(e) { cb(e); });
-    }
-
-    function testEthSign() {
-      log('Testing eth_sign...', 'warn');
-      ensureAccount(function(err, account) {
-        if (err) { log('eth_sign error: ' + err.message, 'fail'); return; }
-        var msg = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
-        window.ethereum.request({ method: 'eth_sign', params: [account, msg] })
-          .then(function() {
-            log('eth_sign SUCCEEDED', 'fail');
-            addTest('sign-tests', 'eth_sign', 'Blind sign allowed', 'fail', 'Vulnerable');
-          })
-          .catch(function(e) {
-            log('eth_sign rejected: ' + e.message, 'ok');
-            addTest('sign-tests', 'eth_sign', e.message, 'pass', 'Protected');
-          });
-      });
-    }
-
-    function testPersonalSign() {
-      log('Testing personal_sign...', 'warn');
-      ensureAccount(function(err, account) {
-        if (err) { log(err.message, 'fail'); return; }
-        window.ethereum.request({ method: 'personal_sign', params: ['Hello from test dApp', account] })
-          .then(function() {
-            log('personal_sign SUCCEEDED', 'warn');
-            addTest('sign-tests', 'personal_sign', 'Signed', 'warn', 'Allowed');
-          })
-          .catch(function(e) {
-            log('personal_sign rejected: ' + e.message, 'ok');
-            addTest('sign-tests', 'personal_sign', e.message, 'pass', 'Protected');
-          });
-      });
-    }
-
-    function testEIP712() {
-      log('Testing eth_signTypedData_v4...', 'warn');
-      ensureAccount(function(err, account) {
-        if (err) { log(err.message, 'fail'); return; }
-        var typedData = {
-          types: {
-            EIP712Domain: [
-              { name: 'name', type: 'string' },
-              { name: 'version', type: 'string' },
-              { name: 'chainId', type: 'uint256' },
-              { name: 'verifyingContract', type: 'address' }
-            ],
-            Mail: [
-              { name: 'from', type: 'address' },
-              { name: 'to', type: 'address' },
-              { name: 'contents', type: 'string' }
-            ]
-          },
-          primaryType: 'Mail',
-          domain: {
-            name: 'Test dApp',
-            version: '1',
-            chainId: 1,
-            verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC'
-          },
-          message: {
-            from: account,
-            to: '0xDdDddDdDDDDDDddDDDDDDdDdDdDdDdDdDdDdDdDd',
-            contents: 'Test message'
-          }
-        };
-        window.ethereum.request({
-          method: 'eth_signTypedData_v4',
-          params: [account, JSON.stringify(typedData)]
-        }).then(function() {
-          log('EIP-712 SUCCEEDED', 'warn');
-          addTest('sign-tests', 'eth_signTypedData_v4', 'Signed', 'warn', 'Allowed');
-        }).catch(function(e) {
-          log('EIP-712 rejected: ' + e.message, 'ok');
-          addTest('sign-tests', 'eth_signTypedData_v4', e.message, 'pass', 'Protected');
-        });
-      });
-    }
-
-    function testChainIdMismatch() {
-      log('Testing chainId mismatch...', 'warn');
-      ensureAccount(function(err, account) {
-        if (err) { log(err.message, 'fail'); return; }
-        window.ethereum.request({ method: 'eth_chainId' }).then(function(current) {
-          log('Current chainId: ' + current, 'info');
-          var wrong = (current === '0x1') ? '0x89' : '0x1';
-          var tx = { from: account, to: account, value: '0x0', chainId: wrong };
-          window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] })
-            .then(function() {
-              log('Mismatched chainId ACCEPTED', 'fail');
-              addTest('tx-tests', 'ChainId Mismatch', 'Accepted', 'fail', 'Vulnerable');
-            })
-            .catch(function(e) {
-              log('ChainId mismatch rejected: ' + e.message, 'ok');
-              addTest('tx-tests', 'ChainId Mismatch', e.message, 'pass', 'Protected');
-            });
-        }).catch(function(e) { log(e.message, 'fail'); });
-      });
-    }
-
-    function testGasManipulation() {
-      log('Testing gas manipulation...', 'warn');
-      ensureAccount(function(err, account) {
-        if (err) { log(err.message, 'fail'); return; }
-        var tx = { from: account, to: account, value: '0x0', gas: '0x5208', gasPrice: '0x1' };
-        window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] })
-          .then(function() {
-            log('Low gas ACCEPTED', 'fail');
-            addTest('tx-tests', 'Gas Manipulation', 'Accepted', 'fail', 'Vulnerable');
-          })
-          .catch(function(e) {
-            log('Gas manipulation rejected: ' + e.message, 'ok');
-            addTest('tx-tests', 'Gas Manipulation', e.message, 'pass', 'Protected');
-          });
-      });
-    }
-
-    function testMissingChainId() {
-      log('Testing missing chainId...', 'warn');
-      ensureAccount(function(err, account) {
-        if (err) { log(err.message, 'fail'); return; }
-        var tx = { from: account, to: account, value: '0x0' };
-        window.ethereum.request({ method: 'eth_sendTransaction', params: [tx] })
-          .then(function() {
-            log('Missing chainId ACCEPTED', 'warn');
-            addTest('tx-tests', 'Missing chainId', 'Accepted', 'warn', 'Allowed');
-          })
-          .catch(function(e) {
-            log('Missing chainId rejected: ' + e.message, 'ok');
-            addTest('tx-tests', 'Missing chainId', e.message, 'pass', 'Protected');
-          });
-      });
-    }
-
-    function testFileScheme() {
-      log('Testing file:// ...', 'warn');
-      try {
-        var iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = 'file:///';
-        document.body.appendChild(iframe);
-        setTimeout(function() {
-          try {
-            var html = iframe.contentWindow.document.documentElement.outerHTML;
-            log('file:// READABLE!', 'fail');
-            addTest('scheme-tests', 'file://', 'Accessible', 'fail', 'Vulnerable');
-          } catch (e) {
-            log('file:// blocked', 'ok');
-            addTest('scheme-tests', 'file://', 'Blocked', 'pass', 'Protected');
-          }
-          iframe.parentNode.removeChild(iframe);
-        }, 700);
-      } catch (e) {
-        log('file:// error: ' + e.message, 'ok');
-        addTest('scheme-tests', 'file://', e.message, 'pass', 'Protected');
-      }
-    }
-
-    function testJavascriptScheme() {
-      log('Testing javascript: scheme...', 'warn');
-      try {
-        var a = document.createElement('a');
-        a.href = 'javascript:alert(1)';
-        document.body.appendChild(a);
-        addTest('scheme-tests', 'javascript:', 'Link created (test manual)', 'warn', 'Check');
-        log('javascript: link created', 'warn');
-        a.parentNode.removeChild(a);
-      } catch (e) {
-        log('javascript: blocked: ' + e.message, 'ok');
-        addTest('scheme-tests', 'javascript:', e.message, 'pass', 'Protected');
-      }
-    }
-
-    function testDataScheme() {
-      log('Testing data: scheme...', 'warn');
-      try {
-        var iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = 'data:text/html,<script>parent.postMessage("data-ok","*")</script>';
-        document.body.appendChild(iframe);
-        var done = false;
-        function handler(e) {
-          if (e.data === 'data-ok') {
-            done = true;
-            log('data: script EXECUTED', 'fail');
-            addTest('scheme-tests', 'data:', 'Script executed', 'fail', 'Vulnerable');
-            window.removeEventListener('message', handler);
-            iframe.parentNode.removeChild(iframe);
-          }
+                const signature = await window.ethereum.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [accounts[0], msgParams]
+                });
+                log('log-sign', { method: 'EIP-712', signature });
+            } catch (err) {
+                log('log-sign', "Error EIP-712: " + err.message);
+            }
         }
-        window.addEventListener('message', handler);
-        setTimeout(function() {
-          window.removeEventListener('message', handler);
-          if (!done) {
-            log('data: no execution detected', 'ok');
-            addTest('scheme-tests', 'data:', 'Blocked / no exec', 'pass', 'Protected');
-          }
-          try { iframe.parentNode.removeChild(iframe); } catch(e) {}
-        }, 900);
-      } catch (e) {
-        log('data: error: ' + e.message, 'ok');
-      }
-    }
 
-    function testOpenRedirect() {
-      log('Checking redirect params...', 'info');
-      var params = new URLSearchParams(window.location.search);
-      var redirect = params.get('redirect') || params.get('url') || params.get('callback') || params.get('next');
-      if (redirect) {
-        log('Redirect param found: ' + redirect, 'warn');
-        addTest('scheme-tests', 'Open Redirect', redirect, 'warn', 'Present');
-      } else {
-        addTest('scheme-tests', 'Open Redirect', 'No param', 'pass', 'Clean');
-        log('No redirect param', 'ok');
-      }
-    }
+        // 3. Gas Manipulation
+        async function testGasManipulation() {
+            if (!window.ethereum) return alert("Provider tidak ada");
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                // Mengirim transaksi dengan gasPrice / gasLimit tidak masuk akal (0 atau melampaui batas)
+                const txParams = {
+                    from: accounts[0],
+                    to: accounts[0], // Kirim ke diri sendiri
+                    value: '0x0',
+                    gas: '0x1', // Gas limit terlalu kecil (Underpriced/OOG)
+                    gasPrice: '0xFFFFFFFFFF' // Gas price ekstrem
+                };
 
-    function connectWallet() {
-      clearContainer('wallet-tests');
-      log('Connecting...', 'info');
-      if (!window.ethereum) {
-        log('No window.ethereum', 'fail');
-        addTest('wallet-tests', 'Provider', 'Missing', 'fail', 'None');
-        return;
-      }
-      window.ethereum.request({ method: 'eth_requestAccounts' })
-        .then(function(accounts) {
-          connectedAccount = accounts[0];
-          log('Connected: ' + connectedAccount, 'ok');
-          addTest('wallet-tests', 'Account', connectedAccount, 'pass', 'Connected');
-          return window.ethereum.request({ method: 'eth_chainId' });
-        })
-        .then(function(chainId) {
-          if (chainId) addTest('wallet-tests', 'chainId', chainId, 'info', chainId);
-        })
-        .catch(function(e) {
-          log('Connect failed: ' + e.message, 'fail');
-          addTest('wallet-tests', 'Connect', e.message, 'fail', 'Failed');
-        });
-    }
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [txParams],
+                });
+                log('log-gas', { status: "Transaksi terkirim!", txHash });
+            } catch (err) {
+                log('log-gas', "Wallet menolak manipulasi gas (Aman): " + err.message);
+            }
+        }
 
-    function init() {
-      var status = document.getElementById('jsStatus');
-      status.className = 'js-ok';
-      status.innerHTML = 'JS berjalan normal';
-      log('Page loaded. Starting initial scan...', 'ok');
-      safeRun(detectProviders);
-      safeRun(deepBridgeScan);
-      safeRun(testOpenRedirect);
-      log('Siap. Tekan tombol untuk test lanjutan.', 'ok');
-    }
+        // 4. Scheme & Sandbox
+        function testDataUri() {
+            window.location.href = "data:text/html;base64,PGh0bWw+PGJvZHk+PGgxPkRhdGEgVVJJIFNhbmRib3ggRXNjYXBlIE5vdGljZTwvaDE+PC9ib2R5PjwvaHRtbD4=";
+        }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
-    }
-  </script>
+        function testJavascriptUri() {
+            try {
+                window.location.href = "javascript:alert(document.domain)";
+            } catch (err) {
+                log('log-scheme', "Gagal mengeksekusi skema javascript: " + err.message);
+            }
+        }
+    </script>
 </body>
 </html>
