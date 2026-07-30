@@ -1,4 +1,126 @@
-<!-- Tombol untuk pengguna mobile -->
-<a href="oneinch://browse?url=https://poc-transaksi-bypass.netlify.app/">
-  Buka di 1inch Wallet
-</a>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uniswap Interface [Fake] - Swap</title>
+    <!-- Memuat pustaka WalletConnect Provider dan QR Code Modal via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/qrcode-modal@1.8.0/umd/index.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #191b1f;
+            color: #c3c5cb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background-color: #212429;
+            border: 1px solid #40444f;
+            border-radius: 24px;
+            padding: 20px;
+            width: 400px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        .header {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-connect {
+            background-color: #2172e5;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 16px;
+            width: 100%;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-connect:hover {
+            background-color: #1a5bc2;
+        }
+        .swap-box {
+            background-color: #191b1f;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 10px;
+            border: 1px solid #212429;
+        }
+        .swap-box input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 100%;
+            outline: none;
+        }
+        .status {
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+            word-break: break-all;
+            color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="header">
+            <span>Swap</span>
+        </div>
+        
+        <div class="swap-box">
+            <small>You pay</small>
+            <input type="text" value="0.0" placeholder="0.0">
+        </div>
+
+        <div class="swap-box">
+            <small>You receive (estimated)</small>
+            <input type="text" value="0.0" placeholder="0.0">
+        </div>
+
+        <button class="btn-connect" id="connectWallet">Connect Wallet</button>
+        <div class="status" id="statusText"></div>
+    </div>
+
+    <script>
+        document.getElementById('connectWallet').addEventListener('click', async () => {
+            const statusText = document.getElementById('statusText');
+            try {
+                statusText.innerText = "Membuat sesi WalletConnect...";
+                
+                // Inisialisasi WalletConnect Provider
+                const provider = new WalletConnect.default({
+                    bridge: "https://bridge.walletconnect.org", 
+                    qrcodeModal: WalletConnectQRCodeModal.default, 
+                });
+
+                // Membuka modal pop-up yang berisi QR Code
+                await provider.enable();
+
+                // Mengambil akun yang berhasil terhubung
+                const accounts = provider.accounts;
+                statusText.innerText = "Terhubung ke akun: " + accounts[0];
+                console.log("Connected accounts:", accounts);
+
+            } catch (error) {
+                console.error("Koneksi ditolak atau gagal:", error);
+                statusText.innerText = "Koneksi dibatalkan/gagal.";
+            }
+        });
+    </script>
+
+</body>
+</html>
