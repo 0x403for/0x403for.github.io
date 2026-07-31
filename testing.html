@@ -1,229 +1,38 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>1inch iOS – Manual Testing Checklist</title>
-  <style>
-    :root {
-      --bg: #0b0e11;
-      --card: #151a21;
-      --border: #1e2630;
-      --accent: #1fc7d4;
-      --text: #e8ecf1;
-      --muted: #8b95a5;
-      --green: #00d395;
-      --yellow: #f0b90b;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.55;
-      padding: 16px;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-    header {
-      text-align: center;
-      padding: 12px 0 20px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-    h1 { font-size: 1.15rem; font-weight: 600; }
-    .sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .card h2 {
-      font-size: 0.95rem;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .status {
-      font-size: 0.85rem;
-      padding: 10px 12px;
-      background: #0d1117;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      word-break: break-all;
-    }
-    .status span { color: var(--muted); }
-    button {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-bottom: 8px;
-      background: var(--accent);
-      color: #000;
-    }
-    button.secondary {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    ul { padding-left: 18px; }
-    li {
-      font-size: 0.88rem;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-    .tag {
-      display: inline-block;
-      font-size: 0.65rem;
-      padding: 2px 7px;
-      border-radius: 6px;
-      margin-right: 4px;
-      background: rgba(31,199,212,0.15);
-      color: var(--accent);
-    }
-    .note {
-      font-size: 0.8rem;
-      color: var(--yellow);
-      margin-top: 10px;
-      padding: 10px;
-      background: rgba(240,185,11,0.08);
-      border-radius: 8px;
-    }
-    footer {
-      text-align: center;
-      font-size: 0.75rem;
-      color: var(--muted);
-      padding: 20px 0 40px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uji Coba DOM XSS - DApp Browser</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        code { background: #eee; padding: 2px 5px; border-radius: 4px; }
+    </style>
 </head>
 <body>
 
-  <header>
-    <h1>1inch iOS Testing Lab</h1>
-    <div class="sub">Manual Observation Only • Ethical</div>
-  </header>
-
-  <!-- Status Wallet -->
-  <div class="card">
-    <h2>📡 Status Wallet</h2>
-    <div class="status" id="status">
-      <span>Belum terhubung</span>
+    <div class="card">
+        <h2>Simulasi DOM XSS DApp</h2>
+        <p>Halaman ini mensimulasikan penanganan input URL yang tidak aman (vulnerable sink).</p>
+        <hr>
+        <h3>Hasil Input:</h3>
+        <!-- Sink berbahaya yang memicu DOM XSS jika tidak disanitasi -->
+        <div id="greeting"></div>
     </div>
-    <button id="btnConnect">Connect Wallet</button>
-    <button id="btnRefresh" class="secondary">Refresh Status</button>
-  </div>
 
-  <!-- Checklist Prioritas Tinggi -->
-  <div class="card">
-    <h2>✅ Checklist Prioritas Tinggi</h2>
-    <ul>
-      <li><span class="tag">1</span> Minta transaksi → <strong>Reject</strong> 5–10 kali cepat. Amati apakah UI masih Pending.</li>
-      <li><span class="tag">2</span> Setelah Reject → tutup DApp / kill app → buka lagi. Cek session masih connected?</li>
-      <li><span class="tag">3</span> Mulai transaksi → <strong>ganti jaringan</strong> di wallet. Apakah DApp error atau diam?</li>
-      <li><span class="tag">4</span> Saat popup signature muncul → <strong>swipe kill</strong> aplikasi → buka lagi.</li>
-      <li><span class="tag">5</span> Amati pesan error setelah Reject. Apakah jelas atau loading terus?</li>
-    </ul>
-    <div class="note">
-      Lakukan secara manual. Jangan gunakan akun berisi dana besar.
-    </div>
-  </div>
+    <script>
+        // Mengambil parameter 'name' dari URL query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const userName = urlParams.get('name');
 
-  <!-- Checklist Tambahan -->
-  <div class="card">
-    <h2>📋 Checklist Tambahan</h2>
-    <ul>
-      <li>Approve token → Reject → cek allowance di explorer</li>
-      <li>Ganti akun di wallet → kembali ke DApp</li>
-      <li>Buka DApp lewat link eksternal (Safari / Telegram)</li>
-      <li>Disconnect resmi lalu cek apakah alamat masih terbaca</li>
-    </ul>
-  </div>
-
-  <footer>
-    Educational purpose only<br>
-    Tidak ada kode otomatis memicu bug
-  </footer>
-
-  <script>
-    const statusEl = document.getElementById('status');
-    const btnConnect = document.getElementById('btnConnect');
-    const btnRefresh = document.getElementById('btnRefresh');
-
-    function updateStatus(text) {
-      statusEl.innerHTML = text;
-    }
-
-    async function getProvider() {
-      if (window.ethereum) return window.ethereum;
-      if (window.web3 && window.web3.currentProvider) return window.web3.currentProvider;
-      return null;
-    }
-
-    async function refreshStatus() {
-      const provider = await getProvider();
-      if (!provider) {
-        updateStatus('<span>Provider tidak ditemukan</span>');
-        return;
-      }
-
-      try {
-        const accounts = await provider.request({ method: 'eth_accounts' });
-        const chainId = await provider.request({ method: 'eth_chainId' });
-
-        if (accounts && accounts.length > 0) {
-          updateStatus(`
-            <span>Connected</span><br>
-            Address: ${accounts[0]}<br>
-            ChainId: ${chainId}
-          `);
+        if (userName) {
+            // KERENTANAN: Menggunakan innerHTML secara langsung dengan input pengguna
+            document.getElementById('greeting').innerHTML = "Halo, " + userName;
         } else {
-          updateStatus('<span>Wallet terdeteksi, belum connect</span>');
+            document.getElementById('greeting').innerHTML = "Silakan tambahkan parameter <code>?name=...</code> pada URL.";
         }
-      } catch (err) {
-        updateStatus(`<span>Error: ${err.message || err}</span>`);
-      }
-    }
+    </script>
 
-    btnConnect.addEventListener('click', async () => {
-      const provider = await getProvider();
-      if (!provider) {
-        updateStatus('<span>Tidak ada wallet provider</span>');
-        return;
-      }
-
-      try {
-        btnConnect.disabled = true;
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
-        await refreshStatus();
-      } catch (err) {
-        updateStatus(`<span>User rejected / Error: ${err.code || err.message}</span>`);
-      } finally {
-        btnConnect.disabled = false;
-      }
-    });
-
-    btnRefresh.addEventListener('click', refreshStatus);
-
-    // Auto refresh status saat halaman dimuat
-    refreshStatus();
-
-    // Dengarkan perubahan akun & chain (standar)
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', refreshStatus);
-      window.ethereum.on('chainChanged', refreshStatus);
-    }
-  </script>
 </body>
 </html>
