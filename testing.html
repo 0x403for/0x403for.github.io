@@ -3,244 +3,227 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>1inch DApp Browser (iOS) – Security Analysis Lab</title>
+  <title>1inch iOS – Manual Testing Checklist</title>
   <style>
     :root {
       --bg: #0b0e11;
       --card: #151a21;
       --border: #1e2630;
       --accent: #1fc7d4;
-      --accent2: #00d395;
       --text: #e8ecf1;
       --muted: #8b95a5;
-      --danger: #ff5a5a;
-      --warning: #f0b90b;
+      --green: #00d395;
+      --yellow: #f0b90b;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.6;
+      line-height: 1.55;
       padding: 16px;
-      max-width: 900px;
+      max-width: 480px;
       margin: 0 auto;
     }
     header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 0;
+      text-align: center;
+      padding: 12px 0 20px;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
-    .logo {
-      width: 40px; height: 40px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border-radius: 12px;
-      display: grid; place-items: center;
-      font-weight: 700; font-size: 18px;
-    }
-    h1 { font-size: 1.25rem; font-weight: 600; }
-    .badge {
-      font-size: 0.7rem;
-      background: rgba(31,199,212,0.15);
-      color: var(--accent);
-      padding: 2px 8px;
-      border-radius: 20px;
-      margin-left: 8px;
-    }
+    h1 { font-size: 1.15rem; font-weight: 600; }
+    .sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
     }
     .card h2 {
-      font-size: 1.05rem;
+      font-size: 0.95rem;
       margin-bottom: 12px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
-    .card h2 span { font-size: 1.2rem; }
-    p, li { color: var(--muted); font-size: 0.95rem; }
-    ul { padding-left: 20px; margin: 10px 0; }
-    li { margin-bottom: 6px; }
-    code, pre {
-      font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+    .status {
       font-size: 0.85rem;
-    }
-    pre {
+      padding: 10px 12px;
       background: #0d1117;
-      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      word-break: break-all;
+    }
+    .status span { color: var(--muted); }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
       border-radius: 10px;
-      padding: 14px;
-      overflow-x: auto;
-      margin: 12px 0;
-      color: #c9d1d9;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 8px;
+      background: var(--accent);
+      color: #000;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    ul { padding-left: 18px; }
+    li {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 8px;
     }
     .tag {
       display: inline-block;
-      font-size: 0.7rem;
-      padding: 2px 8px;
+      font-size: 0.65rem;
+      padding: 2px 7px;
       border-radius: 6px;
-      margin-right: 6px;
-      margin-bottom: 6px;
+      margin-right: 4px;
+      background: rgba(31,199,212,0.15);
+      color: var(--accent);
     }
-    .tag.red { background: rgba(255,90,90,0.15); color: var(--danger); }
-    .tag.yellow { background: rgba(240,185,11,0.15); color: var(--warning); }
-    .tag.green { background: rgba(0,211,149,0.15); color: var(--accent2); }
     .note {
-      background: rgba(31,199,212,0.08);
-      border-left: 3px solid var(--accent);
-      padding: 12px 14px;
-      border-radius: 0 8px 8px 0;
-      margin: 14px 0;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
+      color: var(--yellow);
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(240,185,11,0.08);
+      border-radius: 8px;
     }
     footer {
       text-align: center;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--muted);
-      padding: 24px 0 40px;
-    }
-    @media (max-width: 480px) {
-      body { padding: 12px; }
-      .card { padding: 16px; }
+      padding: 20px 0 40px;
     }
   </style>
 </head>
 <body>
+
   <header>
-    <div class="logo">1</div>
-    <div>
-      <h1>1inch DApp Browser <span class="badge">iOS</span></h1>
-      <p style="font-size:0.8rem;color:var(--muted)">Security Analysis & Local Testing Lab</p>
-    </div>
+    <h1>1inch iOS Testing Lab</h1>
+    <div class="sub">Manual Observation Only • Ethical</div>
   </header>
 
-  <!-- Section 1 -->
+  <!-- Status Wallet -->
   <div class="card">
-    <h2><span>🔬</span> Analisis Logika Kontrak Secara Langsung</h2>
-    <p>Menguji <strong>Reentrancy</strong> atau <strong>Access Control</strong> secara utuh dengan mendeploy kontrak rentan buatan sendiri ke testnet pribadi.</p>
-    
-    <div class="tag red">Reentrancy</div>
-    <div class="tag yellow">Access Control</div>
-    <div class="tag green">Local Node</div>
-
-    <div class="note">
-      Anda memiliki kontrol penuh atas kedua belah pihak: <strong>kontrak penyerang</strong> dan <strong>kontrak korban</strong>.
+    <h2>📡 Status Wallet</h2>
+    <div class="status" id="status">
+      <span>Belum terhubung</span>
     </div>
-
-    <h3 style="font-size:0.95rem;margin:16px 0 8px;color:var(--text)">Setup Hardhat Local Node</h3>
-    <pre>npx hardhat node
-# atau
-anvil   # Foundry</pre>
-
-    <h3 style="font-size:0.95rem;margin:16px 0 8px;color:var(--text)">Contoh Kontrak Korban (Vulnerable)</h3>
-    <pre>// VulnerableBank.sol
-pragma solidity ^0.8.0;
-
-contract VulnerableBank {
-    mapping(address => uint) public balances;
-
-    function deposit() external payable {
-        balances[msg.sender] += msg.value;
-    }
-
-    // ❌ Reentrancy vulnerability
-    function withdraw() external {
-        uint bal = balances[msg.sender];
-        require(bal > 0);
-        (bool success, ) = msg.sender.call{value: bal}("");
-        require(success);
-        balances[msg.sender] = 0; // state update AFTER external call
-    }
-}</pre>
-
-    <h3 style="font-size:0.95rem;margin:16px 0 8px;color:var(--text)">Kontrak Penyerang</h3>
-    <pre>// Attacker.sol
-contract Attacker {
-    VulnerableBank public bank;
-
-    constructor(address _bank) {
-        bank = VulnerableBank(_bank);
-    }
-
-    function attack() external payable {
-        bank.deposit{value: msg.value}();
-        bank.withdraw();
-    }
-
-    receive() external payable {
-        if (address(bank).balance >= 1 ether) {
-            bank.withdraw();
-        }
-    }
-}</pre>
+    <button id="btnConnect">Connect Wallet</button>
+    <button id="btnRefresh" class="secondary">Refresh Status</button>
   </div>
 
-  <!-- Section 2 -->
+  <!-- Checklist Prioritas Tinggi -->
   <div class="card">
-    <h2><span>🌐</span> Celah Logika API / Backend Web3</h2>
-    <p>Menguji bagaimana DApp (khususnya 1inch di DApp Browser iOS) memvalidasi respons dari wallet.</p>
-
+    <h2>✅ Checklist Prioritas Tinggi</h2>
     <ul>
-      <li>Apakah ada <strong>race condition</strong> ketika user membatalkan transaksi berulang kali?</li>
-      <li>Bagaimana penanganan sesi (session) jika wallet mengembalikan <code>null</code> / error setelah user reject?</li>
-      <li>Apakah frontend masih menganggap transaksi “pending” meskipun user sudah cancel di wallet?</li>
-      <li>Apakah backend / indexer mempercayai event yang belum final (reorg risk)?</li>
+      <li><span class="tag">1</span> Minta transaksi → <strong>Reject</strong> 5–10 kali cepat. Amati apakah UI masih Pending.</li>
+      <li><span class="tag">2</span> Setelah Reject → tutup DApp / kill app → buka lagi. Cek session masih connected?</li>
+      <li><span class="tag">3</span> Mulai transaksi → <strong>ganti jaringan</strong> di wallet. Apakah DApp error atau diam?</li>
+      <li><span class="tag">4</span> Saat popup signature muncul → <strong>swipe kill</strong> aplikasi → buka lagi.</li>
+      <li><span class="tag">5</span> Amati pesan error setelah Reject. Apakah jelas atau loading terus?</li>
     </ul>
-
     <div class="note">
-      Di iOS DApp Browser (1inch Wallet), WebView sering memakai <code>window.ethereum</code> atau WalletConnect. Uji dengan:
-      <br>• Reject transaksi berkali-kali dengan cepat
-      <br>• Ganti jaringan di tengah request
-      <br>• Kill app saat signature request muncul
+      Lakukan secara manual. Jangan gunakan akun berisi dana besar.
     </div>
-
-    <h3 style="font-size:0.95rem;margin:16px 0 8px;color:var(--text)">Contoh Race Condition Check (Frontend)</h3>
-    <pre>let isRequesting = false;
-
-async function safeSendTransaction(tx) {
-  if (isRequesting) {
-    console.warn("Race: request already in flight");
-    return;
-  }
-  isRequesting = true;
-  try {
-    const hash = await window.ethereum.request({
-      method: "eth_sendTransaction",
-      params: [tx]
-    });
-    return hash;
-  } catch (err) {
-    // User rejected atau error lain
-    console.log("User rejected / error:", err.code);
-  } finally {
-    isRequesting = false; // penting!
-  }
-}</pre>
   </div>
 
-  <!-- Section 3 -->
+  <!-- Checklist Tambahan -->
   <div class="card">
-    <h2><span>🛠</span> Checklist Pengujian Lokal</h2>
+    <h2>📋 Checklist Tambahan</h2>
     <ul>
-      <li>Deploy kontrak rentan ke Hardhat/Anvil</li>
-      <li>Buat akun attacker & victim dengan private key yang Anda kontrol</li>
-      <li>Simulasikan reentrancy & access control bypass</li>
-      <li>Hubungkan 1inch DApp Browser (iOS) ke local node via custom RPC</li>
-      <li>Uji reject berulang + network switch + app kill</li>
-      <li>Periksa apakah state frontend & backend tetap konsisten</li>
+      <li>Approve token → Reject → cek allowance di explorer</li>
+      <li>Ganti akun di wallet → kembali ke DApp</li>
+      <li>Buka DApp lewat link eksternal (Safari / Telegram)</li>
+      <li>Disconnect resmi lalu cek apakah alamat masih terbaca</li>
     </ul>
   </div>
 
   <footer>
-    Educational purpose only • Local testing environment<br>
-    Hardhat / Foundry / Ganache • 1inch DApp Browser iOS
+    Educational purpose only<br>
+    Tidak ada kode otomatis memicu bug
   </footer>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const btnConnect = document.getElementById('btnConnect');
+    const btnRefresh = document.getElementById('btnRefresh');
+
+    function updateStatus(text) {
+      statusEl.innerHTML = text;
+    }
+
+    async function getProvider() {
+      if (window.ethereum) return window.ethereum;
+      if (window.web3 && window.web3.currentProvider) return window.web3.currentProvider;
+      return null;
+    }
+
+    async function refreshStatus() {
+      const provider = await getProvider();
+      if (!provider) {
+        updateStatus('<span>Provider tidak ditemukan</span>');
+        return;
+      }
+
+      try {
+        const accounts = await provider.request({ method: 'eth_accounts' });
+        const chainId = await provider.request({ method: 'eth_chainId' });
+
+        if (accounts && accounts.length > 0) {
+          updateStatus(`
+            <span>Connected</span><br>
+            Address: ${accounts[0]}<br>
+            ChainId: ${chainId}
+          `);
+        } else {
+          updateStatus('<span>Wallet terdeteksi, belum connect</span>');
+        }
+      } catch (err) {
+        updateStatus(`<span>Error: ${err.message || err}</span>`);
+      }
+    }
+
+    btnConnect.addEventListener('click', async () => {
+      const provider = await getProvider();
+      if (!provider) {
+        updateStatus('<span>Tidak ada wallet provider</span>');
+        return;
+      }
+
+      try {
+        btnConnect.disabled = true;
+        const accounts = await provider.request({ method: 'eth_requestAccounts' });
+        await refreshStatus();
+      } catch (err) {
+        updateStatus(`<span>User rejected / Error: ${err.code || err.message}</span>`);
+      } finally {
+        btnConnect.disabled = false;
+      }
+    });
+
+    btnRefresh.addEventListener('click', refreshStatus);
+
+    // Auto refresh status saat halaman dimuat
+    refreshStatus();
+
+    // Dengarkan perubahan akun & chain (standar)
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', refreshStatus);
+      window.ethereum.on('chainChanged', refreshStatus);
+    }
+  </script>
 </body>
 </html>
