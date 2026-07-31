@@ -1,110 +1,246 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real Provider Interceptor & Payload Logger</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 15px; background: #0f172a; color: #f8fafc; }
-        .card { background: #1e293b; padding: 15px; margin-bottom: 12px; border-radius: 10px; border: 1px solid #334155; }
-        h1 { font-size: 1.25rem; margin-bottom: 5px; color: #38bdf8; }
-        h3 { font-size: 1rem; margin-top: 0; color: #38bdf8; }
-        p { font-size: 0.85rem; color: #94a3b8; line-height: 1.3; }
-        button { width: 100%; padding: 12px; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; cursor: pointer; margin-top: 5px; }
-        button:active { background: #1d4ed8; }
-        .btn-danger { background: #dc2626; }
-        .btn-danger:active { background: #b91c1c; }
-        pre { background: #090d16; color: #34d399; padding: 10px; border-radius: 6px; font-size: 0.75rem; overflow-x: auto; max-height: 200px; border: 1px solid #1e293b; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>1inch DApp Browser (iOS) – Security Analysis Lab</title>
+  <style>
+    :root {
+      --bg: #0b0e11;
+      --card: #151a21;
+      --border: #1e2630;
+      --accent: #1fc7d4;
+      --accent2: #00d395;
+      --text: #e8ecf1;
+      --muted: #8b95a5;
+      --danger: #ff5a5a;
+      --warning: #f0b90b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 16px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 18px;
+    }
+    h1 { font-size: 1.25rem; font-weight: 600; }
+    .badge {
+      font-size: 0.7rem;
+      background: rgba(31,199,212,0.15);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 8px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1.05rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h2 span { font-size: 1.2rem; }
+    p, li { color: var(--muted); font-size: 0.95rem; }
+    ul { padding-left: 20px; margin: 10px 0; }
+    li { margin-bottom: 6px; }
+    code, pre {
+      font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+    }
+    pre {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      overflow-x: auto;
+      margin: 12px 0;
+      color: #c9d1d9;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    .tag.red { background: rgba(255,90,90,0.15); color: var(--danger); }
+    .tag.yellow { background: rgba(240,185,11,0.15); color: var(--warning); }
+    .tag.green { background: rgba(0,211,149,0.15); color: var(--accent2); }
+    .note {
+      background: rgba(31,199,212,0.08);
+      border-left: 3px solid var(--accent);
+      padding: 12px 14px;
+      border-radius: 0 8px 8px 0;
+      margin: 14px 0;
+      font-size: 0.9rem;
+    }
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding: 24px 0 40px;
+    }
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .card { padding: 16px; }
+    }
+  </style>
 </head>
 <body>
+  <header>
+    <div class="logo">1</div>
+    <div>
+      <h1>1inch DApp Browser <span class="badge">iOS</span></h1>
+      <p style="font-size:0.8rem;color:var(--muted)">Security Analysis & Local Testing Lab</p>
+    </div>
+  </header>
 
-    <h1>Real Provider Interceptor Lab</h1>
-    <p>Skenario nyata penyadapan parameter metode <code>window.ethereum.request</code> untuk merekam data transaksional mentah sebelum dikirim ke wallet.</p>
+  <!-- Section 1 -->
+  <div class="card">
+    <h2><span>🔬</span> Analisis Logika Kontrak Secara Langsung</h2>
+    <p>Menguji <strong>Reentrancy</strong> atau <strong>Access Control</strong> secara utuh dengan mendeploy kontrak rentan buatan sendiri ke testnet pribadi.</p>
+    
+    <div class="tag red">Reentrancy</div>
+    <div class="tag yellow">Access Control</div>
+    <div class="tag green">Local Node</div>
 
-    <div class="card">
-        <h3>1. Status Hook & Injeksi Interceptor</h3>
-        <button onclick="activateRealInterceptor()">Aktifkan Interceptor Asli</button>
-        <p style="margin-top: 8px;">Status Hook: <span id="hookStatus" style="color: #f87171; font-weight: bold;">Belum Aktif</span></p>
+    <div class="note">
+      Anda memiliki kontrol penuh atas kedua belah pihak: <strong>kontrak penyerang</strong> dan <strong>kontrak korban</strong>.
     </div>
 
-    <div class="card">
-        <h3>2. Pemicu Aksi Nyata (Trigger Request)</h3>
-        <p>Memanggil fungsi standar untuk memicu penangkapan payload secara langsung.</p>
-        <button class="btn-danger" onclick="triggerRealRequest()">Panggil eth_requestAccounts & Sign</button>
+    <h3 style="font-size:0.95rem;margin:16px 0 8px;color:var(--text)">Setup Hardhat Local Node</h3>
+    <pre>npx hardhat node
+# atau
+anvil   # Foundry</pre>
+
+    <h3 style="font-size:0.95rem;margin:16px 0 8px;color:var(--text)">Contoh Kontrak Korban (Vulnerable)</h3>
+    <pre>// VulnerableBank.sol
+pragma solidity ^0.8.0;
+
+contract VulnerableBank {
+    mapping(address => uint) public balances;
+
+    function deposit() external payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    // ❌ Reentrancy vulnerability
+    function withdraw() external {
+        uint bal = balances[msg.sender];
+        require(bal > 0);
+        (bool success, ) = msg.sender.call{value: bal}("");
+        require(success);
+        balances[msg.sender] = 0; // state update AFTER external call
+    }
+}</pre>
+
+    <h3 style="font-size:0.95rem;margin:16px 0 8px;color:var(--text)">Kontrak Penyerang</h3>
+    <pre>// Attacker.sol
+contract Attacker {
+    VulnerableBank public bank;
+
+    constructor(address _bank) {
+        bank = VulnerableBank(_bank);
+    }
+
+    function attack() external payable {
+        bank.deposit{value: msg.value}();
+        bank.withdraw();
+    }
+
+    receive() external payable {
+        if (address(bank).balance >= 1 ether) {
+            bank.withdraw();
+        }
+    }
+}</pre>
+  </div>
+
+  <!-- Section 2 -->
+  <div class="card">
+    <h2><span>🌐</span> Celah Logika API / Backend Web3</h2>
+    <p>Menguji bagaimana DApp (khususnya 1inch di DApp Browser iOS) memvalidasi respons dari wallet.</p>
+
+    <ul>
+      <li>Apakah ada <strong>race condition</strong> ketika user membatalkan transaksi berulang kali?</li>
+      <li>Bagaimana penanganan sesi (session) jika wallet mengembalikan <code>null</code> / error setelah user reject?</li>
+      <li>Apakah frontend masih menganggap transaksi “pending” meskipun user sudah cancel di wallet?</li>
+      <li>Apakah backend / indexer mempercayai event yang belum final (reorg risk)?</li>
+    </ul>
+
+    <div class="note">
+      Di iOS DApp Browser (1inch Wallet), WebView sering memakai <code>window.ethereum</code> atau WalletConnect. Uji dengan:
+      <br>• Reject transaksi berkali-kali dengan cepat
+      <br>• Ganti jaringan di tengah request
+      <br>• Kill app saat signature request muncul
     </div>
 
-    <div class="card">
-        <h3>Live Intercepted Payload Log</h3>
-        <pre id="log">Menunggu aktivasi interceptor...</pre>
-    </div>
+    <h3 style="font-size:0.95rem;margin:16px 0 8px;color:var(--text)">Contoh Race Condition Check (Frontend)</h3>
+    <pre>let isRequesting = false;
 
-    <script>
-        function log(msg) {
-            const pre = document.getElementById('log');
-            pre.innerText += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
-            pre.scrollTop = pre.scrollHeight;
-        }
+async function safeSendTransaction(tx) {
+  if (isRequesting) {
+    console.warn("Race: request already in flight");
+    return;
+  }
+  isRequesting = true;
+  try {
+    const hash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [tx]
+    });
+    return hash;
+  } catch (err) {
+    // User rejected atau error lain
+    console.log("User rejected / error:", err.code);
+  } finally {
+    isRequesting = false; // penting!
+  }
+}</pre>
+  </div>
 
-        let isHooked = false;
+  <!-- Section 3 -->
+  <div class="card">
+    <h2><span>🛠</span> Checklist Pengujian Lokal</h2>
+    <ul>
+      <li>Deploy kontrak rentan ke Hardhat/Anvil</li>
+      <li>Buat akun attacker & victim dengan private key yang Anda kontrol</li>
+      <li>Simulasikan reentrancy & access control bypass</li>
+      <li>Hubungkan 1inch DApp Browser (iOS) ke local node via custom RPC</li>
+      <li>Uji reject berulang + network switch + app kill</li>
+      <li>Periksa apakah state frontend & backend tetap konsisten</li>
+    </ul>
+  </div>
 
-        function activateRealInterceptor() {
-            if (typeof window.ethereum === 'undefined') {
-                log("Error: window.ethereum tidak ditemukan pada environment ini.");
-                return;
-            }
-
-            if (isHooked) {
-                log("Interceptor sudah aktif sebelumnya.");
-                return;
-            }
-
-            try {
-                // Menyimpan referensi asli dari fungsi request provider
-                const originalRequest = window.ethereum.request;
-
-                // Melakukan overwrite (hook) pada fungsi request asli secara nyata
-                window.ethereum.request = async function(args) {
-                    const method = args && args.method ? args.method : 'unknown';
-                    const params = args && args.params ? args.params : [];
-
-                    // Merekam parameter mentah secara utuh (Real Payload Capture)
-                    log(`[INTERCEPTED] Metode: ${method}`);
-                    log(`[PAYLOAD DATA] ${JSON.stringify(params, null, 2)}`);
-
-                    // Contoh skenario modifikasi parameter secara diam-diam (jika diizinkan logika eksploitasi)
-                    // if (method === 'eth_sendTransaction') {
-                    //     params[0].to = "0xAlamatAttackerDisini";
-                    // }
-
-                    // Meneruskan kembali eksekusi ke fungsi request asli agar tetap diproses oleh wallet
-                    return originalRequest.apply(window.ethereum, [args]);
-                };
-
-                isHooked = true;
-                document.getElementById('hookStatusinnerText = "Aktif & Menyadap";
-                document.getElementById('hookStatus').style.color = "#34d399";
-                log("Berhasil: Interceptor DOM-based terpasang permanen pada objek window.ethereum.request");
-            } catch (err) {
-                log(`Gagal memasang hook: ${err.message}`);
-            }
-        }
-
-        async function triggerRealRequest() {
-            if (!isHooked) {
-                alert("Aktifkan interceptor terlebih dahulu!");
-                return;
-            }
-
-            try {
-                log("Memicu pemanggilan metode provider...");
-                // Memanggil method standar yang pasti melewati fungsi request yang sudah di-hook
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                log(`Respons diterima dari wallet: Akun terhubung -> ${accounts[0]}`);
-            } catch (err) {
-                log(`Permintaan digagalkan/ditolak: ${err.message}`);
-            }
-        }
-    </script>
+  <footer>
+    Educational purpose only • Local testing environment<br>
+    Hardhat / Foundry / Ganache • 1inch DApp Browser iOS
+  </footer>
 </body>
 </html>
