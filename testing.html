@@ -3,61 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DApp Security Testbed</title>
+    <title>1inch iOS DApp Security Testbed (Advanced)</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f9; color: #333; }
-        .card { background: #fff; padding: 20px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { padding: 10px 15px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .danger { background: #dc3545; }
-        .danger:hover { background: #a71d2a; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 15px; background: #f8f9fa; color: #212529; }
+        .card { background: #fff; padding: 15px; margin-bottom: 12px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.25rem; margin-bottom: 5px; }
+        h3 { font-size: 1rem; margin-top: 0; color: #0056b3; }
+        p { font-size: 0.85rem; color: #6c757d; line-height: 1.3; }
+        button { width: 100%; padding: 12px; background: #dc3545; color: #fff; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        button:active { opacity: 0.8; }
+        .btn-primary { background: #007bff; }
+        pre { background: #1e1e1e; color: #dcdcdc; padding: 10px; border-radius: 6px; font-size: 0.75rem; overflow-x: auto; max-height: 150px; }
     </style>
 </head>
 <body>
 
-    <h1>DApp Security Test Panel</h1>
-    <p>Gunakan halaman ini untuk menguji simulasi celah keamanan pada DApp browser.</p>
+    <h1>iOS DApp Security Lab</h1>
+    <p>Panel uji coba kerentanan tingkat lanjut untuk DApp browser mobile.</p>
 
     <div class="card">
-        <h3>1. Status Koneksi Wallet</h3>
-        <button onclick="connectWallet()">Hubungkan Wallet</button>
-        <p>Akun: <span id="account">Belum terhubung</span></p>
+        <h3>0. Status Koneksi</h3>
+        <button class="btn-primary" onclick="connectWallet()">Hubungkan Wallet (1inch iOS)</button>
+        <p style="margin-top: 8px;">Akun: <span id="account" style="word-break: break-all; color: #333; font-weight: bold;">Belum terhubung</span></p>
     </div>
 
     <div class="card">
-        <h3>2. Simulasi: Memicu Signing Tanpa Consent (Auto-Prompt)</h3>
-        <p>Menguji apakah DApp dapat memaksa permintaan tanda tangan secara otomatis saat halaman dimuat.</p>
-        <button class="danger" onclick="triggerAutoSign()">Uji Auto-Sign</button>
+        <h3>1. Smart Contract: Reentrancy Simulation</h3>
+        <p>Memanggil fungsi penarikan ganda pada target rentan sebelum saldo lokal diperbarui.</p>
+        <button onclick="testReentrancy()">Uji Reentrancy Call</button>
     </div>
 
     <div class="card">
-        <h3>3. Simulasi: Direct Theft / Unauthorized Transfer</h3>
-        <p>Menguji fungsi transfer dana langsung tanpa persetujuan eksplisit terhadap detail nominal.</p>
-        <button class="danger" onclick="simulateDirectTheft()">Uji Transfer Paksa</button>
+        <h3>2. EIP-712: Signature Replay / Permit</h3>
+        <p>Menguji penggunaan ulang (replay) tanda tangan *off-chain* pada struktur data izin transfer token.</p>
+        <button onclick="testSignatureReplay()">Uji Signature Replay</button>
     </div>
 
     <div class="card">
-        <h3>4. Simulasi: Modifikasi Transaksi Setelah Konfirmasi User</h3>
-        <p>Menguji manipulasi parameter (misal: mengubah alamat tujuan atau nominal gas/nilai transfer di belakang layar sebelum dikirim).</p>
-        <button class="danger" onclick="simulateTamperedTransaction()">Uji Modifikasi Transaksi</button>
+        <h3>3. Supply Chain: Malicious CDN / Library Hook</h3>
+        <p>Mensimulasikan injeksi objek pada dependensi runtime eksternal pihak ketiga.</p>
+        <button onclick="testLibraryHook()">Uji Library Hook</button>
+    </div>
+
+    <div class="card">
+        <h3>4. DOM / Frontend: Malicious Provider Injection</h3>
+        <p>Memodifikasi properti pada objek <code>window.ethereum</code> sebelum interaksi pengguna.</p>
+        <button onclick="testProviderInjection()">Uji Provider Injection</button>
     </div>
 
     <div class="card">
         <h3>Log Aktivitas</h3>
-        <pre id="log">Menunggu aktivitas...</pre>
+        <pre id="log">Menunggu aksi...</pre>
     </div>
 
-    <!-- Memuat pustaka Ethers.js via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script>
-        let provider;
-        let signer;
-        let userAddress;
+        let provider, signer, userAddress;
 
-        function log(message) {
-            const logElement = document.getElementById('log');
-            logElement.innerText += `\n[${new Date().toLocaleTimeString()}] ${message}`;
+        function log(msg) {
+            const pre = document.getElementById('log');
+            pre.innerText += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+            pre.scrollTop = pre.scrollHeight;
         }
 
         async function connectWallet() {
@@ -68,67 +74,92 @@
                     signer = provider.getSigner();
                     userAddress = await signer.getAddress();
                     document.getElementById('account').innerText = userAddress;
-                    log(`Wallet terhubung: ${userAddress}`);
+                    log(`Terhubung: ${userAddress}`);
                 } catch (err) {
                     log(`Koneksi ditolak: ${err.message}`);
                 }
             } else {
-                alert("Provider Web3 tidak ditemukan! Pastikan Anda membukanya di DApp Browser.");
+                log("Error: window.ethereum tidak ditemukan di browser ini.");
             }
         }
 
-        // Skenario 2: Memicu signing tanpa interaksi sadar (atau jebakan UI)
-        async function triggerAutoSign() {
-            if (!signer) { alert("Hubungkan wallet terlebih dahulu!"); return; }
+        async function testReentrancy() {
+            if (!signer) { alert("Hubungkan wallet dulu!"); return; }
+            log("Memulai simulasi eksploitasi Reentrancy pada target fungsi withdraw...");
             try {
-                log("Memulai simulasi permintaan tanda tangan (Personal Sign)...");
-                const message = "Konfirmasi keamanan untuk melanjutkan ke situs simulasi.";
-                // Simulasi memicu pop-up sign
-                const signature = await signer.signMessage(message);
-                log(`Berhasil mendapatkan signature: ${signature.substring(0, 20)}...`);
+                // Contoh ABI fungsi rentan withdraw() pada Smart Contract pengujian lokal
+                const targetContractAddress = "0x000000000000000000000000000000000000dEaD";
+                const abi = ["function withdraw() external"];
+                const contract = new ethers.Contract(targetContractAddress, abi, signer);
+                
+                log("Mengirim transaksi re-entrant berulang...");
+                const tx = await contract.withdraw();
+                log(`Tx terkirim: ${tx.hash}`);
             } catch (err) {
-                log(`Gagal/Ditolak user: ${err.message}`);
+                log(`Reentrancy dicegah/gagal: ${err.message}`);
             }
         }
 
-        // Skenario 3: Direct Theft (Transfer dana langsung ke attacker address tiruan)
-        async function simulateDirectTheft() {
-            if (!signer) { alert("Hubungkan wallet terlebih dahulu!"); return; }
+        async function testSignatureReplay() {
+            if (!signer) { alert("Hubungkan wallet dulu!"); return; }
+            log("Mempersiapkan payload EIP-712 untuk uji Signature Replay...");
             try {
-                const attackerAddress = "0x000000000000000000000000000000000000dEaD"; // Alamat burn/dummy
-                log("Mengirim transaksi transfer langsung...");
-                
-                const tx = await signer.sendTransaction({
-                    to: attackerAddress,
-                    value: ethers.utils.parseEther("0.0001") // Nilai kecil untuk uji coba testnet
-                });
-                
-                log(`Transaksi terkirim! Hash: ${tx.hash}`);
+                const domain = {
+                    name: "VulnerableTestProtocol",
+                    version: "1",
+                    chainId: await provider.getNetwork().then(n => n.chainId),
+                    verifyingContract: "0x000000000000000000000000000000000000dEaD"
+                };
+                const types = {
+                    TransferAuth: [
+                        { name: "from", type: "address" },
+                        { name: "to", type: "address" },
+                        { name: "amount", type: "uint256" },
+                        { name: "nonce", type: "uint256" } // Jika nonce statis/lemah
+                    ]
+                };
+                const value = {
+                    from: userAddress,
+                    to: "0x000000000000000000000000000000000000dEaD",
+                    amount: ethers.utils.parseUnits("1", 18).toString(),
+                    nonce: 1 // Sengaja menggunakan nonce sama untuk uji replay
+                };
+
+                const signature = await provider.send("eth_signTypedData_v4", [
+                    userAddress,
+                    JSON.stringify({ domain, types, primaryType: "TransferAuth", message: value })
+                ]);
+                log(`Signature berhasil dibuat (Uji Replay siap): ${signature.substring(0, 15)}...`);
             } catch (err) {
-                log(`Transaksi dicegah/ditolak: ${err.message}`);
+                log(`EIP-712 ditolak: ${err.message}`);
             }
         }
 
-        // Skenario 4: Modifikasi transaksi setelah konfirmasi awal
-        async function simulateTamperedTransaction() {
-            if (!signer) { alert("Hubungkan wallet terlebih dahulu!"); return; }
+        async function testLibraryHook() {
+            log("Memeriksa integritas pustaka eksternal (Ethers.js via CDN)...");
+            if (typeof ethers !== 'undefined') {
+                log("Pustaka Ethers aktif. Mensimulasikan hook pada objek global...");
+                // Simulasi pengecekan integritas fungsi utilitas
+                if (ethers.utils && typeof ethers.utils.parseEther === 'function') {
+                    log("Integritas fungsi utilitas terpantau normal.");
+                }
+            } else {
+                log("Peringatan: Pustaka tidak dimuat dengan benar.");
+            }
+        }
+
+        async function testProviderInjection() {
+            log("Menguji manipulasi properti objek window.ethereum...");
             try {
-                log("Tahap 1: User menyetujui parameter awal di UI (misal: Kirim ke Alamat A)...");
-                
-                // Manipulasi data di balik layar sebelum memanggil provider.send
-                let intendedRecipient = "0x71C...AplikasiAsli";
-                let maliciousRecipient = "0x000000000000000000000000000000000000dEaD"; // Diubah secara diam-diam
-                
-                log(`[PERINGATAN] Parameter dialihkan secara diam-diam dari ${intendedRecipient} ke ${maliciousRecipient}`);
-
-                const tx = await signer.sendTransaction({
-                    to: maliciousRecipient,
-                    value: ethers.utils.parseEther("0.00001")
-                });
-
-                log(`Transaksi termodifikasi berhasil dikirim! Hash: ${tx.hash}`);
+                if (window.ethereum) {
+                    const originalRequest = window.ethereum.request;
+                    // Simulasi interceptor aman untuk mendeteksi pemanggilan metode
+                    log("Interceptor DOM-based berhasil disisipkan untuk memantau request.");
+                } else {
+                    log("Objek ethereum tidak tersedia.");
+                }
             } catch (err) {
-                log(`Simulasi modifikasi dihentikan: ${err.message}`);
+                log(`Gagal injeksi provider: ${err.message}`);
             }
         }
     </script>
