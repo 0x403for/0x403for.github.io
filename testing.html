@@ -3,124 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uniswap Interface [Fake] - Swap</title>
-    <!-- Memuat pustaka WalletConnect Provider dan QR Code Modal via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/qrcode-modal@1.8.0/umd/index.min.js"></script>
+    <title>DApp Security Testbed</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #191b1f;
-            color: #c3c5cb;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background-color: #212429;
-            border: 1px solid #40444f;
-            border-radius: 24px;
-            padding: 20px;
-            width: 400px;
-            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5);
-        }
-        .header {
-            font-size: 18px;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .btn-connect {
-            background-color: #2172e5;
-            color: white;
-            border: none;
-            border-radius: 16px;
-            padding: 16px;
-            width: 100%;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-connect:hover {
-            background-color: #1a5bc2;
-        }
-        .swap-box {
-            background-color: #191b1f;
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 10px;
-            border: 1px solid #212429;
-        }
-        .swap-box input {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 24px;
-            width: 100%;
-            outline: none;
-        }
-        .status {
-            margin-top: 15px;
-            font-size: 14px;
-            text-align: center;
-            word-break: break-all;
-            color: #27ae60;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f9; color: #333; }
+        .card { background: #fff; padding: 20px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 10px 15px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .danger { background: #dc3545; }
+        .danger:hover { background: #a71d2a; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; }
     </style>
 </head>
 <body>
 
+    <h1>DApp Security Test Panel</h1>
+    <p>Gunakan halaman ini untuk menguji simulasi celah keamanan pada DApp browser.</p>
+
     <div class="card">
-        <div class="header">
-            <span>Swap</span>
-        </div>
-        
-        <div class="swap-box">
-            <small>You pay</small>
-            <input type="text" value="0.0" placeholder="0.0">
-        </div>
-
-        <div class="swap-box">
-            <small>You receive (estimated)</small>
-            <input type="text" value="0.0" placeholder="0.0">
-        </div>
-
-        <button class="btn-connect" id="connectWallet">Connect Wallet</button>
-        <div class="status" id="statusText"></div>
+        <h3>1. Status Koneksi Wallet</h3>
+        <button onclick="connectWallet()">Hubungkan Wallet</button>
+        <p>Akun: <span id="account">Belum terhubung</span></p>
     </div>
 
+    <div class="card">
+        <h3>2. Simulasi: Memicu Signing Tanpa Consent (Auto-Prompt)</h3>
+        <p>Menguji apakah DApp dapat memaksa permintaan tanda tangan secara otomatis saat halaman dimuat.</p>
+        <button class="danger" onclick="triggerAutoSign()">Uji Auto-Sign</button>
+    </div>
+
+    <div class="card">
+        <h3>3. Simulasi: Direct Theft / Unauthorized Transfer</h3>
+        <p>Menguji fungsi transfer dana langsung tanpa persetujuan eksplisit terhadap detail nominal.</p>
+        <button class="danger" onclick="simulateDirectTheft()">Uji Transfer Paksa</button>
+    </div>
+
+    <div class="card">
+        <h3>4. Simulasi: Modifikasi Transaksi Setelah Konfirmasi User</h3>
+        <p>Menguji manipulasi parameter (misal: mengubah alamat tujuan atau nominal gas/nilai transfer di belakang layar sebelum dikirim).</p>
+        <button class="danger" onclick="simulateTamperedTransaction()">Uji Modifikasi Transaksi</button>
+    </div>
+
+    <div class="card">
+        <h3>Log Aktivitas</h3>
+        <pre id="log">Menunggu aktivitas...</pre>
+    </div>
+
+    <!-- Memuat pustaka Ethers.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script>
-        document.getElementById('connectWallet').addEventListener('click', async () => {
-            const statusText = document.getElementById('statusText');
+        let provider;
+        let signer;
+        let userAddress;
+
+        function log(message) {
+            const logElement = document.getElementById('log');
+            logElement.innerText += `\n[${new Date().toLocaleTimeString()}] ${message}`;
+        }
+
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await provider.send("eth_requestAccounts", []);
+                    signer = provider.getSigner();
+                    userAddress = await signer.getAddress();
+                    document.getElementById('account').innerText = userAddress;
+                    log(`Wallet terhubung: ${userAddress}`);
+                } catch (err) {
+                    log(`Koneksi ditolak: ${err.message}`);
+                }
+            } else {
+                alert("Provider Web3 tidak ditemukan! Pastikan Anda membukanya di DApp Browser.");
+            }
+        }
+
+        // Skenario 2: Memicu signing tanpa interaksi sadar (atau jebakan UI)
+        async function triggerAutoSign() {
+            if (!signer) { alert("Hubungkan wallet terlebih dahulu!"); return; }
             try {
-                statusText.innerText = "Membuat sesi WalletConnect...";
+                log("Memulai simulasi permintaan tanda tangan (Personal Sign)...");
+                const message = "Konfirmasi keamanan untuk melanjutkan ke situs simulasi.";
+                // Simulasi memicu pop-up sign
+                const signature = await signer.signMessage(message);
+                log(`Berhasil mendapatkan signature: ${signature.substring(0, 20)}...`);
+            } catch (err) {
+                log(`Gagal/Ditolak user: ${err.message}`);
+            }
+        }
+
+        // Skenario 3: Direct Theft (Transfer dana langsung ke attacker address tiruan)
+        async function simulateDirectTheft() {
+            if (!signer) { alert("Hubungkan wallet terlebih dahulu!"); return; }
+            try {
+                const attackerAddress = "0x000000000000000000000000000000000000dEaD"; // Alamat burn/dummy
+                log("Mengirim transaksi transfer langsung...");
                 
-                // Inisialisasi WalletConnect Provider
-                const provider = new WalletConnect.default({
-                    bridge: "https://bridge.walletconnect.org", 
-                    qrcodeModal: WalletConnectQRCodeModal.default, 
+                const tx = await signer.sendTransaction({
+                    to: attackerAddress,
+                    value: ethers.utils.parseEther("0.0001") // Nilai kecil untuk uji coba testnet
+                });
+                
+                log(`Transaksi terkirim! Hash: ${tx.hash}`);
+            } catch (err) {
+                log(`Transaksi dicegah/ditolak: ${err.message}`);
+            }
+        }
+
+        // Skenario 4: Modifikasi transaksi setelah konfirmasi awal
+        async function simulateTamperedTransaction() {
+            if (!signer) { alert("Hubungkan wallet terlebih dahulu!"); return; }
+            try {
+                log("Tahap 1: User menyetujui parameter awal di UI (misal: Kirim ke Alamat A)...");
+                
+                // Manipulasi data di balik layar sebelum memanggil provider.send
+                let intendedRecipient = "0x71C...AplikasiAsli";
+                let maliciousRecipient = "0x000000000000000000000000000000000000dEaD"; // Diubah secara diam-diam
+                
+                log(`[PERINGATAN] Parameter dialihkan secara diam-diam dari ${intendedRecipient} ke ${maliciousRecipient}`);
+
+                const tx = await signer.sendTransaction({
+                    to: maliciousRecipient,
+                    value: ethers.utils.parseEther("0.00001")
                 });
 
-                // Membuka modal pop-up yang berisi QR Code
-                await provider.enable();
-
-                // Mengambil akun yang berhasil terhubung
-                const accounts = provider.accounts;
-                statusText.innerText = "Terhubung ke akun: " + accounts[0];
-                console.log("Connected accounts:", accounts);
-
-            } catch (error) {
-                console.error("Koneksi ditolak atau gagal:", error);
-                statusText.innerText = "Koneksi dibatalkan/gagal.";
+                log(`Transaksi termodifikasi berhasil dikirim! Hash: ${tx.hash}`);
+            } catch (err) {
+                log(`Simulasi modifikasi dihentikan: ${err.message}`);
             }
-        });
+        }
     </script>
-
 </body>
 </html>
