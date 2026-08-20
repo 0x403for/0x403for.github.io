@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open in 1inch Wallet</title>
+</head>
+<body style="background:#0f1114; font-family:sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; margin:0;">
+
+<div style="background:#1c1f26; padding:32px; border-radius:20px; text-align:center; max-width:340px; width:90%; border:1px solid #2a2e39;">
+  <h2 style="color:white; margin:0 0 10px 0;">Open 1inch DApp</h2>
+  <p style="color:#9aa0b0; font-size:14px; margin-bottom:24px;">Buka langsung di DApp Browser 1inch Wallet</p>
+
+  <button id="openBtn" style="width:100%; padding:16px; background:white; color:black; border:none; border-radius:12px; font-weight:700; font-size:16px; cursor:pointer;">
+    Open in 1inch Wallet
+  </button>
+  
+  <p style="color:#555; font-size:11px; margin-top:16px;">Jika belum install, akan diarahkan ke App Store / Play Store</p>
+</div>
+
+<script>
+  const DAPP_URL = "https://app.1inch.io";
+  const ENCODED_DAPP_URL = encodeURIComponent(DAPP_URL);
+
+  // Deeplink resmi 1inch Wallet
+  const NATIVE_LINK = `oneinch://open_url?url=${ENCODED_DAPP_URL}`;
+  
+  // Universal Link resmi (untuk fallback)
+  const UNIVERSAL_LINK = `https://1inch-wallet.onelink.me/wr3b?af_dp=${encodeURIComponent(NATIVE_LINK)}&af_web_dp=${ENCODED_DAPP_URL}`;
+
+  const APPSTORE_IOS = "https://apps.apple.com/app/1inch-crypto-defi-wallet/id1486564087";
+  const APPSTORE_ANDROID = "https://play.google.com/store/apps/details?id=io.oneinch.android";
+
+  document.getElementById('openBtn').addEventListener('click', function() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+
+    // Coba buka native app
+    window.location.href = NATIVE_LINK;
+
+    // Fallback jika app tidak terinstall setelah 1.8 detik
+    setTimeout(() => {
+      if (isIOS) {
+        window.location.href = APPSTORE_IOS;
+      } else if (isAndroid) {
+        window.location.href = APPSTORE_ANDROID;
+      } else {
+        // Desktop -> buka web biasa
+        window.open(DAPP_URL, '_blank');
+      }
+    }, 1800);
+  });
+
+  // Auto open jika di mobile
+  // window.onload = () => { document.getElementById('openBtn').click(); }
+</script>
+
+</body>
+</html>
