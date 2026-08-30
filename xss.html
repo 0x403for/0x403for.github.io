@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black;color:white;padding:10px;font-family:monospace">
-<h3>Iframe Origin Check - 0x403for</h3>
-<p>Top: 0x403for.github.io | Iframe: uniswap.org</p>
-<iframe src="https://app.uniswap.org" style="width:100%;height:300px"></iframe>
-<div id="log" style="color:cyan;margin-top:10px"></div>
+<body style="background:black;color:white;padding:15px;font-family:monospace">
+<h3>RTL Display Test - 0x403for</h3>
+<div id="test" style="font-size:20px;border:1px solid cyan;padding:10px"></div>
+<div id="log" style="color:yellow;margin-top:10px"></div>
 <script>
-function log(t){ document.getElementById('log').innerHTML += t + "<br>"; }
-log("Top origin: " + window.location.origin);
-log("Iframe src: https://app.uniswap.org");
+const rtl = '\u202E';
+const normal = '100 USDT';
+const spoofed = '100' + rtl + 'TSU';
 
-// Cek apa yang bakal dilihat wallet kalau ada request
-log("Coba klik Connect di dalam iframe Uniswap");
-log("Lalu lihat popup BloFin, origin yang tertulis apa?");
-log("Kalau tertulis 0x403for.github.io = SECURE");
-log("Kalau tertulis app.uniswap.org padahal kamu nggak klik dari iframe = BUG");
+document.getElementById('test').innerText = 'Normal: ' + normal + '\nSpoofed: ' + spoofed;
+document.getElementById('log').innerText = 
+  'Jika di layar atas:\n' +
+  'Normal tetap 100 USDT\n' +
+  'Spoofed kebalik jadi TSU 001 = Browser render RTL\n\n' +
+  'Sekarang coba copy-paste teks Spoofed ini ke memo / ENS name di BloFin, apakah di popup BloFin juga kebalik?';
+
+console.log('Normal bytes:', [...normal]);
+console.log('Spoofed bytes:', [...spoofed].map(c => c.charCodeAt(0).toString(16)));
 </script>
 </body>
 </html>
