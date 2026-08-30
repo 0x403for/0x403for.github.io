@@ -1,33 +1,20 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black;color:white;padding:20px;font-family:monospace">
-<h3>wallet_addEthereumChain Test - 0x403for</h3>
-<button onclick="testAdd()" style="padding:12px">TEST ADD CHAIN</button>
-<div id="log" style="margin-top:15px;color:cyan"></div>
+<body style="background:black;color:white;padding:10px;font-family:monospace">
+<h3>Iframe Origin Check - 0x403for</h3>
+<p>Top: 0x403for.github.io | Iframe: uniswap.org</p>
+<iframe src="https://app.uniswap.org" style="width:100%;height:300px"></iframe>
+<div id="log" style="color:cyan;margin-top:10px"></div>
 <script>
 function log(t){ document.getElementById('log').innerHTML += t + "<br>"; }
+log("Top origin: " + window.location.origin);
+log("Iframe src: https://app.uniswap.org");
 
-async function testAdd(){
-  log("Calling wallet_addEthereumChain...");
-  try{
-    const result = await window.ethereum.request({
-      method: 'wallet_addEthereumChain',
-      params: [{
-        chainId: '0x12345',
-        chainName: 'Test Chain 0x403for',
-        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-        rpcUrls: ['https://example.com'],
-        blockExplorerUrls: ['https://example.com']
-      }]
-    });
-    log("Result: " + JSON.stringify(result));
-    log("Cek di Setting BloFin - apakah chain Test Chain 0x403for ke-add?");
-  } catch(e){
-    log("Error / Rejected: " + e.message);
-    log("Ini SECURE - BloFin nolak RPC example.com");
-  }
-}
-log("Ready. ethereum exists: " + !!window.ethereum);
+// Cek apa yang bakal dilihat wallet kalau ada request
+log("Coba klik Connect di dalam iframe Uniswap");
+log("Lalu lihat popup BloFin, origin yang tertulis apa?");
+log("Kalau tertulis 0x403for.github.io = SECURE");
+log("Kalau tertulis app.uniswap.org padahal kamu nggak klik dari iframe = BUG");
 </script>
 </body>
 </html>
