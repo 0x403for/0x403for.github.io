@@ -1,13 +1,34 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black;color:white;padding:30px;font-family:monospace">
-<h3>Clipboard API Check - 0x403for</h3>
-<button onclick="check()" style="padding:10px">CHECK CLIPBOARD API</button>
+<body style="background:black;color:white;padding:20px;font-family:monospace">
+<h3>ENS / IPFS Test - 0x403for</h3>
+
+<button onclick="testENS()" style="padding:10px;margin:5px">1. TEST ENS</button><br>
+<button onclick="testIPFS()" style="padding:10px;margin:5px">2. TEST IPFS</button><br>
+
+<div id="log" style="margin-top:20px;color:cyan"></div>
+
 <script>
-function check(){
-  alert("clipboard object: " + navigator.clipboard);
-  alert("writeText exists: " + (typeof navigator.clipboard.writeText));
+function log(t){ document.getElementById('log').innerHTML += t + "<br>"; }
+
+function testENS(){
+  log("Trying ens://vitalik.eth ...");
+  try {
+    window.location.href = "ens://vitalik.eth";
+    setTimeout(()=>{ log("After 2s, location: " + window.location.href); },2000);
+  } catch(e){ log("Error: " + e); }
 }
+
+function testIPFS(){
+  log("Trying ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi ...");
+  try {
+    window.location.href = "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
+  } catch(e){ log("Error: " + e); }
+}
+
+// Cek apakah BloFin ada handler khusus
+log("UserAgent: " + navigator.userAgent);
+log("Supports ENS? check via window.ethereum");
 </script>
 </body>
 </html>
