@@ -1,34 +1,30 @@
 <!DOCTYPE html>
 <html>
 <body style="background:black;color:white;padding:20px;font-family:monospace">
-<h3>ENS / IPFS Test - 0x403for</h3>
-
-<button onclick="testENS()" style="padding:10px;margin:5px">1. TEST ENS</button><br>
-<button onclick="testIPFS()" style="padding:10px;margin:5px">2. TEST IPFS</button><br>
-
-<div id="log" style="margin-top:20px;color:cyan"></div>
-
+<h3>EIP-6963 Detection - 0x403for</h3>
+<button onclick="listen()" style="padding:10px">START LISTEN EIP-6963</button>
+<div id="log" style="margin-top:15px;color:cyan"></div>
 <script>
-function log(t){ document.getElementById('log').innerHTML += t + "<br>"; }
+let logEl = document.getElementById('log');
+function log(t){ logEl.innerHTML += t + "<br>"; }
 
-function testENS(){
-  log("Trying ens://vitalik.eth ...");
-  try {
-    window.location.href = "ens://vitalik.eth";
-    setTimeout(()=>{ log("After 2s, location: " + window.location.href); },2000);
-  } catch(e){ log("Error: " + e); }
+function listen(){
+  log("Listening for eip6963:announceProvider...");
+
+  window.addEventListener("eip6963:announceProvider", (event) => {
+    log("FOUND Provider: " + JSON.stringify(event.detail.info));
+    log("Name: " + event.detail.info.name);
+    log("RDNS: " + event.detail.info.rdns);
+  });
+
+  // Minta semua wallet yang ada announce diri
+  log("Dispatching eip6963:requestProvider");
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
 }
 
-function testIPFS(){
-  log("Trying ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi ...");
-  try {
-    window.location.href = "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
-  } catch(e){ log("Error: " + e); }
-}
-
-// Cek apakah BloFin ada handler khusus
-log("UserAgent: " + navigator.userAgent);
-log("Supports ENS? check via window.ethereum");
+log("Ready. UA: BloFinWallet/" + navigator.userAgent.match(/BloFinWallet\/([0-9.]+)/)?.[1]);
+log("window.ethereum exists: " +!!window.ethereum);
+log("window.blofin exists: " +!!window.blofin);
 </script>
 </body>
 </html>
