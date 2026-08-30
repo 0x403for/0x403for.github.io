@@ -1,30 +1,33 @@
 <!DOCTYPE html>
 <html>
 <body style="background:black;color:white;padding:20px;font-family:monospace">
-<h3>EIP-6963 Detection - 0x403for</h3>
-<button onclick="listen()" style="padding:10px">START LISTEN EIP-6963</button>
+<h3>wallet_addEthereumChain Test - 0x403for</h3>
+<button onclick="testAdd()" style="padding:12px">TEST ADD CHAIN</button>
 <div id="log" style="margin-top:15px;color:cyan"></div>
 <script>
-let logEl = document.getElementById('log');
-function log(t){ logEl.innerHTML += t + "<br>"; }
+function log(t){ document.getElementById('log').innerHTML += t + "<br>"; }
 
-function listen(){
-  log("Listening for eip6963:announceProvider...");
-
-  window.addEventListener("eip6963:announceProvider", (event) => {
-    log("FOUND Provider: " + JSON.stringify(event.detail.info));
-    log("Name: " + event.detail.info.name);
-    log("RDNS: " + event.detail.info.rdns);
-  });
-
-  // Minta semua wallet yang ada announce diri
-  log("Dispatching eip6963:requestProvider");
-  window.dispatchEvent(new Event("eip6963:requestProvider"));
+async function testAdd(){
+  log("Calling wallet_addEthereumChain...");
+  try{
+    const result = await window.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: '0x12345',
+        chainName: 'Test Chain 0x403for',
+        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+        rpcUrls: ['https://example.com'],
+        blockExplorerUrls: ['https://example.com']
+      }]
+    });
+    log("Result: " + JSON.stringify(result));
+    log("Cek di Setting BloFin - apakah chain Test Chain 0x403for ke-add?");
+  } catch(e){
+    log("Error / Rejected: " + e.message);
+    log("Ini SECURE - BloFin nolak RPC example.com");
+  }
 }
-
-log("Ready. UA: BloFinWallet/" + navigator.userAgent.match(/BloFinWallet\/([0-9.]+)/)?.[1]);
-log("window.ethereum exists: " +!!window.ethereum);
-log("window.blofin exists: " +!!window.blofin);
+log("Ready. ethereum exists: " + !!window.ethereum);
 </script>
 </body>
 </html>
