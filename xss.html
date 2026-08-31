@@ -2,65 +2,56 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BloFin Tech Stack - 0x403for</title>
-<style>body{background:#0a0a0a;color:#e0e0e0;font-family:monospace;padding:12px;font-size:12px}h3{color:#f5c518}pre{background:#151515;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all}</style>
+<title>BloFin v2 Bridge Detector - 0x403for</title>
+<style>body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:12px}h3{color:#f5c518}button{width:100%;padding:12px;margin:6px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:8px}pre{background:#111;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;color:#0ff}</style>
 </head>
 <body>
-<h3>BloFin iOS Tech Detector - 0x403for</h3>
-<pre id="log">Detecting...</pre>
+<h3>BloFin iOS v2 - ReactNative Bridge Detector</h3>
+<button onclick="run()">RUN DETECT v2</button>
+<pre id="log">Klik RUN...</pre>
 <script>
-const log = document.getElementById('log');
-let out = "";
+function run(){
+ let out = "";
+ out += "=== USER AGENT ===\n"+navigator.userAgent+"\n\n";
 
-out += "=== USER AGENT ===\n";
-out += navigator.userAgent + "\n";
-out += "Platform: " + navigator.platform + "\n";
-out += "Vendor: " + navigator.vendor + "\n\n";
+ out += "=== WEBKIT MESSAGE HANDLERS (v2) ===\n";
+ try{
+  const h = window.webkit?.messageHandlers;
+  out += "exists: "+!!h+"\n";
+  if(h){
+   const names1 = Object.keys(h);
+   const names2 = Object.getOwnPropertyNames(h);
+   out += "Object.keys: "+(names1.join(", ")||"(empty)")+"\n";
+   out += "getOwnPropertyNames: "+(names2.join(", ")||"(empty)")+"\n";
+   // coba liat detail tiap handler
+   names2.forEach(n=>{
+    try{ out += " - "+n+" : "+typeof h[n]+" / "+Object.keys(h[n]||{}).join(",")+"\n"; }catch(e){}
+   });
+  }
+ }catch(e){ out += "Error handlers: "+e.message+"\n"; }
+ out += "\n";
 
-out += "=== WEBVIEW TYPE ===\n";
-out += "window.webkit: " +!!window.webkit + "\n";
-out += "window.webkit.messageHandlers: " +!!window.webkit?.messageHandlers + "\n";
-if(window.webkit?.messageHandlers){
-  out += "Handlers: " + Object.keys(window.webkit.messageHandlers).join(", ") + "\n";
+ out += "=== REACT NATIVE WEBVIEW BRIDGE ===\n";
+ out += "window.ReactNativeWebView: "+!!window.ReactNativeWebView+"\n";
+ if(window.ReactNativeWebView){
+  out += "typeof postMessage: "+typeof window.ReactNativeWebView.postMessage+"\n";
+  out += "keys: "+Object.keys(window.ReactNativeWebView).join(", ")+"\n";
+  out += "getOwnPropertyNames: "+Object.getOwnPropertyNames(window.ReactNativeWebView).join(", ")+"\n";
+ }
+ out += "\n";
+
+ out += "=== BLOFIN PROVIDER DETAIL ===\n";
+ if(window.ethereum){
+  out += "isMetaMask: "+window.ethereum.isMetaMask+"\n";
+  out += "isBloFinWallet: "+window.ethereum.isBloFinWallet+"\n";
+  try{ out += "providers array: "+JSON.stringify(window.ethereum.providers||[]).slice(0,500)+"\n"; }catch(e){}
+  out += "all props: "+Object.getOwnPropertyNames(window.ethereum).join(", ").slice(0,600)+"\n";
+ }
+ out += "\n=== END ===\n";
+
+ document.getElementById('log').innerText = out;
+ console.log(out);
 }
-out += "window.ReactNativeWebView: " +!!window.ReactNativeWebView + "\n";
-out += "window.chrome: " +!!window.chrome + "\n\n";
-
-out += "=== ETHEREUM PROVIDER INJECTION ===\n";
-out += "window.ethereum: " +!!window.ethereum + "\n";
-if(window.ethereum){
-  const keys = Object.keys(window.ethereum);
-  out += "Provider keys: " + keys.join(", ").slice(0,500) + "\n";
-  out += "isBloFin/isBlofin/isMetaMask: " +
-    (window.ethereum.isBloFin||false) + "/" +
-    (window.ethereum.isBlofin||false) + "/" +
-    (window.ethereum.isMetaMask||false) + "\n";
-  out += "chainId: " + (window.ethereum.chainId||"n/a") + "\n";
-  out += "selectedAddress: " + (window.ethereum.selectedAddress||"n/a") + "\n";
-}
-out += "\n";
-
-out += "=== PROVIDER OVERRIDES (EIP-6963) ===\n";
-out += "window.ethereum.providers: " + (window.ethereum?.providers?.length || 0) + "\n";
-out += "window.phantom: " +!!window.phantom + "\n";
-out += "window.coinbaseWalletExtension: " +!!window.coinbaseWalletExtension + "\n\n";
-
-out += "=== JS BRIDGE & GLOBAL ===\n";
-const suspects = ["BloFin","blofin","__BLOFIN__","_blofin","trustWallet","Trust","coin98","Coin98"];
-suspects.forEach(k=>{
-  if(window[k]) out += "FOUND window."+k+" : "+typeof window[k]+"\n";
-});
-out += "\n";
-
-out += "=== SECURITY FEATURES ===\n";
-out += "localStorage: " +!!window.localStorage + "\n";
-out += "indexedDB: " +!!window.indexedDB + "\n";
-out += "FileReader: " +!!window.FileReader + "\n";
-out += "WebView File Access Test: " + (window.location.protocol) + "\n";
-out += "CSP: " + (document.querySelector('meta[http-equiv=Content-Security-Policy]')?.content || "none") + "\n";
-
-log.innerText = out;
-console.log(out);
 </script>
 </body>
 </html>
