@@ -2,38 +2,67 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BloFin v3 Fuzz - 0x403for</title>
-<style>body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:12px}h3{color:#f5c518}button{width:100%;padding:10px;margin:5px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:8px;font-size:12px}pre{background:#111;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;color:#0ff;min-height:200px}</style>
+<title>BloFin v4 Sign Display - 0x403for</title>
+<style>body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:12px}h3{color:#f5c518}button{width:100%;padding:12px;margin:6px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:8px}pre{background:#111;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;color:#0ff;min-height:100px}</style>
 </head>
 <body>
-<h3>BloFin iOS v3 - postMessage Fuzz - 0x403for</h3>
-<button onclick="test1()">1. Send {type:test}</button>
-<button onclick="test2()">2. Send {type:openExternal}</button>
-<button onclick="test3()">3. Send {action:log}</button>
-<button onclick="test4()">4. Listen response</button>
-<pre id="log">Ready... buka di BloFin iOS 1.8.5</pre>
+<h3>BloFin iOS v4 - Signature Display Tester</h3>
+<button onclick="connect()">1. Connect Wallet dulu</button>
+<button onclick="testPersonal()">2. Test personal_sign (login message)</button>
+<button onclick="testTyped()">3. Test eth_signTypedData_v4</button>
+<pre id="log">Ready - BloFin iOS 1.8.5 - pakai akun test ya Bowo</pre>
 <script>
-const l = document.getElementById('log');
-function out(m){ l.innerText += "\n"+m; console.log(m); }
+const logEl = document.getElementById('log');
+const out = (m)=>{ logEl.innerText += "\n"+m; console.log(m); };
+let account = null;
 
-function send(payload){
+async function connect(){
+ out("\n=== CONNECT ===");
  try{
-  const msg = JSON.stringify(payload);
-  out("\n> Sending: "+msg);
-  window.ReactNativeWebView.postMessage(msg);
-  out("  postMessage called OK");
- }catch(e){ out("  Error: "+e.message); }
+  const accs = await window.ethereum.request({method:'eth_requestAccounts'});
+  account = accs[0];
+  out("Connected: "+account);
+ }catch(e){ out("Error: "+e.message); }
 }
 
-function test1(){ out("\n=== TEST 1 type:test ==="); send({type:"test", from:"0x403for.github.io", time: Date.now()}); }
-function test2(){ out("\n=== TEST 2 openExternal (benign) ==="); send({type:"openExternal", url:"https://example.com"}); out("  Cek apakah BloFin langsung buka example.com tanpa confirm = bug"); }
-function test3(){ out("\n=== TEST 3 action:log ==="); send({action:"log", message:"hello from 0x403for"}); }
-function test4(){
- out("\n=== TEST 4 Listening ===");
- out("Listening window.onmessage... kirim lagi TEST 1-3");
- window.addEventListener("message", (e)=>{ out("<< Received message: "+JSON.stringify(e.data).slice(0,500)); });
- document.addEventListener("message", (e)=>{ out("<< Document message: "+JSON.stringify(e.data).slice(0,500)); });
- out("Listener aktif.");
+async function testPersonal(){
+ out("\n=== TEST personal_sign ===");
+ if(!account){ out("Klik Connect dulu"); return; }
+ const message = `Welcome to 0x403for.github.io
+
+This is a login test for BloFin security research.
+Time: ${new Date().toISOString()}
+Domain: 0x403for.github.io`;
+
+ const hex = "0x"+[...message].map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+ out("Message asli:\n"+message);
+ out("\nHex yang dikirim:\n"+hex.slice(0,80)+"...");
+ out("\n> Cek POPUP BloFin: Apakah keliatan tulisan WELCOME full atau cuma HEX 0x...?");
+ try{
+  const sig = await window.ethereum.request({method:'personal_sign', params:[hex, account]});
+  out("Signed OK: "+sig.slice(0,30)+"...");
+  out("Jika popup cuma HEX = Blind Signing Bug");
+ }catch(e){ out("Rejected/Error: "+e.message); }
+}
+
+async function testTyped(){
+ out("\n=== TEST eth_signTypedData_v4 ===");
+ if(!account){ out("Klik Connect dulu"); return; }
+ const typedData = {
+  types: {
+   EIP712Domain: [{name:"name",type:"string"},{name:"version",type:"string"},{name:"chainId",type:"uint256"}],
+   Login: [{name:"message",type:"string"},{name:"domain",type:"string"}]
+  },
+  primaryType: "Login",
+  domain: {name:"0x403for Test", version:"1", chainId:1},
+  message: {message:"Hello BloFin - This is a login test", domain:"0x403for.github.io"}
+ };
+ out("TypedData message: "+JSON.stringify(typedData.message));
+ out("\n> Cek POPUP BloFin: Apakah field 'message' keliatan jelas?");
+ try{
+  const sig = await window.ethereum.request({method:'eth_signTypedData_v4', params:[account, JSON.stringify(typedData)]});
+  out("Signed OK: "+sig.slice(0,30)+"...");
+ }catch(e){ out("Rejected/Error: "+e.message); }
 }
 </script>
 </body>
