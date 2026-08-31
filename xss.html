@@ -2,55 +2,38 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BloFin v2 Bridge Detector - 0x403for</title>
-<style>body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:12px}h3{color:#f5c518}button{width:100%;padding:12px;margin:6px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:8px}pre{background:#111;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;color:#0ff}</style>
+<title>BloFin v3 Fuzz - 0x403for</title>
+<style>body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:12px}h3{color:#f5c518}button{width:100%;padding:10px;margin:5px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:8px;font-size:12px}pre{background:#111;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;color:#0ff;min-height:200px}</style>
 </head>
 <body>
-<h3>BloFin iOS v2 - ReactNative Bridge Detector</h3>
-<button onclick="run()">RUN DETECT v2</button>
-<pre id="log">Klik RUN...</pre>
+<h3>BloFin iOS v3 - postMessage Fuzz - 0x403for</h3>
+<button onclick="test1()">1. Send {type:test}</button>
+<button onclick="test2()">2. Send {type:openExternal}</button>
+<button onclick="test3()">3. Send {action:log}</button>
+<button onclick="test4()">4. Listen response</button>
+<pre id="log">Ready... buka di BloFin iOS 1.8.5</pre>
 <script>
-function run(){
- let out = "";
- out += "=== USER AGENT ===\n"+navigator.userAgent+"\n\n";
+const l = document.getElementById('log');
+function out(m){ l.innerText += "\n"+m; console.log(m); }
 
- out += "=== WEBKIT MESSAGE HANDLERS (v2) ===\n";
+function send(payload){
  try{
-  const h = window.webkit?.messageHandlers;
-  out += "exists: "+!!h+"\n";
-  if(h){
-   const names1 = Object.keys(h);
-   const names2 = Object.getOwnPropertyNames(h);
-   out += "Object.keys: "+(names1.join(", ")||"(empty)")+"\n";
-   out += "getOwnPropertyNames: "+(names2.join(", ")||"(empty)")+"\n";
-   // coba liat detail tiap handler
-   names2.forEach(n=>{
-    try{ out += " - "+n+" : "+typeof h[n]+" / "+Object.keys(h[n]||{}).join(",")+"\n"; }catch(e){}
-   });
-  }
- }catch(e){ out += "Error handlers: "+e.message+"\n"; }
- out += "\n";
+  const msg = JSON.stringify(payload);
+  out("\n> Sending: "+msg);
+  window.ReactNativeWebView.postMessage(msg);
+  out("  postMessage called OK");
+ }catch(e){ out("  Error: "+e.message); }
+}
 
- out += "=== REACT NATIVE WEBVIEW BRIDGE ===\n";
- out += "window.ReactNativeWebView: "+!!window.ReactNativeWebView+"\n";
- if(window.ReactNativeWebView){
-  out += "typeof postMessage: "+typeof window.ReactNativeWebView.postMessage+"\n";
-  out += "keys: "+Object.keys(window.ReactNativeWebView).join(", ")+"\n";
-  out += "getOwnPropertyNames: "+Object.getOwnPropertyNames(window.ReactNativeWebView).join(", ")+"\n";
- }
- out += "\n";
-
- out += "=== BLOFIN PROVIDER DETAIL ===\n";
- if(window.ethereum){
-  out += "isMetaMask: "+window.ethereum.isMetaMask+"\n";
-  out += "isBloFinWallet: "+window.ethereum.isBloFinWallet+"\n";
-  try{ out += "providers array: "+JSON.stringify(window.ethereum.providers||[]).slice(0,500)+"\n"; }catch(e){}
-  out += "all props: "+Object.getOwnPropertyNames(window.ethereum).join(", ").slice(0,600)+"\n";
- }
- out += "\n=== END ===\n";
-
- document.getElementById('log').innerText = out;
- console.log(out);
+function test1(){ out("\n=== TEST 1 type:test ==="); send({type:"test", from:"0x403for.github.io", time: Date.now()}); }
+function test2(){ out("\n=== TEST 2 openExternal (benign) ==="); send({type:"openExternal", url:"https://example.com"}); out("  Cek apakah BloFin langsung buka example.com tanpa confirm = bug"); }
+function test3(){ out("\n=== TEST 3 action:log ==="); send({action:"log", message:"hello from 0x403for"}); }
+function test4(){
+ out("\n=== TEST 4 Listening ===");
+ out("Listening window.onmessage... kirim lagi TEST 1-3");
+ window.addEventListener("message", (e)=>{ out("<< Received message: "+JSON.stringify(e.data).slice(0,500)); });
+ document.addEventListener("message", (e)=>{ out("<< Document message: "+JSON.stringify(e.data).slice(0,500)); });
+ out("Listener aktif.");
 }
 </script>
 </body>
