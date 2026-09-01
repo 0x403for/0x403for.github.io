@@ -15,12 +15,12 @@
 <body>
 
     <h3>[Real Exploit Target] dApp Bridge Vulnerability</h3>
-    <p style="font-size: 12px; color: #8b949e;">Halaman dApp ini memuat iframe dari domain penyerang eksternal untuk menguji eksploitasi nyata.</p>
+    <p style="font-size: 12px; color: #8b949e;">Halaman dApp ini memuat iframe dari domain penyerang Netlify untuk menguji eksploitasi nyata.</p>
 
-    <!-- Memuat iframe penyerang dari domain Netlify Anda -->
+    <!-- Memuat iframe langsung ke root Netlify penyerang yang sudah aktif -->
     <div class="card">
         <h3>External Attacker Iframe (imaginative-frangollo-ae57de.netlify.app)</h3>
-        <iframe src="https://imaginative-frangollo-ae57de.netlify.app/evil.html"></iframe>
+        <iframe src="https://imaginative-frangollo-ae57de.netlify.app/"></iframe>
     </div>
 
     <h3>Vulnerable dApp Execution Log:</h3>
@@ -53,7 +53,7 @@
             });
         }
 
-        // KERENTANAN UTAMA: Menerima pesan postMessage tanpa validasi event.origin yang aman
+        // KERENTANAN UTAMA: Menerima postMessage tanpa validasi event.origin yang aman
         window.addEventListener('message', async (event) => {
             appendLog(`[+] Menerima postMessage dari Origin: ${event.origin}`);
             appendLog(`[+] Data Payload: ${JSON.stringify(event.data)}`);
