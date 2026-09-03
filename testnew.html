@@ -2,43 +2,50 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Whitelist Bypass PoC</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PoC</title>
 <style>
-body{background:#111;color:#eee;font-family:monospace;padding:20px}
-.card{background:#1e1e1e;border:1px solid #333;border-radius:12px;padding:16px;margin:12px 0}
-.b{color:#d4ff32} .r{color:#ff5a5a} .g{color:#4ade80}
-button{background:#d4ff32;color:#000;border:0;padding:12px 16px;border-radius:8px;font-weight:bold;width:100%;margin:6px 0}
+body{background:#0e0e0e;color:#d4ff32;font-family:monospace;padding:20px}
+.box{border:1px solid #222;padding:15px;margin:15px 0;border-radius:8px}
+.r{color:#ff4444}.g{color:#44ff88}.y{color:#888}
+a{color:#d4ff32}
+button{background:#d4ff32;color:#000;border:0;padding:12px 20px;border-radius:6px;font-weight:bold;width:100%;margin:8px 0}
 </style>
 </head>
 <body>
-<h2 class="b">[MEDIUM] Freighter Whitelist Bypass PoC</h2>
+<h3>Freighter - Whitelist Bypass PoC</h3>
 
-<div class="card">
-<b>Current URL:</b> <span id="url"></span><br>
-<b>Expected:</b> Only aquarius.org, abroad.com, blend should be allowed<br>
-<b>Result:</b> <span class="r">This page is 0x403for.github.io - NOT whitelisted but opened inside Freighter via Search bar = BYPASS</span>
+<div class="box">
+<b>Current URL:</b><br>
+<span id="u"></span><br><br>
+<b>Expected:</b> <span class="y">Only Aquarius, Abroad, Blend etc</span><br>
+<b>Result:</b> <span class="r" id="res"></span>
 </div>
 
-<div class="card">
-<b>Test window.open to evil.com (dari screenshot kamu):</b><br>
-<button onclick="testOpen()">Tap to test window.open('https://evil.com')</button>
-<div id="out1"></div>
+<div class="box">
+<b>Test:</b><br>
+<button onclick="test()">Click Here</button>
+<div id="out" style="margin-top:10px"></div>
 </div>
 
-<div class="card">
-<b>Why this is bug:</b><br>
-Freighter Discover page cuma list 5 dApp curate. Tapi Search bar di bawah (yang kamu pakai buka evil.com di screenshot 1) bisa buka domain sembarang tanpa warning. Attacker bisa bikin domain aquarius-fake.vercel.app dan user kira itu Aquarius asli karena Freighter tidak menampilkan URL bar yang jelas.
+<div class="box y" style="font-size:11px">
+Freighter Discover shows 5 curated dApps. But Search bar allows this page (github.io) which is not whitelisted. This could be used for phishing if URL bar is not clear.
 </div>
 
 <script>
-document.getElementById('url').innerText = location.href;
+document.getElementById('u').innerText = location.href;
+document.getElementById('res').innerText = location.hostname + " - NOT whitelisted but opened via Search = BYPASS";
 
-function testOpen(){
-  var w = window.open('https://evil.com', '_blank');
-  document.getElementById('out1').innerHTML = w ? 
-    "<span class=r>VULN CONFIRMED: window.open returned object, evil.com opened inside Freighter dApp Browser</span>" : 
-    "<span class=g>SAFE: window.open blocked (null)</span>";
+function test(){
+  var o = document.getElementById('out');
+  o.innerHTML = "Testing...";
+  try{
+    var w = window.open('https://evil.com','_blank');
+    if(w) o.innerHTML = '<span class=r>window.open allowed: '+w+'</span>';
+    else o.innerHTML = '<span class=g>window.open blocked (null) - SAFE</span>';
+  }catch(e){
+    o.innerHTML = "Error: "+e.message;
+  }
 }
 </script>
 </body>
