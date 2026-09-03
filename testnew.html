@@ -1,98 +1,105 @@
 <!DOCTYPE html>
-<html>
-<head>
+<html><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Freighter dApp Browser - Vuln Scanner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freighter Scanner v2</title>
 <style>
-body{background:#0a0a0a;color:#e5e5e5;font-family:monospace;padding:16px;word-break:break-all}
-h2{color:#d4ff32} h3{color:#a78bfa;margin-top:24px;border-bottom:1px solid #333;padding-bottom:6px}
-.box{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:12px;margin:8px 0}
-.pass{color:#22c55e}.fail{color:#ef4444}.warn{color:#facc15}.info{color:#60a5fa}
-button{background:#d4ff32;color:#000;border:0;padding:10px 14px;border-radius:8px;font-weight:bold;margin:4px;cursor:pointer}
-pre{white-space:pre-wrap;font-size:12px}
+body{background:#111;color:#eee;font-family:Menlo,monospace;padding:12px;font-size:13px}
+h2{color:#d4ff32;font-size:16px}.card{background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:10px;margin:10px 0}
+.b{color:#d4ff32;font-weight:bold}.r{color:#ff5a5a}.g{color:#4ade80}.y{color:#facc15}
+button{width:100%;text-align:left;background:#222;color:#fff;border:1px solid #444;padding:12px;border-radius:8px;margin:6px 0}
+button:active{background:#d4ff32;color:#000}
+pre{white-space:pre-wrap;background:#000;padding:8px;border-radius:6px;font-size:11px}
 </style>
-</head>
-<body>
-<h2>🔍 Freighter dApp Browser Auditor v1.0</h2>
-<div class="box">Target: v1.25.28 (1788217816) | Mode: Passive + Active Checks</div>
-
-<h3>[1] Fingerprint Teknologi</h3>
-<div id="fingerprint" class="box">Loading...</div>
-
-<h3>[2] Wallet Injection Check</h3>
-<div id="injection" class="box"></div>
-
-<h3>[3] Auto Tests</h3>
-<div id="tests" class="box"></div>
-
-<h3>[4] PoC Buttons (klik satu-satu)</h3>
-<div class="box">
-<button onclick="testPostMessage()">Test postMessage Origin Bypass</button>
-<button onclick="testOpenRedirect()">Test window.open</button>
-<button onclick="testJsScheme()">Test javascript: scheme</button>
-<button onclick="testDataScheme()">Test data:text/html</button>
-<button onclick="testIframe()">Test iframe escape</button>
-<button onclick="testClipboard()">Test Clipboard</button>
-<button onclick="testLocalStorage()">Test Cross-dApp Storage Leak</button>
-<button onclick="testFreighterAPI()">Test getAddress without consent</button>
+</head><body>
+<h2>Freighter Dapp Scanner v2 - WORKING</h2>
+<div class="card" id="sys">Loading...</div>
+<div class="card" id="inj">Checking injection...</div>
+<div class="card">
+<div class="b">Manual PoC (Tap untuk tes):</div>
+<button onclick="p1()">[1] Cek Teknologi WebView & UserAgent</button>
+<button onclick="p2()">[2] Cek freighterApi & semua method</button>
+<button onclick="p3()">[3] TEST CRITICAL: getAddress tanpa Approve</button>
+<button onclick="p4()">[4] TEST: postMessage * (Origin Bypass)</button>
+<button onclick="p5()">[5] TEST: javascript: & data: URL (XSS)</button>
+<button onclick="p6()">[6] TEST: window.open ke evil.com</button>
+<button onclick="p7()">[7] TEST: Clipboard Baca Diam-diam</button>
+<button onclick="p8()">[8] TEST: Cross-dApp localStorage Bocor</button>
+<button onclick="p9()">[9] TEST: File:// Access</button>
 </div>
-<div id="poc-result" class="box">Hasil PoC disini...</div>
+<div class="card" id="out"><div class="b">OUTPUT:</div><div id="logs"></div></div>
 
 <script>
-const $ = id => document.getElementById(id);
-function log(target, msg, type='info'){
-  const div = document.createElement('div');
-  div.innerHTML = `<span class="${type}">[${type.toUpperCase()}]</span> ${msg}`;
-  $(target).appendChild(div);
+function addLog(msg){
+  var el = document.getElementById('logs');
+  var d = document.createElement('div');
+  d.style.borderBottom = '1px solid #222';
+  d.style.padding = '6px 0';
+  d.innerHTML = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  el.insertBefore(d, el.firstChild);
 }
+function safeStringify(o){
+  try{ return JSON.stringify(o, null, 2).slice(0,2000); }catch(e){ return String(o); }
+}
+window.onload = function(){
+  var sys = 'UA: ' + navigator.userAgent + '<br>';
+  sys += 'Platform: ' + navigator.platform + '<br>';
+  sys += 'URL: ' + location.href + '<br>';
+  var isWK = navigator.userAgent.indexOf('iPhone')>-1 || navigator.userAgent.indexOf('iPad')>-1;
+  sys += 'WebView: ' + (isWK? '<span class=b>WKWebView iOS (React Native)</span>' : 'Android WebView') + '<br>';
+  document.getElementById('sys').innerHTML = sys;
 
-// 1. FINGERPRINT
-(async ()=>{
-  let fp = `
-  <b>UserAgent:</b> ${navigator.userAgent}<br>
-  <b>WebView Type:</b> ${/wv/.test(navigator.userAgent)? 'Android WebView' : /iPhone|iPad/.test(navigator.userAgent)? 'WKWebView (iOS)' : 'Unknown'}<br>
-  <b>URL:</b> ${location.href}<br>
-  <b>Cookies:</b> ${navigator.cookieEnabled}<br>
-  <hr>
-  <b>window.freighter:</b> ${typeof window.freighter}<br>
-  <b>window.freighterApi:</b> ${typeof window.freighterApi}<br>
-  `;
-  let injected = Object.keys(window).filter(k=>k.toLowerCase().includes('freighter') || k.toLowerCase().includes('stellar'));
-  fp += `<b>Injected keys:</b> ${injected.join(', ') || 'none'}<br>`;
-  try{
-    if(window.freighterApi){
-      fp += `<pre>${JSON.stringify(Object.keys(window.freighterApi), null, 2)}</pre>`;
-    }
-  }catch(e){ fp += `Error: ${e.message}` }
-  $('fingerprint').innerHTML = fp;
-})();
-
-// 2. INJECTION
-(() => {
-  let html = '';
-  [['ReactNativeWebView', typeof window.ReactNativeWebView], ['webkit.messageHandlers', typeof window.webkit?.messageHandlers], ['freighterApi', typeof window.freighterApi]].forEach(([n,t])=>{
-    html += `<div class="${t!=='undefined'?'pass':'fail'}">${n}: ${t}</div>`;
+  var injHtml = '';
+  injHtml += 'window.freighter: <span class=' + (typeof window.freighter!== 'undefined'? 'g' : 'r') + '>' + (typeof window.freighter) + '</span><br>';
+  injHtml += 'window.freighterApi: <span class=' + (typeof window.freighterApi!== 'undefined'? 'g' : 'r') + '>' + (typeof window.freighterApi) + '</span><br>';
+  if(window.ReactNativeWebView) injHtml += 'ReactNativeWebView: <span class=g>DETECTED</span><br>';
+  if(window.webkit && window.webkit.messageHandlers){
+    injHtml += 'webkit.messageHandlers: ' + Object.keys(window.webkit.messageHandlers).join(', ') + '<br>';
+  }
+  document.getElementById('inj').innerHTML = injHtml;
+  window.addEventListener('message', function(e){
+    addLog('<span class=y>postMessage RECEIVED dari: ' + e.origin + ' data: ' + safeStringify(e.data) + '</span>');
   });
-  $('injection').innerHTML = html;
-})();
-
-// 3. AUTO
-(() =>{
-  log('tests', `Protocol: ${location.protocol}`, location.protocol!== 'https:'? 'warn' : 'info');
-  try{ localStorage.setItem('__test', Date.now()); log('tests', `localStorage OK: ${localStorage.getItem('__test')} - Cek shared antar dApp?`, 'warn'); }catch(e){ log('tests', `localStorage blocked: ${e.message}`, 'pass'); }
-  window.addEventListener('message', (e)=>{ log('poc-result', `postMessage from ${e.origin}: ${JSON.stringify(e.data).slice(0,200)}`, 'warn'); });
-})();
-
-function out(msg){ const d=document.createElement('div'); d.innerHTML=`${new Date().toLocaleTimeString()} ${msg}`; $('poc-result').prepend(d); }
-function testPostMessage(){ window.postMessage({type:'CONNECT_WALLET', origin:'https://aquarius.org'}, '*'); window.parent.postMessage({method:'freighter:connect'}, '*'); out('Sent postMessage * - cek apakah validasi origin?'); }
-function testOpenRedirect(){ const r=window.open('https://evil.com','_blank'); out(`window.open: ${r? 'VULN bisa buka arbitrary URL' : 'Blocked (good)'}`); }
-function testJsScheme(){ try{ location.href='javascript:alert(document.domain)'; out('javascript: mencoba exec - jika alert = VULN'); }catch(e){ out(`blocked: ${e.message}`); } }
-function testDataScheme(){ try{ const win=window.open('data:text/html,<h1>Hacked</h1><script>alert(1)</script>'); out(`data: URI: ${win? 'VULN' : 'Blocked'}`); }catch(e){ out(`blocked: ${e.message}`); } }
-function testIframe(){ const ifr=document.createElement('iframe'); ifr.src='https://google.com'; document.body.appendChild(ifr); setTimeout(()=>{ out(`iframe external: ${ifr.contentWindow?'created':'blocked'}`); ifr.remove(); },1000); }
-async function testClipboard(){ try{ const txt=await navigator.clipboard.readText(); out(`Clipboard READ SUCCESS: ${txt.slice(0,50)} - VULN!`); }catch(e){ out(`Clipboard blocked (good): ${e.message}`); } }
-function testLocalStorage(){ localStorage.setItem('dapp1_secret','SECRET_FROM_DAPP1'); out('Wrote localStorage[dapp1_secret]. Buka dApp lain, kalau dia bisa baca = Cross-dApp Leak HIGH'); }
-async function testFreighterAPI(){ try{ if(!window.freighterApi){ out('freighterApi not found'); return;} const addr=await window.freighterApi.getAddress(); out(`getAddress TANPA consent SUCCESS: ${JSON.stringify(addr)} - CRITICAL!`); }catch(e){ out(`getAddress blocked need consent (good): ${e.message}`); } }
+}
+function p1(){
+  addLog('<span class=b>Fingerprint:</span><br>UA=' + navigator.userAgent + '<br>keys: ' + Object.keys(window).filter(function(k){ return k.toLowerCase().indexOf('freight')>-1; }).join(', '));
+}
+function p2(){
+  if(typeof window.freighterApi === 'undefined'){ addLog('<span class=r>freighterApi TIDAK ADA</span>'); return; }
+  var keys = Object.keys(window.freighterApi);
+  addLog('<span class=g>methods (' + keys.length + '):</span> ' + keys.join(', '));
+}
+function p3(){
+  try{
+    var prom = window.freighterApi.getAddress? window.freighterApi.getAddress() : window.freighterApi.getPublicKey();
+    prom.then(function(res){ addLog('<span class=r>CRITICAL VULN! Dapat alamat tanpa consent: ' + safeStringify(res) + '</span>'); })
+       .catch(function(err){ addLog('<span class=g>AMAN butuh consent: ' + err.message + '</span>'); });
+  }catch(e){ addLog('Exception p3: '+e.message); }
+}
+function p4(){
+  window.postMessage({type:'freighter:connect'}, '*');
+  addLog('Kirim postMessage * - cek validasi origin');
+}
+function p5(){
+  addLog('Test XSS: <a href="javascript:alert(document.domain)" style="color:#d4ff32">KLIK XSS TEST</a> | <a href="data:text/html,<h1>XSS</h1>" style="color:#d4ff32">KLIK DATA URI</a>');
+}
+function p6(){
+  var win = window.open('https://evil.com', '_blank');
+  if(win) addLog('<span class=r>VULN: window.open berhasil</span>'); else addLog('<span class=g>AMAN: diblock</span>');
+}
+function p7(){
+  if(navigator.clipboard && navigator.clipboard.readText){
+    navigator.clipboard.readText().then(function(t){ addLog('<span class=r>VULN Clipboard: ' + t.slice(0,100) + '</span>'); }).catch(function(e){ addLog('<span class=g>AMAN: ' + e.message + '</span>'); });
+  } else { addLog('clipboard tidak ada'); }
+}
+function p8(){
+  try{
+    localStorage.setItem('__freighter_bocor_test', 'RAHASIA');
+    addLog('<span class=y>Tulis localStorage. Buka dApp lain, cek getItem("__freighter_bocor_test") kalau kebaca = HIGH</span>');
+  }catch(e){ addLog('err: '+e.message); }
+}
+function p9(){
+  addLog('Protocol: ' + location.protocol);
+}
 </script>
-</body>
-</html>
+</body></html>
