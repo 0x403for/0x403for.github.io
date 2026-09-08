@@ -1,6 +1,3 @@
 <script>
-let w = window.open("https://aqua.network");
-setTimeout(()=>{ 
-  try{ w.alert("HACK via opener"); alert("BUG: opener bisa diakses") }catch(e){ alert("AMAN: opener blocked") }
-},2000);
+navigator.serviceWorker.register("/sw.js").then(()=>alert("SW registered: BUG")).catch(e=>alert("AMAN SW blocked: "+e));
 </script>
