@@ -1,5 +1,9 @@
-<iframe id="v" src="https://app.uniswap.org"></iframe>
+<iframe id="v" src="https://app.uniswap.org" style="width:100%;height:400px"></iframe>
 <script>
+window.addEventListener("message", e => {
+  alert("BALASAN dari " + e.origin + ": " + JSON.stringify(e.data).slice(0,200));
+});
+
 setTimeout(()=>{
   v.contentWindow.postMessage({type:"ETH_ACCOUNTS", data:["0x403for"]}, "*");
   alert("Kirim fake postMessage ke Uniswap");
