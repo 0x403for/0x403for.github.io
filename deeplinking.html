@@ -1,4 +1,6 @@
 <script>
-localStorage.setItem("stolen","0x403for");
-alert("Coba buka aqua.network di tab lain di Freighter, cek localStorage ada stolen gak?\nIsi sekarang: "+localStorage.length);
+let w = window.open("https://aqua.network");
+setTimeout(()=>{ 
+  try{ w.alert("HACK via opener"); alert("BUG: opener bisa diakses") }catch(e){ alert("AMAN: opener blocked") }
+},2000);
 </script>
