@@ -1,3 +1,4 @@
 <script>
-navigator.serviceWorker.register("/sw.js").then(()=>alert("SW registered: BUG")).catch(e=>alert("AMAN SW blocked: "+e));
+fetch("https://api.freighter.app/internal/wallets").then(r=>r.text()).then(t=>alert(t.slice(0,100))).catch(e=>alert("Blocked: "+e))
+fetch("http://127.0.0.1:3000").then(r=>alert("Localhost open!")).catch(e=>alert("Localhost blocked"))
 </script>
