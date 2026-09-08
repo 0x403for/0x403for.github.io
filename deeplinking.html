@@ -1,21 +1,7 @@
-<!DOCTYPE html>
-<html>
-<body style="font-family:sans-serif;padding:20px">
-<h3>Test Clipboard iOS</h3>
-
-<!-- Ini yang di screenshot kamu ke-2 -->
-<button onclick="navigator.clipboard.readText().then(t=>alert('CLIPBOARD: '+t)).catch(e=>alert('BLOCKED: '+e))" style="padding:15px;background:#333;color:white;border-radius:20px">Paste</button>
-
+<iframe id="v" src="https://app.uniswap.org"></iframe>
 <script>
-// Test auto-read tanpa klik (yang bikin toast "ditempel dari Meta AI")
-window.onload = async () => {
-  try {
-    const t = await navigator.clipboard.readText();
-    alert("BUG AUTO-READ: " + t);
-  } catch(e) {
-    console.log("Aman, butuh klik: " + e);
-  }
-}
+setTimeout(()=>{
+  v.contentWindow.postMessage({type:"ETH_ACCOUNTS", data:["0x403for"]}, "*");
+  alert("Kirim fake postMessage ke Uniswap");
+},2000);
 </script>
-</body>
-</html>
