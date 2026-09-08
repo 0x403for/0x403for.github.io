@@ -1,1 +1,21 @@
-<button onclick="navigator.clipboard.readText().then(t=>alert(t))">Paste</button>
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;padding:20px">
+<h3>Test Clipboard iOS</h3>
+
+<!-- Ini yang di screenshot kamu ke-2 -->
+<button onclick="navigator.clipboard.readText().then(t=>alert('CLIPBOARD: '+t)).catch(e=>alert('BLOCKED: '+e))" style="padding:15px;background:#333;color:white;border-radius:20px">Paste</button>
+
+<script>
+// Test auto-read tanpa klik (yang bikin toast "ditempel dari Meta AI")
+window.onload = async () => {
+  try {
+    const t = await navigator.clipboard.readText();
+    alert("BUG AUTO-READ: " + t);
+  } catch(e) {
+    console.log("Aman, butuh klik: " + e);
+  }
+}
+</script>
+</body>
+</html>
