@@ -4,37 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{
-  background:#fff;
-  margin:0;
-  padding:0;
-  font-family:Arial,sans-serif
-}
-.top{
-  text-align:center;
-  padding-top:20px
-}
-.top span{
-  color:#000;
-  font-size:18px;
-  font-weight:bold;
-  cursor:pointer
-}
+body{background:#fff;margin:0}
+.top{text-align:center;padding-top:22px}
+.top span{font-family:Arial,sans-serif;font-size:18px;font-weight:bold;color:#000;cursor:pointer}
 </style>
 </head>
 <body>
-<div class="top">
-  <span onclick="go()">Click Here</span>
-</div>
+<div class="top"><span onclick="go()">Click Here</span></div>
 
 <script>
 function go(){
-  var w = window.open('https://attacker.com','_blank');
-  if(w){
-    document.body.innerHTML = '<div style="text-align:center;padding-top:30px;color:#000">BYPASS: window.open allowed<br><small>'+location.href+'</small></div>';
-  }else{
-    document.body.innerHTML = '<div style="text-align:center;padding-top:30px;color:#000">SAFE: window.open blocked<br><br><small>'+location.href+'<br><br>NOT whitelisted but opened via Search = BYPASS</small></div>';
-  }
+  window.open('https://attacker.com','_blank');
 }
 </script>
 </body>
