@@ -1,62 +1,63 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Freighter v3 - stellar bridge - 0x403for</title>
-<style>
-body{background:#000;color:#0f0;font-family:monospace;padding:12px}
-button{width:100%;padding:12px;margin:6px 0;background:#111;color:#0f0;border:1px solid #0f0;text-align:left;font-size:12px}
-pre{background:#111;padding:8px;height:300px;overflow:auto;border:1px solid #333;font-size:10px;white-space:pre-wrap;word-break:break-all}
-h3{color:#ff0}
-</style>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Freighter v4 - deep dump - 0x403for</title>
+<style>body{background:#000;color:#0f0;font-family:monospace;padding:12px}
+button{width:100%;padding:12px;margin:6px 0;background:#111;color:#0f0;border:1px solid #0f0;text-align:left}
+pre{background:#111;padding:8px;height:350px;overflow:auto;border:1px solid #333;font-size:10px;white-space:pre-wrap;word-break:break-all}</style>
 </head>
 <body>
-<h2>Freighter v3 - window.stellar Dump</h2>
-
-<h3>1. Dump window.stellar</h3>
-<button onclick="dumpStellar()">A. Dump window.stellar keys</button>
-<button onclick="dumpAll()">B. Dump semua bridge keys</button>
-
-<h3>2. Test Bridge Aman</h3>
-<button onclick="testCall()">C. Test getPublicKey (harus ada prompt)</button>
-
+<h2>Freighter v4 - Deep Dump 1.25.28</h2>
+<button onclick="deep()">A. Deep dump stellar + prototype</button>
+<button onclick="checkAllObj()">B. Dump window.freighter* semua varian</button>
+<button onclick="testEIP()">C. Test EIP-6963 / Wallet Standard events</button>
 <pre id="log"></pre>
 <script>
 function log(t){ document.getElementById('log').innerText += t+'\n'; }
 
-function dumpStellar(){
-  log('--- window.stellar ---');
-  try{
-    const s = window.stellar || window.freighter || window.freighterApi;
-    if(!s){ log('stellar undefined'); return; }
-    log('Keys: ' + Object.keys(s).join(', '));
-    for(let k of Object.keys(s)){
-      try{ log(k+' : '+typeof s[k]+' = '+String(s[k]).substring(0,200)); }catch(e){ log(k+' error'); }
-    }
-  }catch(e){ log('Error: '+e.message); }
-}
-function dumpAll(){
-  log('--- window keys ---');
-  for(let k in window){
-    let low=k.toLowerCase();
-    if(low.includes('stellar')||low.includes('freighter')||low.includes('reactnative')){
-      log('WINDOW.'+k+' = '+typeof window[k]);
-    }
+function deep(){
+  log('--- Deep dump window.stellar ---');
+  let s = window.stellar;
+  if(!s){ log('no stellar'); return; }
+  log('Own keys: '+Object.keys(s).join(', '));
+  log('All props (including inherited):');
+  let obj = s;
+  let depth=0;
+  while(obj && depth<5){
+    log(' Level '+depth+' prototype: '+Object.getOwnPropertyNames(obj).join(', '));
+    obj = Object.getPrototypeOf(obj);
+    depth++;
   }
+  // coba provider object?
+  log('--- window.stellar.provider check ---');
+  log('typeof provider: '+typeof s.provider);
+  log('provider value: '+s.provider);
 }
-async function testCall(){
-  log('Calling getPublicKey...');
-  try{
-    if(window.stellar && window.stellar.getPublicKey){
-      const res = await window.stellar.getPublicKey();
-      log('Result: '+JSON.stringify(res).substring(0,500));
+
+function checkAllObj(){
+  log('--- Check semua varian ---');
+  const names = ['stellar','freighter','freighterApi','Freighter','freighterApiInternal','wallet','stellarProvider'];
+  names.forEach(n=>{
+    if(window[n]){
+      log(n+' FOUND: keys='+Object.keys(window[n]).join(', ').substring(0,500));
+      log(n+' string: '+String(window[n]).substring(0,500));
     } else {
-      log('getPublicKey not found - klik A dulu');
+      log(n+' not found');
     }
-  }catch(e){ log('Error: '+e.message); }
+  });
 }
-log('Ready v3 - Origin: '+location.href);
+
+function testEIP(){
+  log('Listening for wallet announcements (EIP-6963)...');
+  window.addEventListener('eip6963:announceProvider', (event)=>{
+    log('EIP-6963 announce: '+JSON.stringify(event.detail).substring(0,500));
+  });
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+  log('Dispatched eip6963:requestProvider - tunggu 2 detik');
+  setTimeout(()=>{ log('Jika gak ada announce = Freighter gak pakai EIP-6963'); },2000);
+}
+
+log('Ready v4 - Freighter '+ (window.stellar?window.stellar.version:'unknown') +' - Klik A');
 </script>
 </body>
 </html>
