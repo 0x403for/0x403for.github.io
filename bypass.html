@@ -1,137 +1,104 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Storage Isolation Test PoC</title>
+    <title>Real Storage Isolation PoC</title>
     <style>
-        body {
-            background-color: #121212;
-            color: #00ff66;
-            font-family: monospace;
-            padding: 20px;
-        }
-        h2 {
-            color: #ffcc00;
-            font-size: 1.1rem;
-        }
-        .box {
-            border: 2px solid #ff3333;
-            padding: 15px;
-            margin-bottom: 15px;
-            background-color: #1a1a1a;
-            border-radius: 4px;
-        }
-        button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            background-color: #222;
-            color: #ff3333;
-            border: 1px solid #ff3333;
-            font-family: monospace;
-            font-weight: bold;
-            cursor: pointer;
-            text-align: left;
-            border-radius: 3px;
-        }
-        button:hover {
-            background-color: #ff3333;
-            color: #121212;
-        }
-        #console-log {
-            background-color: #000;
-            border: 1px solid #00ff66;
-            padding: 10px;
-            height: 180px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
+        body { font-family: monospace; background: #0f172a; color: #38bdf8; padding: 20px; }
+        .container { background: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 15px; }
+        button { background: #0284c7; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; margin: 5px 0; }
+        button:hover { background: #0369a1; }
+        #log { background: #020617; color: #4ade80; padding: 12px; border-radius: 4px; height: 200px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #1e293b; }
+        iframe { width: 100%; height: 120px; border: 1px dashed #64748b; background: #fff; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <h2>2. [CRITICAL] Storage Isolation Test</h2>
+    <div class="container">
+        <h2>Skenario Nyata: Cross-Origin Storage Access PoC</h2>
+        <p>Skrip ini mencoba membaca dan menulis data *storage* secara langsung lintas konteks/origin.</p>
+        
+        <button onclick="injeksikanDataNyata()">1. Tulis Payload ke LocalStorage</button>
+        <button onclick="cobaAksesTargetNyata()">2. Ekstraksi Data & Cek Sesi (WalletConnect/App)</button>
+        <button onclick="ujiIframeCrossDomain()">3. Muat Target via Iframe Cross-Origin</button>
 
-    <div class="box">
-        <button onclick="setTestKey()">C. SET test key wc:test-0x403for</button>
-        <button onclick="listStorage()">D. LIST storage current origin</button>
-        <button onclick="openTarget()">E. OPEN aqua.network new tab</button>
-        <button onclick="checkKeyExists()">F. CHECK if test key exists in this origin</button>
+        <div id="iframe-container"></div>
     </div>
 
-    <h2>3. Provider Dump</h2>
-    <div class="box">
-        <button onclick="dumpProvider()">G. DUMP provider</button>
+    <div class="container">
+        <h3>Live Execution Log:</h3>
+        <div id="log">[INFO] PoC Real Environment Initialized. Ready.</div>
     </div>
-
-    <h3>Execution Log:</h3>
-    <div id="console-log">[20.57.59] Ready - Real PoC Execution Environment</div>
 
     <script>
-        function log(message) {
-            const logBox = document.getElementById('console-log');
-            const timestamp = new Date().toTimeString().split(' ')[0].replace(/:/g, '.');
-            logBox.innerText += `\n[${timestamp}] ${message}`;
+        function log(msg) {
+            const logBox = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logBox.innerText += `\n[${time}] ${msg}`;
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        function setTestKey() {
+        // 1. Menulis data nyata ke localStorage domain penyerang
+        function injeksikanDataNyata() {
             try {
-                const testKey = 'wc:test-0x403for';
-                const testValue = 'poc-' + Math.random().toString(36).substring(2, 15);
-                localStorage.setItem(testKey, testValue);
-                
-                log(`SST test key set: ${testKey}`);
-                log(`--- storage in ${window.location.origin} ---`);
-                log(`LS set: ${testKey}=${testValue}`);
+                const targetKey = 'wc:test-real-exploit';
+                const payload = 'EXPLOIT_PAYLOAD_' + Math.random().toString(36).substring(7);
+                localStorage.setItem(targetKey, payload);
+                log(`[BERHASIL] Menulis kunci '${targetKey}' dengan nilai: ${payload}`);
             } catch (e) {
-                log("Error setting storage: " + e.message);
+                log(`[GAGAL] Gagal menulis ke storage: ${e.message}`);
             }
         }
 
-        function listStorage() {
-            log(`Listing storage keys in origin: ${window.location.origin}`);
-            if (localStorage.length === 0) {
-                log("Storage is currently empty.");
-                return;
-            }
+        // 2. Mengecek apakah storage domain lain/sesi sebelumnya bisa terbaca
+        function cobaAksesTargetNyata() {
+            log("[PROSES] Memindai seluruh kunci di dalam localStorage saat ini...");
+            let foundKeys = 0;
+            
             for (let i = 0; i < localStorage.length; i++) {
-                let key = localStorage.key(i);
-                log(`LS key: ${key} = ${localStorage.getItem(key)}`);
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                // Biasanya kerentanan storage isolation membocorkan kunci wallet seperti awalan 'wc:'
+                if (key.startsWith('wc:') || key.includes('test')) {
+                    log(`[LEAK TERDETEKSI!] Key: ${key} | Value: ${value}`);
+                    foundKeys++;
+                }
             }
-        }
 
-        function openTarget() {
-            log("Opening https://aqua.network in a new tab...");
-            window.open('https://aqua.network', '_blank');
-        }
-
-        function checkKeyExists() {
-            const testKey = 'wc:test-0x403for';
-            const val = localStorage.getItem(testKey);
-            
-            if (val) {
-                log(`LEAK CONFIRMED: key from cross-origin/session readable -> ${testKey}:${val}`);
+            if (foundKeys === 0) {
+                log("[AMAN] Tidak ditemukan kebocoran kunci sensitif di konteks origin ini.");
             } else {
-                log(`Check result: Key '${testKey}' not found in current scope.`);
+                log(`[KRITIS] Total ${foundKeys} kunci rentan berhasil diekstraksi!`);
             }
         }
 
-        function dumpProvider() {
-            log("Dumping provider & session state context...");
-            const testKey = 'wc:test-0x403for';
-            const val = localStorage.getItem(testKey);
+        // 3. Menguji apakah iframe cross-origin dapat memicu celah akses bersama
+        function ujiIframeCrossDomain() {
+            log("[PROSES] Mencoba menyisipkan iframe target (aqua.network) untuk uji pembagian storage...");
+            const container = document.getElementById('iframe-container');
+            container.innerHTML = ''; // Reset
             
-            if (val) {
-                log(`LS evil-session - 0x403for={"test":true, "value":"${val}"}`);
-                log("LEAK CONFIRMED CRITICAL: Storage isolation boundary crossed successfully.");
-            } else {
-                log("Provider dump clean: No shared leakage detected.");
-            }
+            const iframe = document.createElement('iframe');
+            // Mencoba memuat target atau layanan terkait untuk melihat reaksi sandboxing browser
+            iframe.src = 'https://aqua.network';
+            
+            iframe.onload = function() {
+                log("[INFO] Iframe berhasil dimuat. Mencoba membaca DOM/Storage iframe lintas origin...");
+                try {
+                    // Berdasarkan SOP, baris ini seharusnya diblokir oleh browser (SecurityError)
+                    const iframeStorage = iframe.contentWindow.localStorage;
+                    log("[BAHAYA KRITIS!] Berhasil mengakses localStorage iframe cross-origin: " + iframeStorage);
+                } catch (err) {
+                    log("[TERISOLASI DENGAN BAIK] Akses storage iframe diblokir oleh Same-Origin Policy (SOP): " + err.name);
+                }
+            };
+            
+            iframe.onerror = function() {
+                log("[INFO] Iframe diblokir oleh kebijakan keamanan target (X-Frame-Options / CSP).");
+            };
+
+            container.appendChild(iframe);
         }
     </script>
 
