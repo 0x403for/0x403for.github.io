@@ -1,0 +1,6 @@
+<iframe src="https://aqua.network"></iframe>
+<script>
+setTimeout(() => {
+  iframe.contentWindow.postMessage({type: "freighter:openDeepLink", url: "stellar://pay?..."}, "*")
+}, 2000)
+</script>
