@@ -1,88 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Freighter 1.25.28 - Combined POC - 0x403for</title>
-<style>
-body{background:#000;color:#0f0;font-family:monospace;padding:12px}
-h3{color:#ff0;border-bottom:1px solid #333;padding-bottom:4px}
-button{width:100%;padding:14px;margin:5px 0;background:#111;color:#0f0;border:1px solid #0f0;text-align:left;font-size:11px}
-button.crit{border-color:#f00;color:#ff0}
-pre{background:#111;padding:8px;height:300px;overflow:auto;border:1px solid #333;font-size:10px;white-space:pre-wrap;word-break:break-all}
-</style>
+    <meta charset="UTF-8">
+    <title>Simulasi Sederhana Storage Isolation</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        button:hover { background: #0056b3; }
+        #log { background: #333; color: #00ff00; padding: 10px; font-family: monospace; border-radius: 4px; min-height: 80px; }
+    </style>
 </head>
 <body>
-<h2>Freighter 1.25.28 Combined - 0x403for</h2>
 
-<h3>1. [HIGH] Clipboard Write Test</h3>
-<button onclick="testClip()">A. Test clipboard.writeText</button>
-<button onclick="readClip()">B. Read clipboard</button>
+    <div class="card">
+        <h2>Simulasi Uji Penyimpanan (Storage)</h2>
+        <p>Gunakan tombol di bawah untuk menguji apakah data antar-website bisa saling bocor.</p>
+        
+        <button onclick="simpanData()">1. Simpan Data di Sini (Domain Asal)</button>
+        <button onclick="bukaTarget()">2. Buka Website Target (aqua.network)</button>
+        <button onclick="cekKebocoran()">3. Cek Apakah Data Bocor?</button>
+    </div>
 
-<h3>2. [CRITICAL] Storage Isolation Test</h3>
-<button class="crit" onclick="setTest()">C. SET test key wc:test-0x403for</button>
-<button class="crit" onclick="listKeys()">D. LIST storage current origin</button>
-<button class="crit" onclick="openAqua()">E. OPEN aqua.network new tab</button>
-<button class="crit" onclick="checkLeak()">F. CHECK if test key exists in this origin</button>
+    <div class="card">
+        <h3>Log Aktivitas:</h3>
+        <div id="log">Menunggu tindakan...</div>
+    </div>
 
-<h3>3. Provider Dump</h3>
-<button onclick="dump()">G. DUMP provider</button>
+    <script>
+        // Fungsi untuk menampilkan teks ke kotak log di layar
+        function tulisLog(pesan) {
+            const kotakLog = document.getElementById('log');
+            kotakLog.innerText += "\n> " + pesan;
+        }
 
-<pre id="log"></pre>
+        // 1. Mensimulasikan penyimpanan data di domain penyerang
+        function simpanData() {
+            // Menyimpan data rahasia/uji ke localStorage browser
+            localStorage.setItem('kunci_rahasia_penyerang', 'data_bocor_12345');
+            tulisLog("Data berhasil disimpan di penyimpanan lokal (localStorage).");
+        }
 
-<script>
-const TEST_ADDR = 'TEST_CLIPBOARD_0x403for_POC_123';
-const TEST_KEY = 'wc:test-0x403for';
-const TEST_VAL = 'poc-0x403for-'+Date.now();
+        // 2. Membuka website target di tab baru
+        function bukaTarget() {
+            tulisLog("Membuka website https://aqua.network di tab baru...");
+            window.open('https://aqua.network', '_blank');
+        }
 
-function log(t){
-  let el=document.getElementById('log');
-  el.innerText+='['+new Date().toLocaleTimeString()+'] '+t+'\n';
-  el.scrollTop=el.scrollHeight;
-}
+        // 3. Mengecek apakah data dari domain asal bisa terbaca di tempat lain
+        function cekKebocoran() {
+            const hasilCek = localStorage.getItem('kunci_rahasia_penyerang');
+            
+            if (hasilCek) {
+                tulisLog("LEAK TERDETEKSI! Data ditemukan: " + hasilCek);
+                alert("Kerentanan ditemukan: Data dapat diakses lintas konteks!");
+            } else {
+                tulisLog("AMAN. Data tidak ditemukan (terisolasi dengan baik).");
+            }
+        }
+    </script>
 
-async function testClip(){
-  log('Testing clipboard.writeText...');
-  try{
-    await navigator.clipboard.writeText(TEST_ADDR);
-    log('SUCCESS - clipboard.writeText allowed: '+TEST_ADDR);
-    log('If no prompt shown = HIGH (should require user gesture/prompt)');
-  }catch(e){ log('Blocked SECURE: '+e.message); }
-}
-async function readClip(){
-  try{
-    let v=await navigator.clipboard.readText();
-    log('Clipboard contains: '+v);
-  }catch(e){ log('Read blocked: '+e.message); }
-}
-
-function setTest(){
-  localStorage.setItem(TEST_KEY, TEST_VAL);
-  log('SET '+TEST_KEY+' = '+TEST_VAL+' in origin '+location.origin);
-}
-function listKeys(){
-  log('--- Storage in '+location.origin+' ---');
-  for(let i=0;i<localStorage.length;i++){
-    let k=localStorage.key(i);
-    if(k.includes('wc')||k.includes('0x403for')) log('LS '+k+'='+localStorage.getItem(k).substring(0,150));
-  }
-}
-function openAqua(){
-  log('Opening aqua.network...');
-  window.open('https://aqua.network','_blank');
-}
-function checkLeak(){
-  let v=localStorage.getItem(TEST_KEY);
-  log('Check '+TEST_KEY+' in '+location.origin);
-  if(v) log('LEAK CONFIRMED CRITICAL: key from other origin readable: '+v);
-  else log('NOT FOUND - isolated SECURE');
-  listKeys();
-}
-
-function dump(){
-  log('stellar: '+(window.stellar?Object.keys(window.stellar).join(','):'not found'));
-}
-log('Ready - Same flow as your video 00:00-00:32');
-</script>
 </body>
 </html>
