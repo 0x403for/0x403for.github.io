@@ -1,25 +1,62 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Freighter v2 - HIGH - 0x403for</title>
-<style>body{background:#000;color:#0f0;font-family:monospace;padding:12px}
-button{width:100%;padding:14px;margin:6px 0;background:#111;color:#0f0;border:1px solid #0f0;text-align:left}
-button.red{border-color:#f00;color:#f55} pre{background:#111;padding:8px;height:200px;overflow:auto;border:1px solid #333;font-size:11px;white-space:pre-wrap}</style>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Freighter v3 - stellar bridge - 0x403for</title>
+<style>
+body{background:#000;color:#0f0;font-family:monospace;padding:12px}
+button{width:100%;padding:12px;margin:6px 0;background:#111;color:#0f0;border:1px solid #0f0;text-align:left;font-size:12px}
+pre{background:#111;padding:8px;height:300px;overflow:auto;border:1px solid #333;font-size:10px;white-space:pre-wrap;word-break:break-all}
+h3{color:#ff0}
+</style>
 </head>
 <body>
-<h2>Freighter v2 - HIGH Tests</h2>
+<h2>Freighter v3 - window.stellar Dump</h2>
 
-<h3>1. STORAGE ISOLATION [HIGH]</h3>
-<button onclick="localStorage.setItem('evil_0x403for','EVIL_FROM_'+location.hostname); alert('Tertulis! Sekarang buka aqua.network di TAB LAIN')">A. Tulis evil key</button>
-<button onclick="alert(localStorage.getItem('evil_0x403for')||'null')">B. Baca evil key</button>
+<h3>1. Dump window.stellar</h3>
+<button onclick="dumpStellar()">A. Dump window.stellar keys</button>
+<button onclick="dumpAll()">B. Dump semua bridge keys</button>
 
-<h3>2. WC Session Fixation [CRITICAL]</h3>
-<button class="red" onclick="let o='';for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i); if(k.toLowerCase().includes('wc')||k.includes('wallet')) o+=k+'\n'} alert(o||'No WC keys - connect di aqua.network dulu')">D. Cek WC keys</button>
-
-<h3>3. Bridge Check</h3>
-<button onclick="alert('RNVW:'+!!window.ReactNativeWebView+' stellar:'+!!window.stellar)">F. Cek bridge</button>
+<h3>2. Test Bridge Aman</h3>
+<button onclick="testCall()">C. Test getPublicKey (harus ada prompt)</button>
 
 <pre id="log"></pre>
-<script>document.getElementById('log').innerText=location.href</script>
+<script>
+function log(t){ document.getElementById('log').innerText += t+'\n'; }
+
+function dumpStellar(){
+  log('--- window.stellar ---');
+  try{
+    const s = window.stellar || window.freighter || window.freighterApi;
+    if(!s){ log('stellar undefined'); return; }
+    log('Keys: ' + Object.keys(s).join(', '));
+    for(let k of Object.keys(s)){
+      try{ log(k+' : '+typeof s[k]+' = '+String(s[k]).substring(0,200)); }catch(e){ log(k+' error'); }
+    }
+  }catch(e){ log('Error: '+e.message); }
+}
+function dumpAll(){
+  log('--- window keys ---');
+  for(let k in window){
+    let low=k.toLowerCase();
+    if(low.includes('stellar')||low.includes('freighter')||low.includes('reactnative')){
+      log('WINDOW.'+k+' = '+typeof window[k]);
+    }
+  }
+}
+async function testCall(){
+  log('Calling getPublicKey...');
+  try{
+    if(window.stellar && window.stellar.getPublicKey){
+      const res = await window.stellar.getPublicKey();
+      log('Result: '+JSON.stringify(res).substring(0,500));
+    } else {
+      log('getPublicKey not found - klik A dulu');
+    }
+  }catch(e){ log('Error: '+e.message); }
+}
+log('Ready v3 - Origin: '+location.href);
+</script>
 </body>
 </html>
