@@ -1,63 +1,41 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Freighter v4 - deep dump - 0x403for</title>
-<style>body{background:#000;color:#0f0;font-family:monospace;padding:12px}
-button{width:100%;padding:12px;margin:6px 0;background:#111;color:#0f0;border:1px solid #0f0;text-align:left}
-pre{background:#111;padding:8px;height:350px;overflow:auto;border:1px solid #333;font-size:10px;white-space:pre-wrap;word-break:break-all}</style>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Freighter 1.25.28 - Next Bugs - 0x403for</title>
+<style>
+body{background:#000;color:#0f0;font-family:monospace;padding:14px}
+button{width:100%;padding:16px;margin:8px 0;background:#111;color:#0f0;border:1px solid #f00;text-align:left;font-size:13px}
+pre{background:#111;padding:8px;height:200px;overflow:auto;border:1px solid #333;font-size:10px;white-space:pre-wrap;word-break:break-all}
+h3{color:#ff0;border-bottom:1px solid #333}
+</style>
 </head>
 <body>
-<h2>Freighter v4 - Deep Dump 1.25.28</h2>
-<button onclick="deep()">A. Deep dump stellar + prototype</button>
-<button onclick="checkAllObj()">B. Dump window.freighter* semua varian</button>
-<button onclick="testEIP()">C. Test EIP-6963 / Wallet Standard events</button>
+<h2>Freighter 1.25.28 - Next Bugs Test</h2>
+
+<h3>1. [CRITICAL] Deep Link freighter://</h3>
+<button onclick="testDeep()">A. Test freighter://sign?xdr= (tap)</button>
+<a href="freighter://sign?xdr=AAAAAg" style="display:block;padding:12px;background:#222;color:#0f0;border:1px solid #0f0;text-align:center;margin:6px 0">B. Manual Link freighter://sign</a>
+
+<h3>2. [HIGH] IDN Homograph</h3>
+<button onclick="testIDN()">C. Test IDN cyrillic aqua</button>
+
 <pre id="log"></pre>
 <script>
 function log(t){ document.getElementById('log').innerText += t+'\n'; }
-
-function deep(){
-  log('--- Deep dump window.stellar ---');
-  let s = window.stellar;
-  if(!s){ log('no stellar'); return; }
-  log('Own keys: '+Object.keys(s).join(', '));
-  log('All props (including inherited):');
-  let obj = s;
-  let depth=0;
-  while(obj && depth<5){
-    log(' Level '+depth+' prototype: '+Object.getOwnPropertyNames(obj).join(', '));
-    obj = Object.getPrototypeOf(obj);
-    depth++;
-  }
-  // coba provider object?
-  log('--- window.stellar.provider check ---');
-  log('typeof provider: '+typeof s.provider);
-  log('provider value: '+s.provider);
+function testDeep(){
+  log('Trying freighter://sign?xdr=AAAA...');
+  log('Jika muncul modal Sign tanpa origin 0x403for.github.io = CRITICAL');
+  location.href='freighter://sign?xdr=AAAAAgAAAAAABQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 }
-
-function checkAllObj(){
-  log('--- Check semua varian ---');
-  const names = ['stellar','freighter','freighterApi','Freighter','freighterApiInternal','wallet','stellarProvider'];
-  names.forEach(n=>{
-    if(window[n]){
-      log(n+' FOUND: keys='+Object.keys(window[n]).join(', ').substring(0,500));
-      log(n+' string: '+String(window[n]).substring(0,500));
-    } else {
-      log(n+' not found');
-    }
-  });
+function testIDN(){
+  const cyrillicA = '\u0430';
+  const fake = cyrillicA + 'qua.network';
+  log('Fake domain: '+fake+' (keliatan kayak aqua.network)');
+  log('Buka https://'+fake+' di Freighter. Jika address bar tetap aqua.network tanpa xn-- = HIGH IDN Spoof');
 }
-
-function testEIP(){
-  log('Listening for wallet announcements (EIP-6963)...');
-  window.addEventListener('eip6963:announceProvider', (event)=>{
-    log('EIP-6963 announce: '+JSON.stringify(event.detail).substring(0,500));
-  });
-  window.dispatchEvent(new Event('eip6963:requestProvider'));
-  log('Dispatched eip6963:requestProvider - tunggu 2 detik');
-  setTimeout(()=>{ log('Jika gak ada announce = Freighter gak pakai EIP-6963'); },2000);
-}
-
-log('Ready v4 - Freighter '+ (window.stellar?window.stellar.version:'unknown') +' - Klik A');
+log('Ready - Freighter 1.25.28 - stellar=provider,platform,version only - JS bridge mati');
 </script>
 </body>
 </html>
