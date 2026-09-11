@@ -1,25 +1,53 @@
 <!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Freighter iOS messageHandlers Scan</title>
-<style>body{background:#fff;color:#000;font-family:monospace;padding:14px;font-size:11px}
-pre{background:#f5f5f5;border:1px solid #000;padding:10px;white-space:pre-wrap;word-break:break-all;min-height:200px}
-button{background:#000;color:#fff;border:2px solid #000;padding:12px;width:100%;font-weight:bold;margin-top:6px}</style></head>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freighter iOS Deep Scan - BW</title>
+<style>
+body{background:#fff;color:#000;font-family:monospace;padding:14px;margin:0;font-size:11px}
+h2{font-size:12px;border-bottom:2px solid #000;padding-bottom:6px}
+pre{background:#f5f5f5;border:1px solid #000;padding:10px;white-space:pre-wrap;word-break:break-all;min-height:300px}
+button{background:#000;color:#fff;border:2px solid #000;padding:12px;width:100%;font-weight:bold;margin-top:6px;font-family:monospace}
+</style>
+</head>
 <body>
-<h2>Freighter iOS - WKWebView messageHandlers Scanner</h2>
+<h2>Freighter iOS - Deep stellar.provider Scanner [BW]</h2>
 <pre id=log>Ready. Origin: </pre>
-<button onclick="scan()">SCAN messageHandlers + stellar bridge</button>
+<button onclick="scan()">1. SCAN BASIC</button>
+<button onclick="deep()">2. DEEP DUMP provider</button>
+<button onclick="testRequest()">3. Test request() method</button>
 <script>
 document.getElementById('log').textContent+=location.origin+'\nUA:'+navigator.userAgent.substring(0,120)+'\n';
 function log(t){document.getElementById('log').textContent+='\n'+t;}
 function scan(){
-  log('window.freighter:'+!!window.freighter);
-  log('window.stellar:'+!!window.stellar);
-  if(window.stellar) try{log('stellar keys:'+Object.keys(window.stellar).join(', '))}catch(e){}
-  let handlers=window.webkit&&window.webkit.messageHandlers;
-  if(!handlers){log('messageHandlers TIDAK ADA');return;}
-  let keys=Object.keys(handlers);
-  log('messageHandlers:'+keys.length+' -> '+keys.join(', '));
-  keys.forEach(k=>{let h=handlers[k]; log(' - '+k+': postMessage:'+(!!h.postMessage))});
+ log('\n--- BASIC ---');
+ log('window.freighter:'+!!window.freighter);
+ log('window.stellar:'+!!window.stellar);
+ if(window.stellar){ try{log('stellar keys:'+Object.keys(window.stellar).join(', '))}catch(e){} try{log('stellar ownProps:'+Object.getOwnPropertyNames(window.stellar).join(', '))}catch(e){} }
+ let h=window.webkit&&window.webkit.messageHandlers;
+ if(h){log('messageHandlers enumerable:'+Object.keys(h).length); log('messageHandlers all:'+Object.getOwnPropertyNames(h).join(', '));} else log('webkit.messageHandlers tidak ada');
+}
+function deep(){
+ log('\n--- DEEP DUMP ---');
+ let p=(window.stellar&&window.stellar.provider)?window.stellar.provider:window.stellar;
+ if(!p){log('provider tidak ada');return;}
+ try{log('Object.keys(p): '+Object.keys(p).join(', '))}catch(e){}
+ try{log('getOwnPropertyNames(p): '+Object.getOwnPropertyNames(p).join(', '))}catch(e){}
+ try{log('proto names: '+Object.getOwnPropertyNames(Object.getPrototypeOf(p)).join(', '))}catch(e){}
+ ['request','signTransaction','signAuthEntry','signMessage','getAddress','getNetwork','isConnected','connect','isAllowed','getPublicKey'].forEach(m=>{
+  try{log(m+': '+(typeof p[m]))}catch(e){}
+ });
+}
+function testRequest(){
+ log('\n--- TEST request() ---');
+ let p=(window.stellar&&window.stellar.provider)?window.stellar.provider:window.stellar;
+ if(!p||!p.request){log('request() tidak ada');return;}
+ log('request() ada type:'+typeof p.request);
+ try{
+  p.request({method:'getAddress'}).then(r=>{log('getAddress result: '+JSON.stringify(r).substring(0,300))}).catch(e=>{log('getAddress error: '+e)});
+ }catch(e){log('call error:'+e);}
 }
 scan();
-</script></body></html>
+</script>
+</body>
+</html>
