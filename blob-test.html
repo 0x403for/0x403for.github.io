@@ -44,7 +44,7 @@ async function tryFetchBlob(){
     if(text.includes('SECRET')){
       log('>>> CRITICAL UXSS CONFIRMED: Konten rahasia berhasil diakses!');
     } else {
-    log('[?] Konten berhasil diambil, tetapi teks "SECRET" tidak ditemukan.');
+      log('[?] Konten berhasil diambil, tetapi teks "SECRET" tidak ditemukan.');
     }
   } catch(e) {
     log('[-] BLOCKED / ERROR: ' + e.name + ' - ' + e.message);
@@ -61,7 +61,6 @@ function tryIframeBlob(){
   log('[*] Memuat blob URL ke dalam iframe: ' + blobUrl);
   let frame = document.getElementById('frame');
   
-  // Penanganan event untuk memantau keberhasilan/kegagalan iframe load
   frame.onload = function() {
     log('[+] Iframe berhasil memuat sumber.');
   };
