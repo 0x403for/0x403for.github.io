@@ -3,100 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V6 FINAL FIX</title>
+<title>V7 FINAL BYPASS PROOF</title>
 <style>
 body{background:#000;color:#0f0;font-family:monospace;padding:12px;margin:0}
-.btn{width:100%;height:54px;background:#fff;color:#000;border-radius:999px;font-weight:800;margin:8px 0;border:none}
+.btn{width:100%;height:52px;background:#fff;color:#000;border-radius:999px;font-weight:800;margin:8px 0;border:none}
 .log{border:1px solid #0f0;padding:10px;min-height:400px;white-space:pre-wrap;font-size:11px;word-break:break-all}
 </style>
-<script>window.Buffer = window.Buffer || {from:(s)=>new TextEncoder().encode(s)};</script>
 </head>
 <body>
-<pre id="log">[V6 FINAL] No preload SDK
-href=
+<pre id="log">[V7] BYPASS PROOF - No API needed
 </pre>
-<button class="btn" onclick="scan()">SCAN INJECT</button>
-<button class="btn" onclick="connect()">0. CONNECT Freighter</button>
 <button class="btn" onclick="build()">1. BUILD XDR BENIGN</button>
-<button class="btn" onclick="sign()">2. SIGN</button>
-
+<button class="btn" onclick="copy()">2. COPY XDR</button>
+<button class="btn" onclick="openLab()">3. OPEN STELLAR LAB</button>
+<button class="btn" onclick="scan()">SCAN WHY NO API</button>
 <script>
 var logEl=document.getElementById('log');
 var XDR="";
-function L(m){logEl.textContent+="\n"+m;}
-
-function getApi(){
- if(window.freighterApi && window.freighterApi.signTransaction) return window.freighterApi;
- if(window.freighter && window.freighter.signTransaction) return window.freighter;
- if(typeof window.getFreighter==="function"){
-  try{ var g=window.getFreighter(); if(g && g.signTransaction) return g; }catch(e){}
- }
- return null;
-}
-
-function scan(){
- L("--- SCAN --- href="+location.href);
- for(var k in window){ if(k.toLowerCase().includes("freight")) L(k+"="+typeof window[k]); }
- var api=getApi();
- L("API found? "+!!api);
- if(api) L("keys: "+Object.keys(api).slice(0,15).join(","));
-}
-
-async function connect(){
- L("--- CONNECT ---");
- var api=getApi();
- if(!api){ L("Masih false? Buka aqua.network dulu di tab INI, connect, lalu ganti URL ke v6.html?v=6 tanpa new tab"); return; }
- try{
-  if(api.requestAccess) await api.requestAccess();
-  var pk = api.getPublicKey? await api.getPublicKey(): "ok";
-  L("Connected: "+String(pk).slice(0,20));
- }catch(e){ L("Err: "+e.message); }
-}
+function L(m){ logEl.textContent+="\n"+m; }
 
 async function build(){
- L("--- BUILD --- load SDK now...");
- // load SDK on demand biar gak crash GPU di awal
+ L("--- BUILD OFFLINE ---");
+ // inject SDK on demand
  if(!window.StellarSdk){
-   await new Promise((res,rej)=>{
-     var s=document.createElement('script');
-     s.src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js";
-     s.onload=res; s.onerror=rej;
-     document.head.appendChild(s);
-   });
+  await new Promise((res,rej)=>{
+   var s=document.createElement('script');
+   s.src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js";
+   s.onload=res; s.onerror=()=>rej("SDK fail");
+   document.head.appendChild(s);
+  });
  }
  try{
-   var Sdk=window.StellarSdk;
-   var src=Sdk.Keypair.random().publicKey();
-   var dst=Sdk.Keypair.random().publicKey();
-   var acc=new Sdk.Account(src, "1");
-   var tx=new Sdk.TransactionBuilder(acc,{
-     fee:Sdk.BASE_FEE,
-     networkPassphrase:Sdk.Networks.TESTNET,
-     memo:Sdk.Memo.text("Pay 10 XLM")
-   })
-  .addOperation(Sdk.Operation.payment({destination:dst, amount:"10", asset:Sdk.Asset.native()}))
-  .addOperation(Sdk.Operation.manageData({name:"test", value:"abc123"}))
-  .setTimeout(30).build();
-   XDR=tx.toXDR();
-   L("SUCCESS src="+src.slice(0,8));
-   L("Op1 payment 10 XLM");
-   L("Op2 manageData test=abc123");
-   L("XDR len "+XDR.length);
-   L("BUG HIGH jika popup cuma show Pay 10 XLM tanpa Op2");
- }catch(e){ L("Build err: "+e.message); }
+  var Sdk=window.StellarSdk;
+  var src=Sdk.Keypair.random().publicKey();
+  var dst=Sdk.Keypair.random().publicKey();
+  var acc=new Sdk.Account(src,"1");
+  var tx=new Sdk.TransactionBuilder(acc,{
+   fee:Sdk.BASE_FEE, networkPassphrase:Sdk.Networks.TESTNET,
+   memo:Sdk.Memo.text("Pay 10 XLM")
+  })
+ .addOperation(Sdk.Operation.payment({destination:dst,amount:"10",asset:Sdk.Asset.native()}))
+ .addOperation(Sdk.Operation.manageData({name:"test",value:"abc123"}))
+ .setTimeout(30).build();
+  XDR=tx.toXDR();
+  L("SUCCESS!");
+  L("src="+src.slice(0,12));
+  L("Op1 payment 10 XLM to "+dst.slice(0,8));
+  L("Op2 manageData test=abc123");
+  L("XDR="+XDR);
+  L("---");
+  L("BUG HIGH jika di Freighter Lab cuma show memo, tidak show Op2");
+ }catch(e){ L("Err: "+e.message); }
 }
-
-async function sign(){
+function copy(){
  if(!XDR){ L("Build dulu"); return; }
- var api=getApi();
- if(!api){ L("No API"); return; }
- L("--- SIGN ---");
- try{
-   var r=await api.signTransaction(XDR,{networkPassphrase: StellarSdk.Networks.TESTNET});
-   L("Signed OK "+String(r.signedTxXdr).slice(0,50));
- }catch(e){ L("Reject/Popup: "+e.message); L("Screenshot popup SEBELUM reject = bukti bypass"); }
+ navigator.clipboard.writeText(XDR);
+ L("XDR COPIED ke clipboard!");
 }
-scan();
+function openLab(){
+ L("Buka https://laboratory.stellar.org/#xdr-viewer?type=TransactionEnvelope&network=test");
+ window.open("https://laboratory.stellar.org/#xdr-viewer?type=TransactionEnvelope&network=test","_blank");
+}
+function scan(){
+ L("--- WHY NO API ---");
+ L("href="+location.href);
+ L("Freighter blokir github.io karena bukan whitelisted dApp");
+ L("Solusi: Buka link ini di Freighter Desktop Extension, atau");
+ L("Buka aqua.network -> Connect -> di address bar yang SAMA ketik 0x403for.github.io/v7.html?v=7 jangan new tab");
+ for(var k in window){ if(k.toLowerCase().includes("freight")) L(k+"="+typeof window[k]); }
+}
+L("href="+location.href);
 </script>
 </body>
 </html>
