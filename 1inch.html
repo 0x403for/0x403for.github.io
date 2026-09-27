@@ -3,110 +3,98 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V4 FINAL NO CACHE</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js"></script>
+<title>V6 FINAL FIX</title>
 <style>
 body{background:#000;color:#0f0;font-family:monospace;padding:12px;margin:0}
-.btn{width:100%;height:52px;background:#fff;color:#000;border-radius:999px;font-weight:800;margin:8px 0;border:none}
-.log{border:1px solid #0f0;padding:10px;min-height:420px;white-space:pre-wrap;font-size:11px;word-break:break-all}
+.btn{width:100%;height:54px;background:#fff;color:#000;border-radius:999px;font-weight:800;margin:8px 0;border:none}
+.log{border:1px solid #0f0;padding:10px;min-height:400px;white-space:pre-wrap;font-size:11px;word-break:break-all}
 </style>
+<script>window.Buffer = window.Buffer || {from:(s)=>new TextEncoder().encode(s)};</script>
 </head>
 <body>
-<pre id="log">[V4 FINAL] 23.02 FIX - No Buffer
+<pre id="log">[V6 FINAL] No preload SDK
 href=
 </pre>
-<button class="btn" onclick="scan()">SCAN ALL INJECTS</button>
+<button class="btn" onclick="scan()">SCAN INJECT</button>
 <button class="btn" onclick="connect()">0. CONNECT Freighter</button>
 <button class="btn" onclick="build()">1. BUILD XDR BENIGN</button>
 <button class="btn" onclick="sign()">2. SIGN</button>
 
 <script>
 var logEl=document.getElementById('log');
-var xdr="";
-function L(m){ logEl.textContent+="\n"+m; console.log(m); }
-L("href="+location.href);
+var XDR="";
+function L(m){logEl.textContent+="\n"+m;}
 
-function findFreighter(){
-  var cands=[];
-  if(window.freighterApi) cands.push(["freighterApi", window.freighterApi]);
-  if(window.freighter) cands.push(["freighter", window.freighter]);
-  if(typeof window.getFreighter==="function"){
-    try{ cands.push(["getFreighter()", window.getFreighter()]); }catch(e){}
-  }
-  if(window.provider) cands.push(["provider", window.provider]);
-  for(var i=0;i<cands.length;i++){
-    var obj=cands[i][1];
-    if(obj && (typeof obj.getPublicKey==="function" || typeof obj.requestAccess==="function" || typeof obj.signTransaction==="function")){
-      L("FOUND API di "+cands[i][0]+" keys="+Object.keys(obj).join(","));
-      return obj;
-    }
-  }
-  return null;
+function getApi(){
+ if(window.freighterApi && window.freighterApi.signTransaction) return window.freighterApi;
+ if(window.freighter && window.freighter.signTransaction) return window.freighter;
+ if(typeof window.getFreighter==="function"){
+  try{ var g=window.getFreighter(); if(g && g.signTransaction) return g; }catch(e){}
+ }
+ return null;
 }
 
 function scan(){
- L("--- SCAN ---");
- for(var k in window){
-   if(k.toLowerCase().includes("freight") || k.toLowerCase().includes("stellar")){
-     L(k+" = "+typeof window[k]);
-   }
- }
- var f=findFreighter();
- L("API found? "+!!f);
+ L("--- SCAN --- href="+location.href);
+ for(var k in window){ if(k.toLowerCase().includes("freight")) L(k+"="+typeof window[k]); }
+ var api=getApi();
+ L("API found? "+!!api);
+ if(api) L("keys: "+Object.keys(api).slice(0,15).join(","));
 }
 
 async function connect(){
  L("--- CONNECT ---");
- var f=findFreighter();
- if(!f){
-   L("Masih false? Buka aqua.network dulu di tab INI, connect, lalu ganti URL jadi.../v4.html");
-   return;
- }
+ var api=getApi();
+ if(!api){ L("Masih false? Buka aqua.network dulu di tab INI, connect, lalu ganti URL ke v6.html?v=6 tanpa new tab"); return; }
  try{
-   if(f.requestAccess) await f.requestAccess();
-   var pk = f.getPublicKey? await f.getPublicKey() : await f.getAddress();
-   L("Connected: "+pk.slice(0,20)+"...");
- }catch(e){ L("Connect err: "+e.message); }
+  if(api.requestAccess) await api.requestAccess();
+  var pk = api.getPublicKey? await api.getPublicKey(): "ok";
+  L("Connected: "+String(pk).slice(0,20));
+ }catch(e){ L("Err: "+e.message); }
 }
 
-function build(){
- L("--- BUILD NO BUFFER ---");
+async function build(){
+ L("--- BUILD --- load SDK now...");
+ // load SDK on demand biar gak crash GPU di awal
+ if(!window.StellarSdk){
+   await new Promise((res,rej)=>{
+     var s=document.createElement('script');
+     s.src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js";
+     s.onload=res; s.onerror=rej;
+     document.head.appendChild(s);
+   });
+ }
  try{
    var Sdk=window.StellarSdk;
    var src=Sdk.Keypair.random().publicKey();
    var dst=Sdk.Keypair.random().publicKey();
    var acc=new Sdk.Account(src, "1");
-   var tx=new Sdk.TransactionBuilder(acc, {
-     fee: Sdk.BASE_FEE,
-     networkPassphrase: Sdk.Networks.TESTNET,
-     memo: Sdk.Memo.text("Pay 10 XLM")
+   var tx=new Sdk.TransactionBuilder(acc,{
+     fee:Sdk.BASE_FEE,
+     networkPassphrase:Sdk.Networks.TESTNET,
+     memo:Sdk.Memo.text("Pay 10 XLM")
    })
-  .addOperation(Sdk.Operation.payment({
-     destination: dst,
-     amount: "10",
-     asset: Sdk.Asset.native()
-   }))
-  .addOperation(Sdk.Operation.manageData({
-     name: "test",
-     value: "abc123"
-   }))
+  .addOperation(Sdk.Operation.payment({destination:dst, amount:"10", asset:Sdk.Asset.native()}))
+  .addOperation(Sdk.Operation.manageData({name:"test", value:"abc123"}))
   .setTimeout(30).build();
-   xdr=tx.toXDR();
-   L("SUCCESS!");
+   XDR=tx.toXDR();
+   L("SUCCESS src="+src.slice(0,8));
    L("Op1 payment 10 XLM");
    L("Op2 manageData test=abc123");
-   L("XDR: "+xdr.slice(0,60)+"...");
+   L("XDR len "+XDR.length);
+   L("BUG HIGH jika popup cuma show Pay 10 XLM tanpa Op2");
  }catch(e){ L("Build err: "+e.message); }
 }
 
 async function sign(){
- if(!xdr){ L("Build dulu"); return; }
- var f=findFreighter();
- if(!f){ L("No API"); return; }
+ if(!XDR){ L("Build dulu"); return; }
+ var api=getApi();
+ if(!api){ L("No API"); return; }
+ L("--- SIGN ---");
  try{
-   var r=await f.signTransaction(xdr, {networkPassphrase: StellarSdk.Networks.TESTNET});
-   L("Signed OK");
- }catch(e){ L("Reject: "+e.message); L("Screenshot popup ini kalau Op2 gak tampil = HIGH"); }
+   var r=await api.signTransaction(XDR,{networkPassphrase: StellarSdk.Networks.TESTNET});
+   L("Signed OK "+String(r.signedTxXdr).slice(0,50));
+ }catch(e){ L("Reject/Popup: "+e.message); L("Screenshot popup SEBELUM reject = bukti bypass"); }
 }
 scan();
 </script>
