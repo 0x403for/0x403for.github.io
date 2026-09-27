@@ -3,87 +3,96 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SIM BYPASS FIXED</title>
+<title>SIM BYPASS V3 FIXED</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js"></script>
 <style>
 body{background:#000;color:#0f0;font-family:monospace;padding:12px;margin:0}
 .btn{width:100%;height:52px;background:#fff;color:#000;border-radius:999px;font-weight:800;margin:8px 0;border:none}
-.log{border:1px solid #0f0;padding:10px;min-height:320px;white-space:pre-wrap;font-size:11px;word-break:break-all}
+.log{border:1px solid #0f0;padding:10px;min-height:380px;white-space:pre-wrap;font-size:11px;word-break:break-all}
 </style>
 </head>
 <body>
-<pre id="log" class="log">[Ready] FIXED OFFLINE</pre>
+<pre id="log" class="log">[Ready] V3 FIXED - memo max 28</pre>
+<button class="btn" onclick="connect()">0. CONNECT Freighter</button>
 <button class="btn" onclick="scan()">SCAN INJECT</button>
 <button class="btn" onclick="buildXdr()">1. BUILD XDR BENIGN</button>
-<button class="btn" onclick="signXdr()">2. REQUEST SIGN Freighter</button>
+<button class="btn" onclick="signXdr()">2. REQUEST SIGN</button>
 <script>
 var logEl=document.getElementById('log');
 var testXDR="";
-function L(m){ logEl.textContent+="\n"+m; console.log(m); }
+function L(m){ logEl.textContent+="\n"+m; }
 L("href="+location.href);
+
+function getFreighter(){
+  return window.freighterApi || window.freighter || window.stellar || null;
+}
+
+async function connect(){
+ L("--- CONNECT ---");
+ var f=getFreighter();
+ L("freighter? "+!!window.freighter+" freighterApi? "+!!window.freighterApi);
+ if(!f){ L("Masih false, coba buka aqua.network dulu di tab ini, connect, lalu balik ke 1inch.html"); return; }
+ try{
+  var pk=await f.getPublicKey();
+  L("Connected! pubkey: "+pk.slice(0,12)+"...");
+ }catch(e){ L("Connect error: "+e.message); }
+}
 
 function scan(){
  L("--- SCAN ---");
- L("freighter? "+!!window.freighter);
- L("freighterApi? "+!!window.freighterApi);
- var f=window.freighter||window.freighterApi;
- if(f){ try{L("keys: "+Object.keys(f).slice(0,15).join(","));}catch(e){} }
- else L("Buka di Freighter dApp Browser, connect aqua.network dulu");
+ var f=getFreighter();
+ L("found? "+!!f);
+ if(f){ try{L("keys: "+Object.keys(f).join(","));}catch(e){} }
+ for(var k in window){ if(k.toLowerCase().includes("freight")) L("window."+k+" = "+typeof window[k]); }
 }
 
 function buildXdr(){
- L("--- BUILD OFFLINE ---");
+ L("--- BUILD ---");
  try{
-  if(!window.StellarSdk){ L("SDK gagal load"); return; }
   var Sdk=window.StellarSdk;
-  // source dummy valid format - pakai random biar valid
-  var sourceKP=Sdk.Keypair.random();
-  var source=sourceKP.publicKey();
-  var dest=Sdk.Keypair.random().publicKey();
-  L("source: "+source.slice(0,12)+"...");
-
-  var account=new Sdk.Account(source, "1");
-  var memoText="Payment 10 XLM to aqua.network - trusted";
+  var src=Sdk.Keypair.random().publicKey();
+  var dst=Sdk.Keypair.random().publicKey();
+  L("src: "+src.slice(0,10));
+  var account=new Sdk.Account(src, "1");
+  // FIX: memo max 28 char!
+  var memo="Pay 10 XLM"; // 9 char, aman
 
   var tx=new Sdk.TransactionBuilder(account, {
     fee: Sdk.BASE_FEE,
     networkPassphrase: Sdk.Networks.TESTNET,
-    memo: Sdk.Memo.text(memoText)
+    memo: Sdk.Memo.text(memo)
   })
  .addOperation(Sdk.Operation.payment({
-    destination: dest,
+    destination: dst,
     amount: "10",
     asset: Sdk.Asset.native()
   }))
  .addOperation(Sdk.Operation.manageData({
-    name: "audit_test",
-    value: "second_operation"
+    name: "audit",
+    value: Buffer.from("second_op") // FIX: pakai Buffer, max 64 byte
   }))
  .setTimeout(30)
  .build();
 
   testXDR=tx.toXDR();
-  L("SUCCESS");
-  L("Memo: "+memoText);
-  L("Op1: payment 10 XLM to "+dest.slice(0,12)+"...");
-  L("Op2: manageData audit_test");
+  L("SUCCESS! memo="+memo);
+  L("Op1 payment 10 XLM");
+  L("Op2 manageData audit=second_op");
   L("XDR: "+testXDR.slice(0,70)+"...");
-  L("--- Sekarang tap 2 ---");
-  L("BUG HIGH jika popup Freighter cuma show memo, tidak show Op2 manageData");
- }catch(e){ L("Error: "+e.message); }
+  L("BUG jika popup cuma show memo tanpa Op2");
+ }catch(e){ L("Error: "+e.message); L(e.stack); }
 }
 
 async function signXdr(){
  if(!testXDR){ L("Build dulu"); return; }
- var f=window.freighter||window.freighterApi;
- if(!f){ L("freighterApi false - kamu di luar Freighter"); return; }
- L("--- REQUEST SIGN ---");
+ var f=getFreighter();
+ if(!f){ L("No freighter"); return; }
+ L("--- SIGN ---");
  try{
   var res=await f.signTransaction(testXDR, {networkPassphrase: StellarSdk.Networks.TESTNET});
-  L("Signed: "+res.signedTxXdr.slice(0,60)+"...");
- }catch(e){ L("Reject: "+e.message); L("Screenshot popup SEBELUM reject"); }
+  L("Signed: "+res.signedTxXdr.slice(0,60));
+ }catch(e){ L("Reject: "+e.message); }
 }
-scan();
 </script>
 </body>
 </html>
