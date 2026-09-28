@@ -2,28 +2,28 @@
 <head>
 <meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
-<title>poc memo hide</title>
+<title>poc - memo hide</title>
 </head>
-<body style="font-family:monospace;padding:12px;background:#f4f4f4;color:#111;max-width:600px">
+<body style="background:#000;color:#fff;font-family:monospace;padding:12px;max-width:600px">
 
-<p><b>freighter - operation hiding via memo</b><br>
-testnet, benign poc<br>
+<p>freighter - operation hiding via memo<br>
+testnet - benign poc<br>
 src: GAYTUC2ING3L6XXVGH4FJCI2YFXDCBSJCJA2FXLFUC2MQALZOB5XZFMC<br>
 dst: GCLW6J7ZTEA64H5AXLL27FSZH7R7XMTYVQO6UY5W27XNAC73MDTUOGT5</p>
 
-<hr>
+<hr style="border:1px solid #333">
 <p>build xdr (2 ops + memo Pay 10 XLM)</p>
-<button id=b>build xdr</button>
-<pre id=i style="background:#fff;border:1px solid #ccc;padding:8px;white-space:pre-wrap">klik build</pre>
+<button id=b style="background:#fff;color:#000;border:0;padding:6px 10px">build xdr</button>
+<pre id=i style="background:#111;border:1px solid #333;padding:8px;white-space:pre-wrap;color:#fff">click build</pre>
 
-<hr>
-<p>xdr - paste ke lab.stellar.org -> submit transaction</p>
-<textarea id=x style="width:100%;height:90px;font-size:11px"></textarea><br>
-<button id=c style="margin-top:5px">copy xdr</button> <span id=s style="font-size:11px"></span>
+<hr style="border:1px solid #333">
+<p>xdr - paste to lab.stellar.org -> submit transaction</p>
+<textarea id=x style="width:100%;height:90px;background:#111;color:#fff;border:1px solid #333;font-size:11px"></textarea><br>
+<button id=c style="margin-top:5px;background:#fff;color:#000;border:0;padding:5px 8px">copy xdr</button> <span id=s style="font-size:11px"></span>
 
-<hr>
-<p>decoded - lab bakal show gini:</p>
-<pre id=d style="background:#fff;border:1px solid #ccc;padding:8px;font-size:11px"></pre>
+<hr style="border:1px solid #333">
+<p>decoded - lab will show this:</p>
+<pre id=d style="background:#111;border:1px solid #333;padding:8px;font-size:11px;color:#fff"></pre>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js"></script>
 <script>
@@ -40,12 +40,12 @@ var tx=new StellarSdk.TransactionBuilder(acc,{fee:"200",networkPassphrase:Stella
 .setTimeout(300).build();
 cur=tx.toXDR();
 x.value=cur;
-i.innerText="built ok\nsrc: "+src+"\nfee: 200\nmemo: Pay 10 XLM\nop1: payment 10 XLM -> "+dst.slice(0,15)+"..\nop2: manageData test=abc123 (dGVzdA== / YWJjMTIz)\n\nxdr ready, copy paste ke lab.stellar.org\nlab show 2 ops, freighter cuma show memo";
-d.innerText=JSON.stringify({source_account:src,fee:200,memo:"Pay 10 XLM",operations:[{payment:{destination:dst,amount:"10.0"}},{manage_data:{data_name:"test (hex:dGVzdA==)",data_value:"abc123 (hex:YWJjMTIz)"}}]},null,2);
+i.innerText="built ok\nsrc: "+src+"\nfee: 200\nmemo: Pay 10 XLM\nop1: payment 10 XLM -> "+dst.slice(0,15)+"..\nop2: manage_data test=abc123 (dGVzdA== / YWJjMTIz)\n\nxdr ready, copy paste to lab.stellar.org\nlab shows 2 ops, freighter only shows memo";
+d.innerText=JSON.stringify({source_account:src,fee:200,memo:"Pay 10 XLM",operations:[{payment:{destination:dst,amount:"10"}},{manage_data:{name:"test (hex:dGVzdA==)",value:"abc123 (hex:YWJjMTIz)"}}]},null,2);
 }catch(e){i.innerText="err: "+e.message}
 }
 c.onclick=function(){
-if(!x.value){alert("build dulu");return}
+if(!x.value){alert("build first");return}
 x.select();
 document.execCommand("copy");
 if(navigator.clipboard) navigator.clipboard.writeText(x.value);
