@@ -1,24 +1,9 @@
 <!DOCTYPE html>
 <html>
-<head>
-<title>Ult App - Safe Deep-link Check</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="font-family:sans-serif; padding:20px">
-<h2>Safe Deep-link Check - Akun Milik Sendiri</h2>
-<p>Hanya untuk cek apakah layar konfirmasi + passcode muncul. Tidak ada auto_submit.</p>
-
-<!-- Ganti dengan WALLET_B milikmu sendiri -->
+<head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Safe Check</title></head>
+<body style="font-family:sans-serif;padding:20px">
 <a href="ultapp://transfer?to=0x7b0c4918c4148f502cD431C5B2b99D92637c8d1b&amount=0.001&asset=CRO">
-  Buka Layar Transfer (harus minta konfirmasi + passcode)
+Buka layar transfer - harus minta konfirmasi + passcode
 </a>
-
-<p>Yang harus kamu rekam untuk laporan:</p>
-<ol>
-  <li>Tap link di atas</li>
-  <li>Apakah app menampilkan detail penerima, jumlah, asset dengan jelas?</li>
-  <li>Apakah layar passcode/biometrik muncul sebelum signing?</li>
-  <li>Di Burp, apakah request ke api.cronos.com butuh passcode_verification_token yang fresh?</li>
-</ol>
 </body>
 </html>
