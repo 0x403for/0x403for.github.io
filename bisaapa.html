@@ -2,33 +2,36 @@
 <head>
 <meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
-<title>Freighter Clipboard Check - BENIGN</title>
+<title>Freighter External Scheme Check - BENIGN</title>
 </head>
 <body style="background:#000;color:#fff;font-family:monospace;padding:14px">
-<p>Freighter iOS dApp Browser - Clipboard Check<br>(BENIGN, NO HIJACK)<br>Test di: 0x403for.github.io</p>
-<hr>
-<button id=w style="padding:12px;width:100%">Test Write (need click) → write TEST-0x403for</button>
-<button id=r style="padding:12px;width:100%;margin-top:10px">Test Read (should prompt) → read clipboard</button>
-<pre id=log style="background:#111;border:1px solid #333;padding:10px;white-space:pre-wrap;margin-top:12px">log:
+<p>Freighter iOS dApp Browser - External Scheme Check<br>(BENIGN - need click)<br>Test di: 0x403for.github.io<br>FreighterMobile/1.26.29</p>
+<hr style="border:1px solid #333">
+<button id=t1 style="padding:12px;width:100%;margin-top:8px">Test tel:// -> tel:123</button>
+<button id=t2 style="padding:12px;width:100%;margin-top:8px">Test mailto:// -> mailto:test@test.com</button>
+<button id=t3 style="padding:12px;width:100%;margin-top:8px">Test stellar://</button>
+<button id=t4 style="padding:12px;width:100%;margin-top:8px">Test freighter://</button>
+<button id=t5 style="padding:12px;width:100%;margin-top:8px">Test sms://</button>
+<pre id=log style="background:#111;border:1px solid #333;padding:10px;white-space:pre-wrap;margin-top:12px;min-height:140px">log:
 </pre>
 <script>
 var logEl=document.getElementById('log');
 function l(m){logEl.innerText+="\n"+m}
 l("UserAgent: "+navigator.userAgent);
-document.getElementById('w').onclick=async function(){
-  l("\n[WRITE] clicked");
+function testScheme(name, url){
+  l("\n["+name+"] clicked -> "+url);
   try{
-    await navigator.clipboard.writeText("TEST-0x403for");
-    l("[WRITE] SUCCESS");
-  }catch(e){ l("[WRITE] BLOCKED: "+e.message) }
-};
-document.getElementById('r').onclick=async function(){
-  l("\n[READ] clicked");
-  try{
-    var t=await navigator.clipboard.readText();
-    l("[READ] GOT: "+t);
-  }catch(e){ l("[READ] BLOCKED/PROMPT: "+e.message) }
-};
+    window.location.href = url;
+    l("Check if Freighter shows confirm popup");
+    l("If direct open without popup = BUG");
+    l("If shows popup = GOOD");
+  }catch(e){ l("BLOCKED: "+e.message); }
+}
+document.getElementById('t1').onclick=function(){ testScheme("TEL","tel:123456789"); };
+document.getElementById('t2').onclick=function(){ testScheme("MAILTO","mailto:test@test.com"); };
+document.getElementById('t3').onclick=function(){ testScheme("STELLAR","stellar://"); };
+document.getElementById('t4').onclick=function(){ testScheme("FREIGHTER","freighter://"); };
+document.getElementById('t5').onclick=function(){ testScheme("SMS","sms:123456789"); };
 </script>
 </body>
 </html>
