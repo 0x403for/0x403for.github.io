@@ -2,65 +2,32 @@
 <head>
 <meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
-<title>freighter - webview config check - benign</title>
+<title>Freighter Clipboard Check - BENIGN</title>
 </head>
-<body style="background:#000;color:#fff;font-family:monospace;padding:12px">
-<p>Freighter iOS dApp Browser - Config Check (BENIGN, NO ESCAPE)<br>
-Test di: 0x403for.github.io</p>
+<body style="background:#000;color:#fff;font-family:monospace;padding:14px">
+<p>Freighter iOS dApp Browser - Clipboard Check<br>(BENIGN, NO HIJACK)<br>Test di: 0x403for.github.io</p>
 <hr>
-
-<button id=b1>check 1: freighterApi in iframe?</button>
-<button id=b2>check 2: javascript: url allowed?</button>
-<button id=b3>check 3: file:// fetch blocked?</button>
-<button id=b4>check 4: postMessage origin check</button>
-<pre id=log style="background:#111;border:1px solid #222;padding:8px;white-space:pre-wrap;margin-top:10px">log:</pre>
-
+<button id=w style="padding:12px;width:100%">Test Write (need click) → write TEST-0x403for</button>
+<button id=r style="padding:12px;width:100%;margin-top:10px">Test Read (should prompt) → read clipboard</button>
+<pre id=log style="background:#111;border:1px solid #333;padding:10px;white-space:pre-wrap;margin-top:12px">log:
+</pre>
 <script>
-function l(m){document.getElementById('log').innerText+="\n"+m}
+var logEl=document.getElementById('log');
+function l(m){logEl.innerText+="\n"+m}
 l("UserAgent: "+navigator.userAgent);
-
-// 1. iframe leak - safe check only
-document.getElementById('b1').onclick=function(){
+document.getElementById('w').onclick=async function(){
+  l("\n[WRITE] clicked");
   try{
-    var ifr=document.createElement('iframe');
-    ifr.src="about:blank";
-    document.body.appendChild(ifr);
-    var has = !!ifr.contentWindow.freighterApi || !!window.freighterApi;
-    l("CHECK 1 iframe: freighterApi in main window? "+ !!window.freighterApi);
-    l("If true, test if child can requestAccess - this is origin confusion, not escape");
-  }catch(e){l("CHECK 1 err: "+e)}
+    await navigator.clipboard.writeText("TEST-0x403for");
+    l("[WRITE] SUCCESS");
+  }catch(e){ l("[WRITE] BLOCKED: "+e.message) }
 };
-
-// 2. javascript: URL - should be blocked
-document.getElementById('b2').onclick=function(){
-  l("CHECK 2: trying to open javascript: URL - should be BLOCKED by Freighter");
+document.getElementById('r').onclick=async function(){
+  l("\n[READ] clicked");
   try{
-    window.open("javascript:alert(1)","_blank");
-    l("If alert appears, WKWebView allows javascript: scheme - report as URL handling bug");
-  }catch(e){l("CHECK 2 blocked (GOOD): "+e.message)}
-};
-
-// 3. file:// - should be blocked
-document.getElementById('b3').onclick=async function(){
-  l("CHECK 3: trying fetch file:///etc/hosts - should FAIL");
-  try{
-    var r=await fetch("file:///etc/hosts");
-    var t=await r.text();
-    l("UNEXPECTED: file:// readable, length "+t.length+" - report as file access bug");
-  }catch(e){l("CHECK 3 blocked (GOOD): "+e.message)}
-};
-
-// 4. postMessage origin
-document.getElementById('b4').onclick=function(){
-  l("CHECK 4: listening postMessage, sending from * - Freighter should check event.origin");
-  window.addEventListener("message", function(e){
-    l("Got message from origin: "+e.origin+" data: "+JSON.stringify(e.data).slice(0,100));
-    if(e.origin!=="https://0x403for.github.io"){
-      l("If Freighter acts on this message without origin check, it's postMessage bypass");
-    }
-  });
-  window.postMessage({type:"SIGN_TX", xdr:"test"}, "*");
-  l("Sent postMessage * - check log");
+    var t=await navigator.clipboard.readText();
+    l("[READ] GOT: "+t);
+  }catch(e){ l("[READ] BLOCKED/PROMPT: "+e.message) }
 };
 </script>
 </body>
