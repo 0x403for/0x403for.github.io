@@ -1,18 +1,1 @@
-<html>
-<head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
-<title>Camera/Mic Check</title></head>
-<body style="background:#000;color:#fff;font-family:monospace;padding:14px">
-<button id=c1 style="padding:12px;width:100%">Test getUserMedia camera</button>
-<pre id=log style="background:#111;border:1px solid #333;padding:10px">log:</pre>
-<script>
-var l=(m)=>document.getElementById('log').innerText+="\n"+m;
-document.getElementById('c1').onclick=async()=>{
-  try{
-    let s=await navigator.mediaDevices.getUserMedia({video:true});
-    l("Got stream - cek apakah Freighter munculin prompt dengan nama 0x403for.github.io");
-    s.getTracks().forEach(t=>t.stop());
-  }catch(e){l("BLOCKED: "+e.message);}
-};
-</script>
-</body>
-</html>
+<iframe src="https://app.redstone.finance" style="width:100%;height:800px"></iframe>
