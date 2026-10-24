@@ -1,19 +1,38 @@
-<h2>Test A - Blind Soroban</h2>
-<button onclick="testSoroban()">Sign Transfer USDC (korban -> attacker)</button>
+<html>
+<head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>Freighter UAF Stability Check - BENIGN</title></head>
+<body style="background:#000;color:#fff;font-family:monospace;padding:14px">
+<p>Freighter 1.26.29 UAF Stability - BENIGN<br>0x403for.github.io - NO MEMORY READ</p>
+<button id=start style="padding:12px;width:100%">Start Stability Test (50x iframe+blob)</button>
+<pre id=log style="background:#111;border:1px solid #333;padding:10px;white-space:pre-wrap">log:
+Test ini TIDAK bypass camera prompt
+Cuma bikin/remove iframe cepat buat cek crash
+</pre>
 <script>
-async function testSoroban(){
-  const xdr = "AAAA...XDR_SOROBAN_TRANSFER_DARI_KAMU_KE_GBEVIL...";
-  let r = await window.freighterApi.signTransaction(xdr, {network:"TESTNET"});
-  alert(r);
-}
+var logEl=document.getElementById('log');
+function l(m){logEl.innerText+="\n"+m}
+l("UA: "+navigator.userAgent);
+
+document.getElementById('start').onclick=async()=>{
+  l("\n[START] 50x create/remove iframe + blob");
+  for(let i=0;i<50;i++){
+    try{
+      let f=document.createElement('iframe');
+      f.src='about:blank';
+      document.body.appendChild(f);
+      let blobUrl=URL.createObjectURL(new Blob(['test '+i],{type:'text/html'}));
+      // race: ganti src jadi blob terus langsung remove
+      try{f.src=blobUrl;}catch(e){}
+      f.remove();
+      URL.revokeObjectURL(blobUrl);
+      if(i%10==0){ l("iter "+i+" - still alive"); await new Promise(r=>setTimeout(r,20)); }
+    }catch(e){ l("iter "+i+" error: "+e.message); }
+  }
+  l("\n[DONE] No crash - Freighter GOOD");
+  l("Kalau Freighter crash / freeze, ambil log di:");
+  l("iPhone Settings > Privacy > Analytics > Freighter-*.ips");
+  l("Lapor .ips itu ke HackerOne sebagai DoS/Stability, jangan coba baca memory");
+};
 </script>
-
-<h2>Test B - Multi-Op Cloak</h2>
-<button onclick="testMulti()">Tx 1 op terlihat, 9 op hidden</button>
-
-<h2>Test C - stellar:// Hijack</h2>
-<a href="stellar://pay?destination=GBEVIL...&amount=100">Klik Airdrop 1000 XLM</a>
-
-<h2>Test D - Mixed Content</h2>
-<img src="http://httpbin.org/image/png">
-<script>fetch("http://httpbin.org/get").then(r=>alert("HTTP ALLOWED = BUG"))</script>
+</body>
+</html>
