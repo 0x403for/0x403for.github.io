@@ -1,8 +1,15 @@
 <?php
-
-header('Content-Type: application/octet-stream');
-header('Content-Disposition: attachment; filename="file.exe"');
-
+header('Content-Type: text/html; charset=utf-8');
+header('Content-Disposition: attachment; filename="poc.html"');
+header('X-Content-Type-Options: nosniff');
+header('Cache-Control: no-cache');
 ?>
-
-<h1 style=font-size:100px><mark>This should not be displayed</mark><br><marquee scrollamount=20>Only Freigther IOS
+<!DOCTYPE html>
+<html>
+<head><title>PoC - Freighter Content-Disposition Bypass</title></head>
+<body>
+<h1 style="font-size:40px"><mark>This should not be displayed</mark></h1>
+<p style="font-size:20px">If you see this in Freighter Dapp Browser, it ignores Content-Disposition: attachment</p>
+<p>Domain: drive.usercontent.google.com simulation</p>
+</body>
+</html>
