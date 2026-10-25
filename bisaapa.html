@@ -1,55 +1,9 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Media Parsing & Error Handling Test</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; }
-        #status { padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }
-    </style>
-</head>
-<body>
 
-    <h2>Audio File Error Handling Tester</h2>
-    <p>Pilih file audio (termasuk file yang terkorupsi/uji coba) untuk memverifikasi respon browser.</p>
-
-    <input type="file" id="audioInput" accept="audio/*">
-    <br><br>
-
-    <audio id="audioPlayer" controls style="display:none;"></audio>
-
-    <div id="status">Status: Menunggu file...</div>
-
-    <script>
-        const audioInput = document.getElementById('audioInput');
-        const audioPlayer = document.getElementById('audioPlayer');
-        const statusDiv = document.getElementById('status');
-
-        audioInput.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            statusDiv.textContent = `Mencoba memuat file: ${file.name} (${file.size} bytes)...`;
-
-            // Buat Object URL dari file lokal
-            const fileURL = URL.createObjectURL(file);
-            audioPlayer.src = fileURL;
-
-            // Event handler jika file berhasil di-decode/dimuat
-            audioPlayer.oncanplay = function() {
-                statusDiv.style.color = 'green';
-                statusDiv.textContent = 'SUCCESS: File audio berhasil diparsing dan siap diputar.';
-                audioPlayer.style.display = 'block';
-            };
-
-            // Event handler jika file rusak / tidak valid (Error Handling)
-            audioPlayer.onerror = function(e) {
-                statusDiv.style.color = 'red';
-                const errCode = audioPlayer.error ? audioPlayer.error.code : 'Unknown';
-                statusDiv.textContent = `HANDLED ERROR: Browser menolak file yang rusak/invalid. Code: ${errCode}`;
-                audioPlayer.style.display = 'none';
-            };
-        });
-    </script>
-</body>
-</html>
+<script> function go(){ 
+ var x=window.open('about:blank'); 
+ setTimeout(function(){
+ a=x.alert('Go to gmail.com');x.prompt('E-mail','');b=x.prompt('Password','');x.alert('Welcome to Gmail.com');} ,1000);
+  } 
+ </script> 
+ 
+ <button onclick="go()">go</button>
