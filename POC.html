@@ -1,13 +1,9 @@
-<input type="file" id="file" webkitdirectory multiple>
-<pre id="log3"></pre>
-<script>
-document.getElementById('file').onchange=e=>{
-  let files=e.target.files;
-  for(let f of files){
-    document.getElementById('log3').textContent+=f.webkitRelativePath+"\n";
-  }
-  // Di Safari, webkitRelativePath kadang kasih full path /Users/...
-  // Kalau kasih full path bukan cuma relative = PRIVACY LEAK
-};
-</script>
-<p>Pilih 1 folder, kalau log muncul /Users/nama kamu/... = LEAK</p>
+<h2>Tel/Facetime Scheme Test - iPhone Only</h2>
+<a href="tel://1234567890;javascript:alert(1)">TEL + JS</a><br>
+<a href="facetime://contact?javascript:alert(document.domain)">FACETIME + JS</a><br>
+<a href="facetime-audio://123?x=1;javascript:alert(2)">FACETIME-AUDIO + JS</a>
+<pre>
+Tap 3 link di atas di Safari iPhone.
+Kalau ada alert 1/2/domain = URI scheme XSS = BUG
+Di Chrome: ga akan alert
+</pre>
