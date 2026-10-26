@@ -1,14 +1,18 @@
-<button onclick="testPrivate()">TEST PRIVATE LEAK</button>
-<pre id="log"></pre>
+<button onclick="testApplePay()">TEST APPLE PAY - SAFARI ONLY</button>
+<pre id="log1"></pre>
 <script>
-function testPrivate(){
-  let req = indexedDB.open("private-test");
-  req.onsuccess = ()=>{
-    localStorage.setItem("private-test","data");
-    document.getElementById('log').textContent = 
-      "IDB + localStorage set di Private Mode\n"+
-      "Tutup Safari Private, buka lagi Safari normal\n"+
-      "Kalau data masih ada = PRIVATE BROWSING LEAK BUG";
-  };
+function testApplePay(){
+  let log = m=>document.getElementById('log1').textContent+=m+"\n";
+  if(window.ApplePaySession){
+    log("ApplePaySession ada = Safari");
+    log("canMakePayments: "+ApplePaySession.canMakePayments());
+    try{
+      let session = new ApplePaySession(3, {countryCode:'US', currencyCode:'USD', total:{label:'Test', amount:'1'}});
+      log("Session dibuat, bisa cek user punya card atau tidak tanpa permission");
+      log(">>> Kalau canMakePayments true tanpa user gesture = PRIVACY LEAK Safari Only");
+    }catch(e){ log("Error: "+e.message); }
+  } else {
+    log("Bukan Safari - ApplePaySession tidak ada");
+  }
 }
 </script>
