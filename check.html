@@ -1,20 +1,69 @@
-<button onclick="lockKeys()">TEST KEYBOARD LOCK BYPASS</button>
-<div id="fake" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:white; z-index:9999;">
-  <h1>🔒 apple.com - Secure</h1>
-  <p>ESC sudah di-lock, ga bisa keluar!</p>
-  <input placeholder="【entity-Apple¦canonical_name=Apple】 ID">
-</div>
+<!DOCTYPE html>
+<html>
+<head><title>WebTransport Leak Test iOS 26.4</title></head>
+<body>
+<h3>WebTransport IP Leak Test - iOS 26.4</h3>
+<p>Private Relay harus ON dulu!</p>
+<p>IP via normal fetch (harus IP relay): <span id="normalIP">loading...</span></p>
+<p>IP via WebTransport (kalau beda = LEAK!): <span id="wtIP">belum test</span></p>
+<button onclick="testLeak()" style="padding:20px; font-size:18px;">TEST WEBTRANSPORT LEAK</button>
+<pre id="log"></pre>
+
 <script>
-async function lockKeys(){
+let log = m=> document.getElementById('log').textContent+=m+"\n";
+
+// Step 1: Cek IP normal (harus IP relay)
+fetch("https://api.ipify.org?format=json")
+  .then(r=>r.json())
+  .then(d=>{ document.getElementById('normalIP').innerText=d.ip; log("Normal IP (relay): "+d.ip); });
+
+async function testLeak(){
+  if(!window.WebTransport){
+    log("❌ WebTransport tidak support - kamu bukan iOS 26.4 atau Safari lama");
+    return;
+  }
+  log("✅ WebTransport support - iOS 26.4 detected!");
+
   try{
-    // Coba lock ESC - seharusnya ga boleh di-lock menurut spec
-    await navigator.keyboard.lock(["Escape", "Meta", "Tab"]);
-    document.getElementById('fake').style.display='block';
-    await document.documentElement.requestFullscreen();
-    alert("Keyboard Lock berhasil! Coba tekan ESC - kalau ga bisa keluar fullscreen = BUG SPOOFING! Phishing valid Medium");
+    // Pakai public WebTransport server
+    log("Connecting to webtransport.day...");
+    let transport = new WebTransport("https://webtransport.day:4433/webtransport");
+    
+    await transport.ready;
+    log("✅ WebTransport connected!");
+
+    // Buat stream buat kirim request IP
+    let stream = await transport.createBidirectionalStream();
+    let writer = stream.writable.getWriter();
+    let reader = stream.readable.getReader();
+
+    // Minta server echo IP
+    await writer.write(new TextEncoder().encode("GET_IP"));
+    
+    let {value} = await reader.read();
+    let wtIP = new TextDecoder().decode(value);
+    document.getElementById('wtIP').innerText = wtIP;
+    log("WebTransport IP: "+wtIP);
+
+    let normalIP = document.getElementById('normalIP').innerText;
+    if(wtIP !== normalIP && normalIP!=="loading..."){
+      log("\n🚨 LEAK FOUND! 🚨");
+      log(`Normal IP (relay): ${normalIP}`);
+      log(`WebTransport IP (real?): ${wtIP}`);
+      log("Kalau WebTransport IP = IP asli provider kamu (bukan IP relay), ini BUG!");
+      log("Laporkan ke Apple Security Bounty!");
+    }else{
+      log("SAFE - IP sama, tidak leak");
+    }
+
   }catch(e){
-    alert("SAFE - Keyboard Lock ditolak: "+e.name+" - "+e.message);
-    // Kalau ditolak = aman, kalau berhasil lock ESC = bug
+    log("Error: "+e.message);
+    log("\nCara lain kalau server public down:");
+    log("1. Cek di 【entity-Mac¦canonical_name=Mac】 pakai Wireshark saat WebTransport connect");
+    log("2. Lihat apakah ada DNS query langsung ke webtransport.day tanpa lewat Private Relay");
+    log("3. Atau lihat di Safari > Develop > Web Inspector > Network > filter QUIC");
   }
 }
 </script>
+</body>
+</html>
