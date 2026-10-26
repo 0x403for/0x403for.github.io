@@ -1,19 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head><title>Netlify ITP Target</title></head>
+<body>
+<h3>Netlify Iframe Target</h3>
+<p id="info">Waiting for test...</p>
 
 <script>
-(async () => {
+async function checkInitial(){
   const has = await document.hasStorageAccess();
-  document.cookie = "test_3p=leak123; SameSite=None; Secure";
-  const cookies = document.cookie;
-  const canRequest = 'requestStorageAccess' in document;
-  
-  alert(`ITP TEST iOS 26.4.1:
-hasStorageAccess: ${has}
-canRequest: ${canRequest}
-document.cookie: ${cookies}
-location: ${location.hostname}
-  
-Jika has=true padahal belum pernah Allow + cookie kebaca = BYPASS!
-Jika has=false + cookie kosong = SAFE (ITP work)
-`);
-})();
+  document.getElementById('info').innerText = 
+    `Initial: hasStorageAccess=${has}, cookie=${document.cookie || 'kosong'}, host=${location.host}`;
+}
+checkInitial();
+
+window.addEventListener("message", async (e) => {
+  if(e.data === "doBypassTest"){
+    let result = "";
+    try{
+      const beforeHas = await document.hasStorageAccess();
+      result += `Before: hasStorageAccess=${beforeHas}\n`;
+      result += `Before: cookie=${document.cookie || 'kosong'}\n\n`;
+
+      // Ini yang di-test: bisa ga request tanpa user gesture di iframe?
+      // Di iOS 26.4.1 seharusnya HARUS ada user gesture di iframe + prompt
+      await document.requestStorageAccess();
+      
+      const afterHas = await document.hasStorageAccess();
+      document.cookie = "bypass_test=LEAK_26.4.1; SameSite=None; Secure";
+      
+      result += `After requestStorageAccess:\n`;
+      result += `hasStorageAccess=${afterHas}\n`;
+      result += `cookie=${document.cookie}\n\n`;
+      
+      if(afterHas && document.cookie.includes("bypass")){
+        result += ">>> POTENTIAL BYPASS! Bisa akses storage tanpa prompt yang benar!";
+      } else {
+        result += "SAFE - butuh prompt";
+      }
+    }catch(err){
+      result += `SAFE - requestStorageAccess ditolak (ini yang benar):\n${err.name}: ${err.message}\n`;
+      result += `ITP bekerja normal di iOS 26.4.1`;
+    }
+    // Kirim balik ke parent (github.io)
+    parent.postMessage(result, "*");
+  }
+});
 </script>
+</body>
+</html>
