@@ -1,17 +1,9 @@
-<h2>Apple Pay 3rd Party Leak - Safari Only</h2>
-<iframe id="f" src="about:blank"></iframe>
-<script>
-let iframe = document.getElementById('f');
-iframe.srcdoc = `
-<script>
-  if(window.ApplePaySession){
-    let can = ApplePaySession.canMakePayments();
-    parent.postMessage("LEAK dari iframe 3rd-party: canMakePayments="+can, "*");
-  }
-<\/script>
-`;
-window.addEventListener('message', e=>{
-  alert(e.data);
-  document.body.innerHTML += "<h1 style='color:red'>"+e.data+"</h1><p>Kalau muncul di iframe tanpa gesture = PRIVACY LEAK Safari Only!</p>";
-});
-</script>
+<h3>Universal Links Test - iPhone Safari Only</h3>
+<a href="https://www.apple.com/.well-known/apple-app-site-association">AASA File</a><br>
+<a href="https://0x403for.github.io/.well-known/apple-app-site-association">Fake AASA</a>
+<pre>
+Di Safari iOS:
+- Buka apple.com, harusnya buka app Apple
+- Buka github.io dengan file AASA palsu, kalau Safari anggap valid dan buka app = SPOOF
+- Chrome di iPhone ga akan buka app, cuma Safari yang punya Universal Links
+</pre>
