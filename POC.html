@@ -1,18 +1,17 @@
-<button onclick="testApplePay()">TEST APPLE PAY - SAFARI ONLY</button>
-<pre id="log1"></pre>
+<h2>Apple Pay 3rd Party Leak - Safari Only</h2>
+<iframe id="f" src="about:blank"></iframe>
 <script>
-function testApplePay(){
-  let log = m=>document.getElementById('log1').textContent+=m+"\n";
+let iframe = document.getElementById('f');
+iframe.srcdoc = `
+<script>
   if(window.ApplePaySession){
-    log("ApplePaySession ada = Safari");
-    log("canMakePayments: "+ApplePaySession.canMakePayments());
-    try{
-      let session = new ApplePaySession(3, {countryCode:'US', currencyCode:'USD', total:{label:'Test', amount:'1'}});
-      log("Session dibuat, bisa cek user punya card atau tidak tanpa permission");
-      log(">>> Kalau canMakePayments true tanpa user gesture = PRIVACY LEAK Safari Only");
-    }catch(e){ log("Error: "+e.message); }
-  } else {
-    log("Bukan Safari - ApplePaySession tidak ada");
+    let can = ApplePaySession.canMakePayments();
+    parent.postMessage("LEAK dari iframe 3rd-party: canMakePayments="+can, "*");
   }
-}
+<\/script>
+`;
+window.addEventListener('message', e=>{
+  alert(e.data);
+  document.body.innerHTML += "<h1 style='color:red'>"+e.data+"</h1><p>Kalau muncul di iframe tanpa gesture = PRIVACY LEAK Safari Only!</p>";
+});
 </script>
