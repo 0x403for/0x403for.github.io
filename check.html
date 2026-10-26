@@ -1,17 +1,2 @@
-<button onclick="testPush()" style="padding:20px; width:100%;">TEST PUSH NOTIFICATION SPOOF</button>
-<script>
-async function testPush(){
-  let perm = await Notification.requestPermission();
-  if(perm==="granted"){
-    // Coba spoof origin di notifikasi
-    new Notification("【entity-Apple¦canonical_name=Apple】 Security", {
-      body: "Your 【entity-Apple¦canonical_name=Apple】 ID has been locked - Click to unlock",
-      icon: "https://www.apple.com/favicon.ico",
-      // Di Safari 26.4, body bisa di-spoof tanpa nunjukin origin asli
-    });
-    alert("Cek notifikasi: kalau muncul 【entity-Apple¦canonical_name=Apple】 Security tanpa tulis 0x403for.github.io = SPOOF VALID! Bisa phishing!");
-  }else{
-    alert("Permission: "+perm+" - Aktifin notifikasi dulu di Settings > Safari");
-  }
-}
-</script>
+<a href="https://apple.com/app-clip/test" style="display:block; padding:20px; background:blue; color:white; text-align:center;">TEST UNIVERSAL LINK SPOOF - SAFARI ONLY</a>
+<p>Kalau klik Universal Link dan buka App Clip tanpa konfirmasi origin = SPOOF Safari-only!</p>
