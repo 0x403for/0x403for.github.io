@@ -1,7 +1,11 @@
-<iframe id="f" srcdoc="<script>alert('Safari Only: '+document.domain)</script>"></iframe>
+<canvas id="c"></canvas>
+<pre id="webglLog"></pre>
 <script>
-let f = document.getElementById('f');
-f.src = "javascript:alert('Bypass? '+document.domain)";
-// Di Chrome: blocked
-// Di Safari: kadang masih alert = JS URL BYPASS
+let canvas = document.getElementById('c');
+let gl = canvas.getContext('webgl');
+let dbg = gl.getExtension('WEBGL_debug_renderer_info');
+let log = "Vendor: "+gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL)+"\nRenderer: "+gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+document.getElementById('webglLog').textContent = log;
+// Di Safari, ini harusnya di-block kalau fingerprinting protection ON
+// Kalau masih kebaca full renderer = PRIVACY LEAK
 </script>
