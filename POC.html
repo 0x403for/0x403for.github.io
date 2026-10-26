@@ -2,126 +2,137 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width">
-<title>Safari One Domain Bug Lab</title>
-<style>body{font-family:monospace;padding:15px} pre{background:#111;color:#0f0;padding:10px;white-space:pre-wrap} button{padding:10px;margin:5px}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Safari Test Fixed</title>
+<style>
+body{font-family:-apple-system;padding:15px;background:#f5f5f7}
+button{background:#007aff;color:white;border:none;padding:15px 25px;font-size:18px;border-radius:12px;width:100%;margin:10px 0}
+pre{background:#000;color:#0f0;padding:12px;border-radius:8px;overflow:auto;font-size:13px;min-height:200px}
+.ok{color:#0f0} .leak{color:#ff3b30;font-weight:bold;background:yellow}
+</style>
 </head>
 <body>
-<h2>SAFARI BUG TEST - 1 DOMAIN SAJA</h2>
-<button onclick="runAll()">KLIK UNTUK MULAI TEST (Wajib klik sekali buat trigger)</button>
-<pre id="log">Belum mulai...</pre>
+
+<h2>Safari Bug Test - 1 File Fix</h2>
+<p>Klik tombol di bawah, wajib klik 1x biar Safari kasih gesture</p>
+
+<button id="btnRun">RUN TEST - TAP DISINI</button>
+<button id="btnClear" style="background:#888">Clear Log</button>
+
+<pre id="log">Menunggu klik...
+</pre>
+
+<div id="area"></div>
 
 <script>
-const logEl = document.getElementById('log');
-const log = m => logEl.textContent += m + "\n";
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
+// Fix biar pasti jalan di Safari lama
+var logEl = document.getElementById('log');
+function log(msg){
+  var time = new Date().toLocaleTimeString();
+  logEl.textContent += "["+time+"] " + msg + "\n";
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
 
-async function runAll(){
+document.getElementById('btnClear').onclick = function(){
+  logEl.textContent = "Log cleared...\n";
+};
+
+document.getElementById('btnRun').onclick = async function(){
   logEl.textContent = "";
-  log("=== TEST SAFARI 1 DOMAIN - START ===\n");
+  log("=== START TEST ===");
+  log("User gesture diterima, mulai test...\n");
 
-  // === TEST 1: enumerateDevices LABEL LEAK (Paling gampang) ===
-  log("[1] TEST enumerateDevices - Sensor Leak");
+  // TEST 1 - Paling gampang, pasti jalan
+  log("[1] Test enumerateDevices...");
   try{
-    let devices = await navigator.mediaDevices.enumerateDevices();
-    log(`Dapat ${devices.length} devices:`);
-    devices.forEach(d=>{
-      log(` - ${d.kind} | label: "${d.label}" | id: ${d.deviceId.slice(0,10)}...`);
-      if(d.label && d.label.length > 0){
-        log(" >>> [LEAK!] Label kebaca tanpa permission prompt = BUG VALID di Safari!");
+    if(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices){
+      var devices = await navigator.mediaDevices.enumerateDevices();
+      log(" Dapat " + devices.length + " devices");
+      for(var i=0;i<devices.length;i++){
+        var d = devices[i];
+        var label = d.label || "(kosong)";
+        log("  - " + d.kind + " | label: " + label);
+        if(d.label && d.label.length > 2){
+          log("  >>> LEAK! Label kebaca tanpa permission: " + d.label + " = BUG!");
+        }
       }
-    });
-    if(devices.every(d=>d.label==="")){
-      log(" [SAFE] Label kosong, butuh permission dulu (normal)");
+      if(devices.length > 0 && devices[0].label === ""){
+        log("  [SAFE] Label kosong, butuh permission dulu");
+      }
+    } else {
+      log("  enumerateDevices tidak support di browser ini");
     }
-  }catch(e){
-    log(" [SAFE/ERROR] "+e.name+": "+e.message);
+  } catch(e){
+    log("  ERROR: " + e.name + " - " + e.message);
   }
 
-  // === TEST 2: DeviceMotion / Orientation Tanpa Permission ===
-  log("\n[2] TEST DeviceMotion & Orientation");
-  let motionLeak = false;
-  window.addEventListener('devicemotion', e=>{
-    if(!motionLeak){
-      log(` >>> [LEAK!] DeviceMotion kebaca: x=${e.accelerationIncludingGravity?.x}`);
-      motionLeak = true;
+  await new Promise(r=>setTimeout(r,500));
+
+  // TEST 2 - DeviceMotion
+  log("\n[2] Test Motion (goyang HP 3 detik)...");
+  var motionFound = false;
+  function onMotion(e){
+    if(!motionFound){
+      var x = e.accelerationIncludingGravity ? e.accelerationIncludingGravity.x : 0;
+      log("  >>> LEAK! Motion kebaca: x=" + x + " = BUG!");
+      motionFound = true;
     }
-  }, {once:true});
-  
-  window.addEventListener('deviceorientation', e=>{
-    log(` >>> [LEAK!] DeviceOrientation kebaca: alpha=${e.alpha}`);
-  }, {once:true});
-  
-  log(" Goyangkan HP sekarang (5 detik)...");
-  await sleep(5000);
-  if(!motionLeak) log(" [SAFE] Tidak ada motion tanpa permission");
-
-  // === TEST 3: XS-Leak Timing - Pakai endpoint yang sama domain ===
-  log("\n[3] TEST XS-Leak Timing (1 domain)");
-  // Kita test timing load resource yang ada vs tidak ada
-  async function timeFetch(url){
-    let start = performance.now();
-    try{ await fetch(url, {mode:'no-cors', cache:'no-store'}); }catch(e){}
-    return performance.now() - start;
   }
-  let t1 = await timeFetch(window.location.href);
-  let t2 = await timeFetch(window.location.href + "?notfound=" + Date.now());
-  log(` Load halaman sendiri: ${t1.toFixed(2)}ms`);
-  log(` Load dengan param random: ${t2.toFixed(2)}ms`);
-  log(` Kalau beda konsisten >50ms di Safari, bisa dipakai buat bedain login/logout di site lain`);
+  window.addEventListener('devicemotion', onMotion);
+  log("  Silahkan goyangkan HP sekarang...");
+  await new Promise(r=>setTimeout(r,3500));
+  window.removeEventListener('devicemotion', onMotion);
+  if(!motionFound) log("  [SAFE] Tidak ada motion");
 
-  // === TEST 4: History Leak via :visited ===
-  log("\n[4] TEST History Leak :visited");
-  let testLinks = [
-    "https://www.google.com",
-    "https://www.apple.com",
-    "https://example.com/this-page-never-visited-12345"
-  ];
-  for(let url of testLinks){
-    let a = document.createElement('a');
-    a.href = url;
-    a.textContent = url;
-    document.body.appendChild(a);
-    let color = getComputedStyle(a).color;
-    log(` ${url} -> color: ${color} ${color==='rgb(255, 0, 0)' ? '[VISITED?]' : '[NOT]'}`);
-    a.remove();
-    await sleep(100);
-  }
-
-  // === TEST 5: Cookie SameSite + ITP Check (1 domain) ===
-  log("\n[5] TEST ITP / Cookie Check");
-  document.cookie = "test_itp=SINGLE_DOMAIN_TEST; SameSite=None; Secure; Path=/; Max-Age=3600";
-  log(` document.cookie sekarang: ${document.cookie}`);
-  log(` hasStorageAccess: ${await document.hasStorageAccess()}`);
+  // TEST 3 - Cookie
+  log("\n[3] Test Cookie & Storage Access...");
   try{
-    await document.requestStorageAccess();
-    log(" requestStorageAccess granted (butuh click, normal kalau sudah klik tombol tadi)");
+    document.cookie = "safari_test=12345; Max-Age=3600; Path=/";
+    log("  document.cookie: " + document.cookie);
+    var hasAccess = await document.hasStorageAccess();
+    log("  hasStorageAccess: " + hasAccess);
   }catch(e){
-    log(` requestStorageAccess blocked: ${e.name}`);
+    log("  ERROR storage: " + e.message);
   }
 
-  // === TEST 6: Blob URL + window.length (Self XS-Leak) ===
-  log("\n[6] TEST Blob & window.length");
-  let blob = new Blob([`<h1>Blob Test</h1><script>console.log("inside blob:", document.domain)</script>`], {type:"text/html"});
-  let blobUrl = URL.createObjectURL(blob);
-  let iframe = document.createElement('iframe');
-  iframe.src = blobUrl;
-  iframe.style.width = "100%";
-  iframe.style.height = "60px";
-  document.body.appendChild(iframe);
-  log(` Blob URL dibuat: ${blobUrl.slice(0,50)}...`);
-  log(` Coba cek di Web Inspector apakah blob bisa akses parent`);
+  // TEST 4 - History via link
+  log("\n[4] Test History :visited...");
+  var urls = ["https://www.google.com", "https://www.apple.com", "https://example.invalid-never-visited-xyz"];
+  for(var j=0;j<urls.length;j++){
+    var a = document.createElement('a');
+    a.href = urls[j];
+    a.style.display = 'block';
+    a.textContent = urls[j];
+    document.getElementById('area').appendChild(a);
+    var col = window.getComputedStyle(a).color;
+    log("  " + urls[j] + " -> " + col);
+    document.getElementById('area').removeChild(a);
+  }
+
+  // TEST 5 - Blob
+  log("\n[5] Test Blob URL...");
+  try{
+    var blob = new Blob(["<h1>blob ok</h1>"], {type:"text/html"});
+    var url = URL.createObjectURL(blob);
+    log("  Blob URL dibuat: " + url.substring(0,40) + "...");
+    var ifr = document.createElement('iframe');
+    ifr.src = url;
+    ifr.style.width = "100%";
+    ifr.style.height = "50px";
+    ifr.style.border = "1px solid #ccc";
+    document.getElementById('area').appendChild(ifr);
+    log("  Iframe blob ditambahkan");
+  }catch(e){
+    log("  Blob ERROR: " + e.message);
+  }
 
   log("\n=== SELESAI ===");
-  log("Yang paling gampang dapat bug: TEST [1] kalau label kebaca = langsung lapor 【entity-Apple¦canonical_name=Apple】!");
-}
+  log("Kalau ada tulisan LEAK = potensi bug Safari!");
+};
+
+log("File loaded. Silahkan klik RUN TEST");
 </script>
 
-<hr>
-<p><b>Cara pakai:</b><br>
-1. Save file ini jadi <code>test.html</code><br>
-2. Buka di Safari Mac atau Safari iPhone<br>
-3. Klik tombol RUN ALL TESTS<br>
-4. Lihat log: kalau ada tulisan <code>[LEAK!]</code> = potensi bug</p>
 </body>
 </html>
