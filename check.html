@@ -1,1 +1,19 @@
-<script>alert("cookie: "+document.cookie+" | hasAccess: "+await document.hasStorageAccess());</script>
+
+<script>
+(async () => {
+  const has = await document.hasStorageAccess();
+  document.cookie = "test_3p=leak123; SameSite=None; Secure";
+  const cookies = document.cookie;
+  const canRequest = 'requestStorageAccess' in document;
+  
+  alert(`ITP TEST iOS 26.4.1:
+hasStorageAccess: ${has}
+canRequest: ${canRequest}
+document.cookie: ${cookies}
+location: ${location.hostname}
+  
+Jika has=true padahal belum pernah Allow + cookie kebaca = BYPASS!
+Jika has=false + cookie kosong = SAFE (ITP work)
+`);
+})();
+</script>
