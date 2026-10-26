@@ -1,11 +1,14 @@
-<canvas id="c"></canvas>
-<pre id="webglLog"></pre>
+<button onclick="testPrivate()">TEST PRIVATE LEAK</button>
+<pre id="log"></pre>
 <script>
-let canvas = document.getElementById('c');
-let gl = canvas.getContext('webgl');
-let dbg = gl.getExtension('WEBGL_debug_renderer_info');
-let log = "Vendor: "+gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL)+"\nRenderer: "+gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
-document.getElementById('webglLog').textContent = log;
-// Di Safari, ini harusnya di-block kalau fingerprinting protection ON
-// Kalau masih kebaca full renderer = PRIVACY LEAK
+function testPrivate(){
+  let req = indexedDB.open("private-test");
+  req.onsuccess = ()=>{
+    localStorage.setItem("private-test","data");
+    document.getElementById('log').textContent = 
+      "IDB + localStorage set di Private Mode\n"+
+      "Tutup Safari Private, buka lagi Safari normal\n"+
+      "Kalau data masih ada = PRIVATE BROWSING LEAK BUG";
+  };
+}
 </script>
