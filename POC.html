@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Safari Test Fixed</title>
+<title>Safari New Bug Test</title>
 <style>
 body{font-family:-apple-system;padding:15px;background:#f5f5f7}
-button{background:#007aff;color:white;border:none;padding:15px 25px;font-size:18px;border-radius:12px;width:100%;margin:10px 0}
-pre{background:#000;color:#0f0;padding:12px;border-radius:8px;overflow:auto;font-size:13px;min-height:200px}
-.ok{color:#0f0} .leak{color:#ff3b30;font-weight:bold;background:yellow}
+button{background:#007aff;color:white;border:none;padding:15px 25px;font-size:18px;border-radius:12px;width:100%;margin:8px 0}
+pre{background:#000;color:#0f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px;min-height:300px;line-height:1.4}
+.leak{color:#ff3b30;font-weight:bold}
 </style>
 </head>
 <body>
 
-<h2>Safari Bug Test - 1 File Fix</h2>
-<p>Klik tombol di bawah, wajib klik 1x biar Safari kasih gesture</p>
+<h2>Safari Bug Test v2 - New Vectors</h2>
+<p>Bug beda dari yang kemarin - fokus cache & permission baru</p>
 
-<button id="btnRun">RUN TEST - TAP DISINI</button>
-<button id="btnClear" style="background:#888">Clear Log</button>
+<button id="btnRun">RUN NEW TEST - TAP DISINI</button>
+<button id="btnClear" style="background:#666">Clear Log</button>
 
 <pre id="log">Menunggu klik...
 </pre>
@@ -25,113 +25,150 @@ pre{background:#000;color:#0f0;padding:12px;border-radius:8px;overflow:auto;font
 <div id="area"></div>
 
 <script>
-// Fix biar pasti jalan di Safari lama
 var logEl = document.getElementById('log');
 function log(msg){
-  var time = new Date().toLocaleTimeString();
-  logEl.textContent += "["+time+"] " + msg + "\n";
+  var t = new Date().toLocaleTimeString();
+  logEl.textContent += "["+t+"] " + msg + "\n";
   logEl.scrollTop = logEl.scrollHeight;
-  console.log(msg);
 }
 
 document.getElementById('btnClear').onclick = function(){
-  logEl.textContent = "Log cleared...\n";
+  logEl.textContent = "Cleared...\n";
+  document.getElementById('area').innerHTML = "";
 };
 
 document.getElementById('btnRun').onclick = async function(){
   logEl.textContent = "";
-  log("=== START TEST ===");
-  log("User gesture diterima, mulai test...\n");
+  log("=== SAFARI NEW BUG TEST START ===");
+  log("Gesture diterima\n");
 
-  // TEST 1 - Paling gampang, pasti jalan
-  log("[1] Test enumerateDevices...");
+  // TEST 1: WebRTC IP Leak - Safari sering bocor local IP
+  log("[1] WebRTC Local IP Leak...");
   try{
-    if(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices){
-      var devices = await navigator.mediaDevices.enumerateDevices();
-      log(" Dapat " + devices.length + " devices");
-      for(var i=0;i<devices.length;i++){
-        var d = devices[i];
-        var label = d.label || "(kosong)";
-        log("  - " + d.kind + " | label: " + label);
-        if(d.label && d.label.length > 2){
-          log("  >>> LEAK! Label kebaca tanpa permission: " + d.label + " = BUG!");
+    var pc = new RTCPeerConnection({iceServers:[]});
+    pc.createDataChannel("");
+    var offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    pc.onicecandidate = function(e){
+      if(e.candidate){
+        var cand = e.candidate.candidate;
+        log("  ICE Candidate: " + cand);
+        if(cand.indexOf("192.168.") !== -1 || cand.indexOf("10.") !== -1){
+          log("  >>> [LEAK!] Local IP kebaca via WebRTC: " + cand + " = POTENSI BUG");
         }
       }
-      if(devices.length > 0 && devices[0].label === ""){
-        log("  [SAFE] Label kosong, butuh permission dulu");
-      }
-    } else {
-      log("  enumerateDevices tidak support di browser ini");
-    }
-  } catch(e){
-    log("  ERROR: " + e.name + " - " + e.message);
-  }
+    };
+    await new Promise(r=>setTimeout(r,3000));
+    pc.close();
+    log("  [INFO] WebRTC test selesai");
+  }catch(e){ log("  ERROR WebRTC: " + e.message); }
 
   await new Promise(r=>setTimeout(r,500));
 
-  // TEST 2 - DeviceMotion
-  log("\n[2] Test Motion (goyang HP 3 detik)...");
-  var motionFound = false;
-  function onMotion(e){
-    if(!motionFound){
-      var x = e.accelerationIncludingGravity ? e.accelerationIncludingGravity.x : 0;
-      log("  >>> LEAK! Motion kebaca: x=" + x + " = BUG!");
-      motionFound = true;
+  // TEST 2: Cache Timing Leak - Beda resource cached vs tidak
+  log("\n[2] Cache Partitioning Bypass...");
+  try{
+    var url = "https://0x403for.github.io/favicon.ico?cachetest=" + Date.now();
+    var start1 = performance.now();
+    await fetch(url, {cache:"force-cache"});
+    var time1 = performance.now() - start1;
+    
+    var start2 = performance.now();
+    await fetch(url, {cache:"force-cache"});
+    var time2 = performance.now() - start2;
+    
+    log("  Fetch 1: " + time1.toFixed(2) + "ms");
+    log("  Fetch 2 (cached): " + time2.toFixed(2) + "ms");
+    if(time2 < time1 * 0.5){
+      log("  [INFO] Cache timing beda jauh, bisa dipakai XS-Leak");
+    } else {
+      log("  [SAFE] Cache partitioned normal");
     }
-  }
-  window.addEventListener('devicemotion', onMotion);
-  log("  Silahkan goyangkan HP sekarang...");
-  await new Promise(r=>setTimeout(r,3500));
-  window.removeEventListener('devicemotion', onMotion);
-  if(!motionFound) log("  [SAFE] Tidak ada motion");
+  }catch(e){ log("  Cache ERROR: " + e.message); }
 
-  // TEST 3 - Cookie
-  log("\n[3] Test Cookie & Storage Access...");
+  // TEST 3: Opener / window.open Leak
+  log("\n[3] Opener Leak Test...");
   try{
-    document.cookie = "safari_test=12345; Max-Age=3600; Path=/";
-    log("  document.cookie: " + document.cookie);
-    var hasAccess = await document.hasStorageAccess();
-    log("  hasStorageAccess: " + hasAccess);
+    var win = window.open("about:blank", "_blank");
+    if(win){
+      log("  window.open about:blank berhasil");
+      log("  win.opener: " + (win.opener ? "ADA" : "NULL"));
+      if(win.opener){
+        log("  >>> [LEAK!] opener tidak null di about:blank = bisa UXSS");
+      } else {
+        log("  [SAFE] opener null");
+      }
+      win.close();
+    }
+  }catch(e){ log("  Opener ERROR: " + e.message); }
+
+  // TEST 4: Clipboard Read tanpa permission (Safari baru)
+  log("\n[4] Clipboard API Test...");
+  try{
+    if(navigator.clipboard && navigator.clipboard.readText){
+      var text = await navigator.clipboard.readText();
+      log("  >>> [LEAK!] Clipboard kebaca tanpa paste: " + text.substring(0,50));
+    } else {
+      log("  Clipboard readText tidak support / butuh gesture");
+    }
   }catch(e){
-    log("  ERROR storage: " + e.message);
+    log("  [SAFE] Clipboard butuh permission: " + e.name);
   }
 
-  // TEST 4 - History via link
-  log("\n[4] Test History :visited...");
-  var urls = ["https://www.google.com", "https://www.apple.com", "https://example.invalid-never-visited-xyz"];
-  for(var j=0;j<urls.length;j++){
+  // TEST 5: Geolocation via Permissions API (bypass check)
+  log("\n[5] Permissions API + Geolocation...");
+  try{
+    if(navigator.permissions){
+      var perm = await navigator.permissions.query({name:"geolocation"});
+      log("  Geolocation permission state: " + perm.state);
+      if(perm.state === "granted"){
+        log("  >>> [CHECK] Geolocation sudah granted tanpa prompt? Cek sebelumnya");
+      }
+      // Coba getCurrentPosition dengan maximumAge (cache)
+      navigator.geolocation.getCurrentPosition(
+        pos => log("  >>> [LEAK!] Geo dari cache: " + pos.coords.latitude),
+        err => log("  [SAFE] Geo butuh prompt: " + err.message),
+        {maximumAge: 3600000, timeout: 1000}
+      );
+    }
+  }catch(e){ log("  Permissions ERROR: " + e.message); }
+
+  // TEST 6: Download + Navigation Race (Origin Confusion)
+  log("\n[6] Download Attribute + Navigation...");
+  try{
     var a = document.createElement('a');
-    a.href = urls[j];
-    a.style.display = 'block';
-    a.textContent = urls[j];
+    a.href = "data:text/html,[STRIPPED]evil</h1>";
+    a.download = "test.html";
+    a.textContent = "Test download race - tap ini lalu lihat URL bar";
+    a.style.display = "block";
+    a.style.padding = "10px";
+    a.style.background = "#ffcc00";
     document.getElementById('area').appendChild(a);
-    var col = window.getComputedStyle(a).color;
-    log("  " + urls[j] + " -> " + col);
-    document.getElementById('area').removeChild(a);
-  }
+    log("  Link download dibuat, tap link kuning di bawah");
+    log("  Kalau setelah download URL bar ganti tapi file dari origin lama = bug");
+  }catch(e){ log("  Download ERROR: " + e.message); }
 
-  // TEST 5 - Blob
-  log("\n[5] Test Blob URL...");
+  // TEST 7: Service Worker Cache Leak
+  log("\n[7] Service Worker Cache Leak...");
   try{
-    var blob = new Blob(["<h1>blob ok</h1>"], {type:"text/html"});
-    var url = URL.createObjectURL(blob);
-    log("  Blob URL dibuat: " + url.substring(0,40) + "...");
-    var ifr = document.createElement('iframe');
-    ifr.src = url;
-    ifr.style.width = "100%";
-    ifr.style.height = "50px";
-    ifr.style.border = "1px solid #ccc";
-    document.getElementById('area').appendChild(ifr);
-    log("  Iframe blob ditambahkan");
-  }catch(e){
-    log("  Blob ERROR: " + e.message);
-  }
+    if('caches' in window){
+      var cacheNames = await caches.keys();
+      log("  Cache storage: " + cacheNames.length + " caches");
+      cacheNames.forEach(n=>log("   - " + n));
+      if(cacheNames.length > 0){
+        log("  [INFO] Ada cache, bisa di-timing untuk XS-Leak");
+      }
+    } else {
+      log("  Cache API tidak support");
+    }
+  }catch(e){ log("  Cache ERROR: " + e.message); }
 
-  log("\n=== SELESAI ===");
-  log("Kalau ada tulisan LEAK = potensi bug Safari!");
+  log("\n=== SELESAI v2 ===");
+  log("Fokus cek: [LEAK] WebRTC IP & Clipboard");
 };
 
-log("File loaded. Silahkan klik RUN TEST");
+// Auto log loaded
+log("File v2 loaded. Tap RUN NEW TEST");
 </script>
 
 </body>
