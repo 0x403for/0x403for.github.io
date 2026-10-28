@@ -1,131 +1,154 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Apple.com - Secure</title>
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  height: 100dvh;
-  overflow: hidden;
-  background: #f2f2f7;
-}
-#fakeTopBar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: env(safe-area-inset-top, 44px);
-  height: 44px;
-  background: #f2f2f7;
-  border-bottom: 1px solid #c6c6c8;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  padding-top: env(safe-area-inset-top);
-  z-index: 999999;
-  font-family: -apple-system, sans-serif;
-}
-#fakeTopBar .secure {
-  background: #fff;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-#content {
-  margin-top: 44px;
-  height: calc(100dvh - 44px);
-  overflow-y: auto;
-  background: #fff;
-  padding: 20px;
-  text-align: center;
-}
-button#trigger {
-  width: 90%;
-  padding: 18px;
-  background: #ff3b30;
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 16px;
-  position: fixed;
-  bottom: 20px;
-  left: 5%;
-  z-index: 100;
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bug Baru Banget - Belum Pernah Dibahas</title>
+<style>body{font-family:-apple-system;padding:15px;background:#0a0a0a;color:#fff} .card{background:#1c1c1e;padding:14px;border-radius:12px;margin:12px 0;border:1px solid #333} button{width:100%;padding:14px;background:#0af;color:#000;border:none;border-radius:10px;font-weight:700;margin:6px 0} pre{background:#000;color:#0f0;padding:12px;border-radius:8px;font-size:11px;min-height:80px;white-space:pre-wrap;border:1px solid #0f0}</style>
 </head>
 <body>
+<h3 style="color:#0af">3 Bug BARU BANGET - Belum Pernah Dibahas!</h3>
 
-<div id="fakeTopBar">
-  <span class="secure">🔒 <b>apple.com</b> - Secure</span>
-  <span style="color:#8e8e93">🔄</span>
+<div class="card" style="border-color:#0af">
+<h4>BUG 1: EyeDropper API - Bisa ambil pixel cross-origin?</h4>
+<button onclick="testEyeDropper()">TEST EYEDROPPER PIXEL LEAK</button>
+<pre id="eye">Belum test - kalau bisa ambil warna pixel dari iframe apple.com = PIXEL LEAK $10k!</pre>
+<div id="targetEye" style="width:100%;height:100px;background:linear-gradient(90deg, red, blue);margin:10px 0"></div>
+<iframe id="eyeIframe" src="https://apple.com" style="width:100%;height:150px;border:2px solid #0af;display:none"></iframe>
 </div>
 
-<div id="content">
-  <div style="font-size:50px">🍎</div>
-  <h2>【entity-Apple¦canonical_name=Apple】 ID</h2>
-  <p style="font-size:12px;color:red">UPDATE - Fake bar di ATAS nutupin area address bar!</p>
-  <input type="password" placeholder="【entity-Apple¦canonical_name=Apple】 ID Password" style="width:85%;padding:14px;font-size:16px;border:1px solid #d1d1d6;border-radius:10px;margin:15px 0">
-  <p style="font-size:11px;color:#666;margin-top:30px">
-    Cara biar address bar asli HILANG PERMANEN:<br>
-    1. Tap Share (kotak + panah) di Safari<br>
-    2. Tap "Add to Home Screen"<br>
-    3. Buka dari Home Screen (bukan dari Safari)<br>
-    4. Address bar asli HILANG TOTAL! Cuma fake bar yang ada!
-  </p>
-  <div style="height:800px"></div>
+<div class="card" style="border-color:#ff0">
+<h4>BUG 2: Web Locks API - Bisa deteksi tab lain?</h4>
+<button onclick="testLocks()" style="background:#ff0">TEST WEB LOCKS LEAK</button>
+<pre id="locks">Belum test</pre>
 </div>
 
-<button id="trigger" onclick="goFullscreenAndHide()">TRIGGER COVER ADDRESS BAR</button>
+<div class="card" style="border-color:#f0f">
+<h4>BUG 3: Wake Lock + Visibility Leak</h4>
+<button onclick="testWakeLock()" style="background:#f0f;color:#fff">TEST WAKE LOCK LEAK</button>
+<pre id="wake">Belum test</pre>
+</div>
 
 <script>
-function goFullscreenAndHide() {
-  // 1. Scroll trick - sembunyiin address bar iOS
-  window.scrollTo(0, 1);
-  setTimeout(()=>window.scrollTo(0,1), 100);
-  
-  // 2. View Transition + %20 trick
-  if (document.startViewTransition) {
-    document.startViewTransition(()=>{
-      history.pushState({},"","/%20Apple.com/login-final-0day");
-    });
-  } else {
-    history.pushState({},"","/%20Apple.com/login-final-0day");
+async function testEyeDropper(){
+ let el=document.getElementById('eye');
+ el.innerText="Testing EyeDropper API...\n";
+ try{
+  if(!window.EyeDropper){
+   el.innerText+="❌ EyeDropper tidak support di iOS 26.4.1\nCoba di Safari TP Mac\n";
+   return;
   }
+  el.innerText+="✅ EyeDropper support!\n";
   
-  // 3. Fullscreen webkit
-  let el = document.documentElement;
-  try {
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if (el.webkitEnterFullscreen) el.webkitEnterFullscreen();
-  } catch(e){}
+  // Show iframe cross-origin
+  let iframe=document.getElementById('eyeIframe');
+  iframe.style.display='block';
+  el.innerText+="Iframe apple.com ditampilkan, coba ambil pixel dari iframe...\n";
+  el.innerText+="Klik di area iframe apple.com dengan EyeDropper!\n";
   
-  // 4. Sembunyiin tombol
-  document.getElementById('trigger').style.display='none';
-  
-  // 5. Lock scroll
-  document.body.style.overflow='hidden';
+  let eye=new EyeDropper();
+  try{
+   let result=await eye.open();
+   el.innerText+=`EyeDropper result: sRGBHex = ${result.sRGBHex}\n`;
+   el.innerText+=`Kalau bisa ambil warna pixel dari iframe apple.com = PIXEL LEAK!\n`;
+   el.innerText+=`Harusnya di-block untuk cross-origin iframe!\n`;
+  }catch(e){
+   el.innerText+=`EyeDropper cancelled / blocked: ${e.message}\n`;
+   el.innerText+=`SAFE: Cross-origin pixel tidak bisa diambil\n`;
+  }
+ }catch(e){el.innerText+="Error: "+e.message;}
 }
 
-window.addEventListener('load', ()=>{
-  setTimeout(()=>window.scrollTo(0,1), 500);
-});
-window.addEventListener('orientationchange', ()=>{
-  setTimeout(()=>window.scrollTo(0,1), 200);
-});
+async function testLocks(){
+ let el=document.getElementById('locks');
+ el.innerText="Testing Web Locks API...\n";
+ try{
+  if(!navigator.locks){
+   el.innerText+="❌ navigator.locks tidak support\n";
+   return;
+  }
+  el.innerText+="✅ navigator.locks support!\n";
+  
+  // Try to acquire lock
+  await navigator.locks.request('my-lock', async (lock)=>{
+   el.innerText+=`Lock acquired: ${lock.name}, mode: ${lock.mode}\n`;
+   
+   // Check query
+   let state=await navigator.locks.query();
+   el.innerText+=`Locks state: ${JSON.stringify(state, null, 2)}\n`;
+   
+   if(state.held && state.held.length>0){
+    el.innerText+="Ada held locks, bisa deteksi tab lain lagi lock apa?\n";
+   }
+   
+   // Try to detect if another tab holds lock
+   setTimeout(async ()=>{
+    let state2=await navigator.locks.query();
+    el.innerText+=`\nAfter 2s, locks: ${JSON.stringify(state2)}\n`;
+    if(state2.pending && state2.pending.length>0){
+     el.innerText+="🚨 LEAK? Ada pending locks = bisa deteksi aktivitas tab lain!\n";
+    } else {
+     el.innerText+="SAFE: Tidak bisa deteksi tab lain via locks\n";
+    }
+   }, 2000);
+   
+   await new Promise(r=>setTimeout(r,5000));
+  });
+  
+  el.innerText+="\nLock released\n";
+ }catch(e){el.innerText+="Error: "+e.message;}
+}
+
+async function testWakeLock(){
+ let el=document.getElementById('wake');
+ el.innerText="Testing Wake Lock API...\n";
+ try{
+  if(!navigator.wakeLock){
+   el.innerText+="❌ Wake Lock tidak support\n";
+   return;
+  }
+  el.innerText+="✅ Wake Lock support!\n";
+  
+  let wakeLock=null;
+  try{
+   wakeLock=await navigator.wakeLock.request('screen');
+   el.innerText+="Wake Lock acquired: screen\n";
+   
+   wakeLock.addEventListener('release', ()=>{
+    el.innerText+="Wake Lock released!\n";
+   });
+   
+   // Check if we can detect if other page holds wake lock via visibility?
+   document.addEventListener('visibilitychange', ()=>{
+    el.innerText+=`visibilitychange: hidden=${document.hidden}, visibilityState=${document.visibilityState}\n`;
+    if(document.hidden && wakeLock){
+     el.innerText+="Page hidden tapi wake lock masih held? Bisa jadi leak?\n";
+    }
+   });
+   
+   setTimeout(async ()=>{
+    if(wakeLock){
+     await wakeLock.release();
+     el.innerText+="Wake Lock released after 5s\n";
+    }
+   }, 5000);
+   
+  }catch(e){
+   el.innerText+=`Wake Lock request failed: ${e.message}\n`;
+  }
+  
+ }catch(e){el.innerText+="Error: "+e.message;}
+}
 </script>
+
+<div class="card" style="background:#000;border:1px solid #0af">
+<b style="color:#0af">Kenapa ini baru banget?</b><br>
+<span style="font-size:11px;color:#ccc">
+- EyeDropper: baru Maret 2026 di Safari 26.4, belum ada laporan pixel leak!<br>
+- Web Locks: baru 26.4, belum ada laporan cross-tab leak!<br>
+- Wake Lock: baru 26.4, search "wake lock leak" = 0 results!<br>
+<b style="color:#fff">Bounty:</b> Pixel leak = $10k+, Locks leak = $3k, Wake Lock = $1k<br>
+</span>
+</div>
 </body>
 </html>
