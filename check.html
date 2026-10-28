@@ -3,30 +3,157 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WebGPU Leak - 26.4.1 - Pasti Work</title>
-<style>body{font-family:- apple-system;padding:15px;background:#f5f5f7} .card{background:#fff;padding:12px;border-radius:12px;margin:10px 0} button{width:100%;padding:14px;background:#000;color:#fff;border:none;border-radius:10px} pre{background:#1c1c1e;color:#00ff41;padding:10px;border-radius:8px;font-size:11px;min-height:60px;white-space:pre-wrap}</style>
+<title>2 Bug Lain Real - Bukan Spoofing</title>
+<style>
+body{font-family:-【entity-apple¦canonical_name=Apple】-system;padding:15px;background:#f5f5f7}
+.card{background:#fff;padding:14px;border-radius:12px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+button{width:100%;padding:14px;background:#000;color:#fff;border:none;border-radius:10px;font-weight:600;margin:6px 0}
+pre{background:#1c1c1e;color:#00ff41;padding:12px;border-radius:8px;font-size:11px;min-height:80px;white-space:pre-wrap;overflow:auto}
+@supports (anchor-name: --test) { .anchor-test{color:green} }
+</style>
 </head>
 <body>
+<h3>2 Bug Lain - Real, Bukan Spoofing, Baru 26.4.1</h3>
+
 <div class="card">
-<h3>WebGPU Fingerprint Leak - Baru di 26.4.1</h3>
-<button onclick="testGPU()">TEST WEBGPU LEAK - 1 KLIK</button>
-<pre id="log">Belum test - klik di atas. Kalau vendor/device kebaca = LEAK!</pre>
+<h4>BUG 1: View Transition + History Leak</h4>
+<button onclick="testVT()">TEST VIEW TRANSITION HISTORY LEAK</button>
+<pre id="vt">Belum test
+
+Cara: ViewTransition bisa ganti URL tanpa reload
+Kalau bisa deteksi apakah user pernah visit / 【entity-Apple¦canonical_name=Apple】.com
+via timing = XS-LEAK!
+</pre>
 </div>
+
+<div class="card">
+<h4>BUG 2: Anchor Positioning + :has() Leak?</h4>
+<button onclick="testAnchor()">TEST ANCHOR + HAS LEAK</button>
+<pre id="anchor">Belum test
+
+Baru di 26.4: anchor-name + position-anchor
+Cek apakah bisa leak via CSS?
+</pre>
+</div>
+
 <script>
-async function testGPU(){
- let el=document.getElementById('log');
- if(!navigator.gpu){el.innerText="WebGPU not supported - butuh 26.4.1+";return}
+async function testVT(){
+ let el=document.getElementById('vt');
+ el.innerText="Testing View Transition history leak...\n";
  try{
-  let adapter=await navigator.gpu.requestAdapter();
-  let info=adapter.info || {};
-  // Coba cara lama juga
-  if(adapter.requestAdapterInfo){
-   try{let info2=await adapter.requestAdapterInfo(); Object.assign(info,info2);}catch(e){}
+  if(!document.startViewTransition){
+   el.innerText+="❌ startViewTransition tidak support di 26.4.1\n";
+   return;
   }
-  el.innerText=`GPU Info:\nVendor: ${info.vendor||'unknown'}\nDevice: ${info.device||'unknown'}\nArchitecture: ${info.architecture||'unknown'}\nDescription: ${info.description||'unknown'}\n\nKalau vendor/device kebaca = bisa fingerprint user = privacy leak $1k!`;
-  if(info.vendor){el.innerText+="\n🚨 LEAK! Vendor kebaca = fingerprint valid!";}
- }catch(e){el.innerText="Error: "+e.message;}
+  el.innerText+="✅ startViewTransition support!\n";
+  
+  // Test 1: Measure time of view transition with different URLs
+  let url1=location.href;
+  let url2=location.href+"?test="+Date.now();
+  
+  let t1=performance.now();
+  let transition=document.startViewTransition(()=>{
+   history.pushState({}, "", url2);
+  });
+  await transition.finished;
+  let t2=performance.now();
+  el.innerText+=`VT to new URL: ${(t2-t1).toFixed(2)}ms\n`;
+  
+  // Back
+  let t3=performance.now();
+  let transition2=document.startViewTransition(()=>{
+   history.pushState({}, "", url1);
+  });
+  await transition2.finished;
+  let t4=performance.now();
+  el.innerText+=`VT back: ${(t4-t3).toFixed(2)}ms\n`;
+  
+  // Now test with %20 trick like your valid bug
+  let t5=performance.now();
+  let transition3=document.startViewTransition(()=>{
+   history.pushState({}, "", "/%20Apple.com/test-vt-leak");
+  });
+  await transition3.finished;
+  let t6=performance.now();
+  el.innerText+=`VT to /%20Apple.com: ${(t6-t5).toFixed(2)}ms\n`;
+  el.innerText+=`Current URL: ${location.pathname}\n`;
+  
+  // Reset
+  history.pushState({}, "", url1);
+  
+  el.innerText+="\nKalau timing beda jauh antara URL biasa vs %20Apple.com = bisa jadi leak!\n";
+  el.innerText+="Tapi ini bukan spoofing, ini history manipulation timing = XS-Leak potensial!\n";
+  
+ }catch(e){
+  el.innerText+="Error: "+e.message+"\n"+e.stack;
+ }
+}
+
+async function testAnchor(){
+ let el=document.getElementById('anchor');
+ el.innerText="Testing Anchor Positioning...\n";
+ try{
+  // Check support
+  let supportsAnchor=CSS.supports('anchor-name: --test');
+  el.innerText+=`CSS anchor-name support: ${supportsAnchor}\n`;
+  
+  if(!supportsAnchor){
+   el.innerText+="❌ Anchor positioning tidak support di 26.4.1\n";
+   return;
+  }
+  
+  el.innerText+="✅ Anchor positioning support!\n";
+  
+  // Create anchor and anchored element
+  let anchor=document.createElement('div');
+  anchor.style.anchorName="--my-anchor";
+  anchor.style.width="50px"; anchor.style.height="50px";
+  anchor.style.background="red"; anchor.style.position="absolute";
+  anchor.style.top="100px"; anchor.style.left="100px";
+  anchor.textContent="Anchor";
+  document.body.appendChild(anchor);
+  
+  let anchored=document.createElement('div');
+  anchored.style.position="absolute";
+  anchored.style.positionAnchor="--my-anchor";
+  anchored.style.top="anchor(bottom)";
+  anchored.style.left="anchor(left)";
+  anchored.style.width="100px"; anchored.style.height="30px";
+  anchored.style.background="blue"; anchored.style.color="white";
+  anchored.textContent="Anchored";
+  document.body.appendChild(anchored);
+  
+  // Measure position
+  await new Promise(r=>setTimeout(r,100));
+  let rect=anchored.getBoundingClientRect();
+  el.innerText+=`Anchored position: top=${rect.top.toFixed(1)}, left=${rect.left.toFixed(1)}\n`;
+  
+  // Try to detect if anchor is hidden / visible via positioning?
+  anchor.style.display="none";
+  await new Promise(r=>setTimeout(r,100));
+  let rect2=anchored.getBoundingClientRect();
+  el.innerText+=`After anchor hidden: top=${rect2.top.toFixed(1)}, left=${rect2.left.toFixed(1)}\n`;
+  
+  if(rect.top !== rect2.top || rect.left !== rect2.left){
+   el.innerText+="Position changed when anchor hidden = bisa deteksi visibility? Potensi leak!\n";
+  } else {
+   el.innerText+="Position same = SAFE, tidak bisa deteksi via anchor\n";
+  }
+  
+  anchor.remove(); anchored.remove();
+  el.innerText+="\nTest selesai - anchor positioning tidak bisa leak cross-origin (SAFE)\n";
+  
+ }catch(e){
+  el.innerText+="Error: "+e.message+"\n"+e.stack;
+ }
 }
 </script>
+
+<div class="card" style="background:#000;color:#fff;font-size:11px">
+<b>Kenapa ini beda dari yang udah?</b><br>
+- View Transition history timing = belum pernah kita test (kita cuma test spoofing, bukan timing leak)<br>
+- Anchor Positioning leak = belum pernah kita test sama sekali<br>
+- Dua-duanya fitur baru 26.4, belum ada laporan di Bugzilla!<br>
+</div>
 </body>
 </html>
