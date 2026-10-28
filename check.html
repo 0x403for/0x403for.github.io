@@ -3,132 +3,87 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>UAF Generic Fuzzer SAFE - 5 Areas</title>
-<style>body{font-family:-apple-system;padding:12px;background:#000;color:#0f0} button{width:100%;padding:12px;background:#0f0;color:#000;border:none;border-radius:8px;font-weight:700;margin:5px 0} pre{background:#111;color:#0f0;padding:8px;border-radius:6px;font-size:9px;min-height:60px;white-space:pre-wrap;word-break:break-all}</style>
+<title>TEST 5: RANDOM DOM 200x - PALING GANAS</title>
+<style>body{font-family:-apple-system;padding:12px;background:#000;color:#ff0} button{width:100%;padding:16px;background:#ff0;color:#000;border:none;border-radius:12px;font-weight:900;font-size:15px} pre{background:#111;color:#0f0;padding:10px;border-radius:8px;font-size:9px;min-height:200px;white-space:pre-wrap;word-break:break-all;border:1px solid #ff0}</style>
 </head>
 <body>
-<h4>UAF Generic Fuzzer - 5 Areas SAFE DoS Test</h4>
-
-<button onclick="fuzzCanvasGPU()">1. FUZZ CANVAS+WEBGPU (Area baru 26.4)</button>
-<pre id="c1">Belum</pre>
-
-<button onclick="fuzzWebAudio()">2. FUZZ WEBAUDIO (AudioNode UAF)</button>
-<pre id="c2">Belum</pre>
-
-<button onclick="fuzzIDB()">3. FUZZ INDEXEDDB (Transaction UAF)</button>
-<pre id="c3">Belum</pre>
-
-<button onclick="fuzzCSSFilter()">4. FUZZ CSS FILTER (RenderLayer UAF)</button>
-<pre id="c4">Belum</pre>
-
-<button onclick="fuzzRandomDOM()" style="background:#ff0">5. FUZZ RANDOM DOM 200x (Paling ganas - bisa crash!)</button>
-<pre id="c5">Belum - ini paling berat!</pre>
-
+<h3 style="color:#ff0">TEST 5: RANDOM DOM 200x - PALING GANAS DoS!</h3>
+<p style="font-size:10px;color:#888">Bisa crash WebContent! Kalau crash "A problem repeatedly occurred" = DoS $1k!</p>
+<button onclick="fuzzRandom()">FUZZ RANDOM DOM 200x - CRASH TEST!</button>
+<pre id="c5">Belum test - WARNING: Bisa bikin Safari crash dan reload!</pre>
+<div id="arena"></div>
 <script>
-function log(id, m){ document.getElementById(id).innerText+=m+"\n"; }
-
-async function fuzzCanvasGPU(){
- let el=document.getElementById('c1'); el.innerText="Testing Canvas+WebGPU...\n";
- try{
-  if(!navigator.gpu){ el.innerText+="WebGPU not supported di 26.4.1\n"; return; }
-  let canvas=document.createElement('canvas');
-  let ctx=canvas.getContext('webgpu');
-  let adapter=await navigator.gpu.requestAdapter();
-  let device=await adapter.requestDevice();
-  let context=canvas.getContext('webgpu');
-  context.configure({device, format: navigator.gpu.getPreferredCanvasFormat()});
-  for(let i=0;i<10;i++){
-   try{
-    let texture=context.getCurrentTexture();
-    canvas.remove(); // remove while GPU uses it = UAF pattern
-    log('c1', `Iter ${i}: texture ${!!texture}, canvas removed`);
-    canvas=document.createElement('canvas');
-    context=canvas.getContext('webgpu');
-    context.configure({device, format: navigator.gpu.getPreferredCanvasFormat()});
-   }catch(e){ log('c1', `Iter ${i} SAFE blocked: ${e.message}`); }
-  }
-  log('c1', 'Done - SAFE if no crash');
- }catch(e){ log('c1', 'Error: '+e.message); }
+let crash=0;
+function log(m){
+ let el=document.getElementById('c5');
+ el.innerText+=m+"\n";
+ el.scrollTop=el.scrollHeight;
 }
-
-function fuzzWebAudio(){
- let el=document.getElementById('c2'); el.innerText="Testing WebAudio...\n";
- try{
-  let ac=new (window.AudioContext||window.webkitAudioContext)();
-  let gain=ac.createGain();
-  let osc=ac.createOscillator();
-  osc.connect(gain); gain.connect(ac.destination);
-  osc.start();
-  for(let i=0;i<20;i++){
-   try{
-    gain.disconnect();
-    ac.close?.(); // close while processing
-    log('c2', `Iter ${i}: disconnect + close`);
-    ac=new (window.AudioContext||window.webkitAudioContext)();
-    gain=ac.createGain();
-    osc=ac.createOscillator();
-    osc.connect(gain); gain.connect(ac.destination); osc.start();
-   }catch(e){ log('c2', `Iter ${i} SAFE: ${e.message}`); }
-  }
-  log('c2', 'Done');
- }catch(e){ log('c2', 'Error: '+e.message); }
-}
-
-function fuzzIDB(){
- let el=document.getElementById('c3'); el.innerText="Testing IndexedDB...\n";
- try{
-  let req=indexedDB.open('uaf-test-'+Date.now(), 1);
-  req.onupgradeneeded=(e)=>{
-   let db=e.target.result;
-   db.createObjectStore('s');
-   let tx=e.target.transaction;
-   tx.oncomplete=()=>{
-    try{ db.deleteObjectStore('s'); log('c3', 'oncomplete: delete store while tx complete = UAF pattern'); }catch(err){ log('c3', 'SAFE blocked: '+err.message); }
-   };
-  };
-  req.onsuccess=()=>{ log('c3', 'IDB open success - SAFE'); req.result.close(); indexedDB.deleteDatabase('uaf-test-'+Date.now()); };
-  req.onerror=()=>{ log('c3', 'IDB error - SAFE'); };
- }catch(e){ log('c3', 'Error: '+e.message); }
-}
-
-function fuzzCSSFilter(){
- let el=document.getElementById('c4'); el.innerText="Testing CSS Filter...\n";
- let div=document.createElement('div');
- div.style.width='100px'; div.style.height='100px'; div.style.background='red';
- div.style.filter='blur(50px) contrast(200%) hue-rotate(90deg)';
- document.body.appendChild(div);
- for(let i=0;i<30;i++){
+async function fuzzRandom(){
+ let el=document.getElementById('c5');
+ el.innerText="Starting RANDOM DOM 200x - GANAS!\nHP bisa lag!\n";
+ let arena=document.getElementById('arena');
+ let tags=['model','search','canvas','div','dialog','details','video','audio','select','input','popover','img'];
+ 
+ for(let i=0;i<200;i++){
   try{
-   div.style.filter=`blur(${i}px)`;
-   if(i%5===0){ div.remove(); log('c4', `Iter ${i}: remove during filter paint`); div=document.createElement('div'); div.style.width='100px'; div.style.height='100px'; div.style.background='red'; div.style.filter='blur(50px)'; document.body.appendChild(div); }
-  }catch(e){ log('c4', `Iter ${i} SAFE: ${e.message}`); }
- }
- div.remove();
- log('c4', 'Done - SAFE');
-}
-
-function fuzzRandomDOM(){
- let el=document.getElementById('c5'); el.innerText="Starting RANDOM DOM 200x... Bisa crash!\n";
- let tags=['model','search','canvas','div','span','video','audio','details','dialog','popover','select','input'];
- (async ()=>{
-  for(let i=0;i<200;i++){
-   try{
-    let parent=document.createElement('div');
-    let child=document.createElement(tags[Math.floor(Math.random()*tags.length)]);
-    if(child.tagName==='CANVAS'){ child.getContext('2d').fillRect(0,0,10,10); }
-    if(child.tagName==='MODEL' || child.tagName==='SEARCH'){ child.setAttribute('popover',''); try{child.showPopover?.();}catch(e){} }
+   let parent=document.createElement('div');
+   parent.style.display='contents';
+   
+   // Random 1-3 children
+   let childCount=1+Math.floor(Math.random()*3);
+   for(let j=0;j<childCount;j++){
+    let tag=tags[Math.floor(Math.random()*tags.length)];
+    let child=document.createElement(tag);
+    
+    // Setup by tag
+    if(tag==='canvas'){
+     let ctx=child.getContext('2d');
+     ctx.fillStyle=`hsl(${i*2},100%,50%)`;
+     ctx.fillRect(0,0,20,20);
+     try{ let bmp=child.transferToImageBitmap?.(); if(bmp) bmp.close(); }catch(e){}
+    }
+    if(tag==='model' || tag==='search' || tag==='dialog'){
+     child.setAttribute('popover','');
+     child.innerHTML='<span>test</span>';
+     try{ child.showPopover?.(); }catch(e){}
+     child.addEventListener('beforetoggle', ()=>{
+      try{ parent.remove(); }catch(e){}
+     });
+    }
+    if(tag==='video'){ child.src='data:video/mp4;base64,'; }
+    if(tag==='img'){ child.src='data:image/gif;base64,[STRIPPED]'; }
+    
+    child.style.filter=`blur(${Math.random()*5}px)`;
+    child.style.transform='translateZ(0)';
     parent.appendChild(child);
-    document.body.appendChild(parent);
-    // Random remove in callback
-    child.addEventListener('beforetoggle', ()=>{ try{parent.remove();}catch(e){} });
-    // Immediate use after remove
-    parent.remove();
-    try{ child.innerHTML='uaf?'; }catch(e){}
-    if(i%20===0){ log('c5', `Iter ${i}/200`); await new Promise(r=>setTimeout(r,5)); }
-   }catch(e){ log('c5', `Iter ${i} err: ${e.message}`); }
+    
+    // UAF pattern: remove + use
+    if(Math.random()>0.5){
+     parent.remove();
+     try{ child.innerHTML='uaf?'+i; child.style.filter='none'; }catch(e){}
+    }
+   }
+   
+   arena.appendChild(parent);
+   if(i%2===0) parent.remove();
+   
+   if(i%20===0){
+    log(`Iter ${i}/200 - arena childs: ${arena.childNodes.length}`);
+    await new Promise(r=>setTimeout(r,1));
+    if(i%40===0) arena.innerHTML='';
+   }
+   
+  }catch(e){
+   crash++;
+   log(`Iter ${i} exception: ${e.message} crash=${crash}`);
+   if(crash>10){ log('STOP: too many errors!'); break; }
   }
-  log('c5', 'DONE 200x! If not crash = SAFE patched!');
- })();
+ }
+ arena.innerHTML='';
+ log(`DONE 200x! crashCount=${crash}`);
+ log('If no crash popup "A problem occurred" = SAFE! iOS 26.4.1 aman!');
+ log('If crash = screenshot! Report DoS ke Apple!');
 }
 </script>
 </body>
