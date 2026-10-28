@@ -3,225 +3,131 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>UAF Fuzzer SAFE - CVE-2026-28859 Pattern</title>
-<style>
-body{font-family:-【entity-apple¦canonical_name=Apple】-system;padding:12px;background:#000;color:#0f0}
-.card{background:#1a1a1a;padding:12px;border-radius:10px;margin:10px 0;border:1px solid #0f0}
-button{width:100%;padding:14px;background:#0f0;color:#000;border:none;border-radius:10px;font-weight:800;margin:5px 0;font-size:13px}
-pre{background:#000;color:#0f0;padding:10px;border-radius:8px;font-size:10px;min-height:90px;white-space:pre-wrap;word-break:break-all;border:1px solid #333}
-canvas{border:1px solid #0f0;margin:5px 0}
-</style>
+<title>UAF Generic Fuzzer SAFE - 5 Areas</title>
+<style>body{font-family:-apple-system;padding:12px;background:#000;color:#0f0} button{width:100%;padding:12px;background:#0f0;color:#000;border:none;border-radius:8px;font-weight:700;margin:5px 0} pre{background:#111;color:#0f0;padding:8px;border-radius:6px;font-size:9px;min-height:60px;white-space:pre-wrap;word-break:break-all}</style>
 </head>
 <body>
-<h3 style="color:#0f0">UAF Fuzzer SAFE - CVE-2026-28859</h3>
-<p style="font-size:10px;color:#888">Pattern: Model + Search + Canvas + Popover + rapid remove() in callback<br>
-SAFE: Cuma DoS crash, bukan RCE! Kalau crash di iPhone = report DoS $1k dulu!</p>
+<h4>UAF Generic Fuzzer - 5 Areas SAFE DoS Test</h4>
 
-<div class="card">
-<h4>TEST 1: Canvas + Transfer + Free (UAF Pattern 1)</h4>
-<button onclick="fuzzCanvas()">FUZZ CANVAS UAF</button>
-<pre id="canvasLog">Belum test</pre>
-<canvas id="c" width="100" height="100"></canvas>
-</div>
+<button onclick="fuzzCanvasGPU()">1. FUZZ CANVAS+WEBGPU (Area baru 26.4)</button>
+<pre id="c1">Belum</pre>
 
-<div class="card">
-<h4>TEST 2: Model + Search + Popover + onbeforetoggle remove() (CVE-2026-28859)</h4>
-<button onclick="fuzzModelSearch()">FUZZ MODEL+SEARCH UAF (MAIN)</button>
-<pre id="modelLog">Belum test - ini pattern CVE-2026-28859 yang di-fix 26.4 tapi masih ada varian!</pre>
-<div id="container"></div>
-</div>
+<button onclick="fuzzWebAudio()">2. FUZZ WEBAUDIO (AudioNode UAF)</button>
+<pre id="c2">Belum</pre>
 
-<div class="card">
-<h4>TEST 3: Loop 100x Rapid Create/Destroy (ASAN Stress)</h4>
-<button onclick="fuzzLoop()" style="background:#f00;color:#fff">FUZZ LOOP 100x (CRASH TEST)</button>
-<pre id="loopLog">Belum test - ini bakal berat, bisa crash WebContent!</pre>
-</div>
+<button onclick="fuzzIDB()">3. FUZZ INDEXEDDB (Transaction UAF)</button>
+<pre id="c3">Belum</pre>
 
-<div class="card" style="border-color:#f00;background:#1a0000">
-<h4 style="color:#f00">Kalau Crash?</h4>
-<pre style="color:#ff0;border-color:#f00">
-iPhone: "A problem repeatedly occurred" = potensi UAF! Screenshot + report ke 【entity-Apple¦canonical_name=Apple】 sebagai DoS!
+<button onclick="fuzzCSSFilter()">4. FUZZ CSS FILTER (RenderLayer UAF)</button>
+<pre id="c4">Belum</pre>
 
-【entity-Mac¦canonical_name=Mac】 ASAN (buat RCE):
-1. Build WebKit: Tools/Scripts/build-webkit --asan --debug
-2. Run: Tools/Scripts/run-safari --asan --debug
-3. Buka file ini
-4. Klik FUZZ LOOP 100x
-5. Kalau ASAN log: "ERROR: AddressSanitizer: heap-use-after-free" = VALID UAF $50k+!
-
-ASAN Log contoh:
-
-==12345==ERROR: AddressSanitizer: heap-use-after-free on address 0x...
-READ of size 8 at 0x... thread T0
-    #0 0x... in WebCore::ModelElement::updateModel()
-    #1 0x... in WebCore::SearchElement::beforetoggle()
-
-Itu yang Apple mau buat RCE bounty!
-</pre>
-</div>
+<button onclick="fuzzRandomDOM()" style="background:#ff0">5. FUZZ RANDOM DOM 200x (Paling ganas - bisa crash!)</button>
+<pre id="c5">Belum - ini paling berat!</pre>
 
 <script>
-let crashCount=0;
+function log(id, m){ document.getElementById(id).innerText+=m+"\n"; }
 
-function log(id, msg){
- let el=document.getElementById(id);
- el.innerText+=msg+"\n";
- el.scrollTop=el.scrollHeight;
+async function fuzzCanvasGPU(){
+ let el=document.getElementById('c1'); el.innerText="Testing Canvas+WebGPU...\n";
+ try{
+  if(!navigator.gpu){ el.innerText+="WebGPU not supported di 26.4.1\n"; return; }
+  let canvas=document.createElement('canvas');
+  let ctx=canvas.getContext('webgpu');
+  let adapter=await navigator.gpu.requestAdapter();
+  let device=await adapter.requestDevice();
+  let context=canvas.getContext('webgpu');
+  context.configure({device, format: navigator.gpu.getPreferredCanvasFormat()});
+  for(let i=0;i<10;i++){
+   try{
+    let texture=context.getCurrentTexture();
+    canvas.remove(); // remove while GPU uses it = UAF pattern
+    log('c1', `Iter ${i}: texture ${!!texture}, canvas removed`);
+    canvas=document.createElement('canvas');
+    context=canvas.getContext('webgpu');
+    context.configure({device, format: navigator.gpu.getPreferredCanvasFormat()});
+   }catch(e){ log('c1', `Iter ${i} SAFE blocked: ${e.message}`); }
+  }
+  log('c1', 'Done - SAFE if no crash');
+ }catch(e){ log('c1', 'Error: '+e.message); }
 }
 
-function fuzzCanvas(){
- let el=document.getElementById('canvasLog');
- el.innerText="Fuzzing Canvas UAF...\n";
+function fuzzWebAudio(){
+ let el=document.getElementById('c2'); el.innerText="Testing WebAudio...\n";
  try{
-  let canvas=document.getElementById('c');
-  let ctx=canvas.getContext('2d', {willReadFrequently: true});
-  ctx.fillStyle='red';
-  ctx.fillRect(0,0,100,100);
-  
-  // Pattern UAF: transfer + free + use
+  let ac=new (window.AudioContext||window.webkitAudioContext)();
+  let gain=ac.createGain();
+  let osc=ac.createOscillator();
+  osc.connect(gain); gain.connect(ac.destination);
+  osc.start();
   for(let i=0;i<20;i++){
    try{
-    let bitmap=canvas.transferToImageBitmap?.() || null;
-    // Try to use after transfer (should be detached)
-    ctx.fillRect(i,i,10,10); // use after transfer = potential UAF
-    log('canvasLog', `Iter ${i}: transfer=${!!bitmap}, ctx still usable?`);
-    if(bitmap) bitmap.close();
-   }catch(e){
-    log('canvasLog', `Iter ${i} Error (SAFE): ${e.message}`);
-   }
+    gain.disconnect();
+    ac.close?.(); // close while processing
+    log('c2', `Iter ${i}: disconnect + close`);
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    gain=ac.createGain();
+    osc=ac.createOscillator();
+    osc.connect(gain); gain.connect(ac.destination); osc.start();
+   }catch(e){ log('c2', `Iter ${i} SAFE: ${e.message}`); }
   }
-  log('canvasLog', 'Canvas fuzz done - SAFE if no crash');
- }catch(e){log('canvasLog', 'Error: '+e.message);}
+  log('c2', 'Done');
+ }catch(e){ log('c2', 'Error: '+e.message); }
 }
 
-function fuzzModelSearch(){
- let el=document.getElementById('modelLog');
- el.innerText="Fuzzing Model+Search UAF (CVE-2026-28859 pattern)...\n";
- let container=document.getElementById('container');
- container.innerHTML='';
- 
+function fuzzIDB(){
+ let el=document.getElementById('c3'); el.innerText="Testing IndexedDB...\n";
  try{
-  for(let i=0;i<10;i++){
-   // Create model element (new in 26.4)
-   let model=document.createElement('model');
-   if(!model){
-    log('modelLog', 'model element not supported in 26.4.1, skip');
-    break;
-   }
-   model.src='data:model/gltf-binary;base64,[STRIPPED]';
-   model.style.width='100px';
-   model.style.height='100px';
-   model.setAttribute('popover','');
-   
-   // Create search element
-   let search=document.createElement('search');
-   search.innerHTML='<input type="search" value="test">';
-   search.setAttribute('popover','');
-   
-   // UAF pattern: remove child in beforetoggle callback!
-   model.addEventListener('beforetoggle', (e)=>{
-    log('modelLog', `beforetoggle ${i}: trying to remove search inside callback!`);
-    try{
-     // This is pattern that caused UAF in CVE-2026-28859!
-     // Remove search while model is toggling
-     if(search.parentNode) search.remove();
-     // Then try to use search after remove = UAF?
-     search.innerHTML='used after remove!';
-     log('modelLog', `  -> used search after remove: ${search.innerHTML.substring(0,20)}`);
-    }catch(err){
-     log('modelLog', `  -> SAFE blocked: ${err.message}`);
-    }
-   });
-   
-   search.addEventListener('beforetoggle', (e)=>{
-    log('modelLog', `search beforetoggle ${i}: remove model`);
-    try{
-     if(model.parentNode) model.remove();
-    }catch(err){log('modelLog', `  SAFE: ${err.message}`);}
-   });
-   
-   container.appendChild(model);
-   container.appendChild(search);
-   
-   // Trigger popover
-   try{
-    model.showPopover?.();
-    search.showPopover?.();
-    log('modelLog', `Iter ${i}: showPopover triggered`);
-   }catch(e){
-    log('modelLog', `Iter ${i} showPopover error (SAFE): ${e.message}`);
-   }
-  }
-  
-  // Cleanup + re-trigger
-  setTimeout(()=>{
-   container.innerHTML='';
-   log('modelLog', 'Container cleared, test done. If no crash = SAFE (patched CVE-2026-28859)');
-  }, 1000);
-  
- }catch(e){log('modelLog', 'Error: '+e.message);}
+  let req=indexedDB.open('uaf-test-'+Date.now(), 1);
+  req.onupgradeneeded=(e)=>{
+   let db=e.target.result;
+   db.createObjectStore('s');
+   let tx=e.target.transaction;
+   tx.oncomplete=()=>{
+    try{ db.deleteObjectStore('s'); log('c3', 'oncomplete: delete store while tx complete = UAF pattern'); }catch(err){ log('c3', 'SAFE blocked: '+err.message); }
+   };
+  };
+  req.onsuccess=()=>{ log('c3', 'IDB open success - SAFE'); req.result.close(); indexedDB.deleteDatabase('uaf-test-'+Date.now()); };
+  req.onerror=()=>{ log('c3', 'IDB error - SAFE'); };
+ }catch(e){ log('c3', 'Error: '+e.message); }
 }
 
-function fuzzLoop(){
- let el=document.getElementById('loopLog');
- el.innerText="Starting LOOP 100x stress test... HP bisa panas / crash! \n";
- crashCount=0;
- 
- let container=document.getElementById('container');
- 
+function fuzzCSSFilter(){
+ let el=document.getElementById('c4'); el.innerText="Testing CSS Filter...\n";
+ let div=document.createElement('div');
+ div.style.width='100px'; div.style.height='100px'; div.style.background='red';
+ div.style.filter='blur(50px) contrast(200%) hue-rotate(90deg)';
+ document.body.appendChild(div);
+ for(let i=0;i<30;i++){
+  try{
+   div.style.filter=`blur(${i}px)`;
+   if(i%5===0){ div.remove(); log('c4', `Iter ${i}: remove during filter paint`); div=document.createElement('div'); div.style.width='100px'; div.style.height='100px'; div.style.background='red'; div.style.filter='blur(50px)'; document.body.appendChild(div); }
+  }catch(e){ log('c4', `Iter ${i} SAFE: ${e.message}`); }
+ }
+ div.remove();
+ log('c4', 'Done - SAFE');
+}
+
+function fuzzRandomDOM(){
+ let el=document.getElementById('c5'); el.innerText="Starting RANDOM DOM 200x... Bisa crash!\n";
+ let tags=['model','search','canvas','div','span','video','audio','details','dialog','popover','select','input'];
  (async ()=>{
-  for(let i=0;i<100;i++){
+  for(let i=0;i<200;i++){
    try{
-    // Rapid create/destroy pattern for UAF
-    let div=document.createElement('div');
-    let model=document.createElement('model');
-    let search=document.createElement('search');
-    let canvas=document.createElement('canvas');
-    let c2d=canvas.getContext('2d');
-    
-    // Add to DOM
-    div.appendChild(model);
-    div.appendChild(search);
-    div.appendChild(canvas);
-    container.appendChild(div);
-    
-    // Use
-    c2d.fillRect(0,0,10,10);
-    let bmp;
-    try{bmp=canvas.transferToImageBitmap?.();}catch(e){}
-    
-    // Remove in callback = UAF pattern
-    model.onbeforetoggle=()=>{try{div.remove();}catch(e){}};
-    search.onbeforetoggle=()=>{try{div.remove();}catch(e){}};
-    
-    try{model.showPopover?.();}catch(e){}
-    try{search.showPopover?.();}catch(e){}
-    
-    // Immediate remove + use
-    div.remove();
-    try{
-     // Use after free?
-     model.src='x';
-     search.innerHTML='uaf?';
-     if(bmp) bmp.close();
-    }catch(e){}
-    
-    if(i%10===0){
-     log('loopLog', `Iter ${i}/100 - crashCount ${crashCount}`);
-     await new Promise(r=>setTimeout(r,10)); // yield
-    }
-    
-   }catch(e){
-    crashCount++;
-    log('loopLog', `Iter ${i} exception: ${e.message} (count ${crashCount})`);
-    if(crashCount>5){
-     log('loopLog', 'STOP: Too many exceptions, potential instability!');
-     break;
-    }
-   }
+    let parent=document.createElement('div');
+    let child=document.createElement(tags[Math.floor(Math.random()*tags.length)]);
+    if(child.tagName==='CANVAS'){ child.getContext('2d').fillRect(0,0,10,10); }
+    if(child.tagName==='MODEL' || child.tagName==='SEARCH'){ child.setAttribute('popover',''); try{child.showPopover?.();}catch(e){} }
+    parent.appendChild(child);
+    document.body.appendChild(parent);
+    // Random remove in callback
+    child.addEventListener('beforetoggle', ()=>{ try{parent.remove();}catch(e){} });
+    // Immediate use after remove
+    parent.remove();
+    try{ child.innerHTML='uaf?'; }catch(e){}
+    if(i%20===0){ log('c5', `Iter ${i}/200`); await new Promise(r=>setTimeout(r,5)); }
+   }catch(e){ log('c5', `Iter ${i} err: ${e.message}`); }
   }
-  log('loopLog', `DONE 100x loop! crashCount=${crashCount}. If iPhone didn't crash "A problem occurred" = SAFE patched!`);
-  log('loopLog', 'If crash = potensi UAF! Screenshot + test di Mac ASAN buat RCE!');
+  log('c5', 'DONE 200x! If not crash = SAFE patched!');
  })();
 }
 </script>
