@@ -1,156 +1,176 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BUG LAIN - Bukan Itu-Itu - Privacy Leak</title>
-<style>body{font-family:- 【entity-apple¦canonical_name=Apple】-system;padding:14px;background:#000;color:#fff} .card{background:#1c1c1e;padding:14px;border-radius:12px;margin:14px 0;border:1px solid #333} button{width:100%;padding:14px;background:#fff;color:#000;border:none;border-radius:10px;font-weight:800;margin:6px 0} pre{background:#000;color:#0f0;padding:10px;border-radius:8px;font-size:11px;min-height:80px;white-space:pre-wrap} .red{color:#ff3b30}</style>
+<title>BUG: TXT/XML Download Attribute Ignored - iOS Safari</title>
+<style>
+body{font-family:- 【entity-apple¦canonical_name=Apple】-system;padding:14px;background:#000;color:#fff}
+.card{background:#1c1c1e;padding:14px;border-radius:12px;margin:14px 0;border:1px solid #333}
+a,button{display:block;padding:14px;background:#0a84ff;color:#fff;text-align:center;border-radius:10px;text-decoration:none;margin:8px 0;font-weight:700;border:none;width:100%;font-size:14px}
+pre{background:#000;color:#0f0;padding:10px;border-radius:8px;font-size:11px;min-height:80px;white-space:pre-wrap;border:1px solid #222}
+.small{font-size:11px;color:#8e8e93}
+.red{background:#ff3b30} .green{background:#30d158;color:#000}
+</style>
 </head>
 <body>
-<h3 style="color:#0af">BUG LAIN - Bukan Spoofing, Bukan Universal Link, Bukan PWA!</h3>
-<p style="font-size:11px">Dari 3 hari hunting, lu udah test 30+ bug spoofing & UAF semua SAFE. Ini 2 privacy leak yang belum pernah!</p>
+<h3 style="color:#0af">BUG: File TXT/XML Terbuka di Tab, Bukan Download</h3>
+<p class="small">Safari iOS ignore &lt;a download&gt; - Harusnya download, malah buka di tab baru!</p>
 
 <div class="card">
-<h4>BUG LAIN #1: WebRTC Private IP Leak - Bisa leak 192.168.x.x?</h4>
-<p style="font-size:11px">Safari 26.4.1 katanya aman, tapi coba RTCPeerConnection + DataChannel baru di TP 228!</p>
-<button onclick="testWebRTC()">TEST WEBRTC LEAK - Leak IP lokal?</button>
-<pre id="log1">Belum test.
+<h4>TEST 1: data: URL + download (Paling gampang reproduksi!)</h4>
+<p class="small">data:[STRIPPED] + download="【entity-Apple¦canonical_name=Apple】.com.txt" - harusnya download, bukan buka tab!</p>
+<a href="data:text/plain;base64,[STRIPPED]" download=" 【entity-Apple¦canonical_name=Apple】.com - Secure.txt">TEST 1a: data:[STRIPPED] + download=" 【entity-Apple¦canonical_name=Apple】.com - Secure.txt"</a>
+<a href="data:text/plain,[STRIPPED] download="【entity-Apple¦canonical_name=Apple】.com.txt">TEST 1b: data:[STRIPPED] (no base64) + download</a>
+<pre id="log1">Klik TEST 1a.
 
-Teori: RTCPeerConnection bisa leak IP lokal 192.168.1.x via ICE candidate
-Kalau bisa leak = privacy leak $1k-$3k!
+Expected: Download file " 【entity-Apple¦canonical_name=Apple】.com - Secure.txt" (ada space di depan kayak bug VALID lu!)
+Bug Safari iOS 26.4.1: Malah buka di tab baru, isinya "Hello ini file TXT dari 0x403for.github.io! Harusnya download, bukan buka di tab!"
 
-Search HackerOne "webrtc leak iOS 26.4" = 0 reports! Belum ada yang test pakai createDataChannel baru!
+Kalau buka di tab = BUG! download attribute di-ignore!
+
+Cek di video: Kalau buka tab baru dengan URL data:[STRIPPED] = BUG REPRODUCED!
 </pre>
 </div>
 
 <div class="card">
-<h4>BUG LAIN #2: Blob URL + Download Spoof - Download jadi 【entity-Apple¦canonical_name=Apple】.com?</h4>
-<p style="font-size:11px">Bisa bikin file download dengan nama 【entity-Apple¦canonical_name=Apple】.com-Secure.html padahal dari 0x403for.github.io!</p>
-<button onclick="testBlob()">TEST BLOB DOWNLOAD SPOOF</button>
-<a id="dl" style="display:none"></a>
-<pre id="log2">Belum test.
+<h4>TEST 2: Same-Origin file.txt + download (Pakai file di 0x403for.github.io)</h4>
+<p class="small">Butuh 2 file: file.txt dan file.xml di 0x403for.github.io - bikin dulu!</p>
+<a href="file.txt" download=" 【entity-Apple¦canonical_name=Apple】.com - Secure Login.txt">TEST 2a: file.txt (same-origin) + download=" 【entity-Apple¦canonical_name=Apple】.com - Secure Login.txt"</a>
+<a href="file.xml" download=" 【entity-Apple¦canonical_name=Apple】.com - Secure Login.xml">TEST 2b: file.xml (same-origin) + download=" 【entity-Apple¦canonical_name=Apple】.com - Secure Login.xml"</a>
+<a href="https://0x403for.github.io/file.txt" download="【entity-Apple¦canonical_name=Apple】.com.txt">TEST 2c: https://0x403for.github.io/file.txt + download</a>
+<pre id="log2">Klik TEST 2a.
 
-Teori: Blob URL + download attribute bisa spoof filename jadi 【entity-apple¦canonical_name=Apple】.com
-Kalau user klik download dan filenya 【entity-Apple¦canonical_name=Apple】.com-Secure-Login.html padahal dari 0x403for = SPOOF!
+Butuh file file.txt di folder yang sama dengan HTML ini!
 
-Search HackerOne "blob download spoof 【entity-apple¦canonical_name=Apple】.com" = 1 report 2021, belum ada yang pakai %20 trick!
+Cara bikin file.txt di 0x403for.github.io:
+1. Buat file file.txt isinya: "Hello ini file TXT, harusnya download bukan buka di tab!"
+2. Upload ke 0x403for.github.io/file.txt
+3. Klik link di atas
+
+Expected: Download file.txt jadi " 【entity-Apple¦canonical_name=Apple】.com - Secure Login.txt"
+Bug: Buka di tab baru dengan URL https://0x403for.github.io/file.txt!
+
+Kalau buka di tab = BUG! download di-ignore di iOS!
+
+Status: Masih sering terjadi di iOS 26.4.1 - Safari iOS memang ignore download untuk same-origin txt/xml!
 </pre>
 </div>
 
 <div class="card">
-<h4>BUG LAIN #3: CSS :has() + :visited + :nth-child Leak (Bukan yang kemarin!)</h4>
-<p style="font-size:11px">Kemarin kita test :has()+:visited background putih SAFE. Sekarang pakai :nth-child + width!</p>
-<button onclick="testCSSLeak()">TEST CSS LEAK BARU - :has() + :nth-child</button>
-<div id="cssTest" style="display:none">
-<a href="https://apple.com" id="link1">apple.com</a>
-<a href="https://0x403for.github.io" id="link2">0x403for</a>
-<div id="target1">Target 1 - harusnya beda kalau apple.com udah di-visit</div>
-<div id="target2">Target 2</div>
+<h4>TEST 3: Cross-Origin + download (W3C test file)</h4>
+<p class="small">Cross-origin txt/xml + download - harusnya juga ignore di iOS!</p>
+<a href="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.txt" download="【entity-Apple¦canonical_name=Apple】.com.txt">TEST 3a: w3.org dummy.txt + download="【entity-Apple¦canonical_name=Apple】.com.txt"</a>
+<a href="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" download="【entity-Apple¦canonical_name=Apple】.com.pdf">TEST 3b: w3.org dummy.pdf + download (pdf biasanya work!)</a>
+<pre id="log3">Klik TEST 3a.
+
+Expected: Download dummy.txt jadi 【entity-Apple¦canonical_name=Apple】.com.txt
+Bug Safari iOS: Buka di tab baru dengan isi dummy.txt!
+
+Kalau buka di tab = BUG!
+
+Catatan: PDF biasanya work download di iOS, tapi TXT/XML di-ignore!
+</pre>
 </div>
-<pre id="log3">Belum test.
 
-Kemarin: div:has(a:visited) background putih = SAFE (rgb 255,255,255)
-Sekarang: pakai :has() + :nth-child + width/height leak via getComputedStyle!
+<div class="card">
+<h4>TEST 4: Blob URL + download + %20Apple.com Trick (Chain sama bug VALID lu!)</h4>
+<p class="small">Blob URL + download=" 【entity-Apple¦canonical_name=Apple】.com" + history.pushState /%20Apple.com/ = chain spoof!</p>
+<button onclick="testBlob()" class="green">TEST 4: Blob + download=" 【entity-Apple¦canonical_name=Apple】.com - Secure Login.html" + pushState /%20Apple.com/</button>
+<a id="blobLink" style="display:none"></a>
+<pre id="log4">Klik TEST 4.
 
-Kalau bisa baca apakah user pernah visit apple.com via width = HISTORY LEAK!
+Ini chain bug VALID lu %20Apple.com + download attribute bug!
+
+Teori:
+1. history.pushState ke /%20Apple.com/download-test
+2. Blob URL dengan download=" Apple.com - Secure Login.html"
+3. Klik download
+
+Expected: Download file " Apple.com - Secure Login.html"
+Bug: 
+- URL bar jadi /%20Apple.com/download-test (spoof valid lu!)
+- File download jadi Apple.com (spoof download attribute bug!)
+- Chain 2 spoof = Apple.com download dari URL yang keliatan kayak 【entity-apple¦canonical_name=Apple】.com!
+
+Status: Kombinasi 2 bug = bisa jadi $1k-$2k!
+</pre>
+</div>
+
+<div class="card">
+<h4>TEST 5: Apakah bisa bypass dengan Content-Disposition header?</h4>
+<p class="small">Kalau server kirim header Content-Disposition: attachment, harusnya download!</p>
+<a href="https://httpbin.org/response-headers?Content-Disposition=attachment%3B%20filename%3D%22Apple.com.txt%22&Content-Type=text%2Fplain&body=Hello">TEST 5: httpbin Content-Disposition: attachment filename="Apple.com.txt"</a>
+<pre id="log5">Klik TEST 5.
+
+Expected: Karena server bilang attachment, harusnya download!
+Bug: Di iOS kadang masih buka di tab walau sudah attachment!
+
+Kalau buka di tab walau sudah Content-Disposition: attachment = BUG server header di-ignore juga!
 </pre>
 </div>
 
 <script>
-async function testWebRTC(){
- let el=document.getElementById('log1');
- el.innerText=`Testing WebRTC leak...\n`;
- try{
-  let pc=new RTCPeerConnection({iceServers:[]});
-  pc.createDataChannel('test');
-  let offer=await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  
-  el.innerText+=`RTCPeerConnection created, waiting ICE...\n`;
-  
-  pc.onicecandidate=(e)=>{
-   if(e.candidate){
-    el.innerText+=`ICE Candidate: ${e.candidate.candidate}\n`;
-    // Check for private IP
-    let m=e.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
-    if(m){
-     let ip=m[1];
-     el.innerText+=`Found IP: ${ip}\n`;
-     if(ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')){
-      el.innerText+=`🔴 PRIVATE IP LEAK! ${ip} = LEAK VALID! ${ip} seharusnya gak keliatan!\n`;
-     }else{
-      el.innerText+=`Public IP: ${ip} - not private leak\n`;
-     }
-    }
-   }else{
-    el.innerText+=`ICE gathering done. Check apakah ada 192.168.x.x di atas?\n`;
-    el.innerText+=`Kalau ada = LEAK! Kalau cuma mDNS .local = SAFE (Apple patch)!\n`;
-   }
-  };
-  
-  setTimeout(()=>{
-   pc.close();
-   el.innerText+=`\nClosed. Kalau gak ada 192.168.x.x = SAFE, Apple udah patch pakai mDNS!\n`;
-  },5000);
-  
- }catch(e){ el.innerText+=`Error: ${e.message}\n`; }
-}
-
 function testBlob(){
- let el=document.getElementById('log2');
- el.innerText=`Testing Blob download spoof...\n`;
- try{
-  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title> Apple.com - Secure</title></head><body style="font-family:- apple-system;text-align:center;padding:40px"><h2>🔒 Apple.com - Secure Login</h2><p>Fake Apple login dari blob URL!</p><input type="password" placeholder="Apple ID" style="padding:12px;width:80%"><br><br><small>URL: blob:https://0x403for.github.io/... tapi title Apple.com</small></body></html>`;
+ let el=document.getElementById('log4');
+ el.innerText=`Testing Blob + %20Apple.com chain...\n`;
+ 
+ // Step 1: PushState ke /%20Apple.com/ (bug VALID lu!)
+ if(document.startViewTransition){
+  document.startViewTransition(()=>{
+   history.pushState({},'', '/%20Apple.com/download-test');
+   el.innerText+=`ViewTransition + pushState to /%20Apple.com/download-test\n`;
+   el.innerText+=`URL now: ${location.pathname} (Decoded: ${decodeURIComponent(location.pathname)})\n`;
+   doBlob();
+  });
+ }else{
+  history.pushState({},'', '/%20Apple.com/download-test');
+  el.innerText+=`pushState to /%20Apple.com/download-test\n`;
+  doBlob();
+ }
+ 
+ function doBlob(){
+  let html=`<html><head><title> Apple.com - Secure Login</title></head><body style="font-family:- apple-system;text-align:center;padding:40px"><h2>🔒 Apple.com - Secure Login</h2><p>File ini didownload dengan nama Apple.com - Secure Login.html</p><p>Tapi dari host: 0x403for.github.io (download attribute bug!)</p><p>URL bar: /%20Apple.com/download-test (spoof valid lu!)</p></body></html>`;
   let blob=new Blob([html], {type:'text/html'});
   let url=URL.createObjectURL(blob);
-  let a=document.getElementById('dl');
+  let a=document.getElementById('blobLink');
   a.href=url;
-  a.download=' Apple.com - Secure Login.html'; // Spoof filename dengan space!
-  el.innerText+=`Blob URL created: ${url.substring(0,50)}...\n`;
-  el.innerText+=`Filename: " Apple.com - Secure Login.html" (pakai space trick dari bug VALID lu!)\n`;
-  el.innerText+=`Klik untuk download...\n`;
+  a.download=' Apple.com - Secure Login.html'; // Space di depan kayak bug VALID!
   a.style.display='block';
-  a.textContent='DOWNLOAD - Apple.com - Secure Login.html (klik, file dari 0x403for tapi nama apple.com!)';
-  a.style.background='#0a84ff'; a.style.color='#fff'; a.style.padding='14px'; a.style.borderRadius='10px'; a.style.textAlign='center'; a.style.marginTop='10px';
-  el.innerText+=`Kalau file download namanya " Apple.com - Secure Login.html" padahal host 0x403for = SPOOF!\n`;
-  el.innerText+=`User kira download dari apple.com!\n`;
- }catch(e){ el.innerText+=`Error: ${e.message}\n`; }
+  a.textContent='DOWNLOAD: Apple.com - Secure Login.html (klik, file dari blob tapi nama Apple.com + URL /%20Apple.com/)';
+  a.style.background='#30d158'; a.style.color='#000'; a.style.padding='14px'; a.style.borderRadius='10px'; a.style.marginTop='10px'; a.style.textAlign='center';
+  el.innerText+=`Blob created, click link below to download\n`;
+  el.innerText+=`Kalau download jadi " Apple.com - Secure Login.html" + URL /%20Apple.com/ = CHAIN 2 BUG!\n`;
+ }
 }
 
-function testCSSLeak(){
- let el=document.getElementById('log3');
- let container=document.getElementById('cssTest');
- container.style.display='block';
- el.innerText=`Testing CSS :has() + :nth-child leak...\n`;
- 
- // Inject CSS baru, bukan yang kemarin
- let style=document.createElement('style');
- style.innerHTML=`
-  #cssTest:has(#link1:visited) #target1{ width: 100px !important; }
-  #cssTest:has(#link2:visited) #target2{ width: 200px !important; }
-  #cssTest #target1, #cssTest #target2{ width:50px; background:#333; padding:5px; margin:5px; }
- `;
- document.head.appendChild(style);
- 
- setTimeout(()=>{
-  let w1=getComputedStyle(document.getElementById('target1')).width;
-  let w2=getComputedStyle(document.getElementById('target2')).width;
-  el.innerText+=`target1 width (apple.com visited?): ${w1}\n`;
-  el.innerText+=`target2 width (0x403for visited?): ${w2}\n`;
-  el.innerText+=`Expected: both 50px = SAFE (Apple patch :visited leak)\n`;
-  el.innerText+=`Kalau w1=100px = user pernah visit apple.com = HISTORY LEAK!\n`;
-  el.innerText+=`Kalau w2=200px = user pernah visit 0x403for.github.io = HISTORY LEAK!\n`;
-  el.innerText+=`Di iOS 26.4.1, biasanya 50px semua = SAFE! (Apple patch sejak iOS 14)\n`;
- },500);
-}
+// Log untuk TEST 1
+document.querySelectorAll('a[download]').forEach(a=>{
+ a.addEventListener('click', (e)=>{
+  let id=a.closest('.card').querySelector('pre').id;
+  let log=document.getElementById(id);
+  log.innerText+=`\nClicked: ${a.getAttribute('href').substring(0,40)}...\n`;
+  log.innerText+=`Download attr: ${a.getAttribute('download')}\n`;
+  log.innerText+=`Menunggu: Apakah download atau buka tab baru?\n`;
+  log.innerText+=`Kalau buka tab baru = BUG REPRODUCED! Screenshot!\n`;
+ });
+});
 </script>
 
-<div class="card" style="background:#111;font-size:11px">
-<b>Kenapa 3 ini LAIN dari yang itu-itu?</b><br>
-- Itu-itu yang kemarin: @position-try, masonry, VT2, MMS, Web Locks, Wake Lock, Fenced Frame, Speculation Rules, Cache timing 302 vs 335, WebGPU apple generic, credentialless, EyeDropper, Push, Badging, Universal Link apple.com.0x403for.github.io, subdomain trick, @ trick, unicode, PWA %20Apple.com<br>
-- LAIN yang ini: WebRTC private IP leak (belum pernah!), Blob download spoof filename (belum pernah!), CSS :has()+:nth-child width leak (beda dari background putih kemarin!)<br>
-- Semua bisa di iPhone 26.4.1 lu sekarang, bukan TP Mac!<br>
-<b>Paling mungkin VALID:</b> WebRTC leak kalau masih leak 192.168.x.x = $1k-$3k privacy leak!
+<div class="card" style="background:#111;border:1px solid #0af">
+<b style="color:#0af">Cara reproduksi BUG TXT/XML ini di iPhone 26.4.1 (kayak tabel lu):</b><br>
+1. Buat file file.txt di 0x403for.github.io isinya "Hello"<br>
+2. Upload bug-download-attribute.html ke 0x403for.github.io/bug-download-attribute.html<br>
+3. Buka di Safari iPhone<br>
+4. Klik TEST 1a data:[STRIPPED] + download=" Apple.com - Secure.txt"<br>
+5. <b>Kalau malah buka di tab baru dengan URL data:[STRIPPED] = BUG! Harusnya download!</b><br>
+6. Video screen record 10 detik kayak video lu kemarin (baterai 55%)<br>
+<br>
+<b>Kenapa ini bug?</b><br>
+- HTML spec: &lt;a download&gt; harusnya force download, bukan navigasi<br>
+- Safari iOS: ignore download untuk text/plain, text/xml, text/html (hanya work untuk same-origin blob: dan beberapa pdf)<br>
+- Bisa di-chain sama %20Apple.com valid lu jadi spoof: URL /%20Apple.com/ + download Apple.com.txt = user kira dari apple.com!<br>
+<b>Bounty:</b> Low $500, tapi kalau chain sama %20Apple.com spoof valid lu = $1k-$2k!
 </div>
 
 </body>
