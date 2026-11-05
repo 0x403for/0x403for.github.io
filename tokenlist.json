@@ -1,0 +1,11 @@
+{
+  "name": "Test 1inch SSRF",
+  "tokens": [{
+    "chainId": 1,
+    "address": "0x000000000000000000000000000000000000dEaD",
+    "name": "Webhook Test",
+    "symbol": "WHT",
+    "decimals": 18,
+    "logoURI": "https://webhooksite.net/d40e9688-b105-413e-b81b-b42b56467103/logo.png"
+  }]
+}
