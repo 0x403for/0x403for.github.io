@@ -4,35 +4,35 @@
 </head>
 <body>
 
-<p>test popup</p>
+<p>popup test</p>
 <button onclick="go()">click here</button>
 <p id="h"></p>
 
 <script>
 function go(){
-  document.getElementById('h').innerText = 'buka popup 1...';
+  document.getElementById('h').innerText = 'opening popup 1...';
 
   var w1 = window.open('/page1.html', '_blank');
   if(!w1){
-    document.getElementById('h').innerText = 'popup 1 ke block';
+    document.getElementById('h').innerText = 'popup 1 blocked';
     return;
   }
 
   setTimeout(function(){
     var w2 = window.open('/page2.html', '_blank');
     if(w2){
-      document.getElementById('h').innerText = 'popup 2 kebuka, bypass!';
+      document.getElementById('h').innerText = 'popup 2 opened, bypass!';
     }else{
-      document.getElementById('h').innerText = 'popup 2 ke block, aman';
+      document.getElementById('h').innerText = 'popup 2 blocked, safe';
     }
   }, 500);
 
   setTimeout(function(){
     var w3 = window.open('/page3.html', '_blank');
     if(w3){
-      console.log('popup telat kebuka');
+      console.log('delayed popup opened');
     }else{
-      console.log('popup telat ke block');
+      console.log('delayed popup blocked');
     }
   }, 1000);
 }
