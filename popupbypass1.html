@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>test</title>
+</head>
+<body>
+
+<p>cross-origin test</p>
+<button onclick="go()">click here</button>
+<p id="h"></p>
+
+<script>
+function go(){
+  document.getElementById('h').innerText = 'opening 1...';
+  // popup 1 - domain utama lu
+  window.open('https://0x403for.github.io/page1.html', '_blank');
+
+  setTimeout(function(){
+    document.getElementById('h').innerText = 'trying cross-origin...';
+    // popup 2 - DOMAIN BEDA, ini yang reviewer bilang gak bisa
+    window.open('https://sprightly-frangipane-b2128c.netlify.app/', '_blank');
+  }, 500);
+}
+</script>
+
+</body>
+</html>
