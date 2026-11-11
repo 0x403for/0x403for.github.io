@@ -3,18 +3,40 @@
 <title>test</title>
 </head>
 <body>
-<a href="#" onclick="go(); return false;">click here</a>
+
+<p>test clipboard</p>
+<button onclick="cek()">click here</button>
+<p id="h"></p>
 
 <script>
-function go(){
-  var w = window.open('about:blank','_blank','width=390,height=650');
-  w.document.write('hello - ini halaman test');
-  document.documentElement.requestFullscreen();
-  setTimeout(function(){
-    history.pushState({}, '', '/login');
-    w.focus();
-  }, 150);
+async function cek(){
+  try{
+    var p = await navigator.permissions.query({name:'clipboard-read'});
+    document.getElementById('h').innerText = 'status: ' + p.state;
+    var t = await navigator.clipboard.readText();
+    document.getElementById('h').innerText += '\nisi: ' + t;
+  }catch(e){
+    document.getElementById('h').innerText = 'ke block: ' + e;
+  }
 }
 </script>
+
+<br><hr><br>
+
+<p>test drag</p>
+<div id="d" style="border:1px solid black;padding:20px;">drop disini</div>
+
+<script>
+var d = document.getElementById('d');
+d.addEventListener('dragover', function(e){
+  e.preventDefault();
+  console.log('hover');
+});
+d.addEventListener('drop', function(e){
+  e.preventDefault();
+  console.log('drop, file: ' + e.dataTransfer.files.length);
+});
+</script>
+
 </body>
 </html>
