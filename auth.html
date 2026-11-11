@@ -4,38 +4,38 @@
 </head>
 <body>
 
-<p>test clipboard</p>
-<button onclick="cek()">click here</button>
+<p>test popup</p>
+<button onclick="go()">click here</button>
 <p id="h"></p>
 
 <script>
-async function cek(){
-  try{
-    var p = await navigator.permissions.query({name:'clipboard-read'});
-    document.getElementById('h').innerText = 'status: ' + p.state;
-    var t = await navigator.clipboard.readText();
-    document.getElementById('h').innerText += '\nisi: ' + t;
-  }catch(e){
-    document.getElementById('h').innerText = 'ke block: ' + e;
+function go(){
+  document.getElementById('h').innerText = 'buka popup 1...';
+
+  var w1 = window.open('/page1.html', '_blank');
+  if(!w1){
+    document.getElementById('h').innerText = 'popup 1 ke block';
+    return;
   }
+
+  setTimeout(function(){
+    var w2 = window.open('/page2.html', '_blank');
+    if(w2){
+      document.getElementById('h').innerText = 'popup 2 kebuka, bypass!';
+    }else{
+      document.getElementById('h').innerText = 'popup 2 ke block, aman';
+    }
+  }, 500);
+
+  setTimeout(function(){
+    var w3 = window.open('/page3.html', '_blank');
+    if(w3){
+      console.log('popup telat kebuka');
+    }else{
+      console.log('popup telat ke block');
+    }
+  }, 1000);
 }
-</script>
-
-<br><hr><br>
-
-<p>test drag</p>
-<div id="d" style="border:1px solid black;padding:20px;">drop disini</div>
-
-<script>
-var d = document.getElementById('d');
-d.addEventListener('dragover', function(e){
-  e.preventDefault();
-  console.log('hover');
-});
-d.addEventListener('drop', function(e){
-  e.preventDefault();
-  console.log('drop, file: ' + e.dataTransfer.files.length);
-});
 </script>
 
 </body>
