@@ -11,12 +11,11 @@
 <script>
 function go(){
   document.getElementById('h').innerText = 'opening 1...';
-  // popup 1 - domain utama lu
   window.open('https://0x403for.github.io/page1.html', '_blank');
 
   setTimeout(function(){
-    document.getElementById('h').innerText = 'trying cross-origin...';
-    // popup 2 - DOMAIN BEDA, ini yang reviewer bilang gak bisa
+    document.getElementById('h').innerText = 'BYPASS! check your tabs - second popup opened';
+    document.title = 'BYPASS!';
     window.open('https://cross-origin-popup-bypass.netlify.app/', '_blank');
   }, 500);
 }
