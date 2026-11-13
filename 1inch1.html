@@ -1,30 +1,43 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="start()">Mulai Baca Sensor</button>
-<pre id="o">Belum mulai...</pre>
+<button onclick="cek()">Cek Baterai + Jaringan</button>
+<pre id="o">Belum di-cek...</pre>
 <script>
-function start(){
-  let out = document.getElementById('o');
-  if(typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
-    // iOS 13+ butuh izin khusus
-    DeviceMotionEvent.requestPermission().then((res)=>{
-      out.innerText = "Izin Motion: " + res;
-      if(res === "granted") mulai();
-    }).catch(e => out.innerText = "Error izin: " + e.message);
-  } else {
-    out.innerText = "Langsung baca tanpa izin, cek di bawah...";
-    mulai();
-  }
-  function mulai(){
-    window.addEventListener('devicemotion', (e)=>{
-      let a = e.accelerationIncludingGravity;
-      document.getElementById('o').innerText = "Accel X: " + a.x?.toFixed(2) + "\nAccel Y: " + a.y?.toFixed(2) + "\nAccel Z: " + a.z?.toFixed(2) + "\n\nCoba goyangin iPhone lu, kalo angka ini berubah-ubah, berarti sensornya ke-baca sama web!";
-    });
-    window.addEventListener('deviceorientation', (e)=>{
-      document.getElementById('o').innerText += "\n\nOrientation - Alpha: " + e.alpha?.toFixed(1) + " Beta: " + e.beta?.toFixed(1) + " Gamma: " + e.gamma?.toFixed(1);
-    });
-  }
+async function cek(){
+  let r = "";
+  // 1. BATTERY
+  try{
+    let b = await navigator.getBattery();
+    r += "BATTERY:\n";
+    r += "Level: " + (b.level * 100) + "%\n";
+    r += "Charging: " + b.charging + "\n";
+    r += "Charging Time: " + b.chargingTime + " detik\n";
+    r += "Discharging Time: " + b.dischargingTime + " detik\n\n";
+  }catch(e){ r += "Battery Blocked (aman): " + e.message + "\n\n"; }
+
+  // 2. NETWORK
+  try{
+    let c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if(c){
+      r += "NETWORK:\n";
+      r += "Effective Type: " + c.effectiveType + "\n";
+      r += "Downlink: " + c.downlink + " Mbps\n";
+      r += "RTT: " + c.rtt + " ms\n";
+      r += "Save Data: " + c.saveData + "\n\n";
+    } else {
+      r += "Network Info tidak tersedia (aman)\n\n";
+    }
+  }catch(e){ r += "Network Blocked: " + e.message + "\n\n"; }
+
+  // 3. HARDWARE
+  r += "HARDWARE:\n";
+  r += "CPU Cores: " + navigator.hardwareConcurrency + "\n";
+  r += "Memory: " + (navigator.deviceMemory || "tidak tersedia") + " GB\n";
+  r += "Platform: " + navigator.platform + "\n";
+  r += "Timezone: " + Intl.DateTimeFormat().resolvedOptions().timeZone + "\n";
+
+  document.getElementById('o').innerText = r;
 }
 </script>
 </body>
