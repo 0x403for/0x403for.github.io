@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="push()">Minta Izin Push</button>
+<button onclick="dl()">Download Kontak Tes</button>
+<pre id="o"></pre>
 <script>
-async function push(){
-  let p = await Notification.requestPermission();
-  alert("Izin push: " + p);
-  if(p === "granted"){
-    new Notification("1inch Wallet", {body: "Swap kamu berhasil! Klik untuk lihat"});
-  }
+function dl(){
+  let vcf = "BEGIN:VCARD\nVERSION:3.0\nFN:TEST 1inch Support\nN:Support;1inch;;;\nTEL;TYPE=CELL:08123456789\nEMAIL:support-test@1inch.io\nEND:VCARD";
+  let blob = new Blob([vcf], {type:'text/vcard'});
+  let a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = "1inch-support-test.vcf";
+  a.click();
+  document.getElementById('o').innerText = "File .vcf di-download, cek apakah langsung muncul popup Tambah Kontak tanpa konfirmasi dari 1inch";
 }
 </script>
 </body>
