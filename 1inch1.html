@@ -1,50 +1,34 @@
 <!DOCTYPE html>
 <html>
 <body>
-<h3>WebRTC IP Leak Test</h3>
-<button onclick="cek()">Cek IP Leak</button>
-<pre id="o">Klik tombol...</pre>
+<h3>History Trap Test</h3>
+<p>Setelah klik tombol, coba pencet Back di 1inch. Apakah bisa balik atau ke-lock?</p>
+<button onclick="jebak()">1. Tanem 50 History Palsu</button><br><br>
+<button onclick="jebak2()">2. Tanem Trap + onpopstate</button>
+<pre id="o">Klik tombol 1 dulu...</pre>
 <script>
-async function cek(){
+function jebak(){
   let out = document.getElementById('o');
-  out.innerText = "Nyoba baca IP lewat WebRTC...\n";
-  try {
-    let pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
-    pc.createDataChannel("test");
-    let candidates = [];
-    pc.onicecandidate = (e) => {
-      if (!e.candidate) {
-        out.innerText += "\nSelesai.\n";
-        if (candidates.length === 0) {
-          out.innerText += "AMAN: Gak ada candidate yang ke-baca, IP ke-block";
-        } else {
-          out.innerText += "Jumlah candidate: " + candidates.length + "\n";
-          out.innerText += "Cek IP-nya: Apakah ada IP yang bukan IP VPN lu? Kalo ada, berarti KENA LEAK\n";
-        }
-        pc.close();
-        return;
-      }
-      let cand = e.candidate.candidate;
-      candidates.push(cand);
-      out.innerText += "Candidate: " + cand + "\n";
-      // Cari IP di candidate
-      let ipMatch = cand.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
-      if (ipMatch) {
-        out.innerText += "  -> IP ketemu: " + ipMatch[0] + "\n";
-        // Cek apakah IP lokal
-        if (ipMatch[0].startsWith("192.168.") || ipMatch[0].startsWith("10.") || ipMatch[0].startsWith("172.")) {
-          out.innerText += "  -> INI IP LOKAL! KENA LEAK!\n";
-        }
-      }
-    };
-    let offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    setTimeout(()=>{ if (candidates.length===0) out.innerText += "\nTimeout: Gak ada candidate, kemungkinan diblokir (AMAN)"; }, 5000);
-  } catch(e) {
-    out.innerText += "Error: " + e.message + "\nAMAN: WebRTC diblokir";
+  out.innerText = "Nanem 50 history...\n";
+  for(let i=0; i<50; i++){
+    history.pushState({trap:i}, "", "/trap"+i);
   }
+  out.innerText += "Selesai. history.length sekarang: " + history.length + "\n";
+  out.innerText += "Sekarang coba pencet BACK di 1inch (tombol < di bawah).\n";
+  out.innerText += "Kalo lu harus pencet Back 50x baru bisa keluar = KENA TRAP\n";
+  out.innerText += "Kalo lu cuma pencet Back 1x langsung balik ke 1inch = AMAN, 1inch nge-block spam pushState";
+}
+function jebak2(){
+  let out = document.getElementById('o');
+  out.innerText = "Nanem Trap + onpopstate...\n";
+  history.pushState({trap:'lock'}, "", "/locked");
+  window.onpopstate = function(e){
+    // Ini yang nge-lock: setiap kali korban pencet Back, kita tanem lagi history baru
+    history.pushState({trap:'lock2'}, "", "/locked-again");
+    document.getElementById('o').innerText = "Back ke-block! Lu masih di halaman phishing. Coba pencet Back lagi...\nKalo ini terus keulang, berarti KENA HISTORY TRAP";
+    alert("Kamu tidak bisa keluar! Verifikasi wallet dulu!");
+  };
+  out.innerText += "Trap dipasang. Coba pencet Back sekarang.\nKalo muncul alert + gak bisa keluar = KENA";
 }
 </script>
 </body>
