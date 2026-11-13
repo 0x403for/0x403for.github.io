@@ -1,65 +1,54 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="cek()">Cek Fingerprint</button>
-<pre id="o">Belum di-cek...</pre>
+<button onclick="scan()">Scan Wallet Terinstall</button>
+<pre id="o">Belum di-scan...</pre>
 <script>
-async function cek(){
-  let r = "";
-
-  // 1. CANVAS FINGERPRINT
-  try{
-    let c = document.createElement('canvas');
-    c.width = 200; c.height = 50;
-    let ctx = c.getContext('2d');
-    ctx.textBaseline = "top";
-    ctx.font = "14px Arial";
-    ctx.fillStyle = "#f60";
-    ctx.fillRect(10, 10, 100, 30);
-    ctx.fillStyle = "#069";
-    ctx.fillText("1inch Wallet Test 123", 15, 15);
-    let data = c.toDataURL();
-    r += "CANVAS:\n";
-    r += "Panjang Data: " + data.length + " karakter\n";
-    r += "Hash awal: " + data.slice(0, 60) + "...\n";
-    r += "Kalo situs lain dapet hash yang SAMA PERSIS, berarti iPhone lu bisa dilacak.\n\n";
-  }catch(e){ r += "Canvas Blocked (aman): " + e.message + "\n\n"; }
-
-  // 2. AUDIO FINGERPRINT
-  try{
-    let AC = window.AudioContext || window.webkitAudioContext;
-    let ac = new AC();
-    let osc = ac.createOscillator();
-    osc.type = "triangle";
-    osc.frequency.value = 10000;
-    let comp = ac.createDynamicsCompressor();
-    osc.connect(comp);
-    comp.connect(ac.destination);
-    osc.start();
-    osc.stop();
-    r += "AUDIO:\n";
-    r += "Sample Rate: " + ac.sampleRate + "\n";
-    r += "State: " + ac.state + "\n";
-    r += "Kalo sample rate + cara render audio-nya konsisten di semua situs, itu juga bisa jadi ID pelacak.\n\n";
-    ac.close();
-  }catch(e){ r += "Audio Blocked (aman): " + e.message + "\n\n"; }
-
-  // 3. WEBGL
-  try{
-    let c2 = document.createElement('canvas');
-    let gl = c2.getContext('webgl');
-    let ext = gl.getExtension('WEBGL_debug_renderer_info');
-    if(ext){
-      r += "WEBGL:\n";
-      r += "Vendor: " + gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) + "\n";
-      r += "Renderer: " + gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) + "\n";
-      r += "Ini nama GPU iPhone lu yang asli, harusnya disembunyiin dari web.\n";
-    } else {
-      r += "WEBGL: Info GPU di-block (aman)\n";
+async function cekScheme(scheme){
+  return new Promise((resolve)=>{
+    let start = performance.now();
+    let done = false;
+    function finish(found){
+      if(done) return;
+      done = true;
+      window.removeEventListener('blur', onBlur);
+      resolve({scheme, found, time: (performance.now()-start).toFixed(1)});
     }
-  }catch(e){ r += "WebGL Blocked: " + e.message; }
-
-  document.getElementById('o').innerText = r;
+    function onBlur(){
+      // Kalo browser ke-blur, berarti ada app yang kebuka = wallet-nya ke-install
+      finish(true);
+    }
+    window.addEventListener('blur', onBlur);
+    let iframe = document.createElement('iframe');
+    iframe.style.display = "none";
+    iframe.src = scheme;
+    document.body.appendChild(iframe);
+    setTimeout(()=>{
+      document.body.removeChild(iframe);
+      finish(false);
+    }, 800);
+  });
+}
+async function scan(){
+  let out = document.getElementById('o');
+  out.innerText = "Scanning... jangan pindah app dulu";
+  let wallets = [
+    "metamask://",
+    "trust://",
+    "1inch://",
+    "phantom://",
+    "rainbow://",
+    "coinbase://"
+  ];
+  let r = "";
+  for(let w of wallets){
+    let res = await cekScheme(w);
+    r += res.scheme + " -> " + (res.found ? "KE-INSTALL (blur)" : "GAK KE-INSTALL / di-block") + " | " + res.time + "ms\n";
+    out.innerText = r;
+    await new Promise(x=>setTimeout(x, 300));
+  }
+  r += "\nKalo ada yang KE-INSTALL, berarti situs ini bisa nebak wallet apa aja yang ada di iPhone lu.";
+  out.innerText = r;
 }
 </script>
 </body>
