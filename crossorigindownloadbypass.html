@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>test</title>
+</head>
+<body>
+
+<p>download cross-origin test</p>
+<button onclick="go()">click here</button>
+<p id="h"></p>
+
+<script>
+function go(){
+  document.getElementById('h').innerText = 'downloading 1...';
+
+  // download 1 - main domain, from click
+  var blob = new Blob(['this is file 1 from main domain'], {type:'text/plain'});
+  var url = URL.createObjectURL(blob);
+  var a1 = document.createElement('a');
+  a1.href = url;
+  a1.download = 'file1.txt';
+  document.body.appendChild(a1);
+  a1.click();
+  a1.remove();
+
+  setTimeout(function(){
+    document.getElementById('h').innerText = 'BYPASS! trying cross-origin download...';
+    document.title = 'BYPASS!';
+
+    // download 2 - second domain, pake root-nya aja
+    var a2 = document.createElement('a');
+    a2.href = 'https://download-bypass.netlify.app/';
+    a2.download = 'file2.txt';
+    document.body.appendChild(a2);
+    a2.click();
+    a2.remove();
+  }, 500);
+}
+</script>
+
+</body>
+</html>
