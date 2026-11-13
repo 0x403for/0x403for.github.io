@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="test2()">Test 2 - Mail + Auto Body</button>
+<button onclick="test()">Click Here</button>
 <pre id="o"></pre>
 <script>
-function test2(){
-  document.getElementById('o').innerText = "Trying to open: mailto + auto body";
-  window.location.href = "mailto:support@1inch.io?subject=Security Test - Mailto Injection from dApp Browser&body=This is a security test. This email was pre-filled automatically from a website opened inside 1inch dApp Browser without any confirmation dialog from 1inch. An attacker could pre-fill recipient, subject, and body to impersonate 1inch support.";
+function test(){
+  document.getElementById('o').innerText = "Trying to open: mailto";
+  window.location.href = "mailto:support@1inch.io?subject=Security Test - Mailto Auto-Open&body=This is a security test. This mail client was opened automatically from a website inside 1inch dApp Browser without user confirmation.";
 }
 </script>
 </body>
