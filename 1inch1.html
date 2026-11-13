@@ -1,20 +1,12 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="test1()">Test 1 - Swap ETH -> stETH (Prefill)</button><br><br>
-<button onclick="test2()">Test 2 - Langsung Send (Deeplink)</button>
+<button onclick="go()">Swap ETH -> stETH 0.01</button>
 <pre id="o"></pre>
 <script>
-function test1(){
-  document.getElementById('o').innerText = "Buka swap ETH -> stETH...";
-  // Ini yang lu kirim, langsung dibuka
-  window.location.href = "https://1inch.com/swap?src=1:ETH&dst=1:stETH";
-}
-function test2(){
-  document.getElementById('o').innerText = "Nyoba langsung Send via deeplink...";
-  // Ini versi yang langsung Send, bukan cuma Swap
-  // Coba format deeplink native 1inch
-  window.location.href = "1inch://swap?src=1:ETH&dst=1:stETH&amount=0.01";
+function go(){
+  document.getElementById('o').innerText = "Buka swap ETH -> stETH 0.01...";
+  window.location.href = "https://1inch.com/swap?src=1:ETH&dst=1:stETH&amount=0.01";
 }
 </script>
 </body>
