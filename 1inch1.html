@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="dl()">Download Kontak Tes</button>
+<button onclick="tes()">Test Passkey 1inch</button>
 <pre id="o"></pre>
 <script>
-function dl(){
-  let vcf = "BEGIN:VCARD\nVERSION:3.0\nFN:TEST 1inch Support\nN:Support;1inch;;;\nTEL;TYPE=CELL:08123456789\nEMAIL:support-test@1inch.io\nEND:VCARD";
-  let blob = new Blob([vcf], {type:'text/vcard'});
-  let a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = "1inch-support-test.vcf";
-  a.click();
-  document.getElementById('o').innerText = "File .vcf di-download, cek apakah langsung muncul popup Tambah Kontak tanpa konfirmasi dari 1inch";
+async function tes(){
+  let out = document.getElementById('o');
+  try{
+    // Ini coba minta Passkey dengan rpId punya 1inch, dari origin github.io
+    let cred = await navigator.credentials.get({
+      publicKey: {
+        challenge: new Uint8Array([1,2,3,4]),
+        rpId: "1inch.io",
+        allowCredentials: [],
+        userVerification: "preferred"
+      }
+    });
+    out.innerText = "KENA! Passkey keambil: " + JSON.stringify(cred);
+  }catch(e){
+    out.innerText = "Blocked (aman) / Error: " + e.message + "\n\nKalo errornya 'rpId tidak cocok' / 'NotAllowed', berarti 1inch udah bener nge-block cross-origin Passkey.";
+  }
 }
 </script>
 </body>
