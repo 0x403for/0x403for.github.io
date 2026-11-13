@@ -1,41 +1,63 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="cek()">Cek Baterai + Jaringan</button>
+<button onclick="cek()">Cek Fingerprint</button>
 <pre id="o">Belum di-cek...</pre>
 <script>
 async function cek(){
   let r = "";
-  // 1. BATTERY
-  try{
-    let b = await navigator.getBattery();
-    r += "BATTERY:\n";
-    r += "Level: " + (b.level * 100) + "%\n";
-    r += "Charging: " + b.charging + "\n";
-    r += "Charging Time: " + b.chargingTime + " detik\n";
-    r += "Discharging Time: " + b.dischargingTime + " detik\n\n";
-  }catch(e){ r += "Battery Blocked (aman): " + e.message + "\n\n"; }
 
-  // 2. NETWORK
+  // 1. CANVAS FINGERPRINT
   try{
-    let c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if(c){
-      r += "NETWORK:\n";
-      r += "Effective Type: " + c.effectiveType + "\n";
-      r += "Downlink: " + c.downlink + " Mbps\n";
-      r += "RTT: " + c.rtt + " ms\n";
-      r += "Save Data: " + c.saveData + "\n\n";
+    let c = document.createElement('canvas');
+    c.width = 200; c.height = 50;
+    let ctx = c.getContext('2d');
+    ctx.textBaseline = "top";
+    ctx.font = "14px Arial";
+    ctx.fillStyle = "#f60";
+    ctx.fillRect(10, 10, 100, 30);
+    ctx.fillStyle = "#069";
+    ctx.fillText("1inch Wallet Test 123", 15, 15);
+    let data = c.toDataURL();
+    r += "CANVAS:\n";
+    r += "Panjang Data: " + data.length + " karakter\n";
+    r += "Hash awal: " + data.slice(0, 60) + "...\n";
+    r += "Kalo situs lain dapet hash yang SAMA PERSIS, berarti iPhone lu bisa dilacak.\n\n";
+  }catch(e){ r += "Canvas Blocked (aman): " + e.message + "\n\n"; }
+
+  // 2. AUDIO FINGERPRINT
+  try{
+    let AC = window.AudioContext || window.webkitAudioContext;
+    let ac = new AC();
+    let osc = ac.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.value = 10000;
+    let comp = ac.createDynamicsCompressor();
+    osc.connect(comp);
+    comp.connect(ac.destination);
+    osc.start();
+    osc.stop();
+    r += "AUDIO:\n";
+    r += "Sample Rate: " + ac.sampleRate + "\n";
+    r += "State: " + ac.state + "\n";
+    r += "Kalo sample rate + cara render audio-nya konsisten di semua situs, itu juga bisa jadi ID pelacak.\n\n";
+    ac.close();
+  }catch(e){ r += "Audio Blocked (aman): " + e.message + "\n\n"; }
+
+  // 3. WEBGL
+  try{
+    let c2 = document.createElement('canvas');
+    let gl = c2.getContext('webgl');
+    let ext = gl.getExtension('WEBGL_debug_renderer_info');
+    if(ext){
+      r += "WEBGL:\n";
+      r += "Vendor: " + gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) + "\n";
+      r += "Renderer: " + gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) + "\n";
+      r += "Ini nama GPU iPhone lu yang asli, harusnya disembunyiin dari web.\n";
     } else {
-      r += "Network Info tidak tersedia (aman)\n\n";
+      r += "WEBGL: Info GPU di-block (aman)\n";
     }
-  }catch(e){ r += "Network Blocked: " + e.message + "\n\n"; }
-
-  // 3. HARDWARE
-  r += "HARDWARE:\n";
-  r += "CPU Cores: " + navigator.hardwareConcurrency + "\n";
-  r += "Memory: " + (navigator.deviceMemory || "tidak tersedia") + " GB\n";
-  r += "Platform: " + navigator.platform + "\n";
-  r += "Timezone: " + Intl.DateTimeFormat().resolvedOptions().timeZone + "\n";
+  }catch(e){ r += "WebGL Blocked: " + e.message; }
 
   document.getElementById('o').innerText = r;
 }
