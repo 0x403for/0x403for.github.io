@@ -1,12 +1,50 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="go()">Swap ETH -> Token Scam</button>
-<pre id="o"></pre>
+<h3>WebRTC IP Leak Test</h3>
+<button onclick="cek()">Cek IP Leak</button>
+<pre id="o">Klik tombol...</pre>
 <script>
-function go(){
-  document.getElementById('o').innerText = "Buka swap ETH -> Token Scam...";
-  window.location.href = "https://1inch.com/swap?src=1:ETH&dst=1:0x000000000000000000000000000000000000dEaD";
+async function cek(){
+  let out = document.getElementById('o');
+  out.innerText = "Nyoba baca IP lewat WebRTC...\n";
+  try {
+    let pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+    pc.createDataChannel("test");
+    let candidates = [];
+    pc.onicecandidate = (e) => {
+      if (!e.candidate) {
+        out.innerText += "\nSelesai.\n";
+        if (candidates.length === 0) {
+          out.innerText += "AMAN: Gak ada candidate yang ke-baca, IP ke-block";
+        } else {
+          out.innerText += "Jumlah candidate: " + candidates.length + "\n";
+          out.innerText += "Cek IP-nya: Apakah ada IP yang bukan IP VPN lu? Kalo ada, berarti KENA LEAK\n";
+        }
+        pc.close();
+        return;
+      }
+      let cand = e.candidate.candidate;
+      candidates.push(cand);
+      out.innerText += "Candidate: " + cand + "\n";
+      // Cari IP di candidate
+      let ipMatch = cand.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
+      if (ipMatch) {
+        out.innerText += "  -> IP ketemu: " + ipMatch[0] + "\n";
+        // Cek apakah IP lokal
+        if (ipMatch[0].startsWith("192.168.") || ipMatch[0].startsWith("10.") || ipMatch[0].startsWith("172.")) {
+          out.innerText += "  -> INI IP LOKAL! KENA LEAK!\n";
+        }
+      }
+    };
+    let offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    setTimeout(()=>{ if (candidates.length===0) out.innerText += "\nTimeout: Gak ada candidate, kemungkinan diblokir (AMAN)"; }, 5000);
+  } catch(e) {
+    out.innerText += "Error: " + e.message + "\nAMAN: WebRTC diblokir";
+  }
 }
 </script>
 </body>
