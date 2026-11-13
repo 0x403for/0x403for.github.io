@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html>
 <body>
-<a href="https://appclip.apple.com/id?p=com.1inch.wallet.Clip">Buka App Clip 1inch</a>
+<button onclick="push()">Minta Izin Push</button>
+<script>
+async function push(){
+  let p = await Notification.requestPermission();
+  alert("Izin push: " + p);
+  if(p === "granted"){
+    new Notification("1inch Wallet", {body: "Swap kamu berhasil! Klik untuk lihat"});
+  }
+}
+</script>
 </body>
 </html>
