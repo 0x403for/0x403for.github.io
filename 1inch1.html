@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="notif()">Test Notif</button>
+<a href="https://apps.apple.com/app/1inch-wallet/id-xxx">Update 1inch Wallet</a>
+<br><br>
+<button onclick="go()">Cek App Store</button>
 <script>
-async function notif(){
-  let p = await Notification.requestPermission();
-  if(p === "granted"){
-    new Notification("1inch Wallet", {body: "Test notifikasi dari situs - apakah ini keliatan kayak dari 1inch?"});
-  } else {
-    alert("Blocked (aman): " + p);
-  }
+function go(){
+  window.location.href = "https://apps.apple.com/us/app/1inch-crypto-wallet/id1489574968";
 }
 </script>
 </body>
