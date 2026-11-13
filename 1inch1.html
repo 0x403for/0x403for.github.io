@@ -1,24 +1,21 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="tes()">Test Passkey 1inch</button>
+<button onclick="scan()">Scan Bluetooth</button>
 <pre id="o"></pre>
 <script>
-async function tes(){
+async function scan(){
   let out = document.getElementById('o');
+  if(!navigator.bluetooth){
+    out.innerText = "Bluetooth tidak tersedia di WebView ini (aman)";
+    return;
+  }
   try{
-    // Ini coba minta Passkey dengan rpId punya 1inch, dari origin github.io
-    let cred = await navigator.credentials.get({
-      publicKey: {
-        challenge: new Uint8Array([1,2,3,4]),
-        rpId: "1inch.io",
-        allowCredentials: [],
-        userVerification: "preferred"
-      }
-    });
-    out.innerText = "KENA! Passkey keambil: " + JSON.stringify(cred);
+    out.innerText = "Minta izin Bluetooth...";
+    let device = await navigator.bluetooth.requestDevice({acceptAllDevices:true});
+    out.innerText = "KENA! Device ketemu: " + device.name + " | ID: " + device.id;
   }catch(e){
-    out.innerText = "Blocked (aman) / Error: " + e.message + "\n\nKalo errornya 'rpId tidak cocok' / 'NotAllowed', berarti 1inch udah bener nge-block cross-origin Passkey.";
+    out.innerText = "Blocked (aman) / Error: " + e.message;
   }
 }
 </script>
