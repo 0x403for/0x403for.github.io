@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="dl()">Download File</button>
+<h3>Test Keyboard</h3>
+<input type="text" id="t1" placeholder="Ketik ZZZ disini" autocomplete="off" autocorrect="on"><br><br>
+<textarea id="t2" placeholder="Atau ketik disini" rows="3"></textarea><br><br>
+<pre id="o">1. Buka Notes, ketik ZZZSECRET123 sekali<br>2. Balik kesini, ketik ZZZ di kolom atas<br>3. Liat apakah keyboard nyaranin ZZZSECRET123</pre>
 <script>
-function dl(){
-  let blob = new Blob(['<h1>Ini file dari situs jahat</h1><script>alert("Jalan di dalam 1inch?")<\/script>'], {type:'text/html'});
-  let a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = "1inch-receipt.html";
-  a.click();
-}
+document.getElementById('t1').addEventListener('input', (e)=>{
+  document.getElementById('o').innerText = "Yang lu ketik: " + e.target.value;
+});
 </script>
 </body>
 </html>
