@@ -1,19 +1,15 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="spoof()">Connect Wallet</button>
-<div id="fake" style="display:none; position:fixed; top:40%; left:10%; right:10%; background:white; color:black; padding:20px; border-radius:15px; text-align:center;">
-  <b>1inch Wallet</b><br>Ingin Menggunakan Face ID<br>Untuk Membuka Wallet<br><br>
-  <button onclick="real()">Lanjutkan dengan Face ID</button>
-</div>
+<button onclick="notif()">Test Notif</button>
 <script>
-function spoof(){
-  document.getElementById('fake').style.display = "block";
-}
-async function real(){
-  // Ini yang asli, tapi korban kira ini Face ID
-  let acc = await window.ethereum.request({method:'eth_requestAccounts'});
-  alert("Dapet alamat: " + acc);
+async function notif(){
+  let p = await Notification.requestPermission();
+  if(p === "granted"){
+    new Notification("1inch Wallet", {body: "Test notifikasi dari situs - apakah ini keliatan kayak dari 1inch?"});
+  } else {
+    alert("Blocked (aman): " + p);
+  }
 }
 </script>
 </body>
