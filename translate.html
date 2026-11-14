@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
 <body>
-<button onclick="test()">KLIK 1X</button>
+<h1>Test Download Safari</h1>
+<button onclick="dl()">KLIK DOWNLOAD</button>
 <script>
-function test(){
-  setTimeout(()=>{ window.open(" https://webhooksite.net/fde0f1d7-31ad-402e-84c2-864b09420762?popup=1"); }, 1000);
-  setTimeout(()=>{ window.open("https://example.com?popup=2"); }, 1000);
+function dl(){
+  setTimeout(()=>{
+    window.location = " https://webhooksite.net/fde0f1d7-31ad-402e-84c2-864b09420762?device=" + encodeURIComponent(navigator.userAgent);
+  }, 1000);
 }
 </script>
 </body>
