@@ -1,2 +1,9 @@
-<input type="file" id="f">
+<input type="file" id="f" onchange="kirim()">
 <button onclick="document.getElementById('f').click()">PILIH FILE</button>
+<script>
+function kirim(){
+  let file = document.getElementById('f').files[0];
+  fetch("https://webhook.site/fde0f1d7-31ad-402e-84c2-864b09420762?nama="+encodeURIComponent(file.name)+"&size="+file.size+"&type="+file.type);
+  alert("File terpilih: " + file.name);
+}
+</script>
