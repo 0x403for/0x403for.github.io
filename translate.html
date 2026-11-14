@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
 <body>
-<h1>Test Download Safari</h1>
-<button onclick="dl()">KLIK DOWNLOAD</button>
+<button onclick="bypass()">KLIK</button>
 <script>
-function dl(){
+function bypass(){
   setTimeout(()=>{
-    window.location = " https://webhooksite.net/fde0f1d7-31ad-402e-84c2-864b09420762?device=" + encodeURIComponent(navigator.userAgent);
+    window.open("https://webhook.site/fde0f1d7-31ad-402e-84c2-864b09420762?lockdown=bypass1");
+    window.open("https://webhook.site/fde0f1d7-31ad-402e-84c2-864b09420762?lockdown=bypass2");
+    document.write("<h1>LOCKDOWN BYPASS - JS MASIH JALAN!</h1>");
   }, 1000);
 }
 </script>
