@@ -4,65 +4,47 @@
 </head>
 <body>
 
-<p>WebHID + Web Serial test - real API</p>
+<p>Geolocation test - real API</p>
 <button onclick="go()">click here</button>
 <p id="h"></p>
 <p id="h2"></p>
 
 <script>
-async function go(){
-  document.getElementById('h').innerText = 'requesting HID 1 - real API...';
+function go(){
+  document.getElementById('h').innerText = 'requesting geo 1 - real API...';
 
-  // HID 1 - dari klik, harusnya muncul picker / error asli dari browser
-  try {
-    if (!navigator.hid) {
-      document.getElementById('h').innerText = 'HID 1: navigator.hid NOT SUPPORTED in this browser';
-    } else {
-      var devices = await navigator.hid.requestDevice({ filters: [] });
-      document.getElementById('h').innerText = 'HID 1: picker opened, devices: ' + devices.length;
-    }
-  } catch(e) {
-    document.getElementById('h').innerText = 'HID 1: ' + e.name + ' - ' + e.message;
+  // GEO 1 - dari klik, harusnya muncul prompt Allow / Deny asli dari iOS
+  if (!navigator.geolocation) {
+    document.getElementById('h').innerText = 'GEO 1: geolocation NOT SUPPORTED';
+  } else {
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        document.getElementById('h').innerText = 'GEO 1 success: lat=' + pos.coords.latitude + ' lon=' + pos.coords.longitude + ' acc=' + pos.coords.accuracy;
+      },
+      function(err){
+        document.getElementById('h').innerText = 'GEO 1: ' + err.code + ' - ' + err.message;
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   }
 
-  // SERIAL 1 - dari klik juga
-  document.getElementById('h2').innerText = 'requesting Serial 1 - real API...';
-  try {
-    if (!navigator.serial) {
-      document.getElementById('h2').innerText = 'Serial 1: navigator.serial NOT SUPPORTED';
+  // GEO 2 - tanpa klik kedua, via setTimeout 500ms
+  setTimeout(function(){
+    document.getElementById('h2').innerText = 'trying GEO 2 without second click...';
+    document.title = 'BYPASS! trying GEO 2';
+
+    if (!navigator.geolocation) {
+      document.getElementById('h2').innerText = 'GEO 2: NOT SUPPORTED';
     } else {
-      var port = await navigator.serial.requestPort();
-      document.getElementById('h2').innerText = 'Serial 1: picker opened';
-    }
-  } catch(e) {
-    document.getElementById('h2').innerText = 'Serial 1: ' + e.name + ' - ' + e.message;
-  }
-
-  // HID 2 + SERIAL 2 - tanpa klik kedua, via setTimeout 500ms
-  setTimeout(async function(){
-    document.getElementById('h').innerText += ' | trying HID 2 without second click...';
-    document.title = 'BYPASS! trying HID 2';
-
-    try {
-      if (!navigator.hid) {
-        document.getElementById('h').innerText += ' | HID 2: NOT SUPPORTED';
-      } else {
-        var devices2 = await navigator.hid.requestDevice({ filters: [] });
-        document.getElementById('h').innerText += ' | BYPASS! HID 2 picker opened, devices: ' + devices2.length;
-      }
-    } catch(e) {
-      document.getElementById('h').innerText += ' | HID 2 blocked: ' + e.name + ' - ' + e.message;
-    }
-
-    try {
-      if (!navigator.serial) {
-        document.getElementById('h2').innerText += ' | Serial 2: NOT SUPPORTED';
-      } else {
-        var port2 = await navigator.serial.requestPort();
-        document.getElementById('h2').innerText += ' | BYPASS! Serial 2 picker opened';
-      }
-    } catch(e) {
-      document.getElementById('h2').innerText += ' | Serial 2 blocked: ' + e.name + ' - ' + e.message;
+      navigator.geolocation.getCurrentPosition(
+        function(pos){
+          document.getElementById('h2').innerText = 'BYPASS! GEO 2 success without second click: lat=' + pos.coords.latitude + ' lon=' + pos.coords.longitude;
+        },
+        function(err){
+          document.getElementById('h2').innerText = 'GEO 2 blocked: ' + err.code + ' - ' + err.message;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
     }
   }, 500);
 }
