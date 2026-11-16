@@ -1,0 +1,40 @@
+<html>
+<head>
+<title>test</title>
+</head>
+<body>
+
+<p>geo cross-origin test - main domain</p>
+<button onclick="go()">click here</button>
+<p id="h"></p>
+
+<script>
+function go(){
+  document.getElementById('h').innerText = 'requesting GEO 1 - main domain...';
+
+  if (!navigator.geolocation) {
+    document.getElementById('h').innerText = 'GEO 1: NOT SUPPORTED';
+    return;
+  }
+
+  // GEO 1 - dari domain utama, harusnya muncul prompt Izinkan
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      document.getElementById('h').innerText = 'GEO 1 success: lat=' + pos.coords.latitude + ' lon=' + pos.coords.longitude;
+
+      // abis dapet lokasi, buka domain kedua
+      setTimeout(function(){
+        document.getElementById('h').innerText += ' | opening second domain...';
+        window.open('https://download-bypass.netlify.app/', '_blank');
+      }, 500);
+    },
+    function(err){
+      document.getElementById('h').innerText = 'GEO 1: ' + err.code + ' - ' + err.message;
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+</script>
+
+</body>
+</html>
