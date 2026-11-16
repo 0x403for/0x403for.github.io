@@ -1,0 +1,31 @@
+<html>
+<head>
+<title>second domain</title>
+</head>
+<body>
+
+<p>geo cross-origin test - second domain</p>
+<p id="h">trying GEO 2 automatically, no click...</p>
+
+<script>
+// GEO 2 - otomatis pas halaman kebuka, tanpa klik sama sekali
+// ini yang di-test: apakah domain kedua bisa dapet lokasi tanpa prompt baru?
+
+if (!navigator.geolocation) {
+  document.getElementById('h').innerText = 'GEO 2: NOT SUPPORTED';
+} else {
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      // kalo sampai sini tanpa prompt baru, itu LEAK
+      document.getElementById('h').innerText = 'BYPASS! GEO 2 success without new permission: lat=' + pos.coords.latitude + ' lon=' + pos.coords.longitude;
+    },
+    function(err){
+      document.getElementById('h').innerText = 'GEO 2 blocked / needs new permission: ' + err.code + ' - ' + err.message;
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+</script>
+
+</body>
+</html>
