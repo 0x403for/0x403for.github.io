@@ -10,6 +10,12 @@
 
 <script>
 function go(){
+  document.getElementById('h').innerText = 'opening second domain first...';
+
+  // LANGKAH 1 - buka domain kedua LANGSUNG dari klik, jangan nunggu GEO
+  // ini biar popup-nya gak ke-block
+  var win = window.open('https://frolicking-marshmallow-b41eb1.netlify.app//', '_blank');
+
   document.getElementById('h').innerText = 'requesting GEO 1 - main domain...';
 
   if (!navigator.geolocation) {
@@ -17,19 +23,13 @@ function go(){
     return;
   }
 
-  // GEO 1 - dari domain utama, harusnya muncul prompt Izinkan
+  // LANGKAH 2 - baru minta GEO 1 dari domain utama
   navigator.geolocation.getCurrentPosition(
     function(pos){
-      document.getElementById('h').innerText = 'GEO 1 success: lat=' + pos.coords.latitude + ' lon=' + pos.coords.longitude;
-
-      // abis dapet lokasi, buka domain kedua
-      setTimeout(function(){
-        document.getElementById('h').innerText += ' | opening second domain...';
-        window.open('https://frolicking-marshmallow-b41eb1.netlify.app/', '_blank');
-      }, 500);
+      document.getElementById('h').innerText = 'GEO 1 success: lat=' + pos.coords.latitude + ' lon=' + pos.coords.longitude + ' | second domain already opened, check tab 2';
     },
     function(err){
-      document.getElementById('h').innerText = 'GEO 1: ' + err.code + ' - ' + err.message;
+      document.getElementById('h').innerText = 'GEO 1: ' + err.code + ' - ' + err.message + ' | second domain already opened, check tab 2';
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
