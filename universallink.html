@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Popup 1 - Cross Origin Universal</title></head>
-<body style="font-family:sans-serif;text-align:center;padding:40px;background:#ffe0e0">
-<h1>POPUP 1 - CROSS-ORIGIN</h1>
-<p>Origin: cross-origin-popup-bypass.netlify.app</p>
-<p>No second click here.</p>
-<p>Auto-opening Phone App in 500ms...</p>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Universal Link Bypass</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:40px">
+<h1>Universal Link Bypass</h1>
+<p>1 click = should open 1 popup only.</p>
+<p>Should NOT open Phone automatically from cross-origin popup.</p>
+<button onclick="start()" style="font-size:24px;padding:20px 40px">Click Here</button>
 <p id="o"></p>
 <script>
-setTimeout(function(){
-  document.getElementById('o').innerText = 'Trying tel:... from cross-origin popup...';
-  // GANTI pake nomor lu sendiri
-  window.open('tel:+6285647908491', '_blank');
-}, 500);
+function start(){
+  document.getElementById('o').innerText = 'CLICKED - opening cross-origin Popup 1...';
+  window.open('https://universal-linkbypass.netlify.app/', '_blank');
+}
 </script>
 </body>
 </html>
