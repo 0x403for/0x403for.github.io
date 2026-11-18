@@ -8,38 +8,18 @@
 <body style="font-family: sans-serif; padding: 40px; background: #ffffff;">
   <h1>PiP Spoofing Test</h1>
 
-  <!-- GANTI link di bawah ini pake link i.ibb.co lu -->
-  <img id="img" crossorigin="anonymous" src="https://ibb.co.com/d4hVTb6s" style="width: 100%; display: block;">
-
-  <br><br>
-  <video id="v" autoplay muted playsinline style="width: 100%; display: none;"></video>
-  <canvas id="c" width="800" height="1400" style="display: none;"></canvas>
+  <!-- Video MP4 beneran dari screenshot Google, bukan Canvas -->
+  <video id="v" controls autoplay muted playsinline loop style="width: 100%;" src="https://0x403for.github.io/google-spoof.mp4"></video>
   <br><br>
   <button onclick="pip()" style="font-size: 20px; padding: 15px 30px;">Buka PiP</button>
   <p id="o"></p>
 
   <script>
-    var img = document.getElementById('img');
-    var canvas = document.getElementById('c');
-    var ctx = canvas.getContext('2d');
-    var video = document.getElementById('v');
-
-    img.onload = function(){
-      ctx.drawImage(img, 0, 0, 800, 1400);
-      var stream = canvas.captureStream(30);
-      video.srcObject = stream;
-      video.muted = true;
-      video.play().catch(function(e){});
-      document.getElementById('o').innerText = 'Gambar ke-load, video ready. Silakan pencet Buka PiP.';
-    };
-    img.onerror = function(){
-      document.getElementById('o').innerText = 'Gambar GAGAL ke-load. Link-nya masih link halaman ibb.co.com, bukan link i.ibb.co.';
-    };
-
     async function pip(){
       try{
-        await video.requestPictureInPicture();
-        document.getElementById('o').innerText = 'PiP opened. Isinya screenshot Google persis.';
+        var v = document.getElementById('v');
+        await v.requestPictureInPicture();
+        document.getElementById('o').innerText = 'PiP opened. Isinya Google persis. Coba geser PiP-nya sampe nutupin address bar asli.';
       }catch(e){
         document.getElementById('o').innerText = 'Blocked: ' + e;
       }
