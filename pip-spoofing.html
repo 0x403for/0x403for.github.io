@@ -8,16 +8,12 @@
 <body style="font-family: sans-serif; padding: 40px; background: #ffffff;">
   <h1>PiP Spoofing Test</h1>
 
-  <!-- Gambar screenshot Google lu, ini yang bakal jadi isi PiP -->
-  <!-- File google.jpg harus ada di folder yang sama -->
-  <img id="img" src="google.jpg" style="width: 100%; display: block;" alt="Google Spoof Preview">
+  <!-- GANTI link di bawah ini pake link i.ibb.co lu -->
+  <img id="img" crossorigin="anonymous" src="https://ibb.co.com/d4hVTb6s" style="width: 100%; display: block;">
 
   <br><br>
-
-  <!-- Video ini disembunyiin, cuma buat jembatan ke PiP -->
   <video id="v" autoplay muted playsinline style="width: 100%; display: none;"></video>
   <canvas id="c" width="800" height="1400" style="display: none;"></canvas>
-
   <br><br>
   <button onclick="pip()" style="font-size: 20px; padding: 15px 30px;">Buka PiP</button>
   <p id="o"></p>
@@ -28,19 +24,22 @@
     var ctx = canvas.getContext('2d');
     var video = document.getElementById('v');
 
-    // Tunggu gambar ke-load, terus gambar ke canvas
     img.onload = function(){
       ctx.drawImage(img, 0, 0, 800, 1400);
-      // Jadikan canvas jadi video stream buat PiP
       var stream = canvas.captureStream(30);
       video.srcObject = stream;
-      video.play();
+      video.muted = true;
+      video.play().catch(function(e){});
+      document.getElementById('o').innerText = 'Gambar ke-load, video ready. Silakan pencet Buka PiP.';
+    };
+    img.onerror = function(){
+      document.getElementById('o').innerText = 'Gambar GAGAL ke-load. Link-nya masih link halaman ibb.co.com, bukan link i.ibb.co.';
     };
 
     async function pip(){
       try{
         await video.requestPictureInPicture();
-        document.getElementById('o').innerText = 'PiP opened. Isinya screenshot Google persis. Coba geser PiP-nya sampe nutupin address bar asli. Bisa gak?';
+        document.getElementById('o').innerText = 'PiP opened. Isinya screenshot Google persis.';
       }catch(e){
         document.getElementById('o').innerText = 'Blocked: ' + e;
       }
