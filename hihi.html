@@ -6,78 +6,54 @@
   <title>Test</title>
 </head>
 <body style="font-family: sans-serif; padding: 20px; background: #ffffff;">
-  <p>Buka di 【entity-Firefox¦canonical_name=Firefox】 iOS. Ikutin langkahnya.</p>
-  <p>Kalau pesan dari Tab Biasa bisa nyampe ke Tab Private (atau sebaliknya), berarti Private Mode-nya bocor.</p>
-  <p><b>Mode tab ini:</b> <span id="mode">Mengecek...</span></p>
-  <button onclick="sendMsg()" style="font-size: 20px; padding: 15px 30px;">Kirim Pesan ke Tab Lain</button>
+  <p>Buka di Firefox iOS. Pencet tombol di bawah.</p>
+  <p>Kalau popup download-nya nampilin nama file <b>laporan.pdf</b> padahal aslinya file <b>.exe</b>, berarti BUG.</p>
+
+  <button onclick="testRTL1()" style="font-size: 20px; padding: 15px 30px;">Download File RTL (exe jadi pdf)</button>
   <br><br>
-  <pre id="o" style="background: #f0f0f0; padding: 15px; white-space: pre-wrap;">Belum dites. Buka halaman ini di 2 tab (1 Tab Biasa + 1 Tab Private), terus pencet tombol di salah satu tab.</pre>
+  <button onclick="testRTL2()" style="font-size: 20px; padding: 15px 30px;">Download File Double Extension</button>
+  <br><br>
+  <pre id="o" style="background: #f0f0f0; padding: 15px; white-space: pre-wrap;">Belum dites. Pencet tombol di atas, liat popup download-nya.</pre>
 
   <script>
-    var myId = 'ID-' + Math.random().toString(36).substring(2, 8) + '-' + Date.now();
-    var bc = null;
-
-    // Coba deteksi Private Mode lewat Storage (ini cara kasar, tapi buat nandain tab ini Private atau Biasa)
-    try{
-      localStorage.setItem('test-private', '1');
-      localStorage.removeItem('test-private');
-      document.getElementById('mode').innerText = 'Tab Biasa (kemungkinan, karena localStorage bisa ditulis)';
-    }catch(e){
-      document.getElementById('mode').innerText = 'Tab Private (kemungkinan, karena localStorage di-block / error: ' + e + ')';
+    function downloadFile(name, content, type){
+      var blob = new Blob([content], {type: type});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1000);
     }
 
-    try{
-      bc = new BroadcastChannel('private-leak-test');
-      document.getElementById('o').innerText = "BroadcastChannel BERHASIL dibuat!\n";
-      document.getElementById('o').innerText += "ID tab ini: " + myId + "\n";
-      document.getElementById('o').innerText += "Mode tab ini: " + document.getElementById('mode').innerText + "\n\n";
-      document.getElementById('o').innerText += "Sekarang:\n";
-      document.getElementById('o').innerText += "1. Buka halaman ini juga di tab yang satunya (kalau ini Tab Biasa, buka di Tab Private, dan sebaliknya).\n";
-      document.getElementById('o').innerText += "2. Di salah satu tab, pencet tombol 'Kirim Pesan ke Tab Lain'.\n";
-      document.getElementById('o').innerText += "3. Liat di tab yang satunya: Apakah pesan-nya nyampe?\n\n";
-
-      bc.onmessage = function(e){
-        var o = document.getElementById('o');
-        o.innerText += "\n=== PESAN DITERIMA! ===\n";
-        o.innerText += "Dari ID: " + e.data.id + "\n";
-        o.innerText += "Isi pesan: " + e.data.msg + "\n";
-        o.innerText += "Waktu: " + e.data.time + "\n\n";
-        o.innerText += "BUG! Pesan dari tab lain BERHASIL nyampe ke tab ini!\n";
-        o.innerText += "Kalau tab ini Tab Private dan pengirim-nya Tab Biasa (atau sebaliknya), berarti Private Mode-nya BOCOR.\n";
-        o.innerText += "Website bisa nge-track lu walaupun lu udah Private Mode, karena ID-nya sama.\n";
-        o.innerText += "Screenshot ini + screenshot tab satunya (yang ngirim pesan).\n";
-      };
-
-      bc.onmessageerror = function(e){
-        document.getElementById('o').innerText += "Message error (AMAN?): " + e + "\n";
-      };
-
-    }catch(e){
-      document.getElementById('o').innerText = "BroadcastChannel TIDAK ADA / Error (AMAN - Firefox nge-block BroadcastChannel): " + e;
+    function testRTL1(){
+      var o = document.getElementById('o');
+      // Ini triknya: "laporan" + U+202E (RTL Override) + "fdp.exe"
+      // Di layar, U+202E ngebalik "fdp.exe" jadi "exe.pdf", jadi keliatannya "laporan.pdf"
+      // Padahal aslinya file-nya "laporan" + [RTL] + "fdp.exe" = kalau dibuka, ekstensinya .exe
+      var rtl = '\u202E';
+      var fakeName = 'laporan' + rtl + 'fdp.exe';
+      o.innerText = "Mencoba download file dengan nama RTL:\n";
+      o.innerText += "Nama asli (di kode): laporan + [U+202E] + fdp.exe\n";
+      o.innerText += "Nama yang SEHARUSNYA keliatan di popup kalau Firefox AMAN: laporan‮fdp.exe (ada karakter aneh / keliatan berantakan, atau Firefox nampilin peringatan)\n";
+      o.innerText += "Nama yang keliatan di popup kalau Firefox BUG: laporan.pdf (keliatan bersih kayak PDF beneran)\n\n";
+      o.innerText += "Sekarang liat popup download di Firefox:\n";
+      o.innerText += "1. Apakah popup-nya nampilin 'laporan.pdf'?\n";
+      o.innerText += "2. Kalau iya, screenshot popup-nya. Berarti BUG - korban bisa ketipu download .exe dikira .pdf.\n";
+      o.innerText += "3. Kalau popup-nya nampilin 'laporan‮fdp.exe' (berantakan) / ada peringatan 'Nama file mengandung karakter berbahaya', berarti AMAN.\n";
+      downloadFile(fakeName, 'Ini file test - isinya cuma teks, bukan exe beneran. Kalau file ini ke-download, cek di Files app: ekstensinya .exe atau .pdf?', 'application/octet-stream');
     }
 
-    function sendMsg(){
-      if(!bc){
-        alert("BroadcastChannel gak ada");
-        return;
-      }
-      var msg = {
-        id: myId,
-        msg: 'Halo dari tab ' + document.getElementById('mode').innerText + ' - ID: ' + myId,
-        time: new Date().toString()
-      };
-      bc.postMessage(msg);
-      document.getElementById('o').innerText += "\nPesan DIKIRIM dari tab ini (ID: " + myId + "). Cek tab satunya, apakah pesan-nya nyampe?\n";
+    function testRTL2(){
+      var o = document.getElementById('o');
+      // Double extension: laporan.pdf.exe - ini trik lama, tapi masih banyak yang kena kalau Firefox nyembunyiin ekstensi terakhirnya
+      o.innerText = "Mencoba download file double extension:\n";
+      o.innerText += "Nama: laporan.pdf.exe\n";
+      o.innerText += "Kalau popup 【entity-Firefox¦canonical_name=Firefox】 cuma nampilin 'laporan.pdf' (ekstensi .exe-nya kepotong / ketutupan), berarti BUG.\n";
+      o.innerText += "Kalau popup-nya nampilin full 'laporan.pdf.exe', berarti AMAN.\n";
+      downloadFile('laporan.pdf.exe', 'Ini file test double extension.', 'application/octet-stream');
     }
-
-    // Kirim pesan otomatis pas halaman di-load, biar gak perlu klik (ini yang dites: Apakah BroadcastChannel bisa kirim otomatis tanpa klik?)
-    window.addEventListener('load', function(){
-      setTimeout(function(){
-        if(bc){
-          bc.postMessage({id: myId, msg: 'Pesan OTOMATIS dari tab ' + document.getElementById('mode').innerText, time: new Date().toString()});
-        }
-      }, 3000);
-    });
   </script>
 </body>
 </html>
