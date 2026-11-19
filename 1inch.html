@@ -3,28 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Wallet Share + History</title>
+<title>Wallet Full Data Share</title>
 <style>
   body {
     font-family: -apple-system, system-ui, sans-serif;
     background: #111;
     color: #eee;
-    padding: 20px;
+    padding: 18px;
     margin: 0;
   }
   .box {
     background: #1c1c1e;
     border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 14px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
   }
   .label {
     font-size: 12px;
     color: #888;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
   .value {
-    font-size: 14px;
+    font-size: 13px;
     word-break: break-all;
   }
   button {
@@ -33,32 +33,30 @@
     color: #111;
     border: none;
     border-radius: 12px;
-    padding: 15px;
-    font-size: 16px;
+    padding: 14px;
+    font-size: 15px;
     font-weight: 600;
-    margin-top: 8px;
+    margin-top: 6px;
   }
   button:disabled {
     opacity: 0.45;
   }
   #status {
-    margin-top: 14px;
+    margin-top: 12px;
     font-size: 13px;
     text-align: center;
   }
-  #history {
+  #tokens, #history {
     font-size: 12px;
-    color: #aaa;
-    max-height: 120px;
-    overflow-y: auto;
-    margin-top: 6px;
+    color: #bbb;
+    line-height: 1.45;
   }
 </style>
 </head>
 <body>
 
 <div class="box">
-  <div class="label">Connected Address</div>
+  <div class="label">Address</div>
   <div class="value" id="addr">Not connected</div>
 </div>
 
@@ -68,19 +66,31 @@
 </div>
 
 <div class="box">
+  <div class="label">Token Holdings</div>
+  <div id="tokens">-</div>
+</div>
+
+<div class="box">
   <div class="label">Recent Transactions</div>
-  <div id="history">Connect dulu</div>
+  <div id="history">-</div>
 </div>
 
 <button id="connectBtn" onclick="connect()">Connect Wallet</button>
-<button id="shareBtn" onclick="shareData()" disabled>Share Address + Balance + History</button>
+<button id="shareBtn" onclick="shareAll()" disabled>Share Full Wallet Data</button>
 
 <div id="status"></div>
 
 <script>
-let currentAddress = null;
-let currentBalance = null;
-let recentTxs = [];
+let addr = null;
+let ethBal = null;
+let tokenData = [];
+let txData = [];
+
+const TOKENS = [
+  { symbol: "USDT", address: "0xdAC17F958D2ee523a2206206994597C9D831ec7", decimals: 6 },
+  { symbol: "USDC", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6 },
+  { symbol: "WETH", address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals: 18 }
+];
 
 async function connect() {
   const status = document.getElementById("status");
@@ -88,74 +98,113 @@ async function connect() {
   status.style.color = "#0ecb81";
 
   if (!window.ethereum) {
-    status.textContent = "No wallet detected";
+    status.textContent = "No wallet found";
     status.style.color = "#f6465d";
     return;
   }
 
   try {
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    currentAddress = accounts[0];
-    document.getElementById("addr").textContent = currentAddress;
+    addr = accounts[0];
+    document.getElementById("addr").textContent = addr;
 
-    // balance
-    const balanceHex = await window.ethereum.request({
+    // ETH balance
+    const balHex = await window.ethereum.request({
       method: "eth_getBalance",
-      params: [currentAddress, "latest"]
+      params: [addr, "latest"]
     });
-    const balanceWei = parseInt(balanceHex, 16);
-    currentBalance = (balanceWei / 1e18).toFixed(6) + " ETH";
-    document.getElementById("bal").textContent = currentBalance;
+    ethBal = (parseInt(balHex, 16) / 1e18).toFixed(6) + " ETH";
+    document.getElementById("bal").textContent = ethBal;
 
-    // ambil history (5 tx terakhir)
-    await loadHistory(currentAddress);
+    // Token balances
+    await loadTokens();
+
+    // Transaction history
+    await loadHistory();
 
     document.getElementById("shareBtn").disabled = false;
     status.textContent = "Connected";
   } catch (e) {
-    status.textContent = "Error: " + e.message;
+    status.textContent = e.message || "Connect failed";
     status.style.color = "#f6465d";
   }
 }
 
-async function loadHistory(address) {
-  const historyEl = document.getElementById("history");
-  historyEl.textContent = "Loading...";
+async function loadTokens() {
+  const el = document.getElementById("tokens");
+  el.textContent = "Loading...";
+  tokenData = [];
 
   try {
-    // pakai Etherscan public API (limit rendah, cukup untuk PoC)
-    const url = `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=5&sort=desc`;
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if (data.status === "1" && data.result.length > 0) {
-      recentTxs = data.result.slice(0, 5);
-      let html = "";
-      recentTxs.forEach((tx, i) => {
-        const val = (parseInt(tx.value) / 1e18).toFixed(4);
-        const shortHash = tx.hash.slice(0, 10) + "...";
-        html += `${i + 1}. ${shortHash} | ${val} ETH<br>`;
+    for (const t of TOKENS) {
+      // balanceOf(address) selector = 0x70a08231
+      const data = "0x70a08231" + addr.slice(2).padStart(64, "0");
+      const result = await window.ethereum.request({
+        method: "eth_call",
+        params: [{
+          to: t.address,
+          data: data
+        }, "latest"]
       });
-      historyEl.innerHTML = html;
-    } else {
-      historyEl.textContent = "No recent transactions / API limit";
-      recentTxs = [];
+
+      const raw = parseInt(result, 16);
+      const amount = raw / Math.pow(10, t.decimals);
+      if (amount > 0) {
+        tokenData.push(`${t.symbol}: ${amount.toFixed(4)}`);
+      }
     }
+
+    el.innerHTML = tokenData.length > 0 ? tokenData.join("<br>") : "No major tokens found";
   } catch (e) {
-    historyEl.textContent = "Failed to load history";
-    recentTxs = [];
+    el.textContent = "Failed to load tokens";
   }
 }
 
-async function shareData() {
-  if (!currentAddress) return;
+async function loadHistory() {
+  const el = document.getElementById("history");
+  el.textContent = "Loading...";
+  txData = [];
 
-  let text = `My wallet:\n${currentAddress}\nBalance: ${currentBalance}\n\nRecent Transactions:\n`;
+  try {
+    const url = `https://api.etherscan.io/api?module=account&action=txlist&address=${addr}&page=1&offset=5&sort=desc`;
+    const res = await fetch(url);
+    const json = await res.json();
 
-  if (recentTxs.length > 0) {
-    recentTxs.forEach((tx, i) => {
+    if (json.status === "1" && json.result && json.result.length > 0) {
+      txData = json.result.slice(0, 5);
+      let html = "";
+      txData.forEach((tx, i) => {
+        const val = (parseInt(tx.value) / 1e18).toFixed(4);
+        html += `${i+1}. ${tx.hash.slice(0,12)}... (${val} ETH)<br>`;
+      });
+      el.innerHTML = html;
+    } else {
+      el.textContent = "No recent txs / API limited";
+    }
+  } catch (e) {
+    el.textContent = "History unavailable";
+  }
+}
+
+async function shareAll() {
+  if (!addr) return;
+
+  let text = `Wallet Data Leak PoC\n\n`;
+  text += `Address:\n${addr}\n\n`;
+  text += `ETH Balance: ${ethBal}\n\n`;
+
+  text += `Token Holdings:\n`;
+  if (tokenData.length > 0) {
+    text += tokenData.join("\n") + "\n\n";
+  } else {
+    text += "None detected\n\n";
+  }
+
+  text += `Recent Transactions:\n`;
+  if (txData.length > 0) {
+    txData.forEach((tx, i) => {
       const val = (parseInt(tx.value) / 1e18).toFixed(4);
-      text += `${i + 1}. ${tx.hash} (${val} ETH)\n`;
+      text += `${i+1}. ${tx.hash} (${val} ETH)\n`;
     });
   } else {
     text += "No recent transactions found\n";
@@ -164,14 +213,14 @@ async function shareData() {
   if (navigator.share) {
     try {
       await navigator.share({
-        title: "My Wallet Data",
+        title: "Wallet Full Data",
         text: text
       });
       document.getElementById("status").textContent = "Share sheet opened";
       document.getElementById("status").style.color = "#0ecb81";
     } catch (e) {
       if (e.name !== "AbortError") {
-        document.getElementById("status").textContent = "Share failed";
+        document.getElementById("status").textContent = "Share error";
         document.getElementById("status").style.color = "#f6465d";
       }
     }
@@ -189,7 +238,7 @@ async function shareData() {
 // auto connect
 if (window.ethereum) {
   window.ethereum.request({ method: "eth_accounts" }).then(acc => {
-    if (acc.length > 0) connect();
+    if (acc.length) connect();
   });
 }
 </script>
