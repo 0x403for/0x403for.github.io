@@ -3,111 +3,143 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>1inch leak scanner</title>
+<title>1inch v4 new api</title>
 <style>
 body{background:#000;color:#fff;font-family:system-ui;padding:12px;margin:0}
 h1{font-size:18px;margin:0 0 4px} small{color:#888}
 button{display:block;width:100%;padding:14px;margin:8px 0;background:#fff;color:#000;border:0;border-radius:8px;font-size:15px}
-#log{font-size:12px;color:#ccc;white-space:pre-wrap;border:1px solid #333;padding:8px;border-radius:8px;min-height:200px}
-.ok{color:#4ade80} .bad{color:#f87171} .warn{color:#facc15}
+#log{font-size:12px;color:#ccc;white-space:pre-wrap;border:1px solid #333;padding:8px;border-radius:8px;min-height:250px}
 </style>
 </head>
 <body>
-<h1>TEST - 1inch Leak Scanner</h1>
-<small>test di wallet sendiri, testnet. Klik SCAN, terus screenshot log-nya. Semua yang BOCOR bakal ke-tandain merah.</small>
+<h1>TEST - 1inch V4 NEW API</h1>
+<small>Ini bukan test Tx / Sign / Clipboard lagi. Ini test API yang belum pernah di-test di 1inch. Pakai wallet test.</small>
 <br><br>
-<button onclick="scan()">▶ SCAN SEMUA METHOD - cari yang masih bocor</button>
-<button onclick="clearLog()">Hapus log</button>
+<button onclick="scanV4()">▶ SCAN V4 - API baru</button>
 <div id="log">log:</div>
 
 <script>
 var logEl = document.getElementById("log");
-function l(t, cls){ 
-  var d = document.createElement("div");
-  if(cls) d.className = cls;
-  d.textContent = t;
-  logEl.appendChild(d);
-}
-function clearLog(){ logEl.innerHTML = "log:"; }
+function l(t){ logEl.textContent += "\n" + t; }
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
 
-async function tryMethod(name, fn){
+async function scanV4(){
+  logEl.textContent = "log:";
+  l("=== SCAN V4 MULAI - API BARU ===");
+  l("");
+
+  // 1. Payment Request API - bisa baca kartu / Apple Pay?
+  l("--- 1. PaymentRequest API ---");
   try{
-    var r = await fn();
-    var s = JSON.stringify(r);
-    if(s && s.length > 80) s = s.slice(0,80) + "...";
-    l("⚠ " + name + " => BOCOR / SUPPORTED: " + s, "bad");
-    return true;
-  }catch(e){
-    l("✓ " + name + " => AMAN / BLOCKED: " + e.message, "ok");
-    return false;
-  }
-}
+    if(!window.PaymentRequest){ l("PaymentRequest tidak support - aman."); }
+    else{
+      var pr = new PaymentRequest([{supportedMethods:"basic-card"}], {total:{label:"TEST", amount:{currency:"USD", value:"0.01"}}});
+      var can = await pr.canMakePayment();
+      l("PaymentRequest bisa dibuat. canMakePayment: " + can);
+      l("CEK: kalau canMakePayment = true tanpa izin, berarti dApp bisa tau lu punya kartu / Apple Pay aktif. Itu BUG fingerprinting.");
+      pr.abort().catch(()=>{});
+    }
+  }catch(e){ l("PaymentRequest di-block: " + e.message); }
+  await sleep(500);
 
-async function scan(){
-  clearLog();
-  l("=== MULAI SCAN ===");
-  var acc = null;
-  try{ 
-    var a = await window.ethereum.request({method:"eth_requestAccounts"});
-    acc = a[0];
-    l("connect: " + acc.slice(0,6) + "..." + acc.slice(-4), "warn");
-  }catch(e){ l("connect gagal: " + e.message, "ok"); return; }
-
-  var chain = await window.ethereum.request({method:"eth_chainId"}).catch(e=>"?");
-  l("chain aktif: " + chain, "warn");
+  // 2. Credential Management - bisa baca password yang tersimpan?
   l("");
+  l("--- 2. Credential Management ---");
+  try{
+    if(!navigator.credentials){ l("navigator.credentials tidak support - aman."); }
+    else{
+      var cred = await navigator.credentials.get({password:true, mediation:"silent"});
+      if(cred){ l("CREDENTIAL BOCOR: dapet credential tanpa popup: " + (cred.id || "ada id") + " - INI BUG KRITIS."); }
+      else{ l("Tidak ada credential ke-return dengan silent - aman, harusnya minta popup dulu."); }
+    }
+  }catch(e){ l("Credential get di-block / butuh interaksi: " + e.message + " - Aman."); }
+  await sleep(500);
 
-  // 1. READ-ONLY - paling aman, gak ada popup
-  l("--- 1. READ-ONLY LEAK ---");
-  await tryMethod("eth_accounts (bisa baca address tanpa popup?)", ()=>window.ethereum.request({method:"eth_accounts"}));
-  await tryMethod("eth_getBalance (bisa baca balance tanpa popup?)", ()=>window.ethereum.request({method:"eth_getBalance", params:[acc, "latest"]}));
-  await tryMethod("eth_getTransactionCount", ()=>window.ethereum.request({method:"eth_getTransactionCount", params:[acc, "latest"]}));
-
-  // 2. PERMISSION / SESSION - yang bikin disconnect bisa di-bypass
+  // 3. WebAuthn / Passkey - bisa minta FaceID tanpa jelas?
   l("");
-  l("--- 2. PERMISSION BYPASS ---");
-  await tryMethod("wallet_getPermissions", ()=>window.ethereum.request({method:"wallet_getPermissions"}));
-  await tryMethod("wallet_requestPermissions", ()=>window.ethereum.request({method:"wallet_requestPermissions", params:[{eth_accounts:{}}]}));
-  await tryMethod("wallet_revokePermissions (bisa cabut izin?)", ()=>window.ethereum.request({method:"wallet_revokePermissions", params:[{eth_accounts:{}}]}));
+  l("--- 3. WebAuthn / Passkey ---");
+  try{
+    if(!window.PublicKeyCredential){ l("WebAuthn tidak support - aman."); }
+    else{
+      var avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      l("Platform Authenticator (FaceID) tersedia: " + avail);
+      l("CEK: kalau dApp bisa langsung minta FaceID tanpa nunjukin apa yang mau di-sign, itu BUG. Jangan klik Allow di popup FaceID kalau muncul, klik Cancel.");
+      // Kita TIDAK auto-minta FaceID, cuma cek ketersediaan. Kalau mau test full, klik tombol di bawah.
+    }
+  }catch(e){ l("WebAuthn error: " + e.message); }
+  await sleep(500);
 
-  // 3. SUBSCRIBE - mata-matain blok
+  // 4. Contact Picker API - bisa baca kontak?
   l("");
-  l("--- 3. SUBSCRIBE / MATA-MATA ---");
-  await tryMethod("eth_subscribe newHeads", ()=>window.ethereum.request({method:"eth_subscribe", params:["newHeads"]}));
-  await tryMethod("eth_subscribe logs", ()=>window.ethereum.request({method:"eth_subscribe", params:["logs", {address: acc}]}));
+  l("--- 4. Contact Picker API ---");
+  try{
+    if(!navigator.contacts){ l("navigator.contacts tidak support - aman."); }
+    else{
+      l("navigator.contacts SUPPORTED di 1inch! Ini jarang banget di WebView.");
+      l("CEK MANUAL: kalau dApp bisa buka Contact Picker tanpa popup izin iOS, itu BUG. Jangan pilih kontak asli, pilih kontak test aja kalau popup muncul.");
+    }
+  }catch(e){ l("Contacts error: " + e.message); }
+  await sleep(500);
 
-  // 4. SIGN / DECRYPT - yang paling bahaya, semua pakai data dummy
-  // Ini bakal munculin popup, lu klik REJECT aja, jangan APPROVE
+  // 5. File System Access API - bisa baca file di HP?
   l("");
-  l("--- 4. SIGN / DECRYPT - KLIK REJECT DI POPUP, JANGAN APPROVE ---");
-  var dummyHash = "[STRIPPED 66 bytes]";
-  var dummyHex = "0x" + Array.from(new TextEncoder().encode("TEST DUMMY - JANGAN APPROVE")).map(b=>b.toString(16).padStart(2,"0")).join("");
+  l("--- 5. File System Access API ---");
+  try{
+    if(!window.showOpenFilePicker){ l("showOpenFilePicker tidak support - aman."); }
+    else{
+      l("showOpenFilePicker SUPPORTED! Ini API yang bahaya di WebView.");
+      l("CEK: kalau dApp bisa buka file picker dan baca file Photos / Files tanpa izin iOS yang jelas, itu BUG.");
+      l("Jangan klik Allow kalau popup file muncul, klik Cancel aja, kita cuma mau tau apakah API-nya support.");
+    }
+  }catch(e){ l("File Picker error: " + e.message); }
+  await sleep(500);
 
-  l("Test eth_sign - kalau popup muncul tanpa warning BAHAYA, itu BOCOR. Klik REJECT.", "warn");
-  await tryMethod("eth_sign (raw hash, harusnya BLOCKED)", ()=>window.ethereum.request({method:"eth_sign", params:[acc, dummyHash]}));
-
-  l("Test personal_sign - klik REJECT", "warn");
-  await tryMethod("personal_sign", ()=>window.ethereum.request({method:"personal_sign", params:[dummyHex, acc]}));
-
-  l("Test eth_getEncryptionPublicKey", "warn");
-  await tryMethod("eth_getEncryptionPublicKey", ()=>window.ethereum.request({method:"eth_getEncryptionPublicKey", params:[acc]}));
-
-  l("Test eth_decrypt", "warn");
-  await tryMethod("eth_decrypt", ()=>window.ethereum.request({method:"eth_decrypt", params:[dummyHex, acc]}));
-
-  // 5. CHAIN / ASSET - yang bisa nipu user
+  // 6. Share API - bisa share tanpa user pilih?
   l("");
-  l("--- 5. CHAIN / ASSET SPOOF ---");
-  l("Test wallet_watchAsset - klik REJECT, cek apakah ada warning UNVERIFIED", "warn");
-  await tryMethod("wallet_watchAsset USDT palsu", ()=>window.ethereum.request({
-    method:"wallet_watchAsset",
-    params:{type:"ERC20", options:{address:"0x0000000000000000000000000000000000000000", symbol:"USDT", decimals:6, image:"https://0x403for.github.io/test.png"}}
-  }));
+  l("--- 6. Web Share API ---");
+  try{
+    if(!navigator.share){ l("navigator.share tidak support - aman."); }
+    else{
+      var canShare = navigator.canShare ? navigator.canShare({text:"TEST"}) : "tidak ada canShare";
+      l("navigator.share SUPPORTED. canShare text: " + canShare);
+      l("CEK: Share API harusnya selalu munculin Share Sheet iOS dan nunggu user pilih. Kalau bisa share otomatis tanpa Sheet, itu BUG.");
+    }
+  }catch(e){ l("Share error: " + e.message); }
+  await sleep(500);
+
+  // 7. Wake Lock / Screen Keep Awake - bisa bikin HP gak lock?
+  l("");
+  l("--- 7. Wake Lock API ---");
+  try{
+    if(!navigator.wakeLock){ l("WakeLock tidak support - aman."); }
+    else{
+      var wl = await navigator.wakeLock.request("screen");
+      l("WAKE LOCK BOCOR: dApp bisa bikin layar gak lock tanpa izin! Ini bisa dipakai buat cegah HP ke-lock pas transaksi sensitif.");
+      await wl.release();
+      l("Wake Lock udah di-release lagi.");
+    }
+  }catch(e){ l("WakeLock di-block: " + e.message + " - Aman."); }
+  await sleep(500);
+
+  // 8. Bluetooth / USB / NFC - bisa scan device sekitar?
+  l("");
+  l("--- 8. Bluetooth / USB / NFC ---");
+  try{
+    l("navigator.bluetooth: " + (!!navigator.bluetooth ? "SUPPORTED - CEK apakah bisa scan tanpa izin" : "tidak support - aman"));
+    l("navigator.usb: " + (!!navigator.usb ? "SUPPORTED - CEK apakah bisa list USB device" : "tidak support - aman"));
+    l("navigator.nfc: " + (!!navigator.nfc ? "SUPPORTED - BAHAYA kalau bisa baca NFC" : "tidak support - aman"));
+    if(navigator.usb){
+      var devs = await navigator.usb.getDevices();
+      l("USB devices yang udah pernah di-allow: " + devs.length);
+      if(devs.length>0) l("USB BOCOR: ada " + devs.length + " device yang bisa dibaca tanpa popup baru.");
+    }
+  }catch(e){ l("Bluetooth/USB error: " + e.message); }
 
   l("");
-  l("=== SCAN SELESAI ===", "warn");
-  l("Yang merah (BOCOR) = yang bisa lu jadiin laporan.");
-  l("Yang hijau (AMAN) = udah di-block 1inch, kayak screenshot lu tadi.");
+  l("=== SCAN V4 SELESAI ===");
+  l("Screenshot log ini.");
+  l("Yang paling worth dilaporin kalau SUPPORTED: No 2 (Credential), No 4 (Contacts), No 5 (File Picker), No 7 (WakeLock).");
+  l("Itu semua API yang seharusnya DI-BLOCK di dalam wallet, tapi sering ke-leak di WebView.");
 }
 </script>
 </body>
