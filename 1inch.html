@@ -3,61 +3,111 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>test decrypt</title>
+<title>1inch leak scanner</title>
 <style>
 body{background:#000;color:#fff;font-family:system-ui;padding:12px;margin:0}
-button{display:block;width:100%;padding:14px;margin:8px 0;background:#fff;color:#000;border:0;border-radius:8px;font-size:16px}
-#log{font-size:12px;color:#999;white-space:pre-wrap}
-small{color:#888}
+h1{font-size:18px;margin:0 0 4px} small{color:#888}
+button{display:block;width:100%;padding:14px;margin:8px 0;background:#fff;color:#000;border:0;border-radius:8px;font-size:15px}
+#log{font-size:12px;color:#ccc;white-space:pre-wrap;border:1px solid #333;padding:8px;border-radius:8px;min-height:200px}
+.ok{color:#4ade80} .bad{color:#f87171} .warn{color:#facc15}
 </style>
 </head>
 <body>
-<p><b>TEST - encryption key + decrypt - BELUM PERNAH DITEMUIN</b><br><small>test di wallet sendiri, jangan decrypt pesan asli orang</small></p>
-
-<button onclick="testEnc()">1. test minta encryptionPublicKey</button>
-<button onclick="testDec()">2. test minta decrypt pesan test</button>
+<h1>TEST - 1inch Leak Scanner</h1>
+<small>test di wallet sendiri, testnet. Klik SCAN, terus screenshot log-nya. Semua yang BOCOR bakal ke-tandain merah.</small>
+<br><br>
+<button onclick="scan()">▶ SCAN SEMUA METHOD - cari yang masih bocor</button>
+<button onclick="clearLog()">Hapus log</button>
 <div id="log">log:</div>
 
 <script>
 var logEl = document.getElementById("log");
-function l(t){ logEl.textContent += "\n" + t; }
+function l(t, cls){ 
+  var d = document.createElement("div");
+  if(cls) d.className = cls;
+  d.textContent = t;
+  logEl.appendChild(d);
+}
+function clearLog(){ logEl.innerHTML = "log:"; }
 
-function testEnc(){
-  window.ethereum.request({method:"eth_requestAccounts"}).then(function(a){
-    var account = a[0];
-    l("minta encryptionPublicKey...");
-    l("CEK DI POPUP 1INCH:");
-    l("- apakah ada warning 'Kunci ini bisa dipakai buat ngirim pesan rahasia ke lu'?");
-
-    return window.ethereum.request({
-      method: "eth_getEncryptionPublicKey",
-      params: [account]
-    });
-  }).then(function(key){
-    l("dapat key: " + key.slice(0,30) + "...");
-    l("kalau key-nya dikasih tanpa warning, itu finding pertama.");
-  }).catch(e=>l("gagal / ditolak / tidak support: "+e.message));
+async function tryMethod(name, fn){
+  try{
+    var r = await fn();
+    var s = JSON.stringify(r);
+    if(s && s.length > 80) s = s.slice(0,80) + "...";
+    l("⚠ " + name + " => BOCOR / SUPPORTED: " + s, "bad");
+    return true;
+  }catch(e){
+    l("✓ " + name + " => AMAN / BLOCKED: " + e.message, "ok");
+    return false;
+  }
 }
 
-function testDec(){
-  window.ethereum.request({method:"eth_requestAccounts"}).then(function(a){
-    var account = a[0];
-    l("minta decrypt pesan test...");
-    l("CEK DI POPUP 1INCH:");
-    l("- apakah popup nampilin isi pesan yang mau di-decrypt?");
-    l("- atau cuma bilang 'Decrypt Message' tanpa nampilin isinya?");
+async function scan(){
+  clearLog();
+  l("=== MULAI SCAN ===");
+  var acc = null;
+  try{ 
+    var a = await window.ethereum.request({method:"eth_requestAccounts"});
+    acc = a[0];
+    l("connect: " + acc.slice(0,6) + "..." + acc.slice(-4), "warn");
+  }catch(e){ l("connect gagal: " + e.message, "ok"); return; }
 
-    // Ini pesan test dummy, bukan pesan asli
-    // Kalau wallet mau decrypt tanpa nampilin isinya, itu bug
-    var dummyEncrypted = "[STRIPPED 258 bytes]";
+  var chain = await window.ethereum.request({method:"eth_chainId"}).catch(e=>"?");
+  l("chain aktif: " + chain, "warn");
+  l("");
 
-    return window.ethereum.request({
-      method: "eth_decrypt",
-      params: [dummyEncrypted, account]
-    });
-  }).then(function(plain){
-    l("decrypted: " + plain);
-  }).catch(e=>l("gagal / ditolak: "+e.message));
+  // 1. READ-ONLY - paling aman, gak ada popup
+  l("--- 1. READ-ONLY LEAK ---");
+  await tryMethod("eth_accounts (bisa baca address tanpa popup?)", ()=>window.ethereum.request({method:"eth_accounts"}));
+  await tryMethod("eth_getBalance (bisa baca balance tanpa popup?)", ()=>window.ethereum.request({method:"eth_getBalance", params:[acc, "latest"]}));
+  await tryMethod("eth_getTransactionCount", ()=>window.ethereum.request({method:"eth_getTransactionCount", params:[acc, "latest"]}));
+
+  // 2. PERMISSION / SESSION - yang bikin disconnect bisa di-bypass
+  l("");
+  l("--- 2. PERMISSION BYPASS ---");
+  await tryMethod("wallet_getPermissions", ()=>window.ethereum.request({method:"wallet_getPermissions"}));
+  await tryMethod("wallet_requestPermissions", ()=>window.ethereum.request({method:"wallet_requestPermissions", params:[{eth_accounts:{}}]}));
+  await tryMethod("wallet_revokePermissions (bisa cabut izin?)", ()=>window.ethereum.request({method:"wallet_revokePermissions", params:[{eth_accounts:{}}]}));
+
+  // 3. SUBSCRIBE - mata-matain blok
+  l("");
+  l("--- 3. SUBSCRIBE / MATA-MATA ---");
+  await tryMethod("eth_subscribe newHeads", ()=>window.ethereum.request({method:"eth_subscribe", params:["newHeads"]}));
+  await tryMethod("eth_subscribe logs", ()=>window.ethereum.request({method:"eth_subscribe", params:["logs", {address: acc}]}));
+
+  // 4. SIGN / DECRYPT - yang paling bahaya, semua pakai data dummy
+  // Ini bakal munculin popup, lu klik REJECT aja, jangan APPROVE
+  l("");
+  l("--- 4. SIGN / DECRYPT - KLIK REJECT DI POPUP, JANGAN APPROVE ---");
+  var dummyHash = "[STRIPPED 66 bytes]";
+  var dummyHex = "0x" + Array.from(new TextEncoder().encode("TEST DUMMY - JANGAN APPROVE")).map(b=>b.toString(16).padStart(2,"0")).join("");
+
+  l("Test eth_sign - kalau popup muncul tanpa warning BAHAYA, itu BOCOR. Klik REJECT.", "warn");
+  await tryMethod("eth_sign (raw hash, harusnya BLOCKED)", ()=>window.ethereum.request({method:"eth_sign", params:[acc, dummyHash]}));
+
+  l("Test personal_sign - klik REJECT", "warn");
+  await tryMethod("personal_sign", ()=>window.ethereum.request({method:"personal_sign", params:[dummyHex, acc]}));
+
+  l("Test eth_getEncryptionPublicKey", "warn");
+  await tryMethod("eth_getEncryptionPublicKey", ()=>window.ethereum.request({method:"eth_getEncryptionPublicKey", params:[acc]}));
+
+  l("Test eth_decrypt", "warn");
+  await tryMethod("eth_decrypt", ()=>window.ethereum.request({method:"eth_decrypt", params:[dummyHex, acc]}));
+
+  // 5. CHAIN / ASSET - yang bisa nipu user
+  l("");
+  l("--- 5. CHAIN / ASSET SPOOF ---");
+  l("Test wallet_watchAsset - klik REJECT, cek apakah ada warning UNVERIFIED", "warn");
+  await tryMethod("wallet_watchAsset USDT palsu", ()=>window.ethereum.request({
+    method:"wallet_watchAsset",
+    params:{type:"ERC20", options:{address:"0x0000000000000000000000000000000000000000", symbol:"USDT", decimals:6, image:"https://0x403for.github.io/test.png"}}
+  }));
+
+  l("");
+  l("=== SCAN SELESAI ===", "warn");
+  l("Yang merah (BOCOR) = yang bisa lu jadiin laporan.");
+  l("Yang hijau (AMAN) = udah di-block 1inch, kayak screenshot lu tadi.");
 }
 </script>
 </body>
