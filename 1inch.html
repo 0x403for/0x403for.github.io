@@ -1,245 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Wallet Full Data Share</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>test decrypt</title>
 <style>
-  body {
-    font-family: -apple-system, system-ui, sans-serif;
-    background: #111;
-    color: #eee;
-    padding: 18px;
-    margin: 0;
-  }
-  .box {
-    background: #1c1c1e;
-    border-radius: 14px;
-    padding: 14px 16px;
-    margin-bottom: 12px;
-  }
-  .label {
-    font-size: 12px;
-    color: #888;
-    margin-bottom: 3px;
-  }
-  .value {
-    font-size: 13px;
-    word-break: break-all;
-  }
-  button {
-    width: 100%;
-    background: #f0b90b;
-    color: #111;
-    border: none;
-    border-radius: 12px;
-    padding: 14px;
-    font-size: 15px;
-    font-weight: 600;
-    margin-top: 6px;
-  }
-  button:disabled {
-    opacity: 0.45;
-  }
-  #status {
-    margin-top: 12px;
-    font-size: 13px;
-    text-align: center;
-  }
-  #tokens, #history {
-    font-size: 12px;
-    color: #bbb;
-    line-height: 1.45;
-  }
+body{background:#000;color:#fff;font-family:system-ui;padding:12px;margin:0}
+button{display:block;width:100%;padding:14px;margin:8px 0;background:#fff;color:#000;border:0;border-radius:8px;font-size:16px}
+#log{font-size:12px;color:#999;white-space:pre-wrap}
+small{color:#888}
 </style>
 </head>
 <body>
+<p><b>TEST - encryption key + decrypt - BELUM PERNAH DITEMUIN</b><br><small>test di wallet sendiri, jangan decrypt pesan asli orang</small></p>
 
-<div class="box">
-  <div class="label">Address</div>
-  <div class="value" id="addr">Not connected</div>
-</div>
-
-<div class="box">
-  <div class="label">ETH Balance</div>
-  <div class="value" id="bal">-</div>
-</div>
-
-<div class="box">
-  <div class="label">Token Holdings</div>
-  <div id="tokens">-</div>
-</div>
-
-<div class="box">
-  <div class="label">Recent Transactions</div>
-  <div id="history">-</div>
-</div>
-
-<button id="connectBtn" onclick="connect()">Connect Wallet</button>
-<button id="shareBtn" onclick="shareAll()" disabled>Share Full Wallet Data</button>
-
-<div id="status"></div>
+<button onclick="testEnc()">1. test minta encryptionPublicKey</button>
+<button onclick="testDec()">2. test minta decrypt pesan test</button>
+<div id="log">log:</div>
 
 <script>
-let addr = null;
-let ethBal = null;
-let tokenData = [];
-let txData = [];
+var logEl = document.getElementById("log");
+function l(t){ logEl.textContent += "\n" + t; }
 
-const TOKENS = [
-  { symbol: "USDT", address: "0xdAC17F958D2ee523a2206206994597C9D831ec7", decimals: 6 },
-  { symbol: "USDC", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6 },
-  { symbol: "WETH", address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals: 18 }
-];
+function testEnc(){
+  window.ethereum.request({method:"eth_requestAccounts"}).then(function(a){
+    var account = a[0];
+    l("minta encryptionPublicKey...");
+    l("CEK DI POPUP 1INCH:");
+    l("- apakah ada warning 'Kunci ini bisa dipakai buat ngirim pesan rahasia ke lu'?");
 
-async function connect() {
-  const status = document.getElementById("status");
-  status.textContent = "";
-  status.style.color = "#0ecb81";
-
-  if (!window.ethereum) {
-    status.textContent = "No wallet found";
-    status.style.color = "#f6465d";
-    return;
-  }
-
-  try {
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    addr = accounts[0];
-    document.getElementById("addr").textContent = addr;
-
-    // ETH balance
-    const balHex = await window.ethereum.request({
-      method: "eth_getBalance",
-      params: [addr, "latest"]
+    return window.ethereum.request({
+      method: "eth_getEncryptionPublicKey",
+      params: [account]
     });
-    ethBal = (parseInt(balHex, 16) / 1e18).toFixed(6) + " ETH";
-    document.getElementById("bal").textContent = ethBal;
-
-    // Token balances
-    await loadTokens();
-
-    // Transaction history
-    await loadHistory();
-
-    document.getElementById("shareBtn").disabled = false;
-    status.textContent = "Connected";
-  } catch (e) {
-    status.textContent = e.message || "Connect failed";
-    status.style.color = "#f6465d";
-  }
+  }).then(function(key){
+    l("dapat key: " + key.slice(0,30) + "...");
+    l("kalau key-nya dikasih tanpa warning, itu finding pertama.");
+  }).catch(e=>l("gagal / ditolak / tidak support: "+e.message));
 }
 
-async function loadTokens() {
-  const el = document.getElementById("tokens");
-  el.textContent = "Loading...";
-  tokenData = [];
+function testDec(){
+  window.ethereum.request({method:"eth_requestAccounts"}).then(function(a){
+    var account = a[0];
+    l("minta decrypt pesan test...");
+    l("CEK DI POPUP 1INCH:");
+    l("- apakah popup nampilin isi pesan yang mau di-decrypt?");
+    l("- atau cuma bilang 'Decrypt Message' tanpa nampilin isinya?");
 
-  try {
-    for (const t of TOKENS) {
-      // balanceOf(address) selector = 0x70a08231
-      const data = "0x70a08231" + addr.slice(2).padStart(64, "0");
-      const result = await window.ethereum.request({
-        method: "eth_call",
-        params: [{
-          to: t.address,
-          data: data
-        }, "latest"]
-      });
+    // Ini pesan test dummy, bukan pesan asli
+    // Kalau wallet mau decrypt tanpa nampilin isinya, itu bug
+    var dummyEncrypted = "[STRIPPED 258 bytes]";
 
-      const raw = parseInt(result, 16);
-      const amount = raw / Math.pow(10, t.decimals);
-      if (amount > 0) {
-        tokenData.push(`${t.symbol}: ${amount.toFixed(4)}`);
-      }
-    }
-
-    el.innerHTML = tokenData.length > 0 ? tokenData.join("<br>") : "No major tokens found";
-  } catch (e) {
-    el.textContent = "Failed to load tokens";
-  }
-}
-
-async function loadHistory() {
-  const el = document.getElementById("history");
-  el.textContent = "Loading...";
-  txData = [];
-
-  try {
-    const url = `https://api.etherscan.io/api?module=account&action=txlist&address=${addr}&page=1&offset=5&sort=desc`;
-    const res = await fetch(url);
-    const json = await res.json();
-
-    if (json.status === "1" && json.result && json.result.length > 0) {
-      txData = json.result.slice(0, 5);
-      let html = "";
-      txData.forEach((tx, i) => {
-        const val = (parseInt(tx.value) / 1e18).toFixed(4);
-        html += `${i+1}. ${tx.hash.slice(0,12)}... (${val} ETH)<br>`;
-      });
-      el.innerHTML = html;
-    } else {
-      el.textContent = "No recent txs / API limited";
-    }
-  } catch (e) {
-    el.textContent = "History unavailable";
-  }
-}
-
-async function shareAll() {
-  if (!addr) return;
-
-  let text = `Wallet Data Leak PoC\n\n`;
-  text += `Address:\n${addr}\n\n`;
-  text += `ETH Balance: ${ethBal}\n\n`;
-
-  text += `Token Holdings:\n`;
-  if (tokenData.length > 0) {
-    text += tokenData.join("\n") + "\n\n";
-  } else {
-    text += "None detected\n\n";
-  }
-
-  text += `Recent Transactions:\n`;
-  if (txData.length > 0) {
-    txData.forEach((tx, i) => {
-      const val = (parseInt(tx.value) / 1e18).toFixed(4);
-      text += `${i+1}. ${tx.hash} (${val} ETH)\n`;
+    return window.ethereum.request({
+      method: "eth_decrypt",
+      params: [dummyEncrypted, account]
     });
-  } else {
-    text += "No recent transactions found\n";
-  }
-
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: "Wallet Full Data",
-        text: text
-      });
-      document.getElementById("status").textContent = "Share sheet opened";
-      document.getElementById("status").style.color = "#0ecb81";
-    } catch (e) {
-      if (e.name !== "AbortError") {
-        document.getElementById("status").textContent = "Share error";
-        document.getElementById("status").style.color = "#f6465d";
-      }
-    }
-  } else {
-    try {
-      await navigator.clipboard.writeText(text);
-      document.getElementById("status").textContent = "Copied to clipboard";
-      document.getElementById("status").style.color = "#f0b90b";
-    } catch (e) {
-      alert(text);
-    }
-  }
-}
-
-// auto connect
-if (window.ethereum) {
-  window.ethereum.request({ method: "eth_accounts" }).then(acc => {
-    if (acc.length) connect();
-  });
+  }).then(function(plain){
+    l("decrypted: " + plain);
+  }).catch(e=>l("gagal / ditolak: "+e.message));
 }
 </script>
 </body>
