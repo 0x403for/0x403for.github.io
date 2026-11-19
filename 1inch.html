@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Wallet Share Test</title>
+<title>Wallet Share + History</title>
 <style>
   body {
     font-family: -apple-system, system-ui, sans-serif;
@@ -15,8 +15,8 @@
   .box {
     background: #1c1c1e;
     border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
   }
   .label {
     font-size: 12px;
@@ -39,13 +39,19 @@
     margin-top: 8px;
   }
   button:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
   }
   #status {
     margin-top: 14px;
     font-size: 13px;
-    color: #0ecb81;
     text-align: center;
+  }
+  #history {
+    font-size: 12px;
+    color: #aaa;
+    max-height: 120px;
+    overflow-y: auto;
+    margin-top: 6px;
   }
 </style>
 </head>
@@ -61,18 +67,25 @@
   <div class="value" id="bal">-</div>
 </div>
 
+<div class="box">
+  <div class="label">Recent Transactions</div>
+  <div id="history">Connect dulu</div>
+</div>
+
 <button id="connectBtn" onclick="connect()">Connect Wallet</button>
-<button id="shareBtn" onclick="shareData()" disabled>Share Address + Balance</button>
+<button id="shareBtn" onclick="shareData()" disabled>Share Address + Balance + History</button>
 
 <div id="status"></div>
 
 <script>
 let currentAddress = null;
 let currentBalance = null;
+let recentTxs = [];
 
 async function connect() {
   const status = document.getElementById("status");
   status.textContent = "";
+  status.style.color = "#0ecb81";
 
   if (!window.ethereum) {
     status.textContent = "No wallet detected";
@@ -85,49 +98,87 @@ async function connect() {
     currentAddress = accounts[0];
     document.getElementById("addr").textContent = currentAddress;
 
-    // ambil balance
+    // balance
     const balanceHex = await window.ethereum.request({
       method: "eth_getBalance",
       params: [currentAddress, "latest"]
     });
-
     const balanceWei = parseInt(balanceHex, 16);
     currentBalance = (balanceWei / 1e18).toFixed(6) + " ETH";
     document.getElementById("bal").textContent = currentBalance;
 
+    // ambil history (5 tx terakhir)
+    await loadHistory(currentAddress);
+
     document.getElementById("shareBtn").disabled = false;
     status.textContent = "Connected";
-    status.style.color = "#0ecb81";
   } catch (e) {
-    status.textContent = "Connect failed: " + e.message;
+    status.textContent = "Error: " + e.message;
     status.style.color = "#f6465d";
+  }
+}
+
+async function loadHistory(address) {
+  const historyEl = document.getElementById("history");
+  historyEl.textContent = "Loading...";
+
+  try {
+    // pakai Etherscan public API (limit rendah, cukup untuk PoC)
+    const url = `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=5&sort=desc`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.status === "1" && data.result.length > 0) {
+      recentTxs = data.result.slice(0, 5);
+      let html = "";
+      recentTxs.forEach((tx, i) => {
+        const val = (parseInt(tx.value) / 1e18).toFixed(4);
+        const shortHash = tx.hash.slice(0, 10) + "...";
+        html += `${i + 1}. ${shortHash} | ${val} ETH<br>`;
+      });
+      historyEl.innerHTML = html;
+    } else {
+      historyEl.textContent = "No recent transactions / API limit";
+      recentTxs = [];
+    }
+  } catch (e) {
+    historyEl.textContent = "Failed to load history";
+    recentTxs = [];
   }
 }
 
 async function shareData() {
   if (!currentAddress) return;
 
-  const text = `My wallet:\n${currentAddress}\nBalance: ${currentBalance}`;
+  let text = `My wallet:\n${currentAddress}\nBalance: ${currentBalance}\n\nRecent Transactions:\n`;
+
+  if (recentTxs.length > 0) {
+    recentTxs.forEach((tx, i) => {
+      const val = (parseInt(tx.value) / 1e18).toFixed(4);
+      text += `${i + 1}. ${tx.hash} (${val} ETH)\n`;
+    });
+  } else {
+    text += "No recent transactions found\n";
+  }
 
   if (navigator.share) {
     try {
       await navigator.share({
-        title: "My Wallet",
+        title: "My Wallet Data",
         text: text
       });
       document.getElementById("status").textContent = "Share sheet opened";
       document.getElementById("status").style.color = "#0ecb81";
     } catch (e) {
       if (e.name !== "AbortError") {
-        document.getElementById("status").textContent = "Share error";
+        document.getElementById("status").textContent = "Share failed";
         document.getElementById("status").style.color = "#f6465d";
       }
     }
   } else {
-    // fallback
     try {
       await navigator.clipboard.writeText(text);
-      document.getElementById("status").textContent = "Copied to clipboard (no share API)";
+      document.getElementById("status").textContent = "Copied to clipboard";
       document.getElementById("status").style.color = "#f0b90b";
     } catch (e) {
       alert(text);
@@ -135,12 +186,10 @@ async function shareData() {
   }
 }
 
-// auto connect kalau sudah pernah connect
+// auto connect
 if (window.ethereum) {
-  window.ethereum.request({ method: "eth_accounts" }).then(accounts => {
-    if (accounts.length > 0) {
-      connect();
-    }
+  window.ethereum.request({ method: "eth_accounts" }).then(acc => {
+    if (acc.length > 0) connect();
   });
 }
 </script>
