@@ -1,63 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Ini yang dites: Icon + Nama palsu buat Add to Home Screen -->
-  <title>BCA Mobile</title>
-  <!-- Icon palsu - logo BCA -->
-  <link rel="apple-touch-icon" href="https://www.bca.co.id/-/media/Feature/Identity/BCA-Logo.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="https://www.bca.co.id/-/media/Feature/Identity/BCA-Logo.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="BCA Mobile">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#0055A5">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BCA mobile</title>
+<!-- INI KUNCINYA: Icon palsu = logo BCA asli dari App Store -->
+<link rel="【entity-apple¦canonical_name=Apple】-touch-icon" href="bca-logo.png">
+<link rel="【entity-apple¦canonical_name=Apple】-touch-icon" sizes="180x180" href="bca-logo.png">
+<link rel="icon" href="bca-logo.png">
+<meta name="【entity-apple¦canonical_name=Apple】-mobile-web-app-capable" content="yes">
+<meta name="【entity-apple¦canonical_name=Apple】-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="【entity-apple¦canonical_name=Apple】-mobile-web-app-title" content="BCA mobile">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2B4A9F">
 </head>
-<body style="font-family: sans-serif; padding: 20px; background: #0055A5; color: white; margin: 0;">
-  <p style="background: red; padding: 10px;">⚠️ INI WEBSITE TES, BUKAN APLIKASI BCA BENERAN. JANGAN MASUKIN PASSWORD ASLI.</p>
-
-  <h1 style="text-align: center;">BCA Mobile (PALSU)</h1>
-  <p style="text-align: center;">Ini tampilan phishing yang bakal muncul kalau korban Add to Home Screen website ini.</p>
-
-  <div style="background: white; color: black; padding: 20px; border-radius: 10px; margin: 20px 0;">
-    <h2>Login KlikBCA</h2>
-    <label>User ID:</label><br>
-    <input type="text" placeholder="User ID" style="font-size: 18px; padding: 10px; width: 100%; box-sizing: border-box;"><br><br>
-    <label>Password:</label><br>
-    <input type="password" placeholder="Password" style="font-size: 18px; padding: 10px; width: 100%; box-sizing: border-box;"><br><br>
-    <button onclick="alert('Ini cuma tes, jangan masukin password asli.')" style="font-size: 18px; padding: 12px; width: 100%; background: #0055A5; color: white; border: none; border-radius: 5px;">Login</button>
-  </div>
-
-  <h2>Cara ngetes Add to Home Screen:</h2>
-  <ol style="font-size: 16px; line-height: 1.6;">
-    <li>Di Firefox iOS, pencet tombol <b>Share</b> (kotak + panah ke atas) di bawah.</li>
-    <li>Pilih <b>Add to Home Screen</b> / <b>Tambah ke Layar Utama</b>.</li>
-    <li>Liat preview-nya: Nama-nya apa? Icon-nya apa?</li>
-    <li>Kalau preview-nya nunjukin Nama <b>"BCA Mobile"</b> + Icon logo BCA, berarti Firefox ngizinin website palsuin nama + icon jadi bank.</li>
-    <li><b>JANGAN pencet Add / Tambah beneran</b> kalau lu gak mau icon palsu nempel di Home Screen lu. Cuma liat preview-nya aja, terus Cancel.</li>
-    <li>Kalau lu terlanjur pencet Add, hapus icon-nya dari Home Screen (tekan lama -> Hapus).</li>
-  </ol>
-
-  <h2>Hasil Tes:</h2>
-  <pre id="o" style="background: #f0f0f0; color: black; padding: 15px;">Belum dites. Pencet Share -> Add to Home Screen, liat preview-nya:
-- Nama-nya: BCA Mobile atau 0x403for.github.io?
-- Icon-nya: Logo BCA atau icon Firefox / icon website asli?
-- Kalau nama + icon-nya BCA, berarti BUG - website bisa palsuin jadi aplikasi bank.
-- Kalau nama + icon-nya tetep 0x403for.github.io / 【entity-Firefox¦canonical_name=Firefox】, berarti AMAN - 【entity-Firefox¦canonical_name=Firefox】 gak ngizinin palsuin.
-- Kalau ada peringatan "Website ini mau nyamar jadi BCA Mobile", berarti AMAN BANGET.
-
-Bandingin sama Safari: buka link yang sama di Safari, Share -> Add to Home Screen, apakah Safari nunjukin nama + icon BCA juga, atau nunjukin nama asli?</pre>
-
-  <script>
-    // Kalau dibuka dari Home Screen (standalone mode), address bar-nya ilang, jadi keliatan kayak aplikasi beneran
-    // Ini yang dites: Apakah mode standalone nyembunyiin URL aslinya?
-    if (window.navigator.standalone) {
-      document.getElementById('o').innerText = "⚠️ INI DIBUKA DARI HOME SCREEN (Standalone Mode)\n";
-      document.getElementById('o').innerText += "Address bar-nya ilang kan? URL aslinya (0x403for.github.io) gak keliatan kan?\n";
-      document.getElementById('o').innerText += "Berarti kalau korban Add to Home Screen website phishing ini, korban gak bisa tau kalau ini website palsu, karena URL-nya gak keliatan.\n";
-      document.getElementById('o').innerText += "Ini BUG - mode standalone harusnya tetep nunjukin URL aslinya / peringatan kalau ini website, bukan aplikasi.\n";
-    }
-  </script>
+<body style="font-family: sans-serif; margin:0; background:#2B4A9F; color:white; padding:20px;">
+<p style="background:red; padding:10px;">⚠️ TES ONLY - BUKAN APLIKASI BCA ASLI - JANGAN MASUKIN PASSWORD ASLI</p>
+<h1 style="text-align:center;">BCA mobile</h1>
+<p style="text-align:center;">PT. Bank Central Asia Tbk - Versi 4.9.5 (PALSU)</p>
+<div style="background:white; color:black; padding:20px; border-radius:12px;">
+<h2>m-BCA</h2>
+<label>User ID:</label><br>
+<input style="width:100%; padding:12px; font-size:18px; box-sizing:border-box;"><br><br>
+<label>PIN / Password:</label><br>
+<input type="password" style="width:100%; padding:12px; font-size:18px; box-sizing:border-box;"><br><br>
+<button onclick="alert('TES ONLY')" style="width:100%; padding:14px; background:#2B4A9F; color:white; font-size:18px; border:none; border-radius:8px;">Login</button>
+<hr>
+<h2>KlikBCA</h2>
+<p>Ini tampilan yang bakal muncul kalau korban buka icon palsu dari Home Screen.</p>
+</div>
+<p style="font-size:14px; margin-top:20px;">PoC: Add to Home Screen spoofing. URL asli: https://0x403for.github.io/hihi-v2.html - tapi di Home Screen & di mode Web App, URL-nya tidak kelihatan.</p>
 </body>
 </html>
