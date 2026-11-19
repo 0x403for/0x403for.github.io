@@ -1,42 +1,148 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Share Leak PoC</title>
-  <style>
-    body { font-family: system-ui; padding: 40px; background: #0f0f0f; color: #eee; }
-    button { padding: 16px 32px; font-size: 18px; background: #22c55e; border: none; border-radius: 12px; color: white; cursor: pointer; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Wallet Share Test</title>
+<style>
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    background: #111;
+    color: #eee;
+    padding: 20px;
+    margin: 0;
+  }
+  .box {
+    background: #1c1c1e;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .label {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .value {
+    font-size: 14px;
+    word-break: break-all;
+  }
+  button {
+    width: 100%;
+    background: #f0b90b;
+    color: #111;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+  button:disabled {
+    opacity: 0.5;
+  }
+  #status {
+    margin-top: 14px;
+    font-size: 13px;
+    color: #0ecb81;
+    text-align: center;
+  }
+</style>
 </head>
 <body>
-  <h2>One-Click Share Leak Demo</h2>
-  <p>Address: 0x5fC0C21721C660C00faEF208C9f926A6FD74F915</p>
-  <p>Balance: 0 ETH</p>
 
-  <button onclick="shareWallet()">Share Address + Balance</button>
+<div class="box">
+  <div class="label">Connected Address</div>
+  <div class="value" id="addr">Not connected</div>
+</div>
 
-  <script>
-    async function shareWallet() {
-      const address = "0x5fC0C21721C660C00faEF208C9f926A6FD74F915";
-      const balance = "0 ETH";
-      
-      const text = `My wallet:\n${address}\nBalance: ${balance}`;
+<div class="box">
+  <div class="label">ETH Balance</div>
+  <div class="value" id="bal">-</div>
+</div>
 
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: "My Wallet",
-            text: text
-          });
-        } catch (err) {
-          console.log("Share cancelled or failed", err);
-        }
-      } else {
-        // Fallback untuk desktop
-        await navigator.clipboard.writeText(text);
-        alert("Data disalin ke clipboard (karena Web Share tidak support di browser ini):\n\n" + text);
+<button id="connectBtn" onclick="connect()">Connect Wallet</button>
+<button id="shareBtn" onclick="shareData()" disabled>Share Address + Balance</button>
+
+<div id="status"></div>
+
+<script>
+let currentAddress = null;
+let currentBalance = null;
+
+async function connect() {
+  const status = document.getElementById("status");
+  status.textContent = "";
+
+  if (!window.ethereum) {
+    status.textContent = "No wallet detected";
+    status.style.color = "#f6465d";
+    return;
+  }
+
+  try {
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    currentAddress = accounts[0];
+    document.getElementById("addr").textContent = currentAddress;
+
+    // ambil balance
+    const balanceHex = await window.ethereum.request({
+      method: "eth_getBalance",
+      params: [currentAddress, "latest"]
+    });
+
+    const balanceWei = parseInt(balanceHex, 16);
+    currentBalance = (balanceWei / 1e18).toFixed(6) + " ETH";
+    document.getElementById("bal").textContent = currentBalance;
+
+    document.getElementById("shareBtn").disabled = false;
+    status.textContent = "Connected";
+    status.style.color = "#0ecb81";
+  } catch (e) {
+    status.textContent = "Connect failed: " + e.message;
+    status.style.color = "#f6465d";
+  }
+}
+
+async function shareData() {
+  if (!currentAddress) return;
+
+  const text = `My wallet:\n${currentAddress}\nBalance: ${currentBalance}`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "My Wallet",
+        text: text
+      });
+      document.getElementById("status").textContent = "Share sheet opened";
+      document.getElementById("status").style.color = "#0ecb81";
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        document.getElementById("status").textContent = "Share error";
+        document.getElementById("status").style.color = "#f6465d";
       }
     }
-  </script>
+  } else {
+    // fallback
+    try {
+      await navigator.clipboard.writeText(text);
+      document.getElementById("status").textContent = "Copied to clipboard (no share API)";
+      document.getElementById("status").style.color = "#f0b90b";
+    } catch (e) {
+      alert(text);
+    }
+  }
+}
+
+// auto connect kalau sudah pernah connect
+if (window.ethereum) {
+  window.ethereum.request({ method: "eth_accounts" }).then(accounts => {
+    if (accounts.length > 0) {
+      connect();
+    }
+  });
+}
+</script>
 </body>
 </html>
