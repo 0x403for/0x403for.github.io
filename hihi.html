@@ -3,37 +3,82 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Credential Test</title>
+  <title>Test</title>
 </head>
 <body style="font-family: sans-serif; padding: 20px; background: #ffffff;">
-  <p>Website attacker manggil navigator.credentials.get() dengan mediation: 'silent' (tanpa popup).</p>
-  <p>Kalau password yang ke-save langsung muncul, berarti BUG.</p>
-
-  <button onclick="steal()" style="font-size: 20px; padding: 15px 30px;">Coba Ambil Password</button>
+  <p>Buka di Firefox iOS. Pencet tombol di bawah, terus ngomong apa aja.</p>
+  <p>Kalau omongan lu langsung jadi teks di bawah ini, berarti website bisa dengerin lu.</p>
+  <p>Cek: Apakah ada titik oranye di atas layar (indikator mic) pas website lagi dengerin?</p>
+  <button onclick="testSpeech()" style="font-size: 20px; padding: 15px 30px;">Mulai Dengerin</button>
   <br><br>
-  <pre id="o" style="background: #f0f0f0; padding: 15px; white-space: pre-wrap; font-size: 16px;">Belum dites. Pencet tombol di atas.</pre>
+  <button onclick="testSpeechAuto()" style="font-size: 20px; padding: 15px 30px;">Tes Dengerin Otomatis (Tanpa Klik)</button>
+  <br><br>
+  <pre id="o" style="background: #f0f0f0; padding: 15px; white-space: pre-wrap;">Belum dites. Pencet tombol di atas, terus ngomong.</pre>
 
   <script>
-    async function steal(){
-      var o = document.getElementById('o');
-      o.innerText = "Mencoba navigator.credentials.get() mediation silent...\n";
-      try{
-        const cred = await navigator.credentials.get({
-          password: true,
-          mediation: 'silent'
-        });
-        if(!cred){
-          o.innerText += "\nHasil: null\nAMAN - Firefox nge-block silent access, gak ngasih password tanpa popup.";
-        } else {
-          o.innerText += "\nBUG! DAPET CREDENTIAL TANPA POPUP!\n";
-          o.innerText += "ID: " + cred.id + "\n";
-          o.innerText += "Password: " + cred.password + "\n";
-          o.innerText += "Type: " + cred.type + "\n";
-          o.innerText += "\nScreenshot ini, ini bukti Credential Leak.";
-        }
-      }catch(e){
-        o.innerText += "\nError (AMAN - diblokir): " + e;
+    var o = document.getElementById('o');
+    var recognition = null;
+
+    function testSpeech(){
+      o.innerText = "Mencoba SpeechRecognition...\n";
+      o.innerText += "----------------------------------------\n";
+
+      var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SpeechRec){
+        o.innerText += "SpeechRecognition TIDAK ADA (AMAN - Firefox nge-block Speech API).";
+        return;
       }
+      o.innerText += "SpeechRecognition ADA di Firefox iOS ini.\n";
+      o.innerText += "Mencoba mulai dengerin...\n";
+      o.innerText += "Kalau muncul popup izin mic, itu AMAN. Pencet Izinkan, terus ngomong.\n";
+      o.innerText += "Kalau gak muncul popup izin mic tapi langsung dengerin, itu BUG.\n\n";
+
+      try{
+        recognition = new SpeechRec();
+        recognition.continuous = true; // Dengerin terus, gak berhenti
+        recognition.interimResults = true; // Hasil sementara juga dikasih
+        recognition.lang = 'id-ID'; // Bahasa Indonesia
+
+        recognition.onresult = function(e){
+          var transcript = '';
+          for(var i=0; i<e.results.length; i++){
+            transcript += e.results[i][0].transcript;
+          }
+          o.innerText = "BUG / Website bisa dengerin lu!\n";
+          o.innerText += "Omongan lu yang ke-denger: " + transcript + "\n\n";
+          o.innerText += "Cek: Apakah ada titik oranye di atas layar (Dynamic Island) pas website lagi dengerin?\n";
+          o.innerText += "Kalau titik oranye-nya GAK ADA, itu BUG (Mic tanpa indikator).\n";
+          o.innerText += "Kalau titik oranye-nya ADA, itu NORMAL (iOS ngasih tau kalau mic lagi dipake).\n\n";
+          o.innerText += "Sekarang coba ngomong: 'password saya adalah test123', liat apakah teks itu muncul di sini?";
+        };
+
+        recognition.onerror = function(e){
+          o.innerText += "Error Speech (AMAN - diblokir): " + e.error + "\n";
+          if(e.error === 'not-allowed'){
+            o.innerText += "Mic DITOLAK (AMAN - user harus izinin mic dulu).";
+          }
+        };
+
+        recognition.onend = function(){
+          o.innerText += "\nSpeechRecognition berhenti (mungkin karena gak ada suara 5 detik). Pencet tombol lagi buat mulai lagi.";
+        };
+
+        recognition.start();
+        o.innerText += "SpeechRecognition STARTED! Sekarang ngomong apa aja...\n";
+        o.innerText += "Cek titik oranye di atas layar sekarang! Ada gak?\n";
+
+      }catch(e){
+        o.innerText += "Error (AMAN): " + e;
+      }
+    }
+
+    function testSpeechAuto(){
+      o.innerText = "Mencoba SpeechRecognition OTOMATIS tanpa klik, pake setTimeout 1000ms...\n";
+      o.innerText += "Buka halaman ini, jangan pencet apa-apa, tunggu 1 detik.\n";
+      o.innerText += "Kalau website langsung dengerin tanpa lu pencet apa-apa, itu BUG (Auto Mic).\n";
+      setTimeout(function(){
+        testSpeech();
+      }, 1000);
     }
   </script>
 </body>
